@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
+import { EmptyState } from '@/components/dashboard/EmptyState';
+import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
 
 interface TeamData {
   project_name: string;
@@ -19,6 +21,7 @@ export const ResourceOverview = () => {
   const [totalWorkers, setTotalWorkers] = useState(0);
   const [activeTeams, setActiveTeams] = useState(0);
   const [avgUtilization, setAvgUtilization] = useState(0);
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const { user } = useAuth();
   const { projects } = useProjects();
   const { tasks } = useTasks();
@@ -100,6 +103,25 @@ export const ResourceOverview = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
           <p className="text-slate-500 mt-2">Loading resource data...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no projects exist
+  if (projects.length === 0) {
+    return (
+      <div className="space-y-6">
+        <EmptyState
+          type="projects"
+          title="No Projects to Manage Resources For"
+          description="Create your first project to start managing team resources, tracking utilization, and optimizing project assignments."
+          actionLabel="Create First Project"
+          onAction={() => setIsCreateProjectOpen(true)}
+        />
+        <CreateProjectDialog 
+          open={isCreateProjectOpen}
+          onOpenChange={setIsCreateProjectOpen}
+        />
       </div>
     );
   }

@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
-import { useStakeholders } from '@/hooks/useStakeholders';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 
 interface CreateStakeholderDialogProps {
@@ -15,103 +15,58 @@ interface CreateStakeholderDialogProps {
 }
 
 export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholderDialogProps) => {
-  const { createStakeholder } = useStakeholders();
-  const { toast } = useToast();
   const [formData, setFormData] = useState({
-    stakeholder_type: 'subcontractor' as 'subcontractor' | 'employee' | 'vendor',
+    stakeholder_type: '',
     company_name: '',
     contact_person: '',
-    phone: '',
     email: '',
+    phone: '',
     address: '',
     specialties: '',
     crew_size: '',
     license_number: '',
-    notes: '',
-    status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended'
+    notes: ''
   });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.company_name.trim()) {
-      newErrors.company_name = formData.stakeholder_type === 'employee' ? 'Full name is required' : 'Company name is required';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
-    }
-
-    if (formData.crew_size && (isNaN(parseInt(formData.crew_size)) || parseInt(formData.crew_size) < 1)) {
-      newErrors.crew_size = 'Crew size must be a positive number';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  
+  const { createStakeholder } = useStakeholders();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please correct the errors in the form",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
 
     const stakeholderData = {
-      stakeholder_type: formData.stakeholder_type,
-      company_name: formData.company_name.trim(),
-      contact_person: formData.contact_person.trim() || undefined,
-      phone: formData.phone.trim() || undefined,
-      email: formData.email.trim() || undefined,
-      address: formData.address.trim() || undefined,
-      specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      stakeholder_type: formData.stakeholder_type as 'subcontractor' | 'employee' | 'vendor',
+      company_name: formData.company_name || undefined,
+      contact_person: formData.contact_person || undefined,
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
+      address: formData.address || undefined,
+      specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()) : undefined,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
-      license_number: formData.license_number.trim() || undefined,
-      notes: formData.notes.trim() || undefined,
-      status: formData.status
+      license_number: formData.license_number || undefined,
+      notes: formData.notes || undefined,
+      status: 'active' as const
     };
 
     const { error } = await createStakeholder(stakeholderData);
-    
+
     if (!error) {
+      // Reset form
       setFormData({
-        stakeholder_type: 'subcontractor',
+        stakeholder_type: '',
         company_name: '',
         contact_person: '',
-        phone: '',
         email: '',
+        phone: '',
         address: '',
         specialties: '',
         crew_size: '',
         license_number: '',
-        notes: '',
-        status: 'active'
+        notes: ''
       });
-      setErrors({});
       onOpenChange(false);
-      toast({
-        title: "Success",
-        description: "Stakeholder created successfully"
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to create stakeholder. Please try again.",
-        variant: "destructive"
-      });
     }
     
     setLoading(false);
@@ -119,187 +74,128 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Stakeholder</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="type">Type *</Label>
-            <Select 
-              value={formData.stakeholder_type} 
-              onValueChange={(value: any) => handleInputChange('stakeholder_type', value)}
-            >
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="vendor">Vendor</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="stakeholder_type">Type *</Label>
+              <Select value={formData.stakeholder_type} onValueChange={(value) => handleInputChange('stakeholder_type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="vendor">Vendor/Supplier</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="company_name">Company/Name *</Label>
+              <Input
+                id="company_name"
+                value={formData.company_name}
+                onChange={(e) => handleInputChange('company_name', e.target.value)}
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="company_name">
-              {formData.stakeholder_type === 'employee' ? 'Full Name *' : 'Company Name *'}
-            </Label>
-            <Input
-              id="company_name"
-              value={formData.company_name}
-              onChange={(e) => handleInputChange('company_name', e.target.value)}
-              className={`min-h-[44px] ${errors.company_name ? 'border-red-500' : ''}`}
-              placeholder={formData.stakeholder_type === 'employee' ? 'Enter full name' : 'Enter company name'}
-            />
-            {errors.company_name && <p className="text-red-500 text-sm mt-1">{errors.company_name}</p>}
-          </div>
-
-          {formData.stakeholder_type !== 'employee' && (
-            <div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="contact_person">Contact Person</Label>
               <Input
                 id="contact_person"
                 value={formData.contact_person}
                 onChange={(e) => handleInputChange('contact_person', e.target.value)}
-                className="min-h-[44px]"
-                placeholder="Enter contact person name"
               />
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className={`min-h-[44px] ${errors.phone ? 'border-red-500' : ''}`}
-                placeholder="(555) 123-4567"
-              />
-              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
             </div>
             
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`min-h-[44px] ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="email@example.com"
               />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
             </div>
           </div>
 
-          <div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="crew_size">Crew Size</Label>
+              <Input
+                id="crew_size"
+                type="number"
+                value={formData.crew_size}
+                onChange={(e) => handleInputChange('crew_size', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
             <Input
               id="address"
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
-              className="min-h-[44px]"
-              placeholder="Enter full address"
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="specialties">Specialties (comma-separated)</Label>
             <Input
               id="specialties"
-              placeholder="Excavation, Concrete, Electrical..."
               value={formData.specialties}
               onChange={(e) => handleInputChange('specialties', e.target.value)}
-              className="min-h-[44px]"
+              placeholder="e.g. Electrical, Plumbing, HVAC"
             />
           </div>
 
-          {formData.stakeholder_type === 'subcontractor' && (
-            <div>
-              <Label htmlFor="crew_size">Crew Size</Label>
-              <Input
-                id="crew_size"
-                type="number"
-                min="1"
-                value={formData.crew_size}
-                onChange={(e) => handleInputChange('crew_size', e.target.value)}
-                className={`min-h-[44px] ${errors.crew_size ? 'border-red-500' : ''}`}
-                placeholder="Number of crew members"
-              />
-              {errors.crew_size && <p className="text-red-500 text-sm mt-1">{errors.crew_size}</p>}
-            </div>
-          )}
-
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="license_number">License Number</Label>
             <Input
               id="license_number"
               value={formData.license_number}
               onChange={(e) => handleInputChange('license_number', e.target.value)}
-              className="min-h-[44px]"
-              placeholder="Enter license number"
             />
           </div>
-
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select 
-              value={formData.status} 
-              onValueChange={(value: any) => handleInputChange('status', value)}
-            >
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
+          
+          <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              className="min-h-[88px]"
-              placeholder="Additional notes about this stakeholder..."
               rows={3}
             />
           </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button 
-              type="submit" 
-              disabled={loading} 
-              className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700"
-            >
-              {loading ? 'Creating...' : 'Create Stakeholder'}
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)} 
-              className="flex-1 min-h-[44px]"
-              disabled={loading}
-            >
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Stakeholder'}
             </Button>
           </div>
         </form>

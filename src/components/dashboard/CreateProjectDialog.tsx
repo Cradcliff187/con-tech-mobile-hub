@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProjects } from '@/hooks/useProjects';
+import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 
 interface CreateProjectDialogProps {
@@ -18,13 +20,20 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [budget, setBudget] = useState('');
+  const [clientId, setClientId] = useState('');
   const [status, setStatus] = useState<'planning' | 'active'>('planning');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
   
   const { createProject } = useProjects();
+  const { stakeholders } = useStakeholders();
   const { toast } = useToast();
+
+  // Filter stakeholders to show potential clients (vendors and subcontractors can be clients)
+  const potentialClients = stakeholders.filter(s => 
+    s.stakeholder_type === 'vendor' || s.stakeholder_type === 'subcontractor'
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +44,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
       description: description || undefined,
       location: location || undefined,
       budget: budget ? parseFloat(budget) : undefined,
+      client_id: clientId || undefined,
       status,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
@@ -53,7 +63,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
     } else {
       toast({
         title: "Project created successfully",
-        description: `${name} has been created`
+        description: `${name} has been created and is ready for team assignment`
       });
       
       // Reset form
@@ -61,6 +71,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
       setDescription('');
       setLocation('');
       setBudget('');
+      setClientId('');
       setStatus('planning');
       setStartDate('');
       setEndDate('');
@@ -84,6 +95,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Office Building Construction"
               required
             />
           </div>
@@ -94,6 +106,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of the project scope and objectives"
               rows={3}
             />
           </div>
@@ -104,12 +117,31 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
               id="location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              placeholder="Project site address or location"
             />
           </div>
+
+          {potentialClients.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="client">Client (Optional)</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {potentialClients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.company_name || client.contact_person}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget</Label>
+              <Label htmlFor="budget">Budget ($)</Label>
               <Input
                 id="budget"
                 type="number"
@@ -145,7 +177,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="endDate">Target Completion</Label>
               <Input
                 id="endDate"
                 type="date"

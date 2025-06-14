@@ -13,6 +13,7 @@ interface Task {
   start_date?: string;
   due_date?: string;
   assignee_id?: string;
+  assigned_stakeholder_id?: string;
   created_by?: string;
   progress: number;
   estimated_hours?: number;
@@ -67,7 +68,9 @@ export const useTasks = () => {
         category: taskData.category,
         estimated_hours: taskData.estimated_hours,
         progress: taskData.progress || 0,
-        created_by: user.id
+        created_by: user.id,
+        assignee_id: taskData.assignee_id,
+        assigned_stakeholder_id: taskData.assigned_stakeholder_id
       })
       .select()
       .single();

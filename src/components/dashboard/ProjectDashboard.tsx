@@ -1,14 +1,18 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AdvancedMetrics } from './AdvancedMetrics';
 import { ProjectHealthIndicators } from './ProjectHealthIndicators';
 import { QuickStats } from './QuickStats';
 import { RecentActivity } from './RecentActivity';
 import { WeatherWidget } from './WeatherWidget';
+import { CreateProjectDialog } from './CreateProjectDialog';
 import { useDebugInfo } from '@/hooks/useDebugInfo';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 export const ProjectDashboard = () => {
   const debugInfo = useDebugInfo();
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
   useEffect(() => {
     console.log('=== PROJECT DASHBOARD DEBUG INFO ===');
@@ -17,6 +21,21 @@ export const ProjectDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Header with Create Project Button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+          <p className="text-slate-600">Manage your construction projects</p>
+        </div>
+        <Button 
+          onClick={() => setIsCreateProjectOpen(true)}
+          className="bg-orange-600 hover:bg-orange-700"
+        >
+          <Plus size={16} className="mr-2" />
+          Create Project
+        </Button>
+      </div>
+
       {/* Enhanced Metrics Section */}
       <AdvancedMetrics />
       
@@ -33,6 +52,12 @@ export const ProjectDashboard = () => {
       
       {/* Recent Activity */}
       <RecentActivity />
+
+      {/* Create Project Dialog */}
+      <CreateProjectDialog 
+        open={isCreateProjectOpen}
+        onOpenChange={setIsCreateProjectOpen}
+      />
     </div>
   );
 };

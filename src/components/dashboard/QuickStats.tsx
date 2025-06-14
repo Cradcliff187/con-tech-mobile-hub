@@ -1,14 +1,18 @@
 
+import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useUsers } from '@/hooks/useUsers';
 import { useDebugInfo } from '@/hooks/useDebugInfo';
+import { CreateProjectDialog } from './CreateProjectDialog';
+import { EmptyState } from './EmptyState';
 
 export const QuickStats = () => {
   const { projects, loading: projectsLoading } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
   const { users, loading: usersLoading } = useUsers();
   const debugInfo = useDebugInfo();
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
   // Calculate real metrics from database
   const activeProjects = projects.filter(p => p.status === 'active').length;
@@ -51,6 +55,26 @@ export const QuickStats = () => {
     );
   }
 
+  // Show empty state if no projects exist
+  if (projects.length === 0) {
+    return (
+      <div className="md:col-span-2 lg:col-span-2">
+        <h2 className="text-xl font-semibold text-slate-800 mb-4">Quick Stats</h2>
+        <EmptyState
+          type="projects"
+          title="No Projects Yet"
+          description="Create your first project to start tracking progress, managing teams, and monitoring budgets."
+          actionLabel="Create First Project"
+          onAction={() => setIsCreateProjectOpen(true)}
+        />
+        <CreateProjectDialog 
+          open={isCreateProjectOpen}
+          onOpenChange={setIsCreateProjectOpen}
+        />
+      </div>
+    );
+  }
+
   const stats = [
     {
       label: 'Active Projects',
@@ -61,7 +85,7 @@ export const QuickStats = () => {
     {
       label: 'Schedule Performance',
       value: `${schedulePerformance}%`,
-      change: `${completedTasks}/${totalTasks} tasks completed`,
+      change: totalTasks > 0 ? `${completedTasks}/${totalTasks} tasks completed` : 'No tasks yet',
       color: schedulePerformance >= 75 ? 'text-green-600' : 'text-orange-600'
     },
     {
