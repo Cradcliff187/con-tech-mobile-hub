@@ -1,32 +1,69 @@
-
 import { useState } from 'react';
 import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
-import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
-import { ProjectTimeline } from '@/components/timeline/ProjectTimeline';
 import { TaskManager } from '@/components/tasks/TaskManager';
+import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
+import { TimelineView } from '@/components/timeline/TimelineView';
 import { ResourceManager } from '@/components/resources/ResourceManager';
 import { CommunicationCenter } from '@/components/communication/CommunicationCenter';
 import { DocumentCenter } from '@/components/documents/DocumentCenter';
-import { ProgressReports } from '@/components/reports/ProgressReports';
+import { ReportDashboard } from '@/components/reports/ReportDashboard';
+import { AdminNavigation } from '@/components/navigation/AdminNavigation';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Building2, 
+  CheckSquare, 
+  Calendar, 
+  BarChart3, 
+  Users, 
+  MessageSquare, 
+  FileText, 
+  TrendingUp,
+  LogOut,
+  Menu,
+  X
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const { user, signOut } = useAuth();
+  const [activeView, setActiveView] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { signOut } = useAuth();
+  const { isAdmin } = useAdminAuth();
+  const navigate = useNavigate();
 
-  const renderActiveComponent = () => {
-    switch (activeTab) {
+  const handleAdminPanelClick = () => {
+    navigate('/admin');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Building2 },
+    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+    { id: 'planning', label: 'Planning', icon: Calendar },
+    { id: 'timeline', label: 'Timeline', icon: BarChart3 },
+    { id: 'resources', label: 'Resources', icon: Users },
+    { id: 'communication', label: 'Communication', icon: MessageSquare },
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'reports', label: 'Reports', icon: TrendingUp },
+  ];
+
+  const renderContent = () => {
+    switch (activeView) {
       case 'dashboard':
         return <ProjectDashboard />;
+      case 'tasks':
+        return <TaskManager />;
       case 'planning':
         return <ProjectPlanning />;
       case 'timeline':
-        return <ProjectTimeline />;
-      case 'tasks':
-        return <TaskManager />;
+        return <TimelineView />;
       case 'resources':
         return <ResourceManager />;
       case 'communication':
@@ -34,48 +71,77 @@ const Index = () => {
       case 'documents':
         return <DocumentCenter />;
       case 'reports':
-        return <ProgressReports />;
+        return <ReportDashboard />;
       default:
         return <ProjectDashboard />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto px-4 py-6 pb-20">
-        <header className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">
-              Construction Manager Pro
-            </h1>
-            <p className="text-slate-600">
-              Streamline your construction projects with professional tools
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+            <div className="flex items-center gap-2">
+              <Building2 className="w-8 h-8 text-blue-600" />
+              <h1 className="text-xl font-bold text-gray-900">Construction Manager Pro</h1>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <User size={16} />
-              <span>{user?.email}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={signOut}
-              className="flex items-center gap-2"
-            >
-              <LogOut size={16} />
+            <AdminNavigation onAdminPanelClick={handleAdminPanelClick} />
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
           </div>
-        </header>
-        
-        <main className="min-h-[calc(100vh-200px)]">
-          {renderActiveComponent()}
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex flex-col w-64 bg-white shadow-sm border-r min-h-[calc(100vh-73px)]">
+          <nav className="p-4 space-y-2">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Button
+                  key={item.id}
+                  variant={activeView === item.id ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setActiveView(item.id)}
+                >
+                  <Icon className="w-4 h-4 mr-3" />
+                  {item.label}
+                </Button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation 
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          navigationItems={navigationItems}
+          activeView={activeView}
+          onNavigate={setActiveView}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          {renderContent()}
         </main>
       </div>
-      
-      <MobileNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
