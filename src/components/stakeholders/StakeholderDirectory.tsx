@@ -1,30 +1,78 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { StakeholderCard } from './StakeholderCard';
 import { StakeholderFilters } from './StakeholderFilters';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, SortAsc, SortDesc } from 'lucide-react';
 
 export const StakeholderDirectory = () => {
   const { stakeholders, loading } = useStakeholders();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'type' | 'created'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  const filteredStakeholders = stakeholders.filter(stakeholder => {
-    const matchesSearch = 
-      stakeholder.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      stakeholder.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      stakeholder.specialties?.some(specialty => 
-        specialty.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    
-    const matchesType = typeFilter === 'all' || stakeholder.stakeholder_type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || stakeholder.status === statusFilter;
-    
-    return matchesSearch && matchesType && matchesStatus;
-  });
+  const filteredAndSortedStakeholders = useMemo(() => {
+    let filtered = stakeholders.filter(stakeholder => {
+      const matchesSearch = 
+        stakeholder.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stakeholder.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stakeholder.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stakeholder.phone?.includes(searchTerm) ||
+        stakeholder.specialties?.some(specialty => 
+          specialty.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      
+      const matchesType = typeFilter === 'all' || stakeholder.stakeholder_type === typeFilter;
+      const matchesStatus = statusFilter === 'all' || stakeholder.status === statusFilter;
+      
+      return matchesSearch && matchesType && matchesStatus;
+    });
+
+    // Sort the filtered results
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.company_name?.toLowerCase() || '';
+          bValue = b.company_name?.toLowerCase() || '';
+          break;
+        case 'rating':
+          aValue = a.rating;
+          bValue = b.rating;
+          break;
+        case 'type':
+          aValue = a.stakeholder_type;
+          bValue = b.stakeholder_type;
+          break;
+        case 'created':
+          aValue = new Date(a.created_at);
+          bValue = new Date(b.created_at);
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [stakeholders, searchTerm, typeFilter, statusFilter, sortBy, sortOrder]);
+
+  const toggleSort = (newSortBy: typeof sortBy) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+  };
 
   if (loading) {
     return (
@@ -43,36 +91,82 @@ export const StakeholderDirectory = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
           <Input
-            placeholder="Search stakeholders..."
+            placeholder="Search by name, email, phone, or specialties..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 min-h-[44px]"
           />
         </div>
         
-        <StakeholderFilters
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-        />
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <StakeholderFilters
+            typeFilter={typeFilter}
+            onTypeFilterChange={setTypeFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+          
+          {/* Sort Controls */}
+          <div className="flex gap-2">
+            <Button
+              variant={sortBy === 'name' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => toggleSort('name')}
+              className="min-h-[36px]"
+            >
+              Name {sortBy === 'name' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+            </Button>
+            <Button
+              variant={sortBy === 'rating' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => toggleSort('rating')}
+              className="min-h-[36px]"
+            >
+              Rating {sortBy === 'rating' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+            </Button>
+            <Button
+              variant={sortBy === 'type' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => toggleSort('type')}
+              className="min-h-[36px]"
+            >
+              Type {sortBy === 'type' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+            </Button>
+          </div>
+        </div>
       </div>
 
+      {/* Results Summary */}
+      <div className="text-sm text-slate-600">
+        Showing {filteredAndSortedStakeholders.length} of {stakeholders.length} stakeholders
+      </div>
+
+      {/* Stakeholder Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredStakeholders.map((stakeholder) => (
+        {filteredAndSortedStakeholders.map((stakeholder) => (
           <StakeholderCard key={stakeholder.id} stakeholder={stakeholder} />
         ))}
       </div>
 
-      {filteredStakeholders.length === 0 && (
+      {/* Empty State */}
+      {filteredAndSortedStakeholders.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-slate-500 mb-2">No stakeholders found</div>
+          <div className="text-slate-500 mb-2">
+            {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' 
+              ? 'No stakeholders match your search criteria' 
+              : 'No stakeholders found'
+            }
+          </div>
           <div className="text-sm text-slate-400">
-            Try adjusting your search or filters
+            {searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'Add your first stakeholder to get started'
+            }
           </div>
         </div>
       )}

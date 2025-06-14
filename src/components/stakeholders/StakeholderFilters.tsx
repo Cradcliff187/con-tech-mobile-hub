@@ -15,12 +15,12 @@ export const StakeholderFilters = ({
   onStatusFilterChange
 }: StakeholderFiltersProps) => {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
       <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
           <SelectValue placeholder="Type" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white">
           <SelectItem value="all">All Types</SelectItem>
           <SelectItem value="subcontractor">Subcontractors</SelectItem>
           <SelectItem value="employee">Employees</SelectItem>
@@ -29,10 +29,10 @@ export const StakeholderFilters = ({
       </Select>
       
       <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white">
           <SelectItem value="all">All Status</SelectItem>
           <SelectItem value="active">Active</SelectItem>
           <SelectItem value="inactive">Inactive</SelectItem>

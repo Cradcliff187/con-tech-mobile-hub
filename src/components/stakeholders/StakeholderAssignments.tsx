@@ -6,16 +6,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, User, Briefcase } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar, User, Briefcase, DollarSign, Clock, Search } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export const StakeholderAssignments = () => {
-  const { assignments, loading } = useStakeholderAssignments();
+  const { assignments, loading, updateAssignment } = useStakeholderAssignments();
   const { projects } = useProjects();
+  const { toast } = useToast();
   const [projectFilter, setProjectFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredAssignments = assignments.filter(assignment => 
-    projectFilter === 'all' || assignment.project_id === projectFilter
-  );
+  const filteredAssignments = assignments.filter(assignment => {
+    const matchesProject = projectFilter === 'all' || assignment.project_id === projectFilter;
+    const matchesStatus = statusFilter === 'all' || assignment.status === statusFilter;
+    const matchesSearch = 
+      assignment.stakeholder?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assignment.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assignment.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesProject && matchesStatus && matchesSearch;
+  });
+
+  const handleStatusUpdate = async (assignmentId: string, newStatus: string) => {
+    const { error } = await updateAssignment(assignmentId, { status: newStatus });
+    
+    if (!error) {
+      toast({
+        title: "Success",
+        description: "Assignment status updated successfully"
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to update assignment status",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -29,90 +58,171 @@ export const StakeholderAssignments = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Current Assignments</h3>
+      {/* Filters and Search */}
+      <div className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+          <Input
+            placeholder="Search assignments by stakeholder, role, or notes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 min-h-[44px]"
+          />
+        </div>
         
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by project" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Projects</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+              <SelectValue placeholder="Filter by project" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">All Projects</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
+      {/* Results Summary */}
+      <div className="text-sm text-slate-600">
+        Showing {filteredAssignments.length} of {assignments.length} assignments
+      </div>
+
+      {/* Assignments List */}
       <div className="grid gap-4">
-        {filteredAssignments.map((assignment) => (
-          <Card key={assignment.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">
-                  {assignment.stakeholder?.company_name || 'Unknown Stakeholder'}
-                </CardTitle>
-                <Badge className={
-                  assignment.status === 'active' ? 'bg-green-100 text-green-800' :
-                  assignment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }>
-                  {assignment.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-2">
-                  <User size={16} className="text-slate-500" />
-                  <span className="text-sm">
-                    {assignment.stakeholder?.stakeholder_type}
-                  </span>
+        {filteredAssignments.map((assignment) => {
+          const project = projects.find(p => p.id === assignment.project_id);
+          
+          return (
+            <Card key={assignment.id}>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg">
+                      {assignment.stakeholder?.company_name || 'Unknown Stakeholder'}
+                    </CardTitle>
+                    {project && (
+                      <p className="text-sm text-slate-600 mt-1">
+                        Project: {project.name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className={
+                      assignment.status === 'active' ? 'bg-green-100 text-green-800' :
+                      assignment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                      assignment.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                      assignment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      'bg-slate-100 text-slate-800'
+                    }>
+                      {assignment.status}
+                    </Badge>
+                    <Select
+                      value={assignment.status}
+                      onValueChange={(newStatus) => handleStatusUpdate(assignment.id, newStatus)}
+                    >
+                      <SelectTrigger className="w-32 h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="assigned">Assigned</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="paused">Paused</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <User size={16} className="text-slate-500" />
+                    <span>{assignment.stakeholder?.stakeholder_type}</span>
+                  </div>
+                  
+                  {assignment.role && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Briefcase size={16} className="text-slate-500" />
+                      <span>{assignment.role}</span>
+                    </div>
+                  )}
+                  
+                  {assignment.start_date && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar size={16} className="text-slate-500" />
+                      <span>
+                        {new Date(assignment.start_date).toLocaleDateString()}
+                        {assignment.end_date && ` - ${new Date(assignment.end_date).toLocaleDateString()}`}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {assignment.hourly_rate && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign size={16} className="text-slate-500" />
+                      <span>${assignment.hourly_rate}/hr</span>
+                    </div>
+                  )}
                 </div>
                 
-                {assignment.role && (
-                  <div className="flex items-center gap-2">
-                    <Briefcase size={16} className="text-slate-500" />
-                    <span className="text-sm">{assignment.role}</span>
+                {assignment.notes && (
+                  <div className="bg-slate-50 p-3 rounded-md">
+                    <p className="text-sm text-slate-600">{assignment.notes}</p>
                   </div>
                 )}
                 
-                {assignment.start_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-slate-500" />
-                    <span className="text-sm">
-                      {new Date(assignment.start_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-              
-              {assignment.notes && (
-                <p className="text-sm text-slate-600 mt-2">{assignment.notes}</p>
-              )}
-              
-              <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm">
-                  Edit Assignment
-                </Button>
-                <Button variant="outline" size="sm">
-                  View Performance
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" className="min-h-[36px]">
+                    Edit Assignment
+                  </Button>
+                  <Button variant="outline" size="sm" className="min-h-[36px]">
+                    View Performance
+                  </Button>
+                  <Button variant="outline" size="sm" className="min-h-[36px]">
+                    Contact Stakeholder
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
+      {/* Empty State */}
       {filteredAssignments.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-slate-500 mb-2">No assignments found</div>
+          <div className="text-slate-500 mb-2">
+            {searchTerm || projectFilter !== 'all' || statusFilter !== 'all'
+              ? 'No assignments match your search criteria'
+              : 'No assignments found'
+            }
+          </div>
           <div className="text-sm text-slate-400">
-            Stakeholders will appear here once assigned to projects
+            {searchTerm || projectFilter !== 'all' || statusFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'Stakeholders will appear here once assigned to projects'
+            }
           </div>
         </div>
       )}

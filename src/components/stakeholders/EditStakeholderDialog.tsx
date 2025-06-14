@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useStakeholders } from '@/hooks/useStakeholders';
+import { useState, useEffect } from 'react';
+import { useStakeholders, Stakeholder } from '@/hooks/useStakeholders';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
-interface CreateStakeholderDialogProps {
+interface EditStakeholderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  stakeholder: Stakeholder | null;
 }
 
-export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholderDialogProps) => {
-  const { createStakeholder } = useStakeholders();
+export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditStakeholderDialogProps) => {
+  const { updateStakeholder } = useStakeholders();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     stakeholder_type: 'subcontractor' as 'subcontractor' | 'employee' | 'vendor',
@@ -32,6 +33,25 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (stakeholder) {
+      setFormData({
+        stakeholder_type: stakeholder.stakeholder_type,
+        company_name: stakeholder.company_name || '',
+        contact_person: stakeholder.contact_person || '',
+        phone: stakeholder.phone || '',
+        email: stakeholder.email || '',
+        address: stakeholder.address || '',
+        specialties: stakeholder.specialties ? stakeholder.specialties.join(', ') : '',
+        crew_size: stakeholder.crew_size ? stakeholder.crew_size.toString() : '',
+        license_number: stakeholder.license_number || '',
+        notes: stakeholder.notes || '',
+        status: stakeholder.status
+      });
+      setErrors({});
+    }
+  }, [stakeholder]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -59,7 +79,7 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!stakeholder || !validateForm()) {
       toast({
         title: "Validation Error",
         description: "Please correct the errors in the form",
@@ -70,7 +90,7 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
 
     setLoading(true);
 
-    const stakeholderData = {
+    const updatedData = {
       stakeholder_type: formData.stakeholder_type,
       company_name: formData.company_name.trim(),
       contact_person: formData.contact_person.trim() || undefined,
@@ -84,32 +104,18 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
       status: formData.status
     };
 
-    const { error } = await createStakeholder(stakeholderData);
+    const { error } = await updateStakeholder(stakeholder.id, updatedData);
     
     if (!error) {
-      setFormData({
-        stakeholder_type: 'subcontractor',
-        company_name: '',
-        contact_person: '',
-        phone: '',
-        email: '',
-        address: '',
-        specialties: '',
-        crew_size: '',
-        license_number: '',
-        notes: '',
-        status: 'active'
-      });
-      setErrors({});
       onOpenChange(false);
       toast({
         title: "Success",
-        description: "Stakeholder created successfully"
+        description: "Stakeholder updated successfully"
       });
     } else {
       toast({
         title: "Error",
-        description: "Failed to create stakeholder. Please try again.",
+        description: "Failed to update stakeholder. Please try again.",
         variant: "destructive"
       });
     }
@@ -119,17 +125,18 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
+  if (!stakeholder) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Stakeholder</DialogTitle>
+          <DialogTitle>Edit Stakeholder</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,7 +166,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
               value={formData.company_name}
               onChange={(e) => handleInputChange('company_name', e.target.value)}
               className={`min-h-[44px] ${errors.company_name ? 'border-red-500' : ''}`}
-              placeholder={formData.stakeholder_type === 'employee' ? 'Enter full name' : 'Enter company name'}
             />
             {errors.company_name && <p className="text-red-500 text-sm mt-1">{errors.company_name}</p>}
           </div>
@@ -172,7 +178,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                 value={formData.contact_person}
                 onChange={(e) => handleInputChange('contact_person', e.target.value)}
                 className="min-h-[44px]"
-                placeholder="Enter contact person name"
               />
             </div>
           )}
@@ -186,7 +191,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 className={`min-h-[44px] ${errors.phone ? 'border-red-500' : ''}`}
-                placeholder="(555) 123-4567"
               />
               {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
             </div>
@@ -199,7 +203,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className={`min-h-[44px] ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="email@example.com"
               />
               {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
             </div>
@@ -212,7 +215,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
               className="min-h-[44px]"
-              placeholder="Enter full address"
             />
           </div>
 
@@ -220,7 +222,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
             <Label htmlFor="specialties">Specialties (comma-separated)</Label>
             <Input
               id="specialties"
-              placeholder="Excavation, Concrete, Electrical..."
               value={formData.specialties}
               onChange={(e) => handleInputChange('specialties', e.target.value)}
               className="min-h-[44px]"
@@ -237,7 +238,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                 value={formData.crew_size}
                 onChange={(e) => handleInputChange('crew_size', e.target.value)}
                 className={`min-h-[44px] ${errors.crew_size ? 'border-red-500' : ''}`}
-                placeholder="Number of crew members"
               />
               {errors.crew_size && <p className="text-red-500 text-sm mt-1">{errors.crew_size}</p>}
             </div>
@@ -250,7 +250,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
               value={formData.license_number}
               onChange={(e) => handleInputChange('license_number', e.target.value)}
               className="min-h-[44px]"
-              placeholder="Enter license number"
             />
           </div>
 
@@ -279,7 +278,6 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               className="min-h-[88px]"
-              placeholder="Additional notes about this stakeholder..."
               rows={3}
             />
           </div>
@@ -290,7 +288,7 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
               disabled={loading} 
               className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700"
             >
-              {loading ? 'Creating...' : 'Create Stakeholder'}
+              {loading ? 'Updating...' : 'Update Stakeholder'}
             </Button>
             <Button 
               type="button" 
