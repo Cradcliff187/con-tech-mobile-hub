@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
@@ -13,8 +12,8 @@ export const TaskManager = () => {
       id: 1,
       title: 'Foundation Inspection',
       description: 'Schedule and complete foundation inspection with city inspector',
-      priority: 'high',
-      status: 'pending',
+      priority: 'high' as const,
+      status: 'pending' as const,
       assignee: 'Mike Johnson',
       dueDate: '2024-06-20',
       project: 'Downtown Office Complex',
@@ -24,8 +23,8 @@ export const TaskManager = () => {
       id: 2,
       title: 'Material Delivery Coordination',
       description: 'Coordinate steel beam delivery for structural work',
-      priority: 'medium',
-      status: 'in-progress',
+      priority: 'medium' as const,
+      status: 'in-progress' as const,
       assignee: 'Sarah Wilson',
       dueDate: '2024-06-18',
       project: 'Downtown Office Complex',
@@ -35,8 +34,8 @@ export const TaskManager = () => {
       id: 3,
       title: 'Safety Equipment Check',
       description: 'Weekly safety equipment inspection and maintenance',
-      priority: 'high',
-      status: 'completed',
+      priority: 'high' as const,
+      status: 'completed' as const,
       assignee: 'Tom Rodriguez',
       dueDate: '2024-06-15',
       project: 'All Sites',
@@ -46,8 +45,8 @@ export const TaskManager = () => {
       id: 4,
       title: 'Electrical Permit Application',
       description: 'Submit electrical permit application for Phase 2',
-      priority: 'medium',
-      status: 'pending',
+      priority: 'medium' as const,
+      status: 'pending' as const,
       assignee: 'Lisa Chen',
       dueDate: '2024-06-22',
       project: 'Residential Housing Phase 2',

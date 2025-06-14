@@ -1,4 +1,3 @@
-
 import { ProjectCard } from './ProjectCard';
 import { QuickStats } from './QuickStats';
 import { RecentActivity } from './RecentActivity';
@@ -13,7 +12,7 @@ export const ProjectDashboard = () => {
       budget: 2500000,
       spent: 1700000,
       dueDate: '2024-08-15',
-      status: 'on-track',
+      status: 'on-track' as const,
       location: 'Downtown District'
     },
     {
@@ -23,7 +22,7 @@ export const ProjectDashboard = () => {
       budget: 1200000,
       spent: 408000,
       dueDate: '2024-10-30',
-      status: 'on-track',
+      status: 'on-track' as const,
       location: 'Riverside Development'
     },
     {
@@ -33,7 +32,7 @@ export const ProjectDashboard = () => {
       budget: 3800000,
       spent: 3420000,
       dueDate: '2024-07-20',
-      status: 'delayed',
+      status: 'delayed' as const,
       location: 'Route 101 Crossing'
     }
   ];
