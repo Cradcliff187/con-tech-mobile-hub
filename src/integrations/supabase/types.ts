@@ -113,6 +113,7 @@ export type Database = {
       }
       equipment: {
         Row: {
+          assigned_operator_id: string | null
           created_at: string | null
           id: string
           maintenance_due: string | null
@@ -125,6 +126,7 @@ export type Database = {
           utilization_rate: number | null
         }
         Insert: {
+          assigned_operator_id?: string | null
           created_at?: string | null
           id?: string
           maintenance_due?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           utilization_rate?: number | null
         }
         Update: {
+          assigned_operator_id?: string | null
           created_at?: string | null
           id?: string
           maintenance_due?: string | null
@@ -149,6 +152,13 @@ export type Database = {
           utilization_rate?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_assigned_operator_id_fkey"
+            columns: ["assigned_operator_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_operator_id_fkey"
             columns: ["operator_id"]
@@ -309,6 +319,316 @@ export type Database = {
           },
         ]
       }
+      stakeholder_assignments: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          equipment_id: string | null
+          hourly_rate: number | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          role: string | null
+          stakeholder_id: string
+          start_date: string | null
+          status: string | null
+          task_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          equipment_id?: string | null
+          hourly_rate?: number | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          role?: string | null
+          stakeholder_id: string
+          start_date?: string | null
+          status?: string | null
+          task_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          equipment_id?: string | null
+          hourly_rate?: number | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          role?: string | null
+          stakeholder_id?: string
+          start_date?: string | null
+          status?: string | null
+          task_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_assignments_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_assignments_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stakeholder_availability: {
+        Row: {
+          created_at: string | null
+          date: string
+          hours_available: number | null
+          id: string
+          is_available: boolean | null
+          notes: string | null
+          stakeholder_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          hours_available?: number | null
+          id?: string
+          is_available?: boolean | null
+          notes?: string | null
+          stakeholder_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          hours_available?: number | null
+          id?: string
+          is_available?: boolean | null
+          notes?: string | null
+          stakeholder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_availability_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stakeholder_certifications: {
+        Row: {
+          certification_name: string
+          certification_number: string | null
+          created_at: string | null
+          equipment_type: string
+          expiry_date: string | null
+          id: string
+          is_active: boolean | null
+          issued_date: string | null
+          issuing_authority: string | null
+          stakeholder_id: string
+        }
+        Insert: {
+          certification_name: string
+          certification_number?: string | null
+          created_at?: string | null
+          equipment_type: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          issued_date?: string | null
+          issuing_authority?: string | null
+          stakeholder_id: string
+        }
+        Update: {
+          certification_name?: string
+          certification_number?: string | null
+          created_at?: string | null
+          equipment_type?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          issued_date?: string | null
+          issuing_authority?: string | null
+          stakeholder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_certifications_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stakeholder_performance: {
+        Row: {
+          assignment_id: string | null
+          completed_tasks: number | null
+          created_at: string | null
+          evaluation_date: string | null
+          evaluator_id: string | null
+          feedback: string | null
+          id: string
+          project_id: string | null
+          quality_score: number | null
+          rating: number | null
+          safety_score: number | null
+          stakeholder_id: string
+          timeliness_score: number | null
+          total_hours: number | null
+        }
+        Insert: {
+          assignment_id?: string | null
+          completed_tasks?: number | null
+          created_at?: string | null
+          evaluation_date?: string | null
+          evaluator_id?: string | null
+          feedback?: string | null
+          id?: string
+          project_id?: string | null
+          quality_score?: number | null
+          rating?: number | null
+          safety_score?: number | null
+          stakeholder_id: string
+          timeliness_score?: number | null
+          total_hours?: number | null
+        }
+        Update: {
+          assignment_id?: string | null
+          completed_tasks?: number | null
+          created_at?: string | null
+          evaluation_date?: string | null
+          evaluator_id?: string | null
+          feedback?: string | null
+          id?: string
+          project_id?: string | null
+          quality_score?: number | null
+          rating?: number | null
+          safety_score?: number | null
+          stakeholder_id?: string
+          timeliness_score?: number | null
+          total_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_performance_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholder_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_performance_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_performance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_performance_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stakeholders: {
+        Row: {
+          address: string | null
+          company_name: string | null
+          contact_person: string | null
+          created_at: string | null
+          crew_size: number | null
+          email: string | null
+          id: string
+          insurance_expiry: string | null
+          license_number: string | null
+          notes: string | null
+          phone: string | null
+          profile_id: string | null
+          rating: number | null
+          specialties: string[] | null
+          stakeholder_type: Database["public"]["Enums"]["stakeholder_type"]
+          status: Database["public"]["Enums"]["stakeholder_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_name?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          crew_size?: number | null
+          email?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          rating?: number | null
+          specialties?: string[] | null
+          stakeholder_type: Database["public"]["Enums"]["stakeholder_type"]
+          status?: Database["public"]["Enums"]["stakeholder_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          crew_size?: number | null
+          email?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          rating?: number | null
+          specialties?: string[] | null
+          stakeholder_type?: Database["public"]["Enums"]["stakeholder_type"]
+          status?: Database["public"]["Enums"]["stakeholder_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholders_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_dependencies: {
         Row: {
           created_at: string | null
@@ -348,6 +668,7 @@ export type Database = {
       tasks: {
         Row: {
           actual_hours: number | null
+          assigned_stakeholder_id: string | null
           assignee_id: string | null
           category: string | null
           created_at: string | null
@@ -366,6 +687,7 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
+          assigned_stakeholder_id?: string | null
           assignee_id?: string | null
           category?: string | null
           created_at?: string | null
@@ -384,6 +706,7 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
+          assigned_stakeholder_id?: string | null
           assignee_id?: string | null
           category?: string | null
           created_at?: string | null
@@ -401,6 +724,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_stakeholder_id_fkey"
+            columns: ["assigned_stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_assignee_id_fkey"
             columns: ["assignee_id"]
@@ -438,6 +768,8 @@ export type Database = {
         | "on-hold"
         | "completed"
         | "cancelled"
+      stakeholder_status: "active" | "inactive" | "pending" | "suspended"
+      stakeholder_type: "subcontractor" | "employee" | "vendor"
       task_priority: "low" | "medium" | "high" | "critical"
       task_status: "not-started" | "in-progress" | "completed" | "blocked"
       user_role:
@@ -568,6 +900,8 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      stakeholder_status: ["active", "inactive", "pending", "suspended"],
+      stakeholder_type: ["subcontractor", "employee", "vendor"],
       task_priority: ["low", "medium", "high", "critical"],
       task_status: ["not-started", "in-progress", "completed", "blocked"],
       user_role: [
