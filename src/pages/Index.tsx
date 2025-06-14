@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
+import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { ProjectTimeline } from '@/components/timeline/ProjectTimeline';
 import { TaskManager } from '@/components/tasks/TaskManager';
 import { ResourceManager } from '@/components/resources/ResourceManager';
@@ -20,6 +21,8 @@ const Index = () => {
     switch (activeTab) {
       case 'dashboard':
         return <ProjectDashboard />;
+      case 'planning':
+        return <ProjectPlanning />;
       case 'timeline':
         return <ProjectTimeline />;
       case 'tasks':

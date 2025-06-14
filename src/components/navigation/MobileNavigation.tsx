@@ -1,5 +1,5 @@
 
-import { Calendar, Users, CheckSquare, MessageSquare, FileText, BarChart3, Home } from 'lucide-react';
+import { Home, Calendar, CheckSquare, Users, MessageSquare, FileText, BarChart3, Target } from 'lucide-react';
 
 interface MobileNavigationProps {
   activeTab: string;
@@ -9,16 +9,17 @@ interface MobileNavigationProps {
 export const MobileNavigation = ({ activeTab, onTabChange }: MobileNavigationProps) => {
   const navItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
+    { id: 'planning', icon: Target, label: 'Planning' },
     { id: 'timeline', icon: Calendar, label: 'Timeline' },
     { id: 'tasks', icon: CheckSquare, label: 'Tasks' },
     { id: 'resources', icon: Users, label: 'Resources' },
-    { id: 'communication', icon: MessageSquare, label: 'Messages' },
-    { id: 'documents', icon: FileText, label: 'Documents' },
-    { id: 'reports', icon: BarChart3, label: 'Reports' },
+    { id: 'communication', icon: MessageSquare, label: 'Chat' },
+    { id: 'documents', icon: FileText, label: 'Docs' },
+    { id: 'reports', icon: BarChart3, label: 'Reports' }
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 z-50">
       <div className="flex justify-around items-center max-w-md mx-auto">
         {navItems.slice(0, 5).map((item) => {
           const Icon = item.icon;
@@ -28,18 +29,18 @@ export const MobileNavigation = ({ activeTab, onTabChange }: MobileNavigationPro
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center px-2 py-1 rounded-lg transition-all duration-200 ${
+              className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
                 isActive 
                   ? 'text-orange-600 bg-orange-50' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <Icon size={20} />
-              <span className="text-xs mt-1">{item.label}</span>
+              <span className="text-xs font-medium">{item.label}</span>
             </button>
           );
         })}
       </div>
-    </nav>
+    </div>
   );
 };
