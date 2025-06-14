@@ -2,15 +2,14 @@
 import { TaskItem } from './TaskItem';
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in-progress' | 'completed';
-  assignee: string;
-  dueDate: string;
-  project: string;
-  category: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
+  due_date?: string;
+  category?: string;
+  project_id: string;
 }
 
 interface TaskListProps {

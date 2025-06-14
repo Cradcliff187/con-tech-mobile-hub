@@ -3,28 +3,31 @@ import { MapPin, Calendar, Clock } from 'lucide-react';
 
 interface ProjectCardProps {
   project: {
-    id: number;
+    id: string;
     name: string;
     progress: number;
-    budget: number;
-    spent: number;
-    dueDate: string;
-    status: 'on-track' | 'delayed' | 'completed';
-    location: string;
+    budget?: number;
+    spent?: number;
+    end_date?: string;
+    status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+    location?: string;
   };
 }
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
   const statusColors = {
-    'on-track': 'bg-green-100 text-green-800',
-    'delayed': 'bg-red-100 text-red-800',
-    'completed': 'bg-blue-100 text-blue-800'
+    'planning': 'bg-blue-100 text-blue-800',
+    'active': 'bg-green-100 text-green-800',
+    'on-hold': 'bg-yellow-100 text-yellow-800',
+    'completed': 'bg-green-100 text-green-800',
+    'cancelled': 'bg-red-100 text-red-800'
   };
 
   const progressColor = project.progress >= 75 ? 'bg-green-500' : 
                        project.progress >= 50 ? 'bg-orange-500' : 'bg-blue-500';
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount?: number) => {
+    if (!amount) return '$0';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -32,7 +35,8 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No due date';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -52,15 +56,19 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-center text-sm text-slate-600">
-          <MapPin size={16} className="mr-2" />
-          {project.location}
-        </div>
+        {project.location && (
+          <div className="flex items-center text-sm text-slate-600">
+            <MapPin size={16} className="mr-2" />
+            {project.location}
+          </div>
+        )}
 
-        <div className="flex items-center text-sm text-slate-600">
-          <Calendar size={16} className="mr-2" />
-          Due: {formatDate(project.dueDate)}
-        </div>
+        {project.end_date && (
+          <div className="flex items-center text-sm text-slate-600">
+            <Calendar size={16} className="mr-2" />
+            Due: {formatDate(project.end_date)}
+          </div>
+        )}
 
         <div>
           <div className="flex justify-between text-sm mb-2">
@@ -75,20 +83,22 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
           </div>
         </div>
 
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-slate-600">Budget</span>
-            <span className="font-medium text-slate-800">
-              {formatCurrency(project.spent)} / {formatCurrency(project.budget)}
-            </span>
+        {project.budget && (
+          <div>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-slate-600">Budget</span>
+              <span className="font-medium text-slate-800">
+                {formatCurrency(project.spent)} / {formatCurrency(project.budget)}
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div 
+                className="h-2 rounded-full bg-orange-500 transition-all duration-300"
+                style={{ width: `${project.budget > 0 ? ((project.spent || 0) / project.budget) * 100 : 0}%` }}
+              />
+            </div>
           </div>
-          <div className="w-full bg-slate-200 rounded-full h-2">
-            <div 
-              className="h-2 rounded-full bg-orange-500 transition-all duration-300"
-              style={{ width: `${(project.spent / project.budget) * 100}%` }}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

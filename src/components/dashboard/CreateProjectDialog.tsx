@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -45,9 +44,10 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
     const { error } = await createProject(projectData);
 
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error?.message || 'Unknown error occurred';
       toast({
         title: "Error creating project",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } else {

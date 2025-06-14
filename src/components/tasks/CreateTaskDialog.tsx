@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -48,9 +47,10 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
     const { error } = await createTask(taskData);
 
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error?.message || 'Unknown error occurred';
       toast({
         title: "Error creating task",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } else {

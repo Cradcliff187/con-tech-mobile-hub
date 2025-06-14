@@ -48,12 +48,23 @@ export const useProjects = () => {
   const createProject = async (projectData: Partial<Project>) => {
     if (!user) return { error: 'User not authenticated' };
 
+    if (!projectData.name) {
+      return { error: 'Project name is required' };
+    }
+
     const { data, error } = await supabase
       .from('projects')
-      .insert([{
-        ...projectData,
+      .insert({
+        name: projectData.name,
+        description: projectData.description,
+        status: projectData.status || 'planning',
+        start_date: projectData.start_date,
+        end_date: projectData.end_date,
+        budget: projectData.budget,
+        location: projectData.location,
+        progress: projectData.progress || 0,
         project_manager_id: user.id
-      }])
+      })
       .select()
       .single();
 

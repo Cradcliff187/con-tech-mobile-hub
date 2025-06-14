@@ -2,15 +2,14 @@
 import { Calendar, User, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in-progress' | 'completed';
-  assignee: string;
-  dueDate: string;
-  project: string;
-  category: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
+  due_date?: string;
+  category?: string;
+  project_id: string;
 }
 
 interface TaskItemProps {
@@ -21,29 +20,33 @@ export const TaskItem = ({ task }: TaskItemProps) => {
   const priorityColors = {
     low: 'bg-green-100 text-green-800',
     medium: 'bg-orange-100 text-orange-800',
-    high: 'bg-red-100 text-red-800'
+    high: 'bg-red-100 text-red-800',
+    critical: 'bg-red-200 text-red-900'
   };
 
   const statusIcons = {
-    pending: <Clock size={16} className="text-slate-500" />,
+    'not-started': <Clock size={16} className="text-slate-500" />,
     'in-progress': <AlertTriangle size={16} className="text-orange-500" />,
-    completed: <CheckCircle size={16} className="text-green-500" />
+    'completed': <CheckCircle size={16} className="text-green-500" />,
+    'blocked': <AlertTriangle size={16} className="text-red-500" />
   };
 
   const statusColors = {
-    pending: 'bg-slate-100 text-slate-700',
+    'not-started': 'bg-slate-100 text-slate-700',
     'in-progress': 'bg-orange-100 text-orange-700',
-    completed: 'bg-green-100 text-green-700'
+    'completed': 'bg-green-100 text-green-700',
+    'blocked': 'bg-red-100 text-red-700'
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No due date';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric'
     });
   };
 
-  const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow ${
@@ -54,19 +57,22 @@ export const TaskItem = ({ task }: TaskItemProps) => {
           <h3 className="text-lg font-medium text-slate-800 mb-1">
             {task.title}
           </h3>
-          <p className="text-sm text-slate-600 mb-2">
-            {task.description}
-          </p>
+          {task.description && (
+            <p className="text-sm text-slate-600 mb-2">
+              {task.description}
+            </p>
+          )}
           <div className="flex items-center gap-4 text-sm text-slate-500">
             <span className="flex items-center gap-1">
-              <User size={14} />
-              {task.assignee}
-            </span>
-            <span className="flex items-center gap-1">
               <Calendar size={14} />
-              {formatDate(task.dueDate)}
+              {formatDate(task.due_date)}
               {isOverdue && <span className="text-red-600 font-medium ml-1">(Overdue)</span>}
             </span>
+            {task.category && (
+              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                {task.category}
+              </span>
+            )}
           </div>
         </div>
         
@@ -84,8 +90,8 @@ export const TaskItem = ({ task }: TaskItemProps) => {
       </div>
       
       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-          {task.project}
+        <span className="text-xs text-slate-500">
+          Project ID: {task.project_id.slice(0, 8)}...
         </span>
         <div className="flex gap-2">
           <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">

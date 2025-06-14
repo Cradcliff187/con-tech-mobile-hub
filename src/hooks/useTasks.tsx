@@ -51,12 +51,24 @@ export const useTasks = () => {
   const createTask = async (taskData: Partial<Task>) => {
     if (!user) return { error: 'User not authenticated' };
 
+    if (!taskData.title || !taskData.project_id) {
+      return { error: 'Task title and project are required' };
+    }
+
     const { data, error } = await supabase
       .from('tasks')
-      .insert([{
-        ...taskData,
+      .insert({
+        title: taskData.title,
+        project_id: taskData.project_id,
+        description: taskData.description,
+        status: taskData.status || 'not-started',
+        priority: taskData.priority || 'medium',
+        due_date: taskData.due_date,
+        category: taskData.category,
+        estimated_hours: taskData.estimated_hours,
+        progress: taskData.progress || 0,
         created_by: user.id
-      }])
+      })
       .select()
       .single();
 
