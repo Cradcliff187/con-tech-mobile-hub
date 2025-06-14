@@ -3,14 +3,18 @@ import { useState } from 'react';
 import { ResourceOverview } from './ResourceOverview';
 import { ResourceAllocation } from './ResourceAllocation';
 import { EquipmentTracker } from './EquipmentTracker';
+import { MaintenanceScheduler } from './MaintenanceScheduler';
+import { ResourceConflicts } from './ResourceConflicts';
 
 export const ResourceManager = () => {
-  const [activeView, setActiveView] = useState<'overview' | 'allocation' | 'equipment'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'allocation' | 'equipment' | 'maintenance' | 'conflicts'>('overview');
 
   const views = [
     { id: 'overview', label: 'Overview' },
     { id: 'allocation', label: 'Allocation' },
-    { id: 'equipment', label: 'Equipment' }
+    { id: 'equipment', label: 'Equipment' },
+    { id: 'maintenance', label: 'Maintenance' },
+    { id: 'conflicts', label: 'Conflicts' }
   ];
 
   return (
@@ -38,6 +42,8 @@ export const ResourceManager = () => {
       {activeView === 'overview' && <ResourceOverview />}
       {activeView === 'allocation' && <ResourceAllocation />}
       {activeView === 'equipment' && <EquipmentTracker />}
+      {activeView === 'maintenance' && <MaintenanceScheduler />}
+      {activeView === 'conflicts' && <ResourceConflicts />}
     </div>
   );
 };
