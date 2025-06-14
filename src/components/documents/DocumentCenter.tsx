@@ -4,6 +4,7 @@ import { DocumentList } from './DocumentList';
 import { DocumentFilters } from './DocumentFilters';
 import { DocumentUpload } from './DocumentUpload';
 import { ReceiptUpload } from './ReceiptUpload';
+import { PhotoUpload } from './PhotoUpload';
 import { Folder } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 
@@ -33,7 +34,8 @@ export const DocumentCenter = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-slate-800">Document Center</h2>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <PhotoUpload onUploadComplete={handleUploadComplete} />
           <DocumentUpload onUploadComplete={handleUploadComplete} />
           <ReceiptUpload onUploadComplete={handleUploadComplete} />
           <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
