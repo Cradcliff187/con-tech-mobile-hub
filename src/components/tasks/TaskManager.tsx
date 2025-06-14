@@ -1,74 +1,50 @@
+
 import { useState } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { Plus } from 'lucide-react';
+import { useTasks } from '@/hooks/useTasks';
+import { Button } from '@/components/ui/button';
+import { CreateTaskDialog } from './CreateTaskDialog';
 
 export const TaskManager = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-
-  const tasks = [
-    {
-      id: 1,
-      title: 'Foundation Inspection',
-      description: 'Schedule and complete foundation inspection with city inspector',
-      priority: 'high' as const,
-      status: 'pending' as const,
-      assignee: 'Mike Johnson',
-      dueDate: '2024-06-20',
-      project: 'Downtown Office Complex',
-      category: 'inspection'
-    },
-    {
-      id: 2,
-      title: 'Material Delivery Coordination',
-      description: 'Coordinate steel beam delivery for structural work',
-      priority: 'medium' as const,
-      status: 'in-progress' as const,
-      assignee: 'Sarah Wilson',
-      dueDate: '2024-06-18',
-      project: 'Downtown Office Complex',
-      category: 'logistics'
-    },
-    {
-      id: 3,
-      title: 'Safety Equipment Check',
-      description: 'Weekly safety equipment inspection and maintenance',
-      priority: 'high' as const,
-      status: 'completed' as const,
-      assignee: 'Tom Rodriguez',
-      dueDate: '2024-06-15',
-      project: 'All Sites',
-      category: 'safety'
-    },
-    {
-      id: 4,
-      title: 'Electrical Permit Application',
-      description: 'Submit electrical permit application for Phase 2',
-      priority: 'medium' as const,
-      status: 'pending' as const,
-      assignee: 'Lisa Chen',
-      dueDate: '2024-06-22',
-      project: 'Residential Housing Phase 2',
-      category: 'permits'
-    }
-  ];
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const { tasks, loading } = useTasks();
 
   const filteredTasks = tasks.filter(task => {
     const matchesFilter = filter === 'all' || task.status === filter;
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.assignee.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-200 rounded w-64 mb-4"></div>
+          <div className="h-20 bg-slate-200 rounded mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-24 bg-slate-200 rounded"></div>
+            <div className="h-24 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-slate-800">Task Management</h2>
-        <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
+        <Button 
+          onClick={() => setShowCreateDialog(true)}
+          className="bg-orange-600 text-white hover:bg-orange-700 flex items-center gap-2"
+        >
           <Plus size={20} />
           New Task
-        </button>
+        </Button>
       </div>
 
       <TaskFilters 
@@ -79,6 +55,11 @@ export const TaskManager = () => {
       />
 
       <TaskList tasks={filteredTasks} />
+      
+      <CreateTaskDialog 
+        open={showCreateDialog} 
+        onOpenChange={setShowCreateDialog} 
+      />
     </div>
   );
 };

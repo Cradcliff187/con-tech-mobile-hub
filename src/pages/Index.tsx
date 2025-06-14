@@ -8,9 +8,13 @@ import { CommunicationCenter } from '@/components/communication/CommunicationCen
 import { DocumentCenter } from '@/components/documents/DocumentCenter';
 import { ProgressReports } from '@/components/reports/ProgressReports';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { LogOut, User } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { user, signOut } = useAuth();
 
   const renderActiveComponent = () => {
     switch (activeTab) {
@@ -36,13 +40,31 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-6 pb-20">
-        <header className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            Construction Manager Pro
-          </h1>
-          <p className="text-slate-600">
-            Streamline your construction projects with professional tools
-          </p>
+        <header className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+              Construction Manager Pro
+            </h1>
+            <p className="text-slate-600">
+              Streamline your construction projects with professional tools
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <User size={16} />
+              <span>{user?.email}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </Button>
+          </div>
         </header>
         
         <main className="min-h-[calc(100vh-200px)]">
