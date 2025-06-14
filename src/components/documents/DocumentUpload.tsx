@@ -55,9 +55,10 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
     const { error } = await uploadDocument(selectedFile, category, selectedProjectId);
     
     if (error) {
+      const errorMessage = typeof error === 'string' ? error : error.message || 'Failed to upload document';
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload document",
+        description: errorMessage,
         variant: "destructive"
       });
     } else {
