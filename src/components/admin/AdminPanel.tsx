@@ -1,22 +1,39 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { Shield, Users, Settings, Database, Activity } from 'lucide-react';
+import { UserManagement } from './UserManagement';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Shield, Users, Settings, BarChart3, Database, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export const AdminPanel: React.FC = () => {
-  const { isAdmin } = useAdminAuth();
+export const AdminPanel = () => {
+  const { isAdmin, loading } = useAdminAuth();
+  const navigate = useNavigate();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
-            <p className="text-gray-600">You don't have admin privileges to access this panel.</p>
+            <Shield className="h-16 w-16 text-red-600 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
+            <p className="text-slate-600 mb-4">
+              You don't have administrator privileges to access this panel.
+            </p>
+            <Button onClick={() => navigate('/')} variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -24,125 +41,81 @@ export const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-          <p className="text-gray-600 mt-1">System administration and management</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="h-8 w-8 text-red-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+              <p className="text-sm text-gray-600">ConstructPro System Administration</p>
+            </div>
+          </div>
+          <Button onClick={() => navigate('/')} variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to App
+          </Button>
         </div>
-        <Badge className="bg-red-100 text-red-800">
-          <Shield className="w-4 h-4 mr-1" />
-          Admin Access
-        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5 text-blue-600" />
+      <div className="p-6">
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
               User Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Manage users, roles, and permissions
-            </p>
-            <Button size="sm" className="w-full">
-              Manage Users
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Database className="w-5 h-5 text-green-600" />
-              Project Oversight
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              View and manage all projects
-            </p>
-            <Button size="sm" className="w-full">
-              View All Projects
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Activity className="w-5 h-5 text-purple-600" />
-              System Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Monitor system logs and activity
-            </p>
-            <Button size="sm" className="w-full">
-              View Logs
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Settings className="w-5 h-5 text-orange-600" />
+            </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
               System Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Configure system preferences
-            </p>
-            <Button size="sm" className="w-full">
-              Settings
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Users</span>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Active Projects</span>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Tasks</span>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">System Status</span>
-                <Badge className="bg-green-100 text-green-800">Healthy</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Admin Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-500">No recent admin actions recorded.</p>
-            </div>
-          </CardContent>
-        </Card>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Database
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="users" className="mt-6">
+            <UserManagement />
+          </TabsContent>
+          
+          <TabsContent value="system" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Configuration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">System settings and configuration options will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="analytics" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">System usage analytics and reporting will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="database" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Database Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Database administration tools will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

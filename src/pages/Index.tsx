@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
 import { TaskManager } from '@/components/tasks/TaskManager';
 import { DocumentCenter } from '@/components/documents/DocumentCenter';
@@ -10,9 +11,11 @@ import { StakeholderManager } from '@/components/stakeholders/StakeholderManager
 import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
+import { AdminNavigation } from '@/components/navigation/AdminNavigation';
 import { MobileNavigation } from '@/components/navigation/MobileNavigation';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarProvider } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -25,13 +28,15 @@ import {
   Clock,
   LogOut,
   Menu,
-  X
+  X,
+  Shield
 } from 'lucide-react';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
+  const navigate = useNavigate();
 
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -60,13 +65,29 @@ const Index = () => {
     }
   };
 
+  const isAdmin = profile?.role === 'admin';
+
   return (
     <div className="flex h-screen bg-slate-50">
       <SidebarProvider>
         {/* Desktop Sidebar */}
         <Sidebar className="hidden lg:flex">
           <SidebarHeader className="p-6 border-b border-slate-200">
-            <h1 className="text-xl font-bold text-slate-800">ConstructPro</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-slate-800">ConstructPro</h1>
+              {profile?.is_company_user && (
+                <Badge className="bg-blue-100 text-blue-800 text-xs">
+                  <Shield size={12} className="mr-1" />
+                  Company
+                </Badge>
+              )}
+            </div>
+            {profile && (
+              <div className="mt-2">
+                <p className="text-sm text-slate-600">{profile.full_name || profile.email}</p>
+                <p className="text-xs text-slate-500 capitalize">{profile.role?.replace('_', ' ')}</p>
+              </div>
+            )}
           </SidebarHeader>
           <SidebarContent className="p-4">
             <nav className="space-y-2">
@@ -89,7 +110,18 @@ const Index = () => {
               })}
             </nav>
             
-            <div className="mt-auto pt-4 border-t border-slate-200">
+            <div className="mt-auto pt-4 border-t border-slate-200 space-y-2">
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/admin')}
+                  className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <Shield size={20} className="mr-3" />
+                  Admin Panel
+                </Button>
+              )}
+              
               <Button
                 variant="ghost"
                 onClick={signOut}
@@ -105,7 +137,15 @@ const Index = () => {
         {/* Mobile Header */}
         <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-50">
           <div className="flex items-center justify-between p-4">
-            <h1 className="text-lg font-bold text-slate-800">ConstructPro</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-slate-800">ConstructPro</h1>
+              {profile?.is_company_user && (
+                <Badge className="bg-blue-100 text-blue-800 text-xs">
+                  <Shield size={10} className="mr-1" />
+                  Company
+                </Badge>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -122,6 +162,12 @@ const Index = () => {
             <div className="fixed top-0 left-0 w-64 h-full bg-white">
               <div className="p-6 border-b border-slate-200">
                 <h1 className="text-xl font-bold text-slate-800">ConstructPro</h1>
+                {profile && (
+                  <div className="mt-2">
+                    <p className="text-sm text-slate-600">{profile.full_name || profile.email}</p>
+                    <p className="text-xs text-slate-500 capitalize">{profile.role?.replace('_', ' ')}</p>
+                  </div>
+                )}
               </div>
               <div className="p-4">
                 <nav className="space-y-2">
@@ -147,7 +193,21 @@ const Index = () => {
                   })}
                 </nav>
                 
-                <div className="mt-8 pt-4 border-t border-slate-200">
+                <div className="mt-8 pt-4 border-t border-slate-200 space-y-2">
+                  {isAdmin && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        navigate('/admin');
+                        setSidebarOpen(false);
+                      }}
+                      className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <Shield size={20} className="mr-3" />
+                      Admin Panel
+                    </Button>
+                  )}
+                  
                   <Button
                     variant="ghost"
                     onClick={signOut}
