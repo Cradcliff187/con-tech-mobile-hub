@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               // Update last login
               await supabase
                 .from('profiles')
-                .update({ last_login: new Date().toISOString() })
+                .update({ last_login: new Date().toISOString() } as any)
                 .eq('id', session.user.id);
 
               // Check account status

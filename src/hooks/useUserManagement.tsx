@@ -43,7 +43,7 @@ export const useUserManagement = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers(data as UserProfile[] || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -57,19 +57,17 @@ export const useUserManagement = () => {
   const fetchInvitations = async () => {
     try {
       const { data, error } = await supabase
-        .from('user_invitations')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .rpc('get_user_invitations');
 
-      if (error) throw error;
-      setInvitations(data || []);
+      if (error) {
+        console.error('Error fetching invitations:', error);
+        setInvitations([]);
+        return;
+      }
+      setInvitations(data as UserInvitation[] || []);
     } catch (error) {
       console.error('Error fetching invitations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch invitations",
-        variant: "destructive"
-      });
+      setInvitations([]);
     }
   };
 
@@ -80,20 +78,6 @@ export const useUserManagement = () => {
     full_name?: string;
   }) => {
     try {
-      // Create invitation first
-      const { data: invitationData, error: invitationError } = await supabase
-        .from('user_invitations')
-        .insert({
-          email: userData.email,
-          role: userData.role,
-          invited_by: (await supabase.auth.getUser()).data.user?.id,
-          project_id: userData.project_id || null
-        })
-        .select()
-        .single();
-
-      if (invitationError) throw invitationError;
-
       // Create the user account with temporary password
       const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
       
@@ -134,7 +118,7 @@ export const useUserManagement = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ role })
+        .update({ role: role as any })
         .eq('id', userId);
 
       if (error) throw error;
@@ -161,7 +145,7 @@ export const useUserManagement = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ account_status: status })
+        .update({ account_status: status } as any)
         .eq('id', userId);
 
       if (error) throw error;
