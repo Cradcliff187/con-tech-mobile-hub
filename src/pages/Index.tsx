@@ -22,7 +22,7 @@ import {
   Users,
   Calendar,
   BarChart3,
-  Timeline,
+  Clock,
   LogOut,
   Menu,
   X
@@ -38,7 +38,7 @@ const Index = () => {
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'stakeholders', label: 'Stakeholders', icon: Users },
     { id: 'planning', label: 'Planning', icon: Calendar },
-    { id: 'timeline', label: 'Timeline', icon: Timeline },
+    { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'communication', label: 'Messages', icon: MessageSquare },
@@ -170,12 +170,28 @@ const Index = () => {
           </div>
         </main>
 
-        {/* Mobile Bottom Navigation */}
-        <MobileNavigation
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          className="lg:hidden"
-        />
+        {/* Mobile Bottom Navigation - Hidden for now since MobileNavigation component needs to be updated */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2">
+          <div className="flex justify-around">
+            {navigation.slice(0, 5).map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`flex flex-col items-center p-2 rounded-lg ${
+                    activeSection === item.id
+                      ? 'text-orange-600'
+                      : 'text-slate-600'
+                  }`}
+                >
+                  <Icon size={20} />
+                  <span className="text-xs mt-1">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </SidebarProvider>
     </div>
   );

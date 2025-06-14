@@ -25,7 +25,8 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
     specialties: '',
     crew_size: '',
     license_number: '',
-    notes: ''
+    notes: '',
+    status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended'
   });
   const [loading, setLoading] = useState(false);
 
@@ -34,9 +35,17 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
     setLoading(true);
 
     const stakeholderData = {
-      ...formData,
-      specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()) : [],
-      crew_size: formData.crew_size ? parseInt(formData.crew_size) : null
+      stakeholder_type: formData.stakeholder_type,
+      company_name: formData.company_name,
+      contact_person: formData.contact_person || undefined,
+      phone: formData.phone || undefined,
+      email: formData.email || undefined,
+      address: formData.address || undefined,
+      specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()) : undefined,
+      crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
+      license_number: formData.license_number || undefined,
+      notes: formData.notes || undefined,
+      status: formData.status
     };
 
     const { error } = await createStakeholder(stakeholderData);
@@ -52,7 +61,8 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
         specialties: '',
         crew_size: '',
         license_number: '',
-        notes: ''
+        notes: '',
+        status: 'active'
       });
       onOpenChange(false);
     }

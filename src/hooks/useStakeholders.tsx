@@ -67,11 +67,14 @@ export const useStakeholders = () => {
     }
   };
 
-  const createStakeholder = async (stakeholderData: Partial<Stakeholder>) => {
+  const createStakeholder = async (stakeholderData: Omit<Stakeholder, 'id' | 'created_at' | 'updated_at' | 'rating'> & { rating?: number }) => {
     try {
       const { data, error } = await supabase
         .from('stakeholders')
-        .insert([stakeholderData])
+        .insert([{
+          ...stakeholderData,
+          rating: stakeholderData.rating || 0
+        }])
         .select()
         .single();
 
@@ -198,7 +201,7 @@ export const useStakeholderAssignments = () => {
     }
   };
 
-  const createAssignment = async (assignmentData: Partial<StakeholderAssignment>) => {
+  const createAssignment = async (assignmentData: Omit<StakeholderAssignment, 'id' | 'created_at' | 'updated_at' | 'stakeholder'>) => {
     try {
       const { data, error } = await supabase
         .from('stakeholder_assignments')
