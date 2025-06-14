@@ -20,7 +20,8 @@ export const DocumentFilters = ({
     { id: 'permits', label: 'Permits' },
     { id: 'contracts', label: 'Contracts' },
     { id: 'photos', label: 'Photos' },
-    { id: 'reports', label: 'Reports' }
+    { id: 'reports', label: 'Reports' },
+    { id: 'receipts', label: 'Receipts' }
   ];
 
   return (

@@ -76,12 +76,15 @@ export const useDocuments = (projectId?: string) => {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `documents/${fileName}`;
 
+      // Use custom description or file name
+      const documentName = description || file.name;
+
       // For now, we'll store file metadata without actual file upload
       // In a real scenario, you'd upload to Supabase Storage first
       const { data, error } = await supabase
         .from('documents')
         .insert({
-          name: file.name,
+          name: documentName,
           file_path: filePath,
           file_size: file.size,
           file_type: file.type,

@@ -1,5 +1,5 @@
 
-import { FileText, Image, File, Folder, Download, Share, Trash2 } from 'lucide-react';
+import { FileText, Image, File, Folder, Download, Share, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,10 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
   const { toast } = useToast();
 
   const getFileIcon = (category?: string, fileType?: string) => {
+    if (category === 'receipts') {
+      return <Receipt className="text-green-600" size={20} />;
+    }
+    
     if (category === 'photos' || fileType?.startsWith('image/')) {
       return <Image className="text-green-500" size={20} />;
     }
@@ -63,6 +67,7 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
       'photos': 'Photos',
       'reports': 'Reports',
       'safety': 'Safety',
+      'receipts': 'Receipts',
       'other': 'Other'
     };
     return categoryMap[category || 'other'] || 'Unknown';

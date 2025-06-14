@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { DocumentList } from './DocumentList';
 import { DocumentFilters } from './DocumentFilters';
 import { DocumentUpload } from './DocumentUpload';
+import { ReceiptUpload } from './ReceiptUpload';
 import { Folder } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 
@@ -34,6 +35,7 @@ export const DocumentCenter = () => {
         
         <div className="flex gap-2">
           <DocumentUpload onUploadComplete={handleUploadComplete} />
+          <ReceiptUpload onUploadComplete={handleUploadComplete} />
           <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
             <Folder size={20} />
             New Folder
