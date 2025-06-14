@@ -134,7 +134,7 @@ export const useUserManagement = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ role })
+        .update({ role } as any)
         .eq('id', userId);
 
       if (error) throw error;
@@ -161,7 +161,7 @@ export const useUserManagement = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ account_status: status })
+        .update({ account_status: status } as any)
         .eq('id', userId);
 
       if (error) throw error;

@@ -219,39 +219,62 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string | null
+          auto_approved: boolean | null
           avatar_url: string | null
           company: string | null
           created_at: string | null
           email: string
           full_name: string | null
           id: string
+          invited_by: string | null
+          is_company_user: boolean | null
+          last_login: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
         }
         Insert: {
+          account_status?: string | null
+          auto_approved?: boolean | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
           id: string
+          invited_by?: string | null
+          is_company_user?: boolean | null
+          last_login?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
         Update: {
+          account_status?: string | null
+          auto_approved?: boolean | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          invited_by?: string | null
+          is_company_user?: boolean | null
+          last_login?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -754,12 +777,84 @@ export type Database = {
           },
         ]
       }
+      user_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invitation_token: string
+          invited_by: string
+          project_id: string | null
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by: string
+          project_id?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by?: string
+          project_id?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_invitations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          role: Database["public"]["Enums"]["user_role"]
+          invited_by: string
+          project_id: string
+          invitation_token: string
+          expires_at: string
+          accepted_at: string
+          created_at: string
+        }[]
+      }
+      is_company_domain: {
+        Args: { email: string }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { user_id: string; required_permission: string }
+        Returns: boolean
+      }
     }
     Enums: {
       project_status:
