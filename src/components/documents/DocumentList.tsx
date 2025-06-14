@@ -1,84 +1,96 @@
 
-import { FileText, Image, File, Folder, Download, Share } from 'lucide-react';
+import { FileText, Image, File, Folder, Download, Share, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useDocuments } from '@/hooks/useDocuments';
+import { useToast } from '@/hooks/use-toast';
+
+interface Document {
+  id: string;
+  project_id?: string;
+  name: string;
+  file_path: string;
+  file_size?: number;
+  file_type?: string;
+  category?: string;
+  uploaded_by?: string;
+  created_at: string;
+  updated_at: string;
+  uploader?: {
+    full_name?: string;
+    email: string;
+  };
+  project?: {
+    name: string;
+  };
+}
 
 interface DocumentListProps {
   filter: string;
   searchTerm: string;
+  documents: Document[];
 }
 
-export const DocumentList = ({ filter, searchTerm }: DocumentListProps) => {
-  const documents = [
-    {
-      id: 1,
-      name: 'Site Plans - Floor 1-3',
-      type: 'plans',
-      format: 'PDF',
-      size: '2.4 MB',
-      modified: '2024-06-15',
-      project: 'Downtown Office Complex',
-      isFolder: false
-    },
-    {
-      id: 2,
-      name: 'Building Permits',
-      type: 'permits',
-      format: 'Folder',
-      size: '15 files',
-      modified: '2024-06-14',
-      project: 'Downtown Office Complex',
-      isFolder: true
-    },
-    {
-      id: 3,
-      name: 'Foundation Progress Photos',
-      type: 'photos',
-      format: 'JPG',
-      size: '8.7 MB',
-      modified: '2024-06-13',
-      project: 'Downtown Office Complex',
-      isFolder: false
-    },
-    {
-      id: 4,
-      name: 'Contract - Steel Fabrication',
-      type: 'contracts',
-      format: 'PDF',
-      size: '1.2 MB',
-      modified: '2024-06-12',
-      project: 'Downtown Office Complex',
-      isFolder: false
-    },
-    {
-      id: 5,
-      name: 'Weekly Progress Report',
-      type: 'reports',
-      format: 'PDF',
-      size: '892 KB',
-      modified: '2024-06-11',
-      project: 'Multiple Projects',
-      isFolder: false
-    }
-  ];
+export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProps) => {
+  const { deleteDocument } = useDocuments();
+  const { toast } = useToast();
 
-  const getFileIcon = (type: string, isFolder: boolean) => {
-    if (isFolder) return <Folder className="text-blue-500" size={20} />;
+  const getFileIcon = (category?: string, fileType?: string) => {
+    if (category === 'photos' || fileType?.startsWith('image/')) {
+      return <Image className="text-green-500" size={20} />;
+    }
     
-    switch (type) {
-      case 'photos':
-        return <Image className="text-green-500" size={20} />;
-      case 'plans':
-      case 'permits':
-      case 'contracts':
-      case 'reports':
-        return <FileText className="text-red-500" size={20} />;
-      default:
-        return <File className="text-slate-500" size={20} />;
+    if (fileType?.includes('pdf') || category === 'plans' || category === 'permits' || category === 'contracts' || category === 'reports') {
+      return <FileText className="text-red-500" size={20} />;
+    }
+    
+    return <File className="text-slate-500" size={20} />;
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'Unknown size';
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getCategoryLabel = (category?: string) => {
+    const categoryMap: Record<string, string> = {
+      'plans': 'Plans & Drawings',
+      'permits': 'Permits',
+      'contracts': 'Contracts',
+      'photos': 'Photos',
+      'reports': 'Reports',
+      'safety': 'Safety',
+      'other': 'Other'
+    };
+    return categoryMap[category || 'other'] || 'Unknown';
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      const { error } = await deleteDocument(id);
+      if (error) {
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete document",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Document deleted successfully"
+        });
+      }
     }
   };
 
   const filteredDocuments = documents.filter(doc => {
-    const matchesFilter = filter === 'all' || doc.type === filter;
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filter === 'all' || doc.category === filter;
+    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.project?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doc.uploader?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -89,29 +101,46 @@ export const DocumentList = ({ filter, searchTerm }: DocumentListProps) => {
           <div key={doc.id} className="p-4 hover:bg-slate-50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                {getFileIcon(doc.type, doc.isFolder)}
+                {getFileIcon(doc.category, doc.file_type)}
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium text-slate-800 truncate">
                     {doc.name}
                   </h4>
                   <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
-                    <span>{doc.format}</span>
-                    <span>{doc.size}</span>
-                    <span>Modified: {new Date(doc.modified).toLocaleDateString()}</span>
+                    <span>{getCategoryLabel(doc.category)}</span>
+                    <span>{formatFileSize(doc.file_size)}</span>
+                    <span>Modified: {new Date(doc.updated_at).toLocaleDateString()}</span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {doc.project}
-                  </p>
+                  <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
+                    <span>Project: {doc.project?.name || 'No project'}</span>
+                    <span>By: {doc.uploader?.full_name || doc.uploader?.email || 'Unknown'}</span>
+                  </div>
                 </div>
               </div>
               
               <div className="flex items-center gap-2 ml-4">
-                <button className="p-1 text-slate-500 hover:text-slate-700 rounded">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1 text-slate-500 hover:text-slate-700"
+                >
                   <Share size={16} />
-                </button>
-                <button className="p-1 text-slate-500 hover:text-slate-700 rounded">
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1 text-slate-500 hover:text-slate-700"
+                >
                   <Download size={16} />
-                </button>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1 text-slate-500 hover:text-red-600"
+                  onClick={() => handleDelete(doc.id, doc.name)}
+                >
+                  <Trash2 size={16} />
+                </Button>
               </div>
             </div>
           </div>
@@ -120,7 +149,14 @@ export const DocumentList = ({ filter, searchTerm }: DocumentListProps) => {
       
       {filteredDocuments.length === 0 && (
         <div className="p-8 text-center">
-          <p className="text-slate-500">No documents found matching your criteria.</p>
+          <FileText size={48} className="mx-auto mb-4 text-slate-400" />
+          <h3 className="text-lg font-medium text-slate-600 mb-2">No Documents Found</h3>
+          <p className="text-slate-500">
+            {documents.length === 0 
+              ? "Upload your first document to get started"
+              : "No documents match your current filters"
+            }
+          </p>
         </div>
       )}
     </div>
