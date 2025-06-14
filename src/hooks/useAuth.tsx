@@ -4,10 +4,24 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+interface ProfileData {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string | null;
+  is_company_user?: boolean;
+  auto_approved?: boolean;
+  account_status?: string;
+  invited_by?: string | null;
+  last_login?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  profile: any | null;
+  profile: ProfileData | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -27,15 +41,15 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<ProfileData | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, full_name, role, is_company_user, auto_approved, account_status, invited_by, last_login, created_at, updated_at')
         .eq('id', userId)
         .single();
 
@@ -44,7 +58,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data;
+      if (!data) return null;
+
+      // Map the data to ensure proper typing
+      return {
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name,
+        role: data.role,
+        is_company_user: data.is_company_user || false,
+        auto_approved: data.auto_approved || false,
+        account_status: data.account_status || 'pending',
+        invited_by: data.invited_by,
+        last_login: data.last_login,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      };
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -68,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               // Update last login
               await supabase
                 .from('profiles')
-                .update({ last_login: new Date().toISOString() } as any)
+                .update({ last_login: new Date().toISOString() })
                 .eq('id', session.user.id);
 
               // Check account status
