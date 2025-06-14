@@ -1,11 +1,20 @@
 
+import { useEffect } from 'react';
 import { AdvancedMetrics } from './AdvancedMetrics';
 import { ProjectHealthIndicators } from './ProjectHealthIndicators';
 import { QuickStats } from './QuickStats';
 import { RecentActivity } from './RecentActivity';
 import { WeatherWidget } from './WeatherWidget';
+import { useDebugInfo } from '@/hooks/useDebugInfo';
 
 export const ProjectDashboard = () => {
+  const debugInfo = useDebugInfo();
+
+  useEffect(() => {
+    console.log('=== PROJECT DASHBOARD DEBUG INFO ===');
+    console.log('Debug info:', debugInfo);
+  }, [debugInfo]);
+
   return (
     <div className="space-y-6">
       {/* Enhanced Metrics Section */}

@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { Users, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useProjects } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
 
 interface TeamData {
   project_name: string;
@@ -18,34 +20,39 @@ export const ResourceOverview = () => {
   const [activeTeams, setActiveTeams] = useState(0);
   const [avgUtilization, setAvgUtilization] = useState(0);
   const { user } = useAuth();
+  const { projects } = useProjects();
+  const { tasks } = useTasks();
 
   useEffect(() => {
     const fetchResourceData = async () => {
       if (!user) return;
 
-      // Fetch total workers
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('role', ['worker', 'site_supervisor']);
-      
-      setTotalWorkers(profiles?.length || 0);
+      console.log('Fetching resource data...');
 
-      // Fetch active projects and calculate team data
-      const { data: projects } = await supabase
-        .from('projects')
-        .select(`
-          id,
-          name,
-          status,
-          tasks(id, assignee_id, status)
-        `)
-        .eq('status', 'active');
+      try {
+        // Fetch total workers from profiles
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, role, account_status')
+          .in('role', ['worker', 'site_supervisor', 'project_manager'])
+          .eq('account_status', 'approved');
+        
+        console.log('Workers query result:', { profiles, error: profilesError });
+        
+        const workersCount = profiles?.length || 0;
+        setTotalWorkers(workersCount);
 
-      if (projects) {
-        const teamData: TeamData[] = projects.map(project => {
-          const projectTasks = project.tasks || [];
-          const uniqueMembers = new Set(projectTasks.map(task => task.assignee_id).filter(Boolean));
+        // Calculate team data from projects and tasks
+        const activeProjects = projects.filter(p => p.status === 'active');
+        setActiveTeams(activeProjects.length);
+
+        const teamData: TeamData[] = activeProjects.map(project => {
+          const projectTasks = tasks.filter(t => t.project_id === project.id);
+          const uniqueMembers = new Set(
+            projectTasks
+              .map(task => task.assignee_id || task.assigned_stakeholder_id)
+              .filter(Boolean)
+          );
           const activeTasks = projectTasks.filter(task => task.status === 'in-progress').length;
           
           return {
@@ -57,17 +64,27 @@ export const ResourceOverview = () => {
         });
 
         setTeams(teamData);
-        setActiveTeams(projects.length);
         
+        // Calculate average utilization
         const totalUtil = teamData.reduce((sum, team) => sum + team.utilization, 0);
         setAvgUtilization(teamData.length > 0 ? Math.floor(totalUtil / teamData.length) : 0);
-      }
 
-      setLoading(false);
+        console.log('Resource data calculated:', {
+          workersCount,
+          activeProjectsCount: activeProjects.length,
+          teamData,
+          avgUtilization: totalUtil / teamData.length
+        });
+
+      } catch (error) {
+        console.error('Error fetching resource data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchResourceData();
-  }, [user]);
+  }, [user, projects, tasks]);
 
   const getUtilizationColor = (utilization: number) => {
     if (utilization >= 90) return 'text-red-600 bg-red-100';
