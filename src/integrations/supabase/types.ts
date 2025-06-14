@@ -851,6 +851,10 @@ export type Database = {
         Args: { email: string }
         Returns: boolean
       }
+      user_can_access_project: {
+        Args: { project_id: string }
+        Returns: boolean
+      }
       user_has_permission: {
         Args: { user_id: string; required_permission: string }
         Returns: boolean
