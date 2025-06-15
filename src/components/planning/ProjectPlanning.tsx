@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GanttChart } from './GanttChart';
 import { TaskHierarchy } from './TaskHierarchy';
 import { ResourcePlanning } from './ResourcePlanning';
@@ -8,12 +8,28 @@ import { ClientFilter } from '@/components/projects/ClientFilter';
 import { Button } from '@/components/ui/button';
 import { Calendar, Users, Target, BarChart3 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
+import { useSearchParams } from 'react-router-dom';
 
 export const ProjectPlanning = () => {
+  const [searchParams] = useSearchParams();
+  const projectFromUrl = searchParams.get('project');
+  
   const [activeView, setActiveView] = useState<'gantt' | 'hierarchy' | 'resources' | 'milestones'>('gantt');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
   const { projects } = useProjects();
+
+  useEffect(() => {
+    if (projectFromUrl && projects.length > 0) {
+      if (selectedProjectId !== projectFromUrl) {
+        const project = projects.find(p => p.id === projectFromUrl);
+        if (project) {
+          setSelectedProjectId(projectFromUrl);
+          setSelectedClientId(project.client_id || undefined);
+        }
+      }
+    }
+  }, [projectFromUrl, projects, selectedProjectId]);
 
   const views = [
     { id: 'gantt', label: 'Gantt Chart', icon: BarChart3 },

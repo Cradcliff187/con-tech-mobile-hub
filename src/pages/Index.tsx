@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
 import { TaskManager } from '@/components/tasks/TaskManager';
 import { DocumentCenter } from '@/components/documents/DocumentCenter';
@@ -18,6 +18,7 @@ import { MobileSidebarOverlay } from '@/components/navigation/MobileSidebarOverl
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { NavigationItem } from '@/types/navigation';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -31,11 +32,19 @@ import {
 } from 'lucide-react';
 
 const Index = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = searchParams.get('section') || 'dashboard';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { signOut, profile } = useAuth();
   const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
+
+  const handleSectionChange = (section: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('section', section);
+    setSearchParams(newParams);
+    setSidebarOpen(false); // Close sidebar on mobile
+  };
 
   const navigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -71,7 +80,7 @@ const Index = () => {
           profile={profile}
           navigation={navigation}
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
           onAdminClick={() => navigate('/admin')}
           onSignOut={signOut}
           isAdmin={isAdmin}
@@ -88,7 +97,7 @@ const Index = () => {
             profile={profile}
             navigation={navigation}
             activeSection={activeSection}
-            onSectionChange={setActiveSection}
+            onSectionChange={handleSectionChange}
             onAdminClick={() => navigate('/admin')}
             onSignOut={signOut}
             onClose={() => setSidebarOpen(false)}
@@ -100,6 +109,7 @@ const Index = () => {
         <main className="flex-1 overflow-auto">
           <div className="lg:hidden h-16"></div>
           <div className="p-6">
+            <Breadcrumbs />
             <ErrorBoundary>
               {renderContent()}
             </ErrorBoundary>
@@ -114,7 +124,7 @@ const Index = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveSection(item.id)}
+                  onClick={() => handleSectionChange(item.id)}
                   className={`flex flex-col items-center p-2 rounded-lg ${
                     activeSection === item.id
                       ? 'text-orange-600'

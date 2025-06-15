@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
 import { AssignStakeholderDialog } from './AssignStakeholderDialog';
+import { StakeholderDetail } from './StakeholderDetail';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
@@ -18,6 +18,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -53,7 +54,10 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
   return (
     <>
       <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
+        <CardHeader 
+          className="pb-3 cursor-pointer"
+          onClick={() => setShowDetailDialog(true)}
+        >
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="font-semibold text-slate-800 truncate">
@@ -66,7 +70,12 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 min-h-[32px]">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 min-h-[32px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreHorizontal size={16} />
                 </Button>
               </DropdownMenuTrigger>
@@ -106,7 +115,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handlePhoneCall}
+                onClick={(e) => { e.stopPropagation(); handlePhoneCall(); }}
                 className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
               >
                 <Phone size={16} className="mr-2" />
@@ -120,7 +129,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleEmailSend}
+                onClick={(e) => { e.stopPropagation(); handleEmailSend(); }}
                 className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
               >
                 <Mail size={16} className="mr-2" />
@@ -164,6 +173,12 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
           )}
         </CardContent>
       </Card>
+
+      <StakeholderDetail
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        stakeholderId={stakeholder.id}
+      />
 
       <EditStakeholderDialog
         open={showEditDialog}
