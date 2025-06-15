@@ -37,9 +37,12 @@ export const ProjectHealthIndicators = () => {
       const today = new Date();
       const endDate = project.end_date ? new Date(project.end_date) : null;
       
-      if (project.status === 'completed') {
+      // Check if project is completed by checking if all tasks are completed
+      const isProjectCompleted = totalTasks > 0 && completedTasks === totalTasks;
+      
+      if (isProjectCompleted) {
         onTrack++;
-      } else if (endDate && endDate < today && project.status !== 'completed') {
+      } else if (endDate && endDate < today) {
         delayed++;
       } else if (completionRate < 30 && endDate && (endDate.getTime() - today.getTime()) / (1000 * 3600 * 24) < 30) {
         atRisk++;
