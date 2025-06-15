@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface Project {
+export interface Project {
   id: string;
   name: string;
   description?: string;
   status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+  phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
   start_date?: string;
   end_date?: string;
   budget?: number;
@@ -73,6 +74,7 @@ export const useProjects = () => {
         name: projectData.name,
         description: projectData.description,
         status: projectData.status || 'planning',
+        phase: projectData.phase || 'planning',
         start_date: projectData.start_date,
         end_date: projectData.end_date,
         budget: projectData.budget,

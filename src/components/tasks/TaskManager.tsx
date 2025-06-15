@@ -8,12 +8,15 @@ import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { canConvertToPunchList } from '@/utils/project-lifecycle';
+import { useToast } from '@/components/ui/use-toast';
 
 export const TaskManager = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const { tasks, loading } = useTasks();
+  const { tasks, loading, updateTask } = useTasks();
+  const { toast } = useToast();
 
   const regularTasks = tasks.filter(task => (task.task_type || 'regular') !== 'punch_list');
   const filteredTasks = regularTasks.filter(task => {
@@ -22,6 +25,40 @@ export const TaskManager = () => {
                          (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
   });
+
+  const handleConvertToPunchList = async () => {
+    const tasksToConvert = regularTasks.filter(canConvertToPunchList);
+
+    if (tasksToConvert.length === 0) {
+      toast({
+        title: "No tasks to convert",
+        description: "There are no regular tasks with over 80% progress to convert.",
+      });
+      return;
+    }
+
+    const promises = tasksToConvert.map(task => 
+      updateTask(task.id, {
+        task_type: 'punch_list',
+        converted_from_task_id: task.id,
+        inspection_status: 'pending'
+      })
+    );
+
+    try {
+      await Promise.all(promises);
+      toast({
+        title: "Success",
+        description: `${tasksToConvert.length} tasks converted to punch list items.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to convert tasks.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -42,13 +79,22 @@ export const TaskManager = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-slate-800">Task Management</h2>
-        <Button 
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-orange-600 text-white hover:bg-orange-700 flex items-center gap-2"
-        >
-          <Plus size={20} />
-          New Task
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleConvertToPunchList}
+            variant="outline"
+            size="sm"
+          >
+            Convert Ready to Punch List
+          </Button>
+          <Button 
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-orange-600 text-white hover:bg-orange-700 flex items-center gap-2"
+          >
+            <Plus size={20} />
+            New Task
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="tasks" className="space-y-6">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,7 +41,10 @@ export const useTasks = () => {
         estimated_hours: task.estimated_hours,
         actual_hours: task.actual_hours,
         progress: task.progress || 0,
-        created_by: task.created_by
+        created_by: task.created_by,
+        matches_skills: task.matches_skills,
+        converted_from_task_id: task.converted_from_task_id,
+        inspection_status: task.inspection_status as Task['inspection_status'],
       }));
       setTasks(mappedTasks);
     }
@@ -79,7 +81,9 @@ export const useTasks = () => {
         assigned_stakeholder_id: taskData.assigned_stakeholder_id,
         task_type: taskData.task_type || 'regular',
         required_skills: taskData.required_skills,
-        punch_list_category: taskData.punch_list_category
+        punch_list_category: taskData.punch_list_category,
+        converted_from_task_id: taskData.converted_from_task_id,
+        inspection_status: taskData.inspection_status
       })
       .select()
       .single();
@@ -105,7 +109,10 @@ export const useTasks = () => {
         estimated_hours: data.estimated_hours,
         actual_hours: data.actual_hours,
         progress: data.progress || 0,
-        created_by: data.created_by
+        created_by: data.created_by,
+        matches_skills: data.matches_skills,
+        converted_from_task_id: data.converted_from_task_id,
+        inspection_status: data.inspection_status as Task['inspection_status'],
       };
       setTasks(prev => [mappedTask, ...prev]);
     }
@@ -142,7 +149,10 @@ export const useTasks = () => {
         estimated_hours: data.estimated_hours,
         actual_hours: data.actual_hours,
         progress: data.progress || 0,
-        created_by: data.created_by
+        created_by: data.created_by,
+        matches_skills: data.matches_skills,
+        converted_from_task_id: data.converted_from_task_id,
+        inspection_status: data.inspection_status as Task['inspection_status'],
       };
       setTasks(prev => prev.map(task => task.id === id ? mappedTask : task));
     }

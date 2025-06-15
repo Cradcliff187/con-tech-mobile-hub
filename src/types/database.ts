@@ -19,6 +19,9 @@ export interface Task {
   actual_hours?: number;
   progress?: number;
   created_by?: string;
+  matches_skills?: boolean;
+  converted_from_task_id?: string;
+  inspection_status?: 'pending' | 'passed' | 'failed' | 'na';
 }
 
 export interface ResourceAllocation {
@@ -38,7 +41,6 @@ export interface TeamMember {
   id: string;
   allocation_id: string;
   user_id?: string;
-  stakeholder_id?: string;
   name: string;
   role: string;
   hours_allocated: number;

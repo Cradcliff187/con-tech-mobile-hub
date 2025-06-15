@@ -279,6 +279,45 @@ export type Database = {
           },
         ]
       }
+      project_stakeholders: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string
+          role: string
+          stakeholder_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id: string
+          role: string
+          stakeholder_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          role?: string
+          stakeholder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stakeholders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stakeholders_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           budget: number | null
@@ -289,6 +328,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          phase: string | null
           progress: number | null
           project_manager_id: string | null
           spent: number | null
@@ -305,6 +345,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          phase?: string | null
           progress?: number | null
           project_manager_id?: string | null
           spent?: number | null
@@ -321,6 +362,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          phase?: string | null
           progress?: number | null
           project_manager_id?: string | null
           spent?: number | null
@@ -783,12 +825,15 @@ export type Database = {
           assigned_stakeholder_id: string | null
           assignee_id: string | null
           category: string | null
+          converted_from_task_id: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           due_date: string | null
           estimated_hours: number | null
           id: string
+          inspection_status: string | null
+          matches_skills: boolean | null
           priority: Database["public"]["Enums"]["task_priority"] | null
           progress: number | null
           project_id: string
@@ -805,12 +850,15 @@ export type Database = {
           assigned_stakeholder_id?: string | null
           assignee_id?: string | null
           category?: string | null
+          converted_from_task_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          inspection_status?: string | null
+          matches_skills?: boolean | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
           progress?: number | null
           project_id: string
@@ -827,12 +875,15 @@ export type Database = {
           assigned_stakeholder_id?: string | null
           assignee_id?: string | null
           category?: string | null
+          converted_from_task_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          inspection_status?: string | null
+          matches_skills?: boolean | null
           priority?: Database["public"]["Enums"]["task_priority"] | null
           progress?: number | null
           project_id?: string
@@ -857,6 +908,13 @@ export type Database = {
             columns: ["assignee_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_converted_from_task_id_fkey"
+            columns: ["converted_from_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
@@ -887,7 +945,6 @@ export type Database = {
           id: string
           name: string
           role: string
-          stakeholder_id: string | null
           tasks: string[] | null
           updated_at: string | null
           user_id: string | null
@@ -903,7 +960,6 @@ export type Database = {
           id?: string
           name: string
           role: string
-          stakeholder_id?: string | null
           tasks?: string[] | null
           updated_at?: string | null
           user_id?: string | null
@@ -919,7 +975,6 @@ export type Database = {
           id?: string
           name?: string
           role?: string
-          stakeholder_id?: string | null
           tasks?: string[] | null
           updated_at?: string | null
           user_id?: string | null
