@@ -342,6 +342,47 @@ export type Database = {
           },
         ]
       }
+      resource_allocations: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string | null
+          team_name: string
+          total_budget: number | null
+          total_used: number | null
+          updated_at: string | null
+          week_start_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          team_name: string
+          total_budget?: number | null
+          total_used?: number | null
+          updated_at?: string | null
+          week_start_date: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          team_name?: string
+          total_budget?: number | null
+          total_used?: number | null
+          updated_at?: string | null
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stakeholder_assignments: {
         Row: {
           created_at: string | null
@@ -688,6 +729,48 @@ export type Database = {
           },
         ]
       }
+      task_updates: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          created_at: string | null
+          id: string
+          message: string
+          task_id: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          task_id?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_updates_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_updates_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           actual_hours: number | null
@@ -777,6 +860,66 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          allocation_id: string | null
+          availability: number | null
+          cost_per_hour: number | null
+          created_at: string | null
+          hours_allocated: number | null
+          hours_used: number | null
+          id: string
+          name: string
+          role: string
+          stakeholder_id: string | null
+          tasks: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          allocation_id?: string | null
+          availability?: number | null
+          cost_per_hour?: number | null
+          created_at?: string | null
+          hours_allocated?: number | null
+          hours_used?: number | null
+          id?: string
+          name: string
+          role: string
+          stakeholder_id?: string | null
+          tasks?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          allocation_id?: string | null
+          availability?: number | null
+          cost_per_hour?: number | null
+          created_at?: string | null
+          hours_allocated?: number | null
+          hours_used?: number | null
+          id?: string
+          name?: string
+          role?: string
+          stakeholder_id?: string | null
+          tasks?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "resource_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_invitations: {
         Row: {
           accepted_at: string | null
@@ -827,6 +970,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      weather_data: {
+        Row: {
+          condition: string | null
+          created_at: string | null
+          forecast: Json | null
+          humidity: number | null
+          id: string
+          last_updated: string | null
+          location: string
+          temperature: number | null
+          wind_speed: number | null
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string | null
+          forecast?: Json | null
+          humidity?: number | null
+          id?: string
+          last_updated?: string | null
+          location: string
+          temperature?: number | null
+          wind_speed?: number | null
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string | null
+          forecast?: Json | null
+          humidity?: number | null
+          id?: string
+          last_updated?: string | null
+          location?: string
+          temperature?: number | null
+          wind_speed?: number | null
+        }
+        Relationships: []
       }
     }
     Views: {

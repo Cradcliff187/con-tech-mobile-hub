@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, AlertTriangle, CheckCircle2, Edit, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, Users, MessageSquare, Edit } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTasks } from '@/hooks/useTasks';
+import { useTaskUpdates } from '@/hooks/useTaskUpdates';
+import { useState } from 'react';
 
 interface TaskDetailsProps {
   taskId: string;
@@ -13,37 +16,26 @@ interface TaskDetailsProps {
 }
 
 export const TaskDetails: React.FC<TaskDetailsProps> = ({ taskId, onClose }) => {
-  // Mock task data
-  const task = {
-    id: taskId,
-    title: 'Foundation Pour',
-    description: 'Pour concrete foundation for main building structure. Includes rebar installation and curing time.',
-    startDate: new Date('2024-02-16'),
-    endDate: new Date('2024-03-10'),
-    progress: 75,
-    status: 'in-progress',
-    priority: 'critical',
-    assignee: 'Concrete Crew',
-    category: 'Foundation',
-    estimatedHours: 320,
-    actualHours: 240,
-    budget: 45000,
-    spent: 33750,
-    dependencies: ['Site Preparation & Excavation'],
-    blockers: [],
-    updates: [
-      {
-        date: new Date('2024-02-20'),
-        message: 'Started foundation excavation',
-        author: 'John Smith'
-      },
-      {
-        date: new Date('2024-02-25'),
-        message: 'Rebar installation 50% complete',
-        author: 'Mike Johnson'
-      }
-    ]
-  };
+  const { tasks } = useTasks();
+  const { updates, loading: updatesLoading, addUpdate } = useTaskUpdates(taskId);
+  const [newUpdate, setNewUpdate] = useState('');
+  const [addingUpdate, setAddingUpdate] = useState(false);
+
+  const task = tasks.find(t => t.id === taskId);
+
+  if (!task) {
+    return (
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>Task Not Found</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600">The requested task could not be found.</p>
+          <Button onClick={onClose} className="mt-4">Close</Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,6 +63,18 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({ taskId, onClose }) => 
     }
   };
 
+  const handleAddUpdate = async () => {
+    if (!newUpdate.trim()) return;
+
+    setAddingUpdate(true);
+    const { error } = await addUpdate(newUpdate, 'Current User');
+    
+    if (!error) {
+      setNewUpdate('');
+    }
+    setAddingUpdate(false);
+  };
+
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
@@ -84,7 +88,9 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({ taskId, onClose }) => 
               <Badge className={getPriorityColor(task.priority)}>
                 {task.priority}
               </Badge>
-              <Badge variant="outline">{task.category}</Badge>
+              {task.category && (
+                <Badge variant="outline">{task.category}</Badge>
+              )}
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -94,10 +100,12 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({ taskId, onClose }) => 
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Description */}
-        <div>
-          <h4 className="font-medium mb-2">Description</h4>
-          <p className="text-gray-600 text-sm">{task.description}</p>
-        </div>
+        {task.description && (
+          <div>
+            <h4 className="font-medium mb-2">Description</h4>
+            <p className="text-gray-600 text-sm">{task.description}</p>
+          </div>
+        )}
 
         {/* Progress */}
         <div>
@@ -110,84 +118,93 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({ taskId, onClose }) => 
 
         {/* Timeline */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-              <Calendar className="w-4 h-4" />
-              Start Date
+          {task.start_date && (
+            <div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                <Calendar className="w-4 h-4" />
+                Start Date
+              </div>
+              <p className="font-medium">{format(new Date(task.start_date), 'MMM dd, yyyy')}</p>
             </div>
-            <p className="font-medium">{format(task.startDate, 'MMM dd, yyyy')}</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-              <Calendar className="w-4 h-4" />
-              End Date
+          )}
+          {task.due_date && (
+            <div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                <Calendar className="w-4 h-4" />
+                Due Date
+              </div>
+              <p className="font-medium">{format(new Date(task.due_date), 'MMM dd, yyyy')}</p>
             </div>
-            <p className="font-medium">{format(task.endDate, 'MMM dd, yyyy')}</p>
-          </div>
+          )}
         </div>
 
-        {/* Resources */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-              <Users className="w-4 h-4" />
-              Assigned To
+        {/* Hours */}
+        {(task.estimated_hours || task.actual_hours) && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                <Clock className="w-4 h-4" />
+                Estimated Hours
+              </div>
+              <p className="font-medium">{task.estimated_hours || 'Not set'}</p>
             </div>
-            <p className="font-medium">{task.assignee}</p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-              <Clock className="w-4 h-4" />
-              Hours
-            </div>
-            <p className="font-medium">{task.actualHours} / {task.estimatedHours} hrs</p>
-          </div>
-        </div>
-
-        {/* Budget */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm text-gray-600 mb-1">Budget</div>
-            <p className="font-medium">${task.budget.toLocaleString()}</p>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600 mb-1">Spent</div>
-            <p className="font-medium">${task.spent.toLocaleString()}</p>
-          </div>
-        </div>
-
-        {/* Dependencies */}
-        {task.dependencies.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2">Dependencies</h4>
-            <div className="space-y-1">
-              {task.dependencies.map((dep, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  {dep}
-                </div>
-              ))}
+            <div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                <Clock className="w-4 h-4" />
+                Actual Hours
+              </div>
+              <p className="font-medium">{task.actual_hours || 'Not tracked'}</p>
             </div>
           </div>
         )}
 
-        {/* Recent Updates */}
+        {/* Updates */}
         <div>
-          <h4 className="font-medium mb-2">Recent Updates</h4>
-          <div className="space-y-2">
-            {task.updates.map((update, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <MessageSquare className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm font-medium">{update.author}</span>
-                  <span className="text-xs text-gray-500">
-                    {format(update.date, 'MMM dd, yyyy')}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-700">{update.message}</p>
-              </div>
-            ))}
+          <h4 className="font-medium mb-2">Task Updates</h4>
+          
+          {/* Add new update */}
+          <div className="mb-4">
+            <textarea
+              value={newUpdate}
+              onChange={(e) => setNewUpdate(e.target.value)}
+              placeholder="Add an update..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
+              rows={3}
+            />
+            <Button 
+              onClick={handleAddUpdate}
+              disabled={!newUpdate.trim() || addingUpdate}
+              size="sm"
+              className="mt-2"
+            >
+              {addingUpdate ? 'Adding...' : 'Add Update'}
+            </Button>
           </div>
+
+          {/* Updates list */}
+          {updatesLoading ? (
+            <div className="space-y-2">
+              <div className="animate-pulse bg-gray-50 rounded-lg p-3 h-16"></div>
+              <div className="animate-pulse bg-gray-50 rounded-lg p-3 h-16"></div>
+            </div>
+          ) : updates.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {updates.map((update) => (
+                <div key={update.id} className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MessageSquare className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-medium">{update.author_name || 'Unknown'}</span>
+                    <span className="text-xs text-gray-500">
+                      {format(new Date(update.created_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700">{update.message}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No updates yet</p>
+          )}
         </div>
 
         {/* Actions */}
@@ -195,10 +212,6 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({ taskId, onClose }) => 
           <Button size="sm" className="flex items-center gap-2">
             <Edit className="w-4 h-4" />
             Edit Task
-          </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Add Update
           </Button>
         </div>
       </CardContent>
