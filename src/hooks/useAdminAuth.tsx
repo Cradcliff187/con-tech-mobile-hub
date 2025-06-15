@@ -2,7 +2,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface AdminAuthContextType {
   isAdmin: boolean;
@@ -23,32 +22,45 @@ export const useAdminAuth = () => {
 export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { user, profile } = useAuth();
 
   const checkAdminStatus = async () => {
-    if (!user) {
+    if (!user || !profile) {
+      console.log('No user or profile, not admin');
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+
+    // Only check if account is approved
+    if (profile.account_status !== 'approved') {
+      console.log('Account not approved, not admin');
       setIsAdmin(false);
       setLoading(false);
       return;
     }
 
     try {
+      console.log('Checking admin status for user:', user.email);
+      
+      // Check if user has admin role
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .eq('role', 'admin')
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } else {
-        setIsAdmin(!!data);
+        const isAdminUser = !!data;
+        console.log('Admin status result:', isAdminUser);
+        setIsAdmin(isAdminUser);
       }
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('Exception checking admin status:', error);
       setIsAdmin(false);
     }
 
@@ -57,7 +69,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     checkAdminStatus();
-  }, [user]);
+  }, [user, profile]);
 
   return (
     <AdminAuthContext.Provider value={{
