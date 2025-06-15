@@ -2,14 +2,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarHeader } from '@/components/ui/sidebar';
-import { Shield, LogOut, LucideIcon } from 'lucide-react';
+import { Shield, LogOut } from 'lucide-react';
 import { ProfileData } from '@/types/auth';
-
-interface NavigationItem {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-}
+import { NavigationItem } from '@/types/navigation';
 
 interface DesktopSidebarProps {
   profile: ProfileData | null;

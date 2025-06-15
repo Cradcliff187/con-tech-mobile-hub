@@ -14,7 +14,9 @@ import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { MobileSidebarOverlay } from '@/components/navigation/MobileSidebarOverlay';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { NavigationItem } from '@/types/navigation';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -33,7 +35,7 @@ const Index = () => {
   const { signOut, profile } = useAuth();
   const navigate = useNavigate();
 
-  const navigation = [
+  const navigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'stakeholders', label: 'Stakeholders', icon: Users },
@@ -98,7 +100,9 @@ const Index = () => {
         <main className="flex-1 overflow-auto">
           <div className="lg:hidden h-16"></div>
           <div className="p-6">
-            {renderContent()}
+            <ErrorBoundary>
+              {renderContent()}
+            </ErrorBoundary>
           </div>
         </main>
 
