@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -27,7 +26,7 @@ export const WorkflowTester = () => {
   const { tasks, loading: tasksLoading } = useTasks();
   const { stakeholders, loading: stakeholdersLoading } = useStakeholders();
 
-  const addResult = (name: string, status: 'success' | 'error' | 'warning', message: string, details?: string) => {
+  const addResult = (name: string, status: 'success' | 'error' | 'warning' | 'pending', message: string, details?: string) => {
     setResults(prev => [...prev, { name, status, message, details }]);
   };
 
