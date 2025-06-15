@@ -31,7 +31,12 @@ export const useResourceAllocations = (projectId?: string) => {
       if (error) {
         console.error('Error fetching resource allocations:', error);
       } else {
-        setAllocations(data || []);
+        // Properly type the allocation_type field
+        const typedAllocations = (data || []).map(allocation => ({
+          ...allocation,
+          allocation_type: (allocation.allocation_type === 'daily' ? 'daily' : 'weekly') as 'weekly' | 'daily'
+        }));
+        setAllocations(typedAllocations);
       }
     } catch (error) {
       console.error('Error fetching resource allocations:', error);

@@ -1,6 +1,4 @@
 
-
-
 export interface Task {
   id: string;
   title: string;
@@ -13,7 +11,7 @@ export interface Task {
   project_id: string;
   assignee_id?: string;
   assigned_stakeholder_id?: string;
-  task_type: 'regular' | 'punch_list';
+  task_type?: 'regular' | 'punch_list';
   required_skills?: string[];
   punch_list_category?: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other';
 }
@@ -27,7 +25,7 @@ export interface ResourceAllocation {
   total_used: number;
   created_at: string;
   updated_at: string;
-  allocation_type: 'weekly' | 'daily';
+  allocation_type?: 'weekly' | 'daily';
   members?: TeamMember[];
 }
 
@@ -55,5 +53,3 @@ export interface Profile {
   account_status: string;
   skills?: string[];
 }
-
-
