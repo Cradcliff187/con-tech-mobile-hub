@@ -4,9 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { DatabaseVerification } from '@/components/debug/DatabaseVerification';
+import { WorkflowTester } from '@/components/debug/WorkflowTester';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Database, Shield } from 'lucide-react';
+import { Users, Database, Shield, TestTube } from 'lucide-react';
 
 const Admin = () => {
   const { isAdmin, loading } = useAdminAuth();
@@ -35,19 +36,23 @@ const Admin = () => {
             Admin Dashboard
           </h1>
           <p className="text-slate-600">
-            Manage users, verify system health, and configure application settings
+            Manage users, verify system health, and test application workflows
           </p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
             <TabsTrigger value="database" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
-              Database Verification
+              Database Tests
+            </TabsTrigger>
+            <TabsTrigger value="workflows" className="flex items-center gap-2">
+              <TestTube className="h-4 w-4" />
+              Workflow Tests
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -61,6 +66,10 @@ const Admin = () => {
 
           <TabsContent value="database" className="space-y-6">
             <DatabaseVerification />
+          </TabsContent>
+
+          <TabsContent value="workflows" className="space-y-6">
+            <WorkflowTester />
           </TabsContent>
 
           <TabsContent value="system" className="space-y-6">
@@ -79,6 +88,8 @@ const Admin = () => {
                     <p className="text-sm text-green-600">✓ Authentication System</p>
                     <p className="text-sm text-green-600">✓ Database Connection</p>
                     <p className="text-sm text-green-600">✓ Admin Controls</p>
+                    <p className="text-sm text-green-600">✓ Navigation System</p>
+                    <p className="text-sm text-green-600">✓ Workflow Testing</p>
                   </div>
                 </div>
               </CardContent>

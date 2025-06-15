@@ -6,6 +6,7 @@ import { QuickStats } from './QuickStats';
 import { RecentActivity } from './RecentActivity';
 import { WeatherWidget } from './WeatherWidget';
 import { CreateProjectDialog } from './CreateProjectDialog';
+import { SystemHealthCheck } from '@/components/debug/SystemHealthCheck';
 import { useDebugInfo } from '@/hooks/useDebugInfo';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -35,6 +36,9 @@ export const ProjectDashboard = () => {
           Create Project
         </Button>
       </div>
+
+      {/* System Health Check */}
+      <SystemHealthCheck />
 
       {/* Enhanced Metrics Section */}
       <AdvancedMetrics />
