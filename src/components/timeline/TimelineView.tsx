@@ -28,6 +28,17 @@ export const TimelineView: React.FC = () => {
     criticalPath: 8
   };
 
+  // Mock task data for the selected task
+  const mockTask = {
+    title: "Sample Task",
+    description: "This is a sample task description",
+    status: "in-progress",
+    priority: "high",
+    due_date: "2024-01-15",
+    assignee_id: "123",
+    assigned_stakeholder_id: undefined
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
@@ -187,7 +198,15 @@ export const TimelineView: React.FC = () => {
       {/* Task Details Modal */}
       {selectedTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <TaskDetails taskId={selectedTask} onClose={() => setSelectedTask(null)} />
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Task Details</h2>
+              <Button variant="outline" onClick={() => setSelectedTask(null)}>
+                Close
+              </Button>
+            </div>
+            <TaskDetails taskId={selectedTask} task={mockTask} />
+          </div>
         </div>
       )}
     </div>
