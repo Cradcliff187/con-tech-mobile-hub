@@ -15,7 +15,8 @@ export const TaskManager = () => {
 
   const filteredTasks = tasks.filter(task => {
     const matchesFilter = filter === 'all' || task.status === filter;
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
   });
 
@@ -52,6 +53,7 @@ export const TaskManager = () => {
         onFilterChange={setFilter}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
+        tasks={tasks}
       />
 
       <TaskList tasks={filteredTasks} />
