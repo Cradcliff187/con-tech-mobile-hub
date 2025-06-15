@@ -1,43 +1,72 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ProjectTimeline } from './ProjectTimeline';
 import { TaskDetails } from './TaskDetails';
+import { useProjects } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Filter, Download, Calendar } from 'lucide-react';
 
+// CLEANED: Use Supabase hooks for live data now!
 export const TimelineView: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Mock projects data
-  const projects = [
-    { id: '1', name: 'Downtown Office Complex', progress: 65, status: 'active' },
-    { id: '2', name: 'Residential Tower A', progress: 89, status: 'active' },
-    { id: '3', name: 'Shopping Center Renovation', progress: 23, status: 'planning' }
-  ];
+  // Live projects and tasks from Supabase
+  const { projects, loading: projectsLoading } = useProjects();
+  const { tasks, loading: tasksLoading } = useTasks();
 
-  const timelineStats = {
-    totalTasks: 47,
-    onTrack: 32,
-    atRisk: 12,
-    delayed: 3,
-    criticalPath: 8
-  };
+  // Dynamically compute timeline stats
+  const timelineStats = useMemo(() => {
+    const filteredTasks = selectedProject !== 'all'
+      ? tasks.filter(task => task.project_id === selectedProject)
+      : tasks;
 
-  // Mock task data for the selected task
-  const mockTask = {
-    title: "Sample Task",
-    description: "This is a sample task description",
-    status: "in-progress",
-    priority: "high",
-    due_date: "2024-01-15",
-    assignee_id: "123",
-    assigned_stakeholder_id: undefined
-  };
+    const totalTasks = filteredTasks.length;
+    let onTrack = 0, atRisk = 0, delayed = 0, criticalPath = 0;
+
+    // Example definitions (customize as needed):
+    for (const task of filteredTasks) {
+      if (task.status === 'completed') continue;
+      // Delayed if due date is past and not completed
+      if (task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed') {
+        delayed++;
+      }
+      // At risk if in-progress and past 80% of estimated hours (if available), or low progress & soon due
+      else if (
+        (task.progress !== undefined && task.progress < 50 && task.status === 'in-progress') ||
+        (task.estimated_hours && task.actual_hours && task.actual_hours > task.estimated_hours * 0.8)
+      ) {
+        atRisk++;
+      }
+      // Assume critical path: for now, pretend all "critical" priority tasks not done (you can customize this)
+      if (task.priority === 'critical' && task.status !== 'completed') {
+        criticalPath++;
+      }
+      // On track otherwise
+      else if (task.status === 'in-progress' || task.status === 'not-started') {
+        onTrack++;
+      }
+    }
+
+    return {
+      totalTasks,
+      onTrack,
+      atRisk,
+      delayed,
+      criticalPath,
+    };
+  }, [tasks, selectedProject]);
+
+  // Use projects from Supabase
+  const filteredProjects = projects;
+
+  // Find the selected task when user opens the modal
+  const selectedTaskObj = tasks.find(task => task.id === selectedTask);
 
   return (
     <div className="space-y-6">
@@ -134,7 +163,7 @@ export const TimelineView: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Projects</SelectItem>
-                    {projects.map((project) => (
+                    {filteredProjects.map((project) => (
                       <SelectItem key={project.id} value={project.id}>
                         {project.name}
                       </SelectItem>
@@ -196,7 +225,7 @@ export const TimelineView: React.FC = () => {
       <ProjectTimeline projectId={selectedProject} />
 
       {/* Task Details Modal */}
-      {selectedTask && (
+      {selectedTask && selectedTaskObj && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
@@ -205,7 +234,7 @@ export const TimelineView: React.FC = () => {
                 Close
               </Button>
             </div>
-            <TaskDetails taskId={selectedTask} task={mockTask} />
+            <TaskDetails taskId={selectedTask} task={selectedTaskObj} />
           </div>
         </div>
       )}
