@@ -3,7 +3,7 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
+  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
   priority: 'low' | 'medium' | 'high' | 'critical';
   due_date?: string;
   created_at: string;
