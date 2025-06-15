@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -58,7 +57,8 @@ export const CreateStakeholderDialog = ({
       ...formData,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
       insurance_expiry: formData.insurance_expiry || undefined,
-      specialties: formData.specialties.length > 0 ? formData.specialties : undefined
+      specialties: formData.specialties.length > 0 ? formData.specialties : undefined,
+      status: 'active' as const
     };
 
     const { error } = await createStakeholder(stakeholderData);
