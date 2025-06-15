@@ -172,7 +172,7 @@ export const DatabaseVerification = () => {
 
       // Test 11: Weather data table
       try {
-        const { data: weather, error: weatherError } = await supabase
+        const { data: weatherData, error: weatherError } = await supabase
           .from('weather_data')
           .select('id, location')
           .limit(5);
@@ -180,10 +180,10 @@ export const DatabaseVerification = () => {
         if (weatherError) {
           addResult('Weather Data Table', 'error', `Error: ${weatherError.message}`);
         } else {
-          addResult('Weather Data Table', 'success', `Found ${weather?.length || 0} weather records`);
+          addResult('Weather Data Table', 'success', `Found ${weatherData?.length || 0} weather records`);
         }
       } catch (error: any) {
-        addResult('Weather Data Table', 'error', `Exception: ${weather.message}`);
+        addResult('Weather Data Table', 'error', `Exception: ${error.message}`);
       }
 
       // Test 12: User invitations table (admin only)

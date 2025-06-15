@@ -1,13 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { LucideIcon } from 'lucide-react';
-
-interface NavigationItem {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-}
+import { X } from 'lucide-react';
+import { NavigationItem } from '@/types/navigation';
 
 interface MobileNavigationProps {
   isOpen: boolean;
@@ -38,7 +33,14 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
       
       {/* Navigation Panel */}
       <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
-        <nav className="p-4 space-y-2 mt-16">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-800">Navigation</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X size={20} />
+          </Button>
+        </div>
+        
+        <nav className="p-4 space-y-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             return (
