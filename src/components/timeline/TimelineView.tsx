@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { ProjectTimeline } from './ProjectTimeline';
 import { TaskDetails } from './TaskDetails';
@@ -29,11 +28,10 @@ export const TimelineView: React.FC = () => {
     const totalTasks = filteredTasks.length;
     let onTrack = 0, atRisk = 0, delayed = 0, criticalPath = 0;
 
-    // Example definitions (customize as needed):
     for (const task of filteredTasks) {
       if (task.status === 'completed') continue;
-      // Delayed if due date is past and not completed
-      if (task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed') {
+      // Delayed if due date is past and not completed (redundant check on status removed)
+      if (task.due_date && new Date(task.due_date) < new Date()) {
         delayed++;
       }
       // At risk if in-progress and past 80% of estimated hours (if available), or low progress & soon due
@@ -43,11 +41,10 @@ export const TimelineView: React.FC = () => {
       ) {
         atRisk++;
       }
-      // Assume critical path: for now, pretend all "critical" priority tasks not done (you can customize this)
-      if (task.priority === 'critical' && task.status !== 'completed') {
+      // Assume critical path: for now, all "critical" priority tasks not done
+      if (task.priority === 'critical') {
         criticalPath++;
       }
-      // On track otherwise
       else if (task.status === 'in-progress' || task.status === 'not-started') {
         onTrack++;
       }
