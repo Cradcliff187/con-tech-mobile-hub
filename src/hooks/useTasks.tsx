@@ -29,6 +29,7 @@ export const useTasks = () => {
         status: task.status as Task['status'],
         priority: task.priority as Task['priority'],
         due_date: task.due_date,
+        start_date: task.start_date,
         created_at: task.created_at,
         updated_at: task.updated_at,
         project_id: task.project_id,
@@ -36,7 +37,12 @@ export const useTasks = () => {
         assigned_stakeholder_id: task.assigned_stakeholder_id,
         task_type: task.task_type as Task['task_type'],
         required_skills: task.required_skills,
-        punch_list_category: task.punch_list_category as Task['punch_list_category']
+        punch_list_category: task.punch_list_category as Task['punch_list_category'],
+        category: task.category,
+        estimated_hours: task.estimated_hours,
+        actual_hours: task.actual_hours,
+        progress: task.progress || 0,
+        created_by: task.created_by
       }));
       setTasks(mappedTasks);
     }
@@ -63,8 +69,10 @@ export const useTasks = () => {
         status: taskData.status || 'not-started',
         priority: taskData.priority || 'medium',
         due_date: taskData.due_date,
+        start_date: taskData.start_date,
         category: taskData.category,
         estimated_hours: taskData.estimated_hours,
+        actual_hours: taskData.actual_hours,
         progress: taskData.progress || 0,
         created_by: user.id,
         assignee_id: taskData.assignee_id,
@@ -84,6 +92,7 @@ export const useTasks = () => {
         status: data.status as Task['status'],
         priority: data.priority as Task['priority'],
         due_date: data.due_date,
+        start_date: data.start_date,
         created_at: data.created_at,
         updated_at: data.updated_at,
         project_id: data.project_id,
@@ -91,7 +100,12 @@ export const useTasks = () => {
         assigned_stakeholder_id: data.assigned_stakeholder_id,
         task_type: data.task_type as Task['task_type'],
         required_skills: data.required_skills,
-        punch_list_category: data.punch_list_category as Task['punch_list_category']
+        punch_list_category: data.punch_list_category as Task['punch_list_category'],
+        category: data.category,
+        estimated_hours: data.estimated_hours,
+        actual_hours: data.actual_hours,
+        progress: data.progress || 0,
+        created_by: data.created_by
       };
       setTasks(prev => [mappedTask, ...prev]);
     }
@@ -115,6 +129,7 @@ export const useTasks = () => {
         status: data.status as Task['status'],
         priority: data.priority as Task['priority'],
         due_date: data.due_date,
+        start_date: data.start_date,
         created_at: data.created_at,
         updated_at: data.updated_at,
         project_id: data.project_id,
@@ -122,7 +137,12 @@ export const useTasks = () => {
         assigned_stakeholder_id: data.assigned_stakeholder_id,
         task_type: data.task_type as Task['task_type'],
         required_skills: data.required_skills,
-        punch_list_category: data.punch_list_category as Task['punch_list_category']
+        punch_list_category: data.punch_list_category as Task['punch_list_category'],
+        category: data.category,
+        estimated_hours: data.estimated_hours,
+        actual_hours: data.actual_hours,
+        progress: data.progress || 0,
+        created_by: data.created_by
       };
       setTasks(prev => prev.map(task => task.id === id ? mappedTask : task));
     }

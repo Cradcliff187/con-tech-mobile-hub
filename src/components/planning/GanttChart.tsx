@@ -36,7 +36,7 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
         title: task.title,
         startDate: task.start_date || new Date().toISOString().split('T')[0],
         endDate: task.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        progress: task.progress,
+        progress: task.progress || 0,
         status: task.status,
         priority: task.priority,
         dependencies: [], // We'll enhance this with the task_dependencies table later

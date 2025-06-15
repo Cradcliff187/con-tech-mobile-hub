@@ -4,9 +4,13 @@ import { useProjects } from '@/hooks/useProjects';
 import { CheckCircle, Clock, AlertTriangle, Calendar } from 'lucide-react';
 import { useState } from 'react';
 
-export const MilestonePlanning = () => {
+interface MilestonePlanningProps {
+  projectId?: string;
+}
+
+export const MilestonePlanning = ({ projectId: initialProjectId }: MilestonePlanningProps) => {
   const { projects } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || '');
   const { milestones, loading } = useMilestones(selectedProjectId);
 
   const getStatusIcon = (status: string) => {

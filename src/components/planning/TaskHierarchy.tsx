@@ -46,7 +46,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
           title: task.title,
           status: task.status,
           priority: task.priority,
-          progress: task.progress,
+          progress: task.progress || 0,
           dueDate: task.due_date,
           assignee: task.assignee_id,
           category: task.category,

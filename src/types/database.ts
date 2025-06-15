@@ -1,4 +1,3 @@
-
 export interface Task {
   id: string;
   title: string;
@@ -6,6 +5,7 @@ export interface Task {
   status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
   priority: 'low' | 'medium' | 'high' | 'critical';
   due_date?: string;
+  start_date?: string;
   created_at: string;
   updated_at: string;
   project_id: string;
@@ -14,6 +14,11 @@ export interface Task {
   task_type?: 'regular' | 'punch_list';
   required_skills?: string[];
   punch_list_category?: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other';
+  category?: string;
+  estimated_hours?: number;
+  actual_hours?: number;
+  progress?: number;
+  created_by?: string;
 }
 
 export interface ResourceAllocation {
