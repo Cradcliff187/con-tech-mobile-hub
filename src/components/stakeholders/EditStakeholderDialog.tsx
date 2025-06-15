@@ -19,7 +19,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
   const { updateStakeholder } = useStakeholders();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    stakeholder_type: 'subcontractor' as 'subcontractor' | 'employee' | 'vendor',
+    stakeholder_type: 'subcontractor' as 'subcontractor' | 'employee' | 'vendor' | 'client',
     company_name: '',
     contact_person: '',
     phone: '',
@@ -153,6 +153,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
                 <SelectItem value="subcontractor">Subcontractor</SelectItem>
                 <SelectItem value="employee">Employee</SelectItem>
                 <SelectItem value="vendor">Vendor</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
               </SelectContent>
             </Select>
           </div>
