@@ -67,7 +67,7 @@ export const TaskDetails = ({ taskId, task }: TaskDetailsProps) => {
     try {
       const authorName = profile?.full_name || profile?.email || user.email || 'Unknown User';
       
-      await addUpdate(newUpdate, user.id, authorName);
+      await addUpdate(newUpdate, authorName);
       setNewUpdate('');
     } catch (error) {
       console.error('Error adding task update:', error);
