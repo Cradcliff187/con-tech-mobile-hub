@@ -1057,8 +1057,20 @@ export type Database = {
           created_at: string
         }[]
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_approved_company_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_company_domain: {
         Args: { email: string }
+        Returns: boolean
+      }
+      is_project_manager_or_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       user_can_access_project: {
