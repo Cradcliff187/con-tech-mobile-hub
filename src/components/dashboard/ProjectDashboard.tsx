@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react';
 export const ProjectDashboard = () => {
   const debugInfo = useDebugInfo();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const isDevelopment = import.meta.env.DEV;
 
   useEffect(() => {
     console.log('=== PROJECT DASHBOARD DEBUG INFO ===');
@@ -37,8 +38,8 @@ export const ProjectDashboard = () => {
         </Button>
       </div>
 
-      {/* System Health Check */}
-      <SystemHealthCheck />
+      {/* System Health Check - Only in Development */}
+      {isDevelopment && <SystemHealthCheck />}
 
       {/* Enhanced Metrics Section */}
       <AdvancedMetrics />

@@ -12,6 +12,7 @@ import { Users, Database, Shield, TestTube } from 'lucide-react';
 const Admin = () => {
   const { isAdmin, loading } = useAdminAuth();
   const { profile } = useAuth();
+  const isDevelopment = import.meta.env.DEV;
 
   if (loading) {
     return (
@@ -36,41 +37,49 @@ const Admin = () => {
             Admin Dashboard
           </h1>
           <p className="text-slate-600">
-            Manage users, verify system health, and test application workflows
+            Manage users{isDevelopment ? ', verify system health, and test application workflows' : ''}
           </p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
+          <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-4' : 'grid-cols-2'} lg:w-auto`}>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               User Management
-            </TabsTrigger>
-            <TabsTrigger value="database" className="flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              Database Tests
-            </TabsTrigger>
-            <TabsTrigger value="workflows" className="flex items-center gap-2">
-              <TestTube className="h-4 w-4" />
-              Workflow Tests
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               System Status
             </TabsTrigger>
+            {isDevelopment && (
+              <>
+                <TabsTrigger value="database" className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Database Tests
+                </TabsTrigger>
+                <TabsTrigger value="workflows" className="flex items-center gap-2">
+                  <TestTube className="h-4 w-4" />
+                  Workflow Tests
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           <TabsContent value="users" className="space-y-6">
             <AdminPanel />
           </TabsContent>
 
-          <TabsContent value="database" className="space-y-6">
-            <DatabaseVerification />
-          </TabsContent>
+          {isDevelopment && (
+            <>
+              <TabsContent value="database" className="space-y-6">
+                <DatabaseVerification />
+              </TabsContent>
 
-          <TabsContent value="workflows" className="space-y-6">
-            <WorkflowTester />
-          </TabsContent>
+              <TabsContent value="workflows" className="space-y-6">
+                <WorkflowTester />
+              </TabsContent>
+            </>
+          )}
 
           <TabsContent value="system" className="space-y-6">
             <Card>
@@ -89,7 +98,7 @@ const Admin = () => {
                     <p className="text-sm text-green-600">✓ Database Connection</p>
                     <p className="text-sm text-green-600">✓ Admin Controls</p>
                     <p className="text-sm text-green-600">✓ Navigation System</p>
-                    <p className="text-sm text-green-600">✓ Workflow Testing</p>
+                    {isDevelopment && <p className="text-sm text-green-600">✓ Workflow Testing</p>}
                   </div>
                 </div>
               </CardContent>
