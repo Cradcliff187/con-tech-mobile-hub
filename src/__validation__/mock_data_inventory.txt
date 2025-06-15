@@ -1,0 +1,76 @@
+
+# MOCK DATA INVENTORY/VALIDATION REPORT
+
+## 1. Timeline Stats Tiles: `/components/timeline/TimelineView.tsx`
+- [X] Line with mock stats:
+  ```
+  const timelineStats = {
+    totalTasks: 47,
+    onTrack: 32,
+    atRisk: 12,
+    delayed: 3,
+    criticalPath: 8
+  };
+  ```
+  **Status:**
+  - STILL MOCK DATA – NOT dynamic. Should be derived from `useTasks()` and/or `useProjects()`.
+  - These numbers are shown in the UI matching screenshot. NOT connected to Supabase.
+- [X] Line with mock projects list:
+  ```
+  const projects = [
+    { id: '1', name: 'Downtown Office Complex', progress: 65, status: 'active' },
+    ...
+  ]
+  ```
+  **Status:** 
+  - STILL MOCK DATA. Should use `useProjects()` hook.
+
+- [X] Line with mockTask for TaskDetails:
+  ```
+  const mockTask = { ... }
+  ```
+  **Status:** 
+  - STILL MOCK DATA. Actual tasks should come from `useTasks()` and passed to the modal/details view.
+
+---
+
+## 2. Timeline Items: `/components/timeline/ProjectTimeline.tsx`
+- [✓] Uses the `useTasks()` hook, and lists real Supabase data. **No mock arrays/tasks found.**
+- [✓] Filtering by `projectId` from props/hook – correct.
+
+---
+
+## 3. Quick Stats Tiles: `/components/dashboard/QuickStats.tsx`
+- [✓] The stats arrays all use calculated values:
+  ```
+  const activeProjects = projects.filter(...);
+  const completedTasks = tasks.filter(...);
+  ```
+  - No mock data. **Correctly uses data from hooks.**
+
+---
+
+## 4. Reports: `/components/reports/ReportCharts.tsx`
+- [✓] Uses the `useChartData` hook and reads live Supabase data. No mock/fake values.
+
+---
+
+## 5. Others
+- Scanned "Planning" views, `MilestonePlanning`, etc. All appear to use correct hooks and not use fallback/mock data.
+- Searched for numbers in mock tile ("47", "32", "8", etc.) – **No others found except those in TimelineView.**
+
+---
+
+# SUMMARY OF ACTIONS NEEDED
+
+1. **`TimelineView.tsx`: All stats tiles and demo projects MUST use hooks**
+    - Replace `timelineStats` with dynamic calculated values from `useTasks()` (for task progress/buckets)
+    - Replace fake `projects` array with `useProjects()` from hooks
+    - Replace `mockTask` with task selected from tasks array
+
+2. **All other components validated as OK – already read from Supabase via hooks**
+
+3. **Validation complete – referenced files/lines above**
+
+---
+
