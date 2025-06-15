@@ -30,9 +30,9 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
 
-  // Filter stakeholders to show potential clients (vendors and subcontractors can be clients)
-  const potentialClients = stakeholders.filter(s => 
-    s.stakeholder_type === 'vendor' || s.stakeholder_type === 'subcontractor'
+  // Filter stakeholders to show only clients
+  const clients = stakeholders.filter(s => 
+    s.stakeholder_type === 'client' || s.stakeholder_type === 'vendor'
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,6 +99,27 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
               required
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client">Client *</Label>
+            <Select value={clientId} onValueChange={setClientId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select client" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.company_name || client.contact_person || 'Unknown Client'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {clients.length === 0 && (
+              <p className="text-sm text-slate-500">
+                No clients available. Please create a client stakeholder first.
+              </p>
+            )}
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
@@ -120,24 +141,6 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
               placeholder="Project site address or location"
             />
           </div>
-
-          {potentialClients.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="client">Client (Optional)</Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {potentialClients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.company_name || client.contact_person}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -191,7 +194,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !clientId}>
               {loading ? 'Creating...' : 'Create Project'}
             </Button>
           </div>

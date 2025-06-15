@@ -1,5 +1,5 @@
 
-import { MapPin, Calendar, Clock } from 'lucide-react';
+import { MapPin, Calendar, Clock, User } from 'lucide-react';
 
 interface ProjectCardProps {
   project: {
@@ -11,6 +11,12 @@ interface ProjectCardProps {
     end_date?: string;
     status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
     location?: string;
+    client?: {
+      id: string;
+      company_name?: string;
+      contact_person?: string;
+      stakeholder_type: string;
+    };
   };
 }
 
@@ -44,6 +50,11 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
     });
   };
 
+  const getClientDisplayName = () => {
+    if (!project.client) return null;
+    return project.client.company_name || project.client.contact_person || 'Unknown Client';
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between mb-4">
@@ -56,6 +67,14 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
       </div>
 
       <div className="space-y-3">
+        {project.client && (
+          <div className="flex items-center text-sm text-slate-600">
+            <User size={16} className="mr-2" />
+            <span className="font-medium text-slate-700">Client:</span>
+            <span className="ml-1">{getClientDisplayName()}</span>
+          </div>
+        )}
+
         {project.location && (
           <div className="flex items-center text-sm text-slate-600">
             <MapPin size={16} className="mr-2" />

@@ -37,7 +37,7 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
     setLoading(true);
 
     const stakeholderData = {
-      stakeholder_type: formData.stakeholder_type as 'subcontractor' | 'employee' | 'vendor',
+      stakeholder_type: formData.stakeholder_type as 'subcontractor' | 'employee' | 'vendor' | 'client',
       company_name: formData.company_name || undefined,
       contact_person: formData.contact_person || undefined,
       email: formData.email || undefined,
@@ -92,6 +92,7 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="client">Client</SelectItem>
                   <SelectItem value="subcontractor">Subcontractor</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>
                   <SelectItem value="vendor">Vendor/Supplier</SelectItem>

@@ -330,7 +330,7 @@ export type Database = {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "stakeholders"
             referencedColumns: ["id"]
           },
           {
@@ -868,7 +868,7 @@ export type Database = {
         | "completed"
         | "cancelled"
       stakeholder_status: "active" | "inactive" | "pending" | "suspended"
-      stakeholder_type: "subcontractor" | "employee" | "vendor"
+      stakeholder_type: "subcontractor" | "employee" | "vendor" | "client"
       task_priority: "low" | "medium" | "high" | "critical"
       task_status: "not-started" | "in-progress" | "completed" | "blocked"
       user_role:
@@ -1002,7 +1002,7 @@ export const Constants = {
         "cancelled",
       ],
       stakeholder_status: ["active", "inactive", "pending", "suspended"],
-      stakeholder_type: ["subcontractor", "employee", "vendor"],
+      stakeholder_type: ["subcontractor", "employee", "vendor", "client"],
       task_priority: ["low", "medium", "high", "critical"],
       task_status: ["not-started", "in-progress", "completed", "blocked"],
       user_role: [

@@ -4,12 +4,16 @@ import { GanttChart } from './GanttChart';
 import { TaskHierarchy } from './TaskHierarchy';
 import { ResourcePlanning } from './ResourcePlanning';
 import { MilestonePlanning } from './MilestonePlanning';
+import { ClientFilter } from '@/components/projects/ClientFilter';
 import { Button } from '@/components/ui/button';
 import { Calendar, Users, Target, BarChart3 } from 'lucide-react';
+import { useProjects } from '@/hooks/useProjects';
 
 export const ProjectPlanning = () => {
   const [activeView, setActiveView] = useState<'gantt' | 'hierarchy' | 'resources' | 'milestones'>('gantt');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
+  const { projects } = useProjects();
 
   const views = [
     { id: 'gantt', label: 'Gantt Chart', icon: BarChart3 },
@@ -17,6 +21,11 @@ export const ProjectPlanning = () => {
     { id: 'resources', label: 'Resource Planning', icon: Users },
     { id: 'milestones', label: 'Milestones', icon: Calendar }
   ];
+
+  // Filter projects by selected client
+  const filteredProjects = selectedClientId 
+    ? projects.filter(p => p.client_id === selectedClientId)
+    : projects;
 
   return (
     <div className="space-y-6">
@@ -36,20 +45,33 @@ export const ProjectPlanning = () => {
         </div>
       </div>
 
-      {/* Project Selector */}
+      {/* Project and Client Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-slate-700">Select Project:</label>
-          <select 
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            <option value="">Choose a project...</option>
-            <option value="1">Downtown Office Complex</option>
-            <option value="2">Residential Housing Phase 2</option>
-            <option value="3">Highway Bridge Renovation</option>
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Filter by Client:</label>
+            <ClientFilter 
+              selectedClientId={selectedClientId}
+              onClientChange={setSelectedClientId}
+              className="flex-1"
+            />
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Select Project:</label>
+            <select 
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="">Choose a project...</option>
+              {filteredProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name} {project.client && `- ${project.client.company_name || project.client.contact_person}`}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -90,6 +112,9 @@ export const ProjectPlanning = () => {
               <Target size={48} className="mx-auto mb-4 text-slate-400" />
               <h3 className="text-lg font-medium text-slate-600 mb-2">Select a Project to Begin Planning</h3>
               <p className="text-slate-500">Choose a project from the dropdown above to view and edit its planning details.</p>
+              {filteredProjects.length === 0 && selectedClientId && (
+                <p className="text-slate-500 mt-2">No projects found for the selected client.</p>
+              )}
             </div>
           )}
         </div>

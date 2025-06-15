@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface Stakeholder {
   id: string;
   profile_id?: string;
-  stakeholder_type: 'subcontractor' | 'employee' | 'vendor';
+  stakeholder_type: 'subcontractor' | 'employee' | 'vendor' | 'client';
   company_name?: string;
   contact_person?: string;
   phone?: string;

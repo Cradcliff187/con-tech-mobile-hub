@@ -15,8 +15,15 @@ interface Project {
   progress: number;
   location?: string;
   project_manager_id?: string;
+  client_id?: string;
   created_at: string;
   updated_at: string;
+  client?: {
+    id: string;
+    company_name?: string;
+    contact_person?: string;
+    stakeholder_type: string;
+  };
 }
 
 export const useProjects = () => {
@@ -30,7 +37,15 @@ export const useProjects = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('projects')
-      .select('*')
+      .select(`
+        *,
+        client:stakeholders(
+          id,
+          company_name,
+          contact_person,
+          stakeholder_type
+        )
+      `)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -63,9 +78,18 @@ export const useProjects = () => {
         budget: projectData.budget,
         location: projectData.location,
         progress: projectData.progress || 0,
-        project_manager_id: user.id
+        project_manager_id: user.id,
+        client_id: projectData.client_id
       })
-      .select()
+      .select(`
+        *,
+        client:stakeholders(
+          id,
+          company_name,
+          contact_person,
+          stakeholder_type
+        )
+      `)
       .single();
 
     if (!error && data) {
