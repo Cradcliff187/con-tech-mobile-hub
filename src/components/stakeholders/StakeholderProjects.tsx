@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { QuickProjectCreate } from '@/components/common/QuickProjectCreate';
 import { ProjectLink } from '@/components/common/ProjectLink';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Project } from '@/hooks/useProjects';
+import { Project } from '@/types/database';
 
 interface StakeholderProjectsProps {
   stakeholderId: string;
@@ -28,7 +28,12 @@ export const StakeholderProjects = ({ stakeholderId, stakeholderType }: Stakehol
       .order('created_at', { ascending: false });
 
     if (!error) {
-      setProjects(data || []);
+      const mappedData = (data || []).map(p => ({
+          ...p,
+          status: p.status as Project['status'],
+          phase: (p.phase || 'planning') as Project['phase']
+      }));
+      setProjects(mappedData);
     }
     setLoading(false);
   };

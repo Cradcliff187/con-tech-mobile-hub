@@ -1,6 +1,5 @@
-
 import { Task } from '@/types/database';
-import { Project } from '@/hooks/useProjects';
+import { Project } from '@/types/database';
 
 export const shouldShowPunchList = (project: Project) => {
   return ['punch_list', 'closeout', 'completed'].includes(project.phase);

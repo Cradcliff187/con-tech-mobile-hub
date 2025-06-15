@@ -1,3 +1,27 @@
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+  phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
+  start_date?: string;
+  end_date?: string;
+  budget?: number;
+  spent?: number;
+  progress: number;
+  location?: string;
+  project_manager_id?: string;
+  client_id?: string;
+  created_at: string;
+  updated_at: string;
+  client?: {
+    id: string;
+    company_name?: string;
+    contact_person?: string;
+    stakeholder_type: string;
+  };
+}
+
 export interface Task {
   id: string;
   title: string;
