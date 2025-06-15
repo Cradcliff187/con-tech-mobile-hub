@@ -20,39 +20,35 @@ interface CreateUserResult {
 
 export const userApi = {
   async fetchUsers() {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.functions.invoke('admin-get-all-users');
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error invoking admin-get-all-users function:", error);
+      throw error;
+    }
     return data;
   },
 
   async updateUserRole(userId: string, role: string) {
-    const update: ProfileUpdate = { role: role as UserRole };
-    const { error } = await supabase
-      .from('profiles')
-      .update(update)
-      .eq('id', userId);
-
+    const { error } = await supabase.functions.invoke('admin-update-user', {
+      body: { userId, updates: { role: role as UserRole } },
+    });
     if (error) throw error;
     return { error: null };
   },
 
   async updateUserStatus(userId: string, status: string) {
-    const update: ProfileUpdate = { account_status: status };
-    const { error } = await supabase
-      .from('profiles')
-      .update(update)
-      .eq('id', userId);
-
+    const { error } = await supabase.functions.invoke('admin-update-user', {
+      body: { userId, updates: { account_status: status } },
+    });
     if (error) throw error;
     return { error: null };
   },
 
   async deleteUser(userId: string) {
-    const { error } = await supabase.auth.admin.deleteUser(userId);
+    const { error } = await supabase.functions.invoke('admin-delete-user', {
+      body: { userId },
+    });
     if (error) throw error;
     return { error: null };
   },
@@ -61,35 +57,26 @@ export const userApi = {
     try {
       const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
       
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch('https://jjmedlilkxmrbacoitio.supabase.co/functions/v1/admin-create-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
           email: userData.email,
           password: tempPassword,
           metadata: {
             full_name: userData.full_name || userData.email.split('@')[0],
-            invited_by: (await supabase.auth.getUser()).data.user?.id,
-            role: userData.role
-          }
-        })
+            role: userData.role,
+          },
+        },
       });
 
-      const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error);
+      if (error) {
+        throw error;
       }
       
-      return { data: result.data, error: null, tempPassword };
+      return { data, error: null, tempPassword };
     } catch (error: any) {
       console.error('Error creating external user:', error);
-      return { data: null, error, tempPassword: null };
+      const message = error.context?.message || error.message || "Failed to create external user";
+      return { data: null, error: { message }, tempPassword: null };
     }
   },
 
