@@ -1,86 +1,116 @@
 
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useChartData } from '@/hooks/useChartData';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
 export const ReportCharts = () => {
-  // Mock chart data - in a real app, this would come from a charting library
-  const chartData = {
-    schedulePerformance: [
-      { month: 'Jan', onTime: 85, delayed: 15 },
-      { month: 'Feb', onTime: 88, delayed: 12 },
-      { month: 'Mar', onTime: 92, delayed: 8 },
-      { month: 'Apr', onTime: 89, delayed: 11 },
-      { month: 'May', onTime: 94, delayed: 6 },
-      { month: 'Jun', onTime: 92, delayed: 8 }
-    ],
-    budgetTrends: [
-      { month: 'Jan', planned: 500000, actual: 485000 },
-      { month: 'Feb', planned: 750000, actual: 745000 },
-      { month: 'Mar', planned: 1200000, actual: 1180000 },
-      { month: 'Apr', planned: 1650000, actual: 1625000 },
-      { month: 'May', planned: 2100000, actual: 2080000 },
-      { month: 'Jun', planned: 2500000, actual: 2470000 }
-    ]
-  };
+  const { projectProgress, taskStatus, loading } = useChartData();
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-200 rounded w-48 mb-4"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-80 bg-slate-200 rounded"></div>
+            <div className="h-80 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Schedule Performance Trend</h3>
-        <div className="bg-slate-50 rounded-lg p-6 h-64 flex items-center justify-center">
-          <div className="text-center text-slate-500">
-            <p className="mb-2">Schedule Performance Chart</p>
-            <p className="text-sm">Chart visualization would appear here</p>
-            <div className="mt-4 flex justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span className="text-sm">On Time</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded"></div>
-                <span className="text-sm">Delayed</span>
-              </div>
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold text-slate-800">Project Reports</h3>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Project Progress Chart */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <h4 className="text-md font-medium text-slate-700 mb-4">Project Progress</h4>
+          {projectProgress.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={projectProgress}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 12 }}
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="progress" fill="#0088FE" name="Progress %" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-300 text-slate-500">
+              No project data available
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Budget vs Actual Spending</h3>
-        <div className="bg-slate-50 rounded-lg p-6 h-64 flex items-center justify-center">
-          <div className="text-center text-slate-500">
-            <p className="mb-2">Budget Comparison Chart</p>
-            <p className="text-sm">Chart visualization would appear here</p>
-            <div className="mt-4 flex justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-sm">Planned Budget</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                <span className="text-sm">Actual Spending</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Resource Utilization</h3>
-          <div className="bg-slate-50 rounded-lg p-6 h-48 flex items-center justify-center">
-            <div className="text-center text-slate-500">
-              <p className="mb-2">Resource Utilization</p>
-              <p className="text-sm">Pie chart would appear here</p>
-            </div>
-          </div>
+          )}
         </div>
 
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Project Progress</h3>
-          <div className="bg-slate-50 rounded-lg p-6 h-48 flex items-center justify-center">
-            <div className="text-center text-slate-500">
-              <p className="mb-2">Progress Overview</p>
-              <p className="text-sm">Progress chart would appear here</p>
+        {/* Task Status Chart */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <h4 className="text-md font-medium text-slate-700 mb-4">Task Status Distribution</h4>
+          {taskStatus.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={taskStatus}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ status, percent }) => `${status} (${(percent * 100).toFixed(0)}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {taskStatus.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-300 text-slate-500">
+              No task data available
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* Budget vs Spent Chart */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 lg:col-span-2">
+          <h4 className="text-md font-medium text-slate-700 mb-4">Budget vs Spent</h4>
+          {projectProgress.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={projectProgress}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 12 }}
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis />
+                <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                <Legend />
+                <Bar dataKey="budget" fill="#00C49F" name="Budget" />
+                <Bar dataKey="spent" fill="#FF8042" name="Spent" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-300 text-slate-500">
+              No budget data available
+            </div>
+          )}
         </div>
       </div>
     </div>

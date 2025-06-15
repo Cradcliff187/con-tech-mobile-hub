@@ -1,16 +1,6 @@
 
 import { Calendar, User, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
-  due_date?: string;
-  category?: string;
-  project_id: string;
-}
+import { Task } from '@/types/database';
 
 interface TaskItemProps {
   task: Task;
@@ -68,9 +58,14 @@ export const TaskItem = ({ task }: TaskItemProps) => {
               {formatDate(task.due_date)}
               {isOverdue && <span className="text-red-600 font-medium ml-1">(Overdue)</span>}
             </span>
-            {task.category && (
+            {task.task_type && (
               <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                {task.category}
+                {task.task_type === 'punch_list' ? 'Punch List' : 'Regular'}
+              </span>
+            )}
+            {task.punch_list_category && (
+              <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                {task.punch_list_category}
               </span>
             )}
           </div>

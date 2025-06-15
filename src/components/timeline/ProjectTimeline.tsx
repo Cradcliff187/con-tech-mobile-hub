@@ -1,287 +1,154 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
+import { useState } from 'react';
+import { Calendar, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
-interface TimelineTask {
-  id: string;
-  title: string;
-  startDate: Date;
-  endDate: Date;
-  progress: number;
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  assignee: string;
-  dependencies: string[];
-  category: string;
-  isCriticalPath?: boolean;
-}
+export const ProjectTimeline = () => {
+  const { projects } = useProjects();
+  const { tasks, loading } = useTasks();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
-interface ProjectTimelineProps {
-  projectId?: string;
-}
+  const filteredTasks = selectedProjectId 
+    ? tasks.filter(task => task.project_id === selectedProjectId)
+    : tasks;
 
-export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectId }) => {
-  const [viewMode, setViewMode] = useState<'week' | 'month' | 'quarter'>('month');
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
-
-  // Mock data for demonstration
-  const tasks: TimelineTask[] = [
-    {
-      id: '1',
-      title: 'Site Preparation & Excavation',
-      startDate: new Date('2024-01-15'),
-      endDate: new Date('2024-02-15'),
-      progress: 100,
-      status: 'completed',
-      priority: 'high',
-      assignee: 'Site Team A',
-      dependencies: [],
-      category: 'Foundation',
-      isCriticalPath: true
-    },
-    {
-      id: '2',
-      title: 'Foundation Pour',
-      startDate: new Date('2024-02-16'),
-      endDate: new Date('2024-03-10'),
-      progress: 75,
-      status: 'in-progress',
-      priority: 'critical',
-      assignee: 'Concrete Crew',
-      dependencies: ['1'],
-      category: 'Foundation',
-      isCriticalPath: true
-    },
-    {
-      id: '3',
-      title: 'Steel Frame Installation',
-      startDate: new Date('2024-03-11'),
-      endDate: new Date('2024-04-20'),
-      progress: 0,
-      status: 'not-started',
-      priority: 'high',
-      assignee: 'Steel Workers',
-      dependencies: ['2'],
-      category: 'Structure',
-      isCriticalPath: true
-    },
-    {
-      id: '4',
-      title: 'Electrical Rough-in',
-      startDate: new Date('2024-03-25'),
-      endDate: new Date('2024-04-15'),
-      progress: 0,
-      status: 'not-started',
-      priority: 'medium',
-      assignee: 'Electrical Team',
-      dependencies: ['3'],
-      category: 'MEP'
-    },
-    {
-      id: '5',
-      title: 'Plumbing Installation',
-      startDate: new Date('2024-04-01'),
-      endDate: new Date('2024-05-01'),
-      progress: 0,
-      status: 'not-started',
-      priority: 'medium',
-      assignee: 'Plumbing Crew',
-      dependencies: ['3'],
-      category: 'MEP'
-    }
-  ];
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1;
+    if (!b.due_date) return -1;
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="text-green-500" size={20} />;
       case 'in-progress':
-        return <Clock className="w-4 h-4 text-blue-600" />;
+        return <Clock className="text-orange-500" size={20} />;
       case 'blocked':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+        return <AlertTriangle className="text-red-500" size={20} />;
       default:
-        return <Calendar className="w-4 h-4 text-gray-400" />;
+        return <Clock className="text-slate-400" size={20} />;
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in-progress':
+        return 'bg-orange-100 text-orange-800';
+      case 'blocked':
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-slate-100 text-slate-600';
     }
   };
 
-  const getTaskBarWidth = (task: TimelineTask) => {
-    const duration = Math.max(1, Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24)));
-    return Math.max(120, duration * 3); // Minimum 120px, 3px per day
-  };
-
-  const getTaskBarLeft = (task: TimelineTask) => {
-    const baseDate = new Date('2024-01-01');
-    const daysSinceBase = Math.ceil((task.startDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
-    return daysSinceBase * 3; // 3px per day
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-200 rounded w-64 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-24 bg-slate-200 rounded"></div>
+            <div className="h-24 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Timeline Controls */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Project Timeline
-            </CardTitle>
-            <div className="flex items-center gap-4">
-              <Select value={viewMode} onValueChange={(value: 'week' | 'month' | 'quarter') => setViewMode(value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">Week View</SelectItem>
-                  <SelectItem value="month">Month View</SelectItem>
-                  <SelectItem value="quarter">Quarter View</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm">
-                Today
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Legend */}
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500 rounded"></div>
-                <span>Critical Path</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                <span>In Progress</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 rounded"></div>
-                <span>Completed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                <span>Not Started</span>
-              </div>
-            </div>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-slate-800">Project Timeline</h3>
+        
+        {projects.length > 0 && (
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            <option value="">All Projects</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
-            {/* Timeline Grid */}
-            <div className="relative overflow-x-auto">
-              <div className="min-w-[1200px]">
-                {/* Time Scale Header */}
-                <div className="flex border-b border-gray-200 bg-gray-50 p-2">
-                  <div className="w-64 font-medium text-sm">Task</div>
-                  <div className="flex-1 relative">
-                    <div className="flex text-xs text-gray-600">
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <div key={i} className="flex-1 text-center border-r border-gray-200 py-1">
-                          {format(addDays(new Date('2024-01-01'), i * 30), 'MMM yyyy')}
+      {sortedTasks.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
+          <Calendar className="mx-auto h-12 w-12 text-slate-400 mb-4" />
+          <h3 className="text-lg font-medium text-slate-600 mb-2">No Tasks Found</h3>
+          <p className="text-slate-500">
+            {selectedProjectId ? 'No tasks found for the selected project.' : 'Create tasks to see the project timeline.'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+          <div className="p-6">
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+              
+              <div className="space-y-6">
+                {sortedTasks.map((task, index) => (
+                  <div key={task.id} className="relative flex items-start">
+                    {/* Timeline dot */}
+                    <div className="absolute left-4 top-2 w-4 h-4 bg-white border-2 border-slate-300 rounded-full z-10"></div>
+                    
+                    {/* Task content */}
+                    <div className="ml-12 flex-1">
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(task.status)}
+                            <h4 className="font-medium text-slate-800">{task.title}</h4>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                              {task.status.replace('-', ' ')}
+                            </span>
+                          </div>
                         </div>
-                      ))}
+                        
+                        {task.description && (
+                          <p className="text-sm text-slate-600 mb-3">{task.description}</p>
+                        )}
+                        
+                        <div className="flex items-center gap-4 text-sm text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            {task.due_date 
+                              ? `Due: ${new Date(task.due_date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}`
+                              : 'No due date'
+                            }
+                          </span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            task.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                            task.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                            task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {task.priority} priority
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Task Rows */}
-                <div className="space-y-1">
-                  {tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`flex items-center border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                        selectedTask === task.id ? 'bg-blue-50' : ''
-                      }`}
-                      onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
-                    >
-                      {/* Task Info */}
-                      <div className="w-64 p-3 border-r border-gray-200">
-                        <div className="flex items-center gap-2 mb-1">
-                          {getStatusIcon(task.status)}
-                          <span className="font-medium text-sm truncate">{task.title}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Users className="w-3 h-3" />
-                          <span>{task.assignee}</span>
-                          <Badge className={`text-xs ${getPriorityColor(task.priority)}`}>
-                            {task.priority}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Timeline Bar */}
-                      <div className="flex-1 relative p-2">
-                        <div className="relative h-8">
-                          <div
-                            className={`absolute top-1 h-6 rounded transition-all duration-200 cursor-pointer ${
-                              task.isCriticalPath
-                                ? 'bg-red-500'
-                                : task.status === 'completed'
-                                ? 'bg-green-500'
-                                : task.status === 'in-progress'
-                                ? 'bg-blue-500'
-                                : 'bg-gray-300'
-                            }`}
-                            style={{
-                              left: `${getTaskBarLeft(task)}px`,
-                              width: `${getTaskBarWidth(task)}px`,
-                            }}
-                          >
-                            {/* Progress Indicator */}
-                            {task.progress > 0 && (
-                              <div
-                                className="h-full bg-white bg-opacity-30 rounded"
-                                style={{ width: `${task.progress}%` }}
-                              />
-                            )}
-                            <div className="flex items-center justify-center h-full text-white text-xs font-medium">
-                              {task.progress}%
-                            </div>
-                          </div>
-
-                          {/* Dependencies Lines */}
-                          {task.dependencies.map((depId) => {
-                            const depTask = tasks.find(t => t.id === depId);
-                            if (depTask) {
-                              return (
-                                <div
-                                  key={depId}
-                                  className="absolute border-l-2 border-dashed border-gray-400"
-                                  style={{
-                                    left: `${getTaskBarLeft(depTask) + getTaskBarWidth(depTask)}px`,
-                                    top: '-20px',
-                                    height: '40px',
-                                  }}
-                                />
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 };

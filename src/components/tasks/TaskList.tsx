@@ -1,16 +1,6 @@
 
 import { TaskItem } from './TaskItem';
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
-  due_date?: string;
-  category?: string;
-  project_id: string;
-}
+import { Task } from '@/types/database';
 
 interface TaskListProps {
   tasks: Task[];

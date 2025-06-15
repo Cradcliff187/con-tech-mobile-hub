@@ -2,26 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-interface Task {
-  id: string;
-  project_id: string;
-  title: string;
-  description?: string;
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  start_date?: string;
-  due_date?: string;
-  assignee_id?: string;
-  assigned_stakeholder_id?: string;
-  created_by?: string;
-  progress: number;
-  estimated_hours?: number;
-  actual_hours?: number;
-  category?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Task } from '@/types/database';
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -40,7 +21,24 @@ export const useTasks = () => {
     if (error) {
       console.error('Error fetching tasks:', error);
     } else {
-      setTasks(data || []);
+      // Map the database response to our Task interface
+      const mappedTasks: Task[] = (data || []).map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status as Task['status'],
+        priority: task.priority as Task['priority'],
+        due_date: task.due_date,
+        created_at: task.created_at,
+        updated_at: task.updated_at,
+        project_id: task.project_id,
+        assignee_id: task.assignee_id,
+        assigned_stakeholder_id: task.assigned_stakeholder_id,
+        task_type: task.task_type as Task['task_type'],
+        required_skills: task.required_skills,
+        punch_list_category: task.punch_list_category as Task['punch_list_category']
+      }));
+      setTasks(mappedTasks);
     }
     setLoading(false);
   };
@@ -70,13 +68,32 @@ export const useTasks = () => {
         progress: taskData.progress || 0,
         created_by: user.id,
         assignee_id: taskData.assignee_id,
-        assigned_stakeholder_id: taskData.assigned_stakeholder_id
+        assigned_stakeholder_id: taskData.assigned_stakeholder_id,
+        task_type: taskData.task_type || 'regular',
+        required_skills: taskData.required_skills,
+        punch_list_category: taskData.punch_list_category
       })
       .select()
       .single();
 
     if (!error && data) {
-      setTasks(prev => [data, ...prev]);
+      const mappedTask: Task = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        status: data.status as Task['status'],
+        priority: data.priority as Task['priority'],
+        due_date: data.due_date,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        project_id: data.project_id,
+        assignee_id: data.assignee_id,
+        assigned_stakeholder_id: data.assigned_stakeholder_id,
+        task_type: data.task_type as Task['task_type'],
+        required_skills: data.required_skills,
+        punch_list_category: data.punch_list_category as Task['punch_list_category']
+      };
+      setTasks(prev => [mappedTask, ...prev]);
     }
 
     return { data, error };
@@ -91,7 +108,23 @@ export const useTasks = () => {
       .single();
 
     if (!error && data) {
-      setTasks(prev => prev.map(task => task.id === id ? data : task));
+      const mappedTask: Task = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        status: data.status as Task['status'],
+        priority: data.priority as Task['priority'],
+        due_date: data.due_date,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        project_id: data.project_id,
+        assignee_id: data.assignee_id,
+        assigned_stakeholder_id: data.assigned_stakeholder_id,
+        task_type: data.task_type as Task['task_type'],
+        required_skills: data.required_skills,
+        punch_list_category: data.punch_list_category as Task['punch_list_category']
+      };
+      setTasks(prev => prev.map(task => task.id === id ? mappedTask : task));
     }
 
     return { data, error };
