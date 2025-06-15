@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,19 +12,27 @@ import { useToast } from '@/hooks/use-toast';
 interface CreateStakeholderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultType?: 'client' | 'subcontractor' | 'employee' | 'vendor';
+  onSuccess?: () => void;
 }
 
-export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholderDialogProps) => {
+export const CreateStakeholderDialog = ({ 
+  open, 
+  onOpenChange, 
+  defaultType,
+  onSuccess 
+}: CreateStakeholderDialogProps) => {
   const [formData, setFormData] = useState({
-    stakeholder_type: '',
+    stakeholder_type: defaultType || 'subcontractor' as const,
     company_name: '',
     contact_person: '',
     email: '',
     phone: '',
     address: '',
-    specialties: '',
+    specialties: [] as string[],
     crew_size: '',
     license_number: '',
+    insurance_expiry: '',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -32,92 +40,115 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
   const { createStakeholder } = useStakeholders();
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (defaultType) {
+      setFormData(prev => ({ ...prev, stakeholder_type: defaultType }));
+    }
+  }, [defaultType]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     const stakeholderData = {
-      stakeholder_type: formData.stakeholder_type as 'subcontractor' | 'employee' | 'vendor' | 'client',
-      company_name: formData.company_name || undefined,
-      contact_person: formData.contact_person || undefined,
-      email: formData.email || undefined,
-      phone: formData.phone || undefined,
-      address: formData.address || undefined,
-      specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()) : undefined,
+      ...formData,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
-      license_number: formData.license_number || undefined,
-      notes: formData.notes || undefined,
-      status: 'active' as const
+      insurance_expiry: formData.insurance_expiry || undefined,
+      specialties: formData.specialties.length > 0 ? formData.specialties : undefined
     };
 
     const { error } = await createStakeholder(stakeholderData);
 
-    if (!error) {
+    if (error) {
+      toast({
+        title: "Error creating stakeholder",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Stakeholder created successfully",
+        description: `${formData.company_name || formData.contact_person} has been added to your directory`
+      });
+      
       // Reset form
       setFormData({
-        stakeholder_type: '',
+        stakeholder_type: defaultType || 'subcontractor',
         company_name: '',
         contact_person: '',
         email: '',
         phone: '',
         address: '',
-        specialties: '',
+        specialties: [],
         crew_size: '',
         license_number: '',
+        insurance_expiry: '',
         notes: ''
       });
+      
+      if (onSuccess) {
+        onSuccess();
+      }
       onOpenChange(false);
     }
     
     setLoading(false);
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Stakeholder</DialogTitle>
+          <DialogTitle>
+            Add New {formData.stakeholder_type === 'client' ? 'Client' : 'Stakeholder'}
+          </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="stakeholder_type">Type *</Label>
-              <Select value={formData.stakeholder_type} onValueChange={(value) => handleInputChange('stakeholder_type', value)}>
+              <Select 
+                value={formData.stakeholder_type} 
+                onValueChange={(value) => handleInputChange('stakeholder_type', value)}
+                disabled={!!defaultType}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="client">Client</SelectItem>
                   <SelectItem value="subcontractor">Subcontractor</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="vendor">Vendor/Supplier</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="company_name">Company/Name *</Label>
+              <Label htmlFor="company_name">Company Name</Label>
               <Input
                 id="company_name"
                 value={formData.company_name}
                 onChange={(e) => handleInputChange('company_name', e.target.value)}
-                required
+                placeholder="Enter company name"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="contact_person">Contact Person</Label>
+              <Label htmlFor="contact_person">Contact Person *</Label>
               <Input
                 id="contact_person"
                 value={formData.contact_person}
                 onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                placeholder="Primary contact name"
+                required
               />
             </div>
             
@@ -128,6 +159,7 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="contact@company.com"
               />
             </div>
           </div>
@@ -139,18 +171,22 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="(555) 123-4567"
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="crew_size">Crew Size</Label>
-              <Input
-                id="crew_size"
-                type="number"
-                value={formData.crew_size}
-                onChange={(e) => handleInputChange('crew_size', e.target.value)}
-              />
-            </div>
+            {formData.stakeholder_type === 'subcontractor' && (
+              <div className="space-y-2">
+                <Label htmlFor="crew_size">Crew Size</Label>
+                <Input
+                  id="crew_size"
+                  type="number"
+                  value={formData.crew_size}
+                  onChange={(e) => handleInputChange('crew_size', e.target.value)}
+                  placeholder="Number of workers"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -159,34 +195,41 @@ export const CreateStakeholderDialog = ({ open, onOpenChange }: CreateStakeholde
               id="address"
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
+              placeholder="Full business address"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="specialties">Specialties (comma-separated)</Label>
-            <Input
-              id="specialties"
-              value={formData.specialties}
-              onChange={(e) => handleInputChange('specialties', e.target.value)}
-              placeholder="e.g. Electrical, Plumbing, HVAC"
-            />
-          </div>
+          {formData.stakeholder_type === 'subcontractor' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="license_number">License Number</Label>
+                <Input
+                  id="license_number"
+                  value={formData.license_number}
+                  onChange={(e) => handleInputChange('license_number', e.target.value)}
+                  placeholder="Professional license #"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="insurance_expiry">Insurance Expiry</Label>
+                <Input
+                  id="insurance_expiry"
+                  type="date"
+                  value={formData.insurance_expiry}
+                  onChange={(e) => handleInputChange('insurance_expiry', e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="license_number">License Number</Label>
-            <Input
-              id="license_number"
-              value={formData.license_number}
-              onChange={(e) => handleInputChange('license_number', e.target.value)}
-            />
-          </div>
-          
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
+              placeholder="Additional information..."
               rows={3}
             />
           </div>

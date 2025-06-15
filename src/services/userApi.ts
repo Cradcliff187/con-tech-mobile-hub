@@ -1,75 +1,39 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UserProfile, UserInvitation, CreateExternalUserData, CreateUserResult } from '@/types/user';
+import { Database } from '@/integrations/supabase/types';
+
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type UserRole = Database['public']['Enums']['user_role'];
+
+interface CreateExternalUserData {
+  email: string;
+  full_name?: string;
+  role: string;
+  project_id?: string;
+}
+
+interface CreateUserResult {
+  data: any;
+  error: any;
+  tempPassword: string | null;
+}
 
 export const userApi = {
-  async fetchUsers(): Promise<UserProfile[]> {
+  async fetchUsers() {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, role, is_company_user, auto_approved, account_status, invited_by, last_login, created_at, updated_at')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
-    return (data || []).map(user => ({
-      id: user.id,
-      email: user.email,
-      full_name: user.full_name,
-      role: user.role || 'worker',
-      is_company_user: user.is_company_user || false,
-      auto_approved: user.auto_approved || false,
-      account_status: user.account_status || 'pending',
-      invited_by: user.invited_by,
-      last_login: user.last_login,
-      created_at: user.created_at,
-      updated_at: user.updated_at
-    }));
-  },
-
-  async fetchInvitations(): Promise<UserInvitation[]> {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_user_invitations');
-
-      if (error) {
-        console.error('Error fetching invitations:', error);
-        return [];
-      }
-      return (data || []) as UserInvitation[];
-    } catch (error) {
-      console.error('Error fetching invitations:', error);
-      return [];
-    }
-  },
-
-  async createExternalUser(userData: CreateExternalUserData): Promise<CreateUserResult> {
-    try {
-      const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
-      
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name || userData.email.split('@')[0],
-          invited_by: (await supabase.auth.getUser()).data.user?.id,
-          role: userData.role
-        }
-      });
-
-      if (authError) throw authError;
-      
-      return { data: authData, error: null, tempPassword };
-    } catch (error: any) {
-      console.error('Error creating external user:', error);
-      return { data: null, error, tempPassword: null };
-    }
+    return data;
   },
 
   async updateUserRole(userId: string, role: string) {
+    const update: ProfileUpdate = { role: role as UserRole };
     const { error } = await supabase
       .from('profiles')
-      .update({ role } as any)
+      .update(update)
       .eq('id', userId);
 
     if (error) throw error;
@@ -77,9 +41,10 @@ export const userApi = {
   },
 
   async updateUserStatus(userId: string, status: string) {
+    const update: ProfileUpdate = { account_status: status };
     const { error } = await supabase
       .from('profiles')
-      .update({ account_status: status } as any)
+      .update(update)
       .eq('id', userId);
 
     if (error) throw error;
@@ -90,5 +55,47 @@ export const userApi = {
     const { error } = await supabase.auth.admin.deleteUser(userId);
     if (error) throw error;
     return { error: null };
+  },
+
+  async createExternalUser(userData: CreateExternalUserData): Promise<CreateUserResult> {
+    try {
+      const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch('https://jjmedlilkxmrbacoitio.supabase.co/functions/v1/admin-create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          email: userData.email,
+          password: tempPassword,
+          metadata: {
+            full_name: userData.full_name || userData.email.split('@')[0],
+            invited_by: (await supabase.auth.getUser()).data.user?.id,
+            role: userData.role
+          }
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      return { data: result.data, error: null, tempPassword };
+    } catch (error: any) {
+      console.error('Error creating external user:', error);
+      return { data: null, error, tempPassword: null };
+    }
+  },
+
+  async fetchInvitations() {
+    const { data, error } = await supabase.rpc('get_user_invitations');
+    if (error) throw error;
+    return data || [];
   }
 };

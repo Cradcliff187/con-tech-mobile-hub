@@ -20,7 +20,7 @@ export const TaskFilters = ({
 }: TaskFiltersProps) => {
   const getStatusCount = (status: string) => {
     if (status === 'all') return tasks.length;
-    return tasks.filter(task => task.status === status.replace('-', '-')).length;
+    return tasks.filter(task => task.status === status).length;
   };
 
   const filters = [
