@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { PunchListView } from './PunchListView';
@@ -8,14 +8,17 @@ import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { canConvertToPunchList } from '@/utils/project-lifecycle';
+import { canConvertToPunchList, shouldShowPunchList } from '@/utils/project-lifecycle';
 import { useToast } from '@/components/ui/use-toast';
+import { useProjects } from '@/hooks/useProjects';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const TaskManager = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { tasks, loading, updateTask } = useTasks();
+  const { projects } = useProjects();
   const { toast } = useToast();
 
   const regularTasks = tasks.filter(task => (task.task_type || 'regular') !== 'punch_list');
@@ -25,6 +28,20 @@ export const TaskManager = () => {
                          (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
   });
+
+  const selectedProjectId = useMemo(() => {
+    if (filteredTasks.length > 0) {
+      const firstProjectId = filteredTasks[0].project_id;
+      if (filteredTasks.every(t => t.project_id === firstProjectId)) {
+        return firstProjectId;
+      }
+    }
+    return null;
+  }, [filteredTasks]);
+
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p.id === selectedProjectId) || null;
+  }, [selectedProjectId, projects]);
 
   const handleConvertToPunchList = async () => {
     const tasksToConvert = regularTasks.filter(canConvertToPunchList);
@@ -96,6 +113,15 @@ export const TaskManager = () => {
           </Button>
         </div>
       </div>
+
+      {selectedProject && shouldShowPunchList(selectedProject) && (
+        <Alert>
+          <AlertDescription>
+            This project is in the <span className="font-semibold capitalize">{selectedProject.phase.replace('_', ' ')}</span> phase. 
+            New tasks should likely be Punch List items.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="tasks" className="space-y-6">
         <TabsList>

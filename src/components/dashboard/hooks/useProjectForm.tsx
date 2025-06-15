@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,9 +16,10 @@ interface ProjectFormData {
 
 interface UseProjectFormProps {
   onClose: () => void;
+  defaultValues?: Partial<Omit<ProjectFormData, 'status'>>;
 }
 
-export const useProjectForm = ({ onClose }: UseProjectFormProps) => {
+export const useProjectForm = ({ onClose, defaultValues = {} }: UseProjectFormProps) => {
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
     description: '',
@@ -27,7 +28,8 @@ export const useProjectForm = ({ onClose }: UseProjectFormProps) => {
     clientId: '',
     status: 'planning',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    ...defaultValues,
   });
   const [loading, setLoading] = useState(false);
   

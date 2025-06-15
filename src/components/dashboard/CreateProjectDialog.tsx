@@ -10,9 +10,10 @@ import { useProjectForm } from './hooks/useProjectForm';
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultClientId?: string;
 }
 
-export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogProps) => {
+export const CreateProjectDialog = ({ open, onOpenChange, defaultClientId }: CreateProjectDialogProps) => {
   const [showCreateClient, setShowCreateClient] = useState(false);
   
   const { stakeholders, refetch: refetchStakeholders } = useStakeholders();
@@ -22,7 +23,8 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
     handleInputChange,
     handleSubmit
   } = useProjectForm({
-    onClose: () => onOpenChange(false)
+    onClose: () => onOpenChange(false),
+    defaultValues: defaultClientId ? { clientId: defaultClientId } : {}
   });
 
   // Filter stakeholders to show only clients

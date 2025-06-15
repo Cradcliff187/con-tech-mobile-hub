@@ -1,6 +1,6 @@
-
 import { Calendar, User, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Task } from '@/types/database';
+import { ProjectLink } from '@/components/common/ProjectLink';
 
 interface TaskItemProps {
   task: Task;
@@ -85,9 +85,7 @@ export const TaskItem = ({ task }: TaskItemProps) => {
       </div>
       
       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-        <span className="text-xs text-slate-500">
-          Project ID: {task.project_id.slice(0, 8)}...
-        </span>
+        <ProjectLink projectId={task.project_id} showIcon={false} />
         <div className="flex gap-2">
           <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
             Edit

@@ -52,7 +52,11 @@ export const useProjects = () => {
     if (error) {
       console.error('Error fetching projects:', error);
     } else {
-      setProjects(data || []);
+      const mappedProjects = (data || []).map(project => ({
+        ...project,
+        phase: (project.phase || 'planning') as Project['phase']
+      }));
+      setProjects(mappedProjects);
     }
     setLoading(false);
   };
@@ -95,7 +99,11 @@ export const useProjects = () => {
       .single();
 
     if (!error && data) {
-      setProjects(prev => [data, ...prev]);
+      const newProject: Project = {
+        ...data,
+        phase: (data.phase || 'planning') as Project['phase'],
+      };
+      setProjects(prev => [newProject, ...prev]);
     }
 
     return { data, error };
