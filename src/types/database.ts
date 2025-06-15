@@ -1,4 +1,5 @@
 
+
 export interface Task {
   id: string;
   title: string;
@@ -41,6 +42,7 @@ export interface TeamMember {
   cost_per_hour: number;
   availability: number;
   date?: string;
+  tasks?: string[];
 }
 
 export interface Profile {
@@ -52,3 +54,4 @@ export interface Profile {
   account_status: string;
   skills?: string[];
 }
+
