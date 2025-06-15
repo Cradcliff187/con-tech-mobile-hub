@@ -4,53 +4,100 @@ import { Clock, User, FileText, CheckSquare } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
+
+interface ActivityItem {
+  id: string;
+  action: string;
+  user: string;
+  time: string;
+  icon: any;
+  type: string;
+}
 
 export const RecentActivity = () => {
   const { tasks } = useTasks();
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
 
-  // Generate real recent activities from actual data
-  const getRecentActivities = () => {
-    const activities = [];
+  useEffect(() => {
+    const fetchRecentActivities = async () => {
+      try {
+        const activityItems: ActivityItem[] = [];
 
-    // Add recent tasks
-    const recentTasks = tasks
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-      .slice(0, 3);
+        // Get recent tasks with assignee names
+        const recentTasks = tasks
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+          .slice(0, 3);
 
-    recentTasks.forEach(task => {
-      activities.push({
-        id: task.id,
-        action: `Task "${task.title}" was ${task.status === 'completed' ? 'completed' : 'updated'}`,
-        user: 'Team Member',
-        time: new Date(task.updated_at).toLocaleDateString(),
-        icon: CheckSquare,
-        type: 'task'
-      });
-    });
+        for (const task of recentTasks) {
+          let userName = 'Unknown User';
+          
+          if (task.assignee_id) {
+            const { data: assignee } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', task.assignee_id)
+              .single();
+            
+            userName = assignee?.full_name || assignee?.email || 'Unknown User';
+          } else if (task.assigned_stakeholder_id) {
+            const stakeholder = stakeholders.find(s => s.id === task.assigned_stakeholder_id);
+            userName = stakeholder?.contact_person || stakeholder?.company_name || 'Unknown Stakeholder';
+          }
 
-    // Add recent projects
-    const recentProjects = projects
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-      .slice(0, 2);
+          activityItems.push({
+            id: task.id,
+            action: `Task "${task.title}" was ${task.status === 'completed' ? 'completed' : 'updated'}`,
+            user: userName,
+            time: new Date(task.updated_at).toLocaleDateString(),
+            icon: CheckSquare,
+            type: 'task'
+          });
+        }
 
-    recentProjects.forEach(project => {
-      activities.push({
-        id: project.id,
-        action: `Project "${project.name}" was updated`,
-        user: 'Project Manager',
-        time: new Date(project.updated_at).toLocaleDateString(),
-        icon: FileText,
-        type: 'project'
-      });
-    });
+        // Get recent projects with project manager names
+        const recentProjects = projects
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+          .slice(0, 2);
 
-    // Sort all activities by time and return top 5
-    return activities.slice(0, 5);
-  };
+        for (const project of recentProjects) {
+          let managerName = 'Unknown Manager';
+          
+          if (project.project_manager_id) {
+            const { data: manager } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', project.project_manager_id)
+              .single();
+            
+            managerName = manager?.full_name || manager?.email || 'Unknown Manager';
+          }
 
-  const activities = getRecentActivities();
+          activityItems.push({
+            id: project.id,
+            action: `Project "${project.name}" was updated`,
+            user: managerName,
+            time: new Date(project.updated_at).toLocaleDateString(),
+            icon: FileText,
+            type: 'project'
+          });
+        }
+
+        // Sort all activities by time and return top 5
+        setActivities(activityItems.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching recent activities:', error);
+        setActivities([]);
+      }
+    };
+
+    if (tasks.length > 0 || projects.length > 0) {
+      fetchRecentActivities();
+    }
+  }, [tasks, projects, stakeholders]);
 
   if (activities.length === 0) {
     return (

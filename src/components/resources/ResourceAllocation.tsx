@@ -3,6 +3,8 @@ import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useProjects } from '@/hooks/useProjects';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle } from 'lucide-react';
 
 export const ResourceAllocation = () => {
   const { projects } = useProjects();
@@ -69,7 +71,20 @@ export const ResourceAllocation = () => {
           ) : (
             allocations.map((allocation) => (
               <div key={allocation.id} className="border border-slate-200 rounded-lg p-4">
-                <h4 className="font-medium text-slate-800 mb-3">{allocation.team_name}</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-slate-800">{allocation.team_name}</h4>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={allocation.allocation_type === 'daily' ? 'default' : 'secondary'}>
+                      {allocation.allocation_type}
+                    </Badge>
+                    {allocation.total_used > allocation.total_budget && (
+                      <Badge variant="destructive" className="flex items-center gap-1">
+                        <AlertTriangle size={12} />
+                        Over Budget
+                      </Badge>
+                    )}
+                  </div>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {allocation.members?.map((member, memberIndex) => (
@@ -84,6 +99,11 @@ export const ResourceAllocation = () => {
                       <div className="text-xs text-slate-500">
                         ${member.cost_per_hour}/hr • {member.availability}% available
                       </div>
+                      {member.date && (
+                        <div className="text-xs text-slate-400 mt-1">
+                          Date: {new Date(member.date).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
                   )) || (
                     <div className="col-span-2 text-center text-slate-500 py-4">

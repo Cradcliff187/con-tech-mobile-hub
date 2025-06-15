@@ -232,6 +232,7 @@ export type Database = {
           last_login: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          skills: string[] | null
           updated_at: string | null
         }
         Insert: {
@@ -248,6 +249,7 @@ export type Database = {
           last_login?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          skills?: string[] | null
           updated_at?: string | null
         }
         Update: {
@@ -264,6 +266,7 @@ export type Database = {
           last_login?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          skills?: string[] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -344,6 +347,7 @@ export type Database = {
       }
       resource_allocations: {
         Row: {
+          allocation_type: string | null
           created_at: string | null
           id: string
           project_id: string | null
@@ -354,6 +358,7 @@ export type Database = {
           week_start_date: string
         }
         Insert: {
+          allocation_type?: string | null
           created_at?: string | null
           id?: string
           project_id?: string | null
@@ -364,6 +369,7 @@ export type Database = {
           week_start_date: string
         }
         Update: {
+          allocation_type?: string | null
           created_at?: string | null
           id?: string
           project_id?: string | null
@@ -786,8 +792,11 @@ export type Database = {
           priority: Database["public"]["Enums"]["task_priority"] | null
           progress: number | null
           project_id: string
+          punch_list_category: string | null
+          required_skills: string[] | null
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"] | null
+          task_type: string | null
           title: string
           updated_at: string | null
         }
@@ -805,8 +814,11 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"] | null
           progress?: number | null
           project_id: string
+          punch_list_category?: string | null
+          required_skills?: string[] | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
+          task_type?: string | null
           title: string
           updated_at?: string | null
         }
@@ -824,8 +836,11 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"] | null
           progress?: number | null
           project_id?: string
+          punch_list_category?: string | null
+          required_skills?: string[] | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"] | null
+          task_type?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -866,6 +881,7 @@ export type Database = {
           availability: number | null
           cost_per_hour: number | null
           created_at: string | null
+          date: string | null
           hours_allocated: number | null
           hours_used: number | null
           id: string
@@ -874,12 +890,14 @@ export type Database = {
           stakeholder_id: string | null
           tasks: string[] | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           allocation_id?: string | null
           availability?: number | null
           cost_per_hour?: number | null
           created_at?: string | null
+          date?: string | null
           hours_allocated?: number | null
           hours_used?: number | null
           id?: string
@@ -888,12 +906,14 @@ export type Database = {
           stakeholder_id?: string | null
           tasks?: string[] | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           allocation_id?: string | null
           availability?: number | null
           cost_per_hour?: number | null
           created_at?: string | null
+          date?: string | null
           hours_allocated?: number | null
           hours_used?: number | null
           id?: string
@@ -902,6 +922,7 @@ export type Database = {
           stakeholder_id?: string | null
           tasks?: string[] | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -912,10 +933,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "team_members_stakeholder_id_fkey"
-            columns: ["stakeholder_id"]
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "stakeholders"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1012,6 +1033,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_resource_conflicts: {
+        Args: { p_user_id: string; p_date: string; p_hours?: number }
+        Returns: {
+          conflict_type: string
+          conflicting_allocation_id: string
+          conflicting_team_name: string
+          allocated_hours: number
+          available_hours: number
+        }[]
+      }
       get_user_invitations: {
         Args: Record<PropertyKey, never>
         Returns: {

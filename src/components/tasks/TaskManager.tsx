@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
+import { PunchListView } from './PunchListView';
 import { Plus } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { CreateTaskDialog } from './CreateTaskDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const TaskManager = () => {
   const [filter, setFilter] = useState('all');
@@ -13,7 +15,8 @@ export const TaskManager = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { tasks, loading } = useTasks();
 
-  const filteredTasks = tasks.filter(task => {
+  const regularTasks = tasks.filter(task => task.task_type !== 'punch_list');
+  const filteredTasks = regularTasks.filter(task => {
     const matchesFilter = filter === 'all' || task.status === filter;
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -48,15 +51,27 @@ export const TaskManager = () => {
         </Button>
       </div>
 
-      <TaskFilters 
-        currentFilter={filter}
-        onFilterChange={setFilter}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        tasks={tasks}
-      />
+      <Tabs defaultValue="tasks" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="tasks">Regular Tasks</TabsTrigger>
+          <TabsTrigger value="punch-list">Punch List</TabsTrigger>
+        </TabsList>
 
-      <TaskList tasks={filteredTasks} />
+        <TabsContent value="tasks" className="space-y-6">
+          <TaskFilters 
+            currentFilter={filter}
+            onFilterChange={setFilter}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            tasks={regularTasks}
+          />
+          <TaskList tasks={filteredTasks} />
+        </TabsContent>
+
+        <TabsContent value="punch-list">
+          <PunchListView />
+        </TabsContent>
+      </Tabs>
       
       <CreateTaskDialog 
         open={showCreateDialog} 
