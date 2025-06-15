@@ -1,12 +1,12 @@
 
 import { Button } from '@/components/ui/button';
-import { Shield, LogOut } from 'lucide-react';
+import { Shield, LogOut, LucideIcon } from 'lucide-react';
 import { ProfileData } from '@/types/auth';
 
 interface NavigationItem {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: LucideIcon;
 }
 
 interface MobileSidebarOverlayProps {
