@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useNavigate } from 'react-router-dom';
 import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
 import { TaskManager } from '@/components/tasks/TaskManager';
@@ -33,6 +34,7 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { signOut, profile } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
 
   const navigation: NavigationItem[] = [
@@ -61,8 +63,6 @@ const Index = () => {
       default: return <ProjectDashboard />;
     }
   };
-
-  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="flex h-screen bg-slate-50">
