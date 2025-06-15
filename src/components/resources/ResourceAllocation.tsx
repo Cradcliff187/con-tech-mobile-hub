@@ -74,8 +74,8 @@ export const ResourceAllocation = () => {
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-medium text-slate-800">{allocation.team_name}</h4>
                   <div className="flex items-center gap-2">
-                    <Badge variant={allocation.allocation_type === 'daily' ? 'default' : 'secondary'}>
-                      {allocation.allocation_type}
+                    <Badge variant={(allocation.allocation_type || 'weekly') === 'daily' ? 'default' : 'secondary'}>
+                      {allocation.allocation_type || 'weekly'}
                     </Badge>
                     {allocation.total_used > allocation.total_budget && (
                       <Badge variant="destructive" className="flex items-center gap-1">

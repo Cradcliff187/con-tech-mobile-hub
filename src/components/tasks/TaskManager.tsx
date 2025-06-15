@@ -15,7 +15,7 @@ export const TaskManager = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { tasks, loading } = useTasks();
 
-  const regularTasks = tasks.filter(task => task.task_type !== 'punch_list');
+  const regularTasks = tasks.filter(task => (task.task_type || 'regular') !== 'punch_list');
   const filteredTasks = regularTasks.filter(task => {
     const matchesFilter = filter === 'all' || task.status === filter;
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

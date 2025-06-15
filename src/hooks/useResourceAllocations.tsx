@@ -2,28 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  hours_allocated: number;
-  hours_used: number;
-  cost_per_hour: number;
-  availability: number;
-  tasks: string[];
-  stakeholder_id?: string;
-}
-
-interface ResourceAllocation {
-  id: string;
-  project_id: string;
-  team_name: string;
-  total_budget: number;
-  total_used: number;
-  week_start_date: string;
-  members: TeamMember[];
-}
+import { ResourceAllocation } from '@/types/database';
 
 export const useResourceAllocations = (projectId?: string) => {
   const [allocations, setAllocations] = useState<ResourceAllocation[]>([]);
@@ -75,7 +54,8 @@ export const useResourceAllocations = (projectId?: string) => {
         team_name: allocationData.team_name,
         total_budget: allocationData.total_budget || 0,
         total_used: allocationData.total_used || 0,
-        week_start_date: allocationData.week_start_date
+        week_start_date: allocationData.week_start_date,
+        allocation_type: allocationData.allocation_type || 'weekly'
       })
       .select()
       .single();
