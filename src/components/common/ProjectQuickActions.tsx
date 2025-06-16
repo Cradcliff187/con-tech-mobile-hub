@@ -8,7 +8,6 @@ import { CompactActions } from './quick-actions/variants/CompactActions';
 import { InlineActions } from './quick-actions/variants/InlineActions';
 import { FloatingActions } from './quick-actions/variants/FloatingActions';
 import { ActionContext, ActionVariant } from './quick-actions/types';
-import { cn } from '@/lib/utils';
 
 interface ProjectQuickActionsProps {
   project: Project;
