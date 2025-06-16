@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Shield, LogOut } from 'lucide-react';
 import { ProfileData } from '@/types/auth';
 import { NavigationItem } from '@/types/navigation';
+import { useSearchParams } from 'react-router-dom';
 
 interface MobileSidebarOverlayProps {
   profile: ProfileData | null;
   navigation: NavigationItem[];
   activeSection: string;
-  onSectionChange: (section: string) => void;
+  onSectionChange: (searchParamsString: string) => void;
   onAdminClick: () => void;
   onSignOut: () => void;
   onClose: () => void;
@@ -25,6 +26,19 @@ export const MobileSidebarOverlay = ({
   onClose,
   isAdmin
 }: MobileSidebarOverlayProps) => {
+  const [searchParams] = useSearchParams();
+
+  const handleNavigation = (section: string) => {
+    const currentProject = searchParams.get('project');
+    const newParams = new URLSearchParams();
+    newParams.set('section', section);
+    if (currentProject) {
+      newParams.set('project', currentProject);
+    }
+    onSectionChange(newParams.toString());
+    onClose();
+  };
+
   return (
     <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40">
       <div className="fixed top-0 left-0 w-64 h-full bg-white">
@@ -44,10 +58,7 @@ export const MobileSidebarOverlay = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    onSectionChange(item.id);
-                    onClose();
-                  }}
+                  onClick={() => handleNavigation(item.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                     activeSection === item.id
                       ? 'bg-orange-100 text-orange-800'

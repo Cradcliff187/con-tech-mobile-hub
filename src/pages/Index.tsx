@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -41,17 +40,6 @@ const Index = () => {
 
   const handleSectionChange = (searchParamsString: string) => {
     setSearchParams(searchParamsString);
-    setSidebarOpen(false); // Close sidebar on mobile
-  };
-
-  const handleMobileSectionChange = (section: string) => {
-    const currentProject = searchParams.get('project');
-    const newParams = new URLSearchParams();
-    newParams.set('section', section);
-    if (currentProject) {
-      newParams.set('project', currentProject);
-    }
-    setSearchParams(newParams.toString());
     setSidebarOpen(false); // Close sidebar on mobile
   };
 
@@ -116,7 +104,7 @@ const Index = () => {
             profile={profile}
             navigation={navigation}
             activeSection={activeSection}
-            onSectionChange={handleMobileSectionChange}
+            onSectionChange={handleSectionChange}
             onAdminClick={() => navigate('/admin')}
             onSignOut={signOut}
             onClose={() => setSidebarOpen(false)}
