@@ -1,4 +1,3 @@
-
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
@@ -8,6 +7,7 @@ import { WorkflowTester } from '@/components/debug/WorkflowTester';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Database, Shield, TestTube } from 'lucide-react';
+import { AddressMigration } from '@/components/admin/AddressMigration';
 
 const Admin = () => {
   const { isAdmin, loading } = useAdminAuth();
@@ -37,15 +37,19 @@ const Admin = () => {
             Admin Dashboard
           </h1>
           <p className="text-slate-600">
-            Manage users{isDevelopment ? ', verify system health, and test application workflows' : ''}
+            Manage users, migrate data{isDevelopment ? ', verify system health, and test application workflows' : ''}
           </p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-4' : 'grid-cols-2'} lg:w-auto`}>
+          <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-5' : 'grid-cols-3'} lg:w-auto`}>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               User Management
+            </TabsTrigger>
+            <TabsTrigger value="migration" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              Data Migration
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -67,6 +71,10 @@ const Admin = () => {
 
           <TabsContent value="users" className="space-y-6">
             <AdminPanel />
+          </TabsContent>
+
+          <TabsContent value="migration" className="space-y-6">
+            <AddressMigration />
           </TabsContent>
 
           {isDevelopment && (
