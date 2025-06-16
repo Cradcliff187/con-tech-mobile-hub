@@ -30,8 +30,8 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
   const [estimatedHours, setEstimatedHours] = useState('');
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
-  const [punchListCategory, setPunchListCategory] = useState<PunchListCategory | ''>('');
-  const [assigneeId, setAssigneeId] = useState('');
+  const [punchListCategory, setPunchListCategory] = useState<PunchListCategory | 'none'>('none');
+  const [assigneeId, setAssigneeId] = useState('none');
   const [loading, setLoading] = useState(false);
   
   const { createTask } = useTasks();
@@ -47,7 +47,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
       const defaults = getTaskDefaults(selectedProject);
       setPriority(defaults.priority || 'medium');
       setEstimatedHours(defaults.estimated_hours?.toString() || '');
-      setPunchListCategory(defaults.punch_list_category || '');
+      setPunchListCategory(defaults.punch_list_category || 'none');
       
       // Set default required skills
       if (defaults.required_skills && defaults.required_skills.length > 0) {
@@ -100,18 +100,20 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
     setRequiredSkills(prev => prev.filter(skill => skill !== skillToRemove));
   };
 
-  const handlePunchListCategoryChange = (category: PunchListCategory) => {
+  const handlePunchListCategoryChange = (category: PunchListCategory | 'none') => {
     setPunchListCategory(category);
-    const categorySkills = getSkillsForPunchListCategory(category);
-    setRequiredSkills(prev => {
-      const newSkills = [...prev];
-      categorySkills.forEach(skill => {
-        if (!newSkills.includes(skill)) {
-          newSkills.push(skill);
-        }
+    if (category !== 'none') {
+      const categorySkills = getSkillsForPunchListCategory(category as PunchListCategory);
+      setRequiredSkills(prev => {
+        const newSkills = [...prev];
+        categorySkills.forEach(skill => {
+          if (!newSkills.includes(skill)) {
+            newSkills.push(skill);
+          }
+        });
+        return newSkills;
       });
-      return newSkills;
-    });
+    }
   };
 
   const handleCategoryChange = (newCategory: string) => {
@@ -138,8 +140,8 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
       progress: 0,
       status: 'not-started' as const,
       required_skills: requiredSkills.length > 0 ? requiredSkills : undefined,
-      punch_list_category: punchListCategory || undefined,
-      assigned_stakeholder_id: assigneeId || undefined
+      punch_list_category: punchListCategory !== 'none' ? punchListCategory : undefined,
+      assigned_stakeholder_id: assigneeId !== 'none' ? assigneeId : undefined
     };
 
     const { error } = await createTask(taskData);
@@ -166,8 +168,8 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
       setDueDate('');
       setEstimatedHours('');
       setRequiredSkills([]);
-      setPunchListCategory('');
-      setAssigneeId('');
+      setPunchListCategory('none');
+      setAssigneeId('none');
       onOpenChange(false);
     }
     
@@ -249,6 +251,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                   <SelectValue placeholder="Select punch list category" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No category</SelectItem>
                   {Object.keys(PUNCH_LIST_CATEGORY_SKILLS).map((category) => (
                     <SelectItem key={category} value={category}>
                       {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -295,6 +298,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No assignee</SelectItem>
                   {sortedWorkers.map((worker) => {
                     const matchPercentage = calculateSkillMatchPercentage(requiredSkills, worker.specialties || []);
                     return (

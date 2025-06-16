@@ -28,7 +28,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
   
   const [formData, setFormData] = useState({
     project_id: '',
-    task_id: '',
+    task_id: 'none',
     role: '',
     start_date: '',
     end_date: '',
@@ -59,7 +59,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
       const currentDate = new Date().toISOString().split('T')[0];
       setFormData({
         project_id: '',
-        task_id: '',
+        task_id: 'none',
         role: '',
         start_date: currentDate,
         end_date: '',
@@ -86,7 +86,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
     const assignmentData = {
       stakeholder_id: stakeholder.id,
       project_id: formData.project_id,
-      task_id: formData.task_id || undefined,
+      task_id: formData.task_id !== 'none' ? formData.task_id : undefined,
       role: formData.role || undefined,
       start_date: formData.start_date || undefined,
       end_date: formData.end_date || undefined,
@@ -100,7 +100,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
     if (!error) {
       setFormData({
         project_id: '',
-        task_id: '',
+        task_id: 'none',
         role: '',
         start_date: '',
         end_date: '',
@@ -124,7 +124,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
   };
 
   const handleProjectChange = (projectId: string) => {
-    setFormData(prev => ({ ...prev, project_id: projectId, task_id: '' }));
+    setFormData(prev => ({ ...prev, project_id: projectId, task_id: 'none' }));
   };
 
   const availableTasks = tasks.filter(t => t.project_id === formData.project_id);
@@ -203,7 +203,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
                   <SelectValue placeholder="Select a task (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  <SelectItem value="">No specific task</SelectItem>
+                  <SelectItem value="none">No specific task</SelectItem>
                   {filteredTasks.map((task) => {
                     const matchPercentage = stakeholder.specialties && stakeholder.specialties.length > 0 
                       ? calculateSkillMatchPercentage(task.required_skills || [], stakeholder.specialties || [])

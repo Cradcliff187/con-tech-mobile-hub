@@ -36,7 +36,7 @@ export const MultiProjectResourceView = () => {
   const { allocations, loading } = useResourceAllocations();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [filterMember, setFilterMember] = useState('');
-  const [filterProject, setFilterProject] = useState('');
+  const [filterProject, setFilterProject] = useState('all');
 
   // Get active projects only
   const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'planning');
@@ -95,7 +95,7 @@ export const MultiProjectResourceView = () => {
   // Filter team members based on search criteria
   const filteredMembers = teamMemberAllocations.filter(member => {
     const matchesName = !filterMember || member.memberName.toLowerCase().includes(filterMember.toLowerCase());
-    const matchesProject = !filterProject || member.projects.some(p => p.projectId === filterProject);
+    const matchesProject = filterProject === 'all' || member.projects.some(p => p.projectId === filterProject);
     return matchesName && matchesProject;
   });
 
@@ -268,7 +268,7 @@ export const MultiProjectResourceView = () => {
                       <SelectValue placeholder="All projects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Projects</SelectItem>
+                      <SelectItem value="all">All Projects</SelectItem>
                       {activeProjects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
