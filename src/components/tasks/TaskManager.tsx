@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+
+import React, { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { PunchListView } from './PunchListView';
@@ -14,8 +15,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useProjects } from '@/hooks/useProjects';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task } from '@/types/database';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { useDebounce } from '@/hooks/useDebounce';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-export const TaskManager = () => {
+const TaskManagerContent = memo(() => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -26,13 +31,27 @@ export const TaskManager = () => {
   const { projects } = useProjects();
   const { toast } = useToast();
 
-  const regularTasks = tasks.filter(task => (task.task_type || 'regular') !== 'punch_list');
-  const filteredTasks = regularTasks.filter(task => {
-    const matchesFilter = filter === 'all' || task.status === filter;
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesFilter && matchesSearch;
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const convertOperation = useAsyncOperation({
+    successMessage: "",
+    errorMessage: "Failed to convert tasks"
   });
+
+  const regularTasks = useMemo(() => 
+    tasks.filter(task => (task.task_type || 'regular') !== 'punch_list'),
+    [tasks]
+  );
+
+  const filteredTasks = useMemo(() => 
+    regularTasks.filter(task => {
+      const matchesFilter = filter === 'all' || task.status === filter;
+      const matchesSearch = task.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                           (task.description && task.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+      return matchesFilter && matchesSearch;
+    }),
+    [regularTasks, filter, debouncedSearchTerm]
+  );
 
   const selectedProjectId = useMemo(() => {
     if (filteredTasks.length > 0) {
@@ -48,7 +67,6 @@ export const TaskManager = () => {
     return projects.find(p => p.id === selectedProjectId) || null;
   }, [selectedProjectId, projects]);
 
-  // Listen for bulk actions event from quick actions
   useEffect(() => {
     const handleOpenBulkActions = () => {
       setShowBulkActionsDialog(true);
@@ -58,7 +76,7 @@ export const TaskManager = () => {
     return () => window.removeEventListener('openBulkActions', handleOpenBulkActions);
   }, []);
 
-  const handleConvertToPunchList = async () => {
+  const handleConvertToPunchList = useCallback(async () => {
     const tasksToConvert = regularTasks.filter(canConvertToPunchList);
 
     if (tasksToConvert.length === 0) {
@@ -69,44 +87,43 @@ export const TaskManager = () => {
       return;
     }
 
-    const promises = tasksToConvert.map(task => 
-      updateTask(task.id, {
-        task_type: 'punch_list',
-        converted_from_task_id: task.id,
-        inspection_status: 'pending'
-      })
-    );
-
-    try {
+    await convertOperation.execute(async () => {
+      const promises = tasksToConvert.map(task => 
+        updateTask(task.id, {
+          task_type: 'punch_list',
+          converted_from_task_id: task.id,
+          inspection_status: 'pending'
+        })
+      );
+      
       await Promise.all(promises);
+      
       toast({
         title: "Success",
         description: `${tasksToConvert.length} tasks converted to punch list items.`,
       });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to convert tasks.",
-        variant: "destructive",
-      });
-    }
-  };
+    });
+  }, [regularTasks, updateTask, convertOperation, toast]);
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = useCallback((task: Task) => {
     setSelectedTaskForEdit(task);
     setShowEditDialog(true);
-  };
+  }, []);
+
+  const handleCreateClick = useCallback(() => {
+    setShowCreateDialog(true);
+  }, []);
+
+  const handleBulkActionsClick = useCallback(() => {
+    setShowBulkActionsDialog(true);
+  }, []);
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-slate-200 rounded w-64 mb-4"></div>
-          <div className="h-20 bg-slate-200 rounded mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-24 bg-slate-200 rounded"></div>
-            <div className="h-24 bg-slate-200 rounded"></div>
-          </div>
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner size="lg" />
+          <span className="ml-3 text-slate-600">Loading tasks...</span>
         </div>
       </div>
     );
@@ -118,9 +135,10 @@ export const TaskManager = () => {
         <h2 className="text-xl font-semibold text-slate-800">Task Management</h2>
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => setShowBulkActionsDialog(true)}
+            onClick={handleBulkActionsClick}
             variant="outline"
             size="sm"
+            className="transition-colors duration-200 focus:ring-2 focus:ring-slate-300"
           >
             Bulk Actions
           </Button>
@@ -128,12 +146,21 @@ export const TaskManager = () => {
             onClick={handleConvertToPunchList}
             variant="outline"
             size="sm"
+            disabled={convertOperation.loading}
+            className="transition-colors duration-200 focus:ring-2 focus:ring-slate-300"
           >
-            Convert Ready to Punch List
+            {convertOperation.loading ? (
+              <>
+                <LoadingSpinner size="sm" className="mr-2" />
+                Converting...
+              </>
+            ) : (
+              'Convert Ready to Punch List'
+            )}
           </Button>
           <Button 
-            onClick={() => setShowCreateDialog(true)}
-            className="bg-orange-600 text-white hover:bg-orange-700 flex items-center gap-2"
+            onClick={handleCreateClick}
+            className="bg-orange-600 text-white hover:bg-orange-700 flex items-center gap-2 transition-colors duration-200 focus:ring-2 focus:ring-orange-300"
           >
             <Plus size={20} />
             New Task
@@ -189,5 +216,15 @@ export const TaskManager = () => {
         tasks={filteredTasks}
       />
     </div>
+  );
+});
+
+TaskManagerContent.displayName = 'TaskManagerContent';
+
+export const TaskManager = () => {
+  return (
+    <ErrorBoundary>
+      <TaskManagerContent />
+    </ErrorBoundary>
   );
 };

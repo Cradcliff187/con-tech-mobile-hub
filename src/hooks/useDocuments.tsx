@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -69,64 +69,67 @@ export const useDocuments = (projectId?: string) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user } = useAuth();
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
-    let query = supabase
-      .from('documents')
-      .select(`
-        *,
-        uploader:profiles!uploaded_by(full_name, email),
-        project:projects(name)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      let query = supabase
+        .from('documents')
+        .select(`
+          *,
+          uploader:profiles!uploaded_by(full_name, email),
+          project:projects(name)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (projectId) {
-      query = query.eq('project_id', projectId);
-    }
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
 
-    const { data, error } = await query;
+      const { data, error } = await query;
 
-    if (error) {
-      console.error('Error fetching documents:', error);
-    } else {
+      if (error) {
+        throw new Error(`Failed to fetch documents: ${error.message}`);
+      }
+      
       setDocuments(data || []);
+    } catch (error) {
+      setDocuments([]);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchDocuments();
   }, [user, projectId]);
 
-  const uploadDocument = async (
+  useEffect(() => {
+    fetchDocuments().catch(() => {
+      // Error handling is done in the component level
+    });
+  }, [fetchDocuments]);
+
+  const uploadDocument = useCallback(async (
     file: File, 
     category: string, 
     targetProjectId?: string,
     description?: string
   ) => {
-    if (!user) return { error: 'User not authenticated' };
+    if (!user) throw new Error('User not authenticated');
 
-    // Validate file
     const validation = validateFile(file);
     if (!validation.isValid) {
-      return { error: validation.error };
+      throw new Error(validation.error);
     }
 
     setUploading(true);
     setUploadProgress(0);
     
     try {
-      // Sanitize file name and create unique path
       const sanitizedFileName = sanitizeFileName(file.name);
       const timestamp = Date.now();
       const projectPath = targetProjectId || projectId || 'general';
       const filePath = `${projectPath}/${timestamp}_${sanitizedFileName}`;
 
-      console.log('Uploading file to path:', filePath);
-
-      // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file, {
@@ -135,16 +138,11 @@ export const useDocuments = (projectId?: string) => {
         });
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        return { error: `Upload failed: ${uploadError.message}` };
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      console.log('File uploaded successfully:', uploadData);
-
-      // Use custom description or file name
       const documentName = description || file.name;
 
-      // Store document metadata in database
       const { data, error } = await supabase
         .from('documents')
         .insert({
@@ -164,10 +162,8 @@ export const useDocuments = (projectId?: string) => {
         .single();
 
       if (error) {
-        console.error('Database insert error:', error);
-        // Try to clean up uploaded file
         await supabase.storage.from('documents').remove([uploadData.path]);
-        return { error: `Failed to save document metadata: ${error.message}` };
+        throw new Error(`Failed to save document metadata: ${error.message}`);
       }
 
       if (data) {
@@ -175,61 +171,52 @@ export const useDocuments = (projectId?: string) => {
       }
 
       return { data, error: null };
-    } catch (err) {
-      console.error('Upload exception:', err);
-      return { error: 'Upload failed due to unexpected error' };
     } finally {
       setUploading(false);
       setUploadProgress(0);
     }
-  };
+  }, [user, projectId]);
 
-  const deleteDocument = async (id: string, filePath: string) => {
+  const deleteDocument = useCallback(async (id: string, filePath: string) => {
     try {
-      // Delete from storage first
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([filePath]);
 
       if (storageError) {
-        console.warn('Storage delete warning:', storageError);
+        // Continue with database deletion even if storage fails
       }
 
-      // Delete from database
       const { error } = await supabase
         .from('documents')
         .delete()
         .eq('id', id);
 
-      if (!error) {
-        setDocuments(prev => prev.filter(doc => doc.id !== id));
+      if (error) {
+        throw new Error(`Failed to delete document: ${error.message}`);
       }
 
-      return { error };
-    } catch (err) {
-      console.error('Delete exception:', err);
-      return { error: 'Delete failed due to unexpected error' };
+      setDocuments(prev => prev.filter(doc => doc.id !== id));
+      return { error: null };
+    } catch (error) {
+      throw error;
     }
-  };
+  }, []);
 
-  const downloadDocument = async (doc: DocumentRecord) => {
+  const downloadDocument = useCallback(async (doc: DocumentRecord) => {
     try {
-      console.log('Downloading document:', doc.file_path);
-      
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(doc.file_path, 3600); // 1 hour expiry
+        .createSignedUrl(doc.file_path, 3600);
 
       if (error) {
-        console.error('Download URL error:', error);
-        return { error: `Failed to generate download link: ${error.message}` };
+        throw new Error(`Failed to generate download link: ${error.message}`);
       }
 
       if (!data?.signedUrl) {
-        return { error: 'Failed to generate download link' };
+        throw new Error('Failed to generate download link');
       }
 
-      // Create download link and trigger download
       const link = document.createElement('a');
       link.href = data.signedUrl;
       link.download = doc.name;
@@ -239,34 +226,28 @@ export const useDocuments = (projectId?: string) => {
       document.body.removeChild(link);
 
       return { error: null };
-    } catch (err) {
-      console.error('Download exception:', err);
-      return { error: 'Download failed due to unexpected error' };
+    } catch (error) {
+      throw error;
     }
-  };
+  }, []);
 
-  const shareDocument = async (doc: DocumentRecord) => {
+  const shareDocument = useCallback(async (doc: DocumentRecord) => {
     try {
-      console.log('Sharing document:', doc.file_path);
-      
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(doc.file_path, 604800); // 7 days expiry
+        .createSignedUrl(doc.file_path, 604800);
 
       if (error) {
-        console.error('Share URL error:', error);
-        return { error: `Failed to generate share link: ${error.message}` };
+        throw new Error(`Failed to generate share link: ${error.message}`);
       }
 
       if (!data?.signedUrl) {
-        return { error: 'Failed to generate share link' };
+        throw new Error('Failed to generate share link');
       }
 
-      // Copy to clipboard
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(data.signedUrl);
       } else {
-        // Fallback for browsers without clipboard API
         const textArea = document.createElement('textarea');
         textArea.value = data.signedUrl;
         document.body.appendChild(textArea);
@@ -276,11 +257,10 @@ export const useDocuments = (projectId?: string) => {
       }
 
       return { error: null, url: data.signedUrl };
-    } catch (err) {
-      console.error('Share exception:', err);
-      return { error: 'Share failed due to unexpected error' };
+    } catch (error) {
+      throw error;
     }
-  };
+  }, []);
 
   return {
     documents,

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 interface EditTaskDialogProps {
   open: boolean;
@@ -20,15 +22,23 @@ interface EditTaskDialogProps {
   task: Task | null;
 }
 
-export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps) => {
+export const EditTaskDialog = memo(({ open, onOpenChange, task }: EditTaskDialogProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { updateTask } = useTasks();
   const { toast } = useToast();
+
+  const updateOperation = useAsyncOperation({
+    successMessage: "Task updated successfully",
+    errorMessage: "Failed to update task",
+    onSuccess: () => {
+      onOpenChange(false);
+      resetForm();
+    }
+  });
 
   useEffect(() => {
     if (task && open) {
@@ -39,68 +49,41 @@ export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps
     }
   }, [task, open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const resetForm = useCallback(() => {
+    setTitle('');
+    setDescription('');
+    setPriority('medium');
+    setDueDate(undefined);
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!task || !title.trim()) {
       toast({
-        title: "Error",
+        title: "Validation Error",
         description: "Task title is required.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const { error } = await updateTask(task.id, {
+    await updateOperation.execute(() => 
+      updateTask(task.id, {
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
         due_date: dueDate?.toISOString(),
-      });
+      })
+    );
+  }, [task, title, description, priority, dueDate, updateTask, updateOperation, toast]);
 
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update task.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Task updated successfully.",
-      });
-
-      onOpenChange(false);
-      resetForm();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setPriority('medium');
-    setDueDate(undefined);
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen && !updateOperation.loading) {
       resetForm();
     }
     onOpenChange(newOpen);
-  };
+  }, [updateOperation.loading, resetForm, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -120,6 +103,8 @@ export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter task title..."
               required
+              disabled={updateOperation.loading}
+              className="focus:ring-2 focus:ring-orange-300"
             />
           </div>
 
@@ -133,6 +118,8 @@ export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter task description..."
               rows={3}
+              disabled={updateOperation.loading}
+              className="focus:ring-2 focus:ring-orange-300"
             />
           </div>
 
@@ -141,8 +128,12 @@ export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Priority
               </label>
-              <Select value={priority} onValueChange={(value: Task['priority']) => setPriority(value)}>
-                <SelectTrigger>
+              <Select 
+                value={priority} 
+                onValueChange={(value: Task['priority']) => setPriority(value)}
+                disabled={updateOperation.loading}
+              >
+                <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -163,9 +154,10 @@ export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal focus:ring-2 focus:ring-orange-300",
                       !dueDate && "text-muted-foreground"
                     )}
+                    disabled={updateOperation.loading}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
@@ -189,20 +181,30 @@ export const EditTaskDialog = ({ open, onOpenChange, task }: EditTaskDialogProps
               type="button" 
               variant="outline" 
               onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={updateOperation.loading}
+              className="transition-colors duration-200 focus:ring-2 focus:ring-slate-300"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting}
-              className="bg-orange-600 hover:bg-orange-700"
+              disabled={updateOperation.loading || !title.trim()}
+              className="bg-orange-600 hover:bg-orange-700 transition-colors duration-200 focus:ring-2 focus:ring-orange-300"
             >
-              {isSubmitting ? 'Updating...' : 'Update Task'}
+              {updateOperation.loading ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Updating...
+                </>
+              ) : (
+                'Update Task'
+              )}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+EditTaskDialog.displayName = 'EditTaskDialog';
