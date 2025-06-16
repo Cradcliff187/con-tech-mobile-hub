@@ -1,16 +1,16 @@
-
 import { useState, useMemo } from 'react';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useProjects } from '@/hooks/useProjects';
-import { useResourceConflicts } from '@/hooks/useResourceConflicts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertTriangle, Calendar, Users, Filter } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertTriangle, Calendar, Users, Filter, Move } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { DragDropResourceView } from './DragDropResourceView';
 
 interface TeamMemberAllocation {
   memberId: string;
@@ -228,165 +228,185 @@ export const MultiProjectResourceView = () => {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter size={20} />
-            <CardTitle>Filters</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Filter by Team Member</label>
-              <Input
-                placeholder="Search team member..."
-                value={filterMember}
-                onChange={(e) => setFilterMember(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Filter by Project</label>
-              <Select value={filterProject} onValueChange={setFilterProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All projects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Projects</SelectItem>
-                  {activeProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* View Tabs */}
+      <Tabs defaultValue="table" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="table" className="flex items-center gap-2">
+            <Filter size={16} />
+            Table View
+          </TabsTrigger>
+          <TabsTrigger value="interactive" className="flex items-center gap-2">
+            <Move size={16} />
+            Interactive View
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Resource Allocation Matrix */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Resource Allocation Matrix</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-48">Team Member</TableHead>
-                  <TableHead>Utilization</TableHead>
-                  <TableHead>Total Hours</TableHead>
-                  <TableHead>Availability</TableHead>
-                  <TableHead>Project Assignments</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMembers.map((member) => (
-                  <TableRow key={member.memberId} className={member.conflicts ? 'bg-red-50' : ''}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {member.conflicts && <AlertTriangle className="text-red-500" size={16} />}
-                        {member.memberName}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getUtilizationColor(member.utilizationRate)}>
-                        {member.utilizationRate.toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {member.totalHours} / {member.totalAllocated} hrs
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-slate-600">
-                        {member.availability}%
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {member.projects.map((project) => (
-                          <div key={project.projectId} className="flex items-center gap-2">
-                            <div
-                              className={`w-3 h-3 rounded-full ${getAllocationColor(project.percentage)}`}
-                              title={`${project.percentage.toFixed(1)}% allocation`}
-                            />
-                            <span className="text-sm truncate max-w-32">{project.projectName}</span>
-                            <span className="text-xs text-slate-500">
-                              ({project.hoursAllocated}h)
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {member.conflicts ? (
-                        <Badge variant="destructive" className="text-xs">
-                          Over-allocated
-                        </Badge>
-                      ) : member.utilizationRate > 80 ? (
-                        <Badge variant="default" className="text-xs bg-yellow-500">
-                          High Utilization
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">
-                          Available
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {filteredMembers.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
-                No team members found matching the current filters.
+        <TabsContent value="table" className="space-y-6">
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Filter size={20} />
+                <CardTitle>Filters</CardTitle>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Filter by Team Member</label>
+                  <Input
+                    placeholder="Search team member..."
+                    value={filterMember}
+                    onChange={(e) => setFilterMember(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Filter by Project</label>
+                  <Select value={filterProject} onValueChange={setFilterProject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All projects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Projects</SelectItem>
+                      {activeProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Legend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Legend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>0-40% allocation</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span>40-60% allocation</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <span>60-80% allocation</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-              <span>80-100% allocation</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span>Over-allocated ({'>'} 100%)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="text-red-500" size={12} />
-              <span>Resource conflict</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          {/* Resource Allocation Matrix */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Resource Allocation Matrix</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-48">Team Member</TableHead>
+                      <TableHead>Utilization</TableHead>
+                      <TableHead>Total Hours</TableHead>
+                      <TableHead>Availability</TableHead>
+                      <TableHead>Project Assignments</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMembers.map((member) => (
+                      <TableRow key={member.memberId} className={member.conflicts ? 'bg-red-50' : ''}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {member.conflicts && <AlertTriangle className="text-red-500" size={16} />}
+                            {member.memberName}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getUtilizationColor(member.utilizationRate)}>
+                            {member.utilizationRate.toFixed(1)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {member.totalHours} / {member.totalAllocated} hrs
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-slate-600">
+                            {member.availability}%
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {member.projects.map((project) => (
+                              <div key={project.projectId} className="flex items-center gap-2">
+                                <div
+                                  className={`w-3 h-3 rounded-full ${getAllocationColor(project.percentage)}`}
+                                  title={`${project.percentage.toFixed(1)}% allocation`}
+                                />
+                                <span className="text-sm truncate max-w-32">{project.projectName}</span>
+                                <span className="text-xs text-slate-500">
+                                  ({project.hoursAllocated}h)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {member.conflicts ? (
+                            <Badge variant="destructive" className="text-xs">
+                              Over-allocated
+                            </Badge>
+                          ) : member.utilizationRate > 80 ? (
+                            <Badge variant="default" className="text-xs bg-yellow-500">
+                              High Utilization
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              Available
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {filteredMembers.length === 0 && (
+                  <div className="text-center py-8 text-slate-500">
+                    No team members found matching the current filters.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Legend */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Legend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span>0-40% allocation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span>40-60% allocation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span>60-80% allocation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                  <span>80-100% allocation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span>Over-allocated ({'>'} 100%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="text-red-500" size={12} />
+                  <span>Resource conflict</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="interactive">
+          <DragDropResourceView />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
