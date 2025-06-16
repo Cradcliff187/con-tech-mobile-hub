@@ -11,6 +11,7 @@ import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
 import { AssignStakeholderDialog } from './AssignStakeholderDialog';
 import { StakeholderDetail } from './StakeholderDetail';
 import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
+import { useToast } from '@/hooks/use-toast';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
@@ -21,6 +22,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const { toast } = useToast();
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -41,15 +43,66 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
     }
   };
 
-  const handlePhoneCall = () => {
-    if (stakeholder.phone) {
-      window.location.href = `tel:${stakeholder.phone}`;
+  const copyToClipboard = async (text: string, type: 'phone' | 'email') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied to clipboard",
+        description: `${type === 'phone' ? 'Phone number' : 'Email address'} copied successfully`
+      });
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy to clipboard",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleEmailSend = () => {
-    if (stakeholder.email) {
-      window.location.href = `mailto:${stakeholder.email}`;
+  const handlePhoneCall = async () => {
+    if (!stakeholder.phone) return;
+
+    try {
+      // Try to open phone app
+      window.location.href = `tel:${stakeholder.phone}`;
+      
+      // Show success toast after a brief delay
+      setTimeout(() => {
+        toast({
+          title: "Opening phone app",
+          description: `Calling ${formatPhoneNumber(stakeholder.phone)}`
+        });
+      }, 100);
+    } catch (error) {
+      console.error('Failed to open phone app:', error);
+      // Fallback to copying phone number
+      await copyToClipboard(stakeholder.phone, 'phone');
+    }
+  };
+
+  const handleEmailSend = async () => {
+    if (!stakeholder.email) return;
+
+    try {
+      // Create mailto URL with pre-filled subject
+      const subject = encodeURIComponent(`Contact: ${stakeholder.company_name || stakeholder.contact_person || 'Stakeholder'}`);
+      const mailtoUrl = `mailto:${stakeholder.email}?subject=${subject}`;
+      
+      // Try to open email client
+      window.location.href = mailtoUrl;
+      
+      // Show success toast after a brief delay
+      setTimeout(() => {
+        toast({
+          title: "Opening email client",
+          description: `Composing email to ${stakeholder.email}`
+        });
+      }, 100);
+    } catch (error) {
+      console.error('Failed to open email client:', error);
+      // Fallback to copying email address
+      await copyToClipboard(stakeholder.email, 'email');
     }
   };
 
