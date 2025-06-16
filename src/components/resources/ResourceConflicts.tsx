@@ -1,8 +1,12 @@
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Calendar, Users, Wrench } from 'lucide-react';
+import { useResourceAllocations } from '@/hooks/useResourceAllocations';
+import { useEquipment } from '@/hooks/useEquipment';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ResourceConflict {
   id: string;
@@ -16,46 +20,131 @@ interface ResourceConflict {
 }
 
 export const ResourceConflicts = () => {
-  const conflicts: ResourceConflict[] = [
-    {
-      id: '1',
-      type: 'equipment',
-      severity: 'high',
-      title: 'Excavator Double Booking',
-      description: 'CAT 320 excavator is scheduled for both Downtown Office Complex and Residential Phase 2 on June 18-19',
-      affectedProjects: ['Downtown Office Complex', 'Residential Housing Phase 2'],
-      suggestedAction: 'Reschedule one project or arrange backup equipment',
-      dueDate: '2024-06-18'
-    },
-    {
-      id: '2',
-      type: 'personnel',
-      severity: 'critical',
-      title: 'Site Supervisor Overallocation',
-      description: 'Mike Johnson is assigned to 3 concurrent projects exceeding 120% capacity',
-      affectedProjects: ['Downtown Office Complex', 'Highway Bridge', 'Residential Phase 2'],
-      suggestedAction: 'Reassign secondary supervisor or extend timeline'
-    },
-    {
-      id: '3',
-      type: 'schedule',
-      severity: 'medium',
-      title: 'Material Delivery Conflict',
-      description: 'Steel delivery scheduled for same timeframe as concrete pour at Downtown site',
-      affectedProjects: ['Downtown Office Complex'],
-      suggestedAction: 'Coordinate delivery schedule with concrete contractor',
-      dueDate: '2024-06-20'
-    },
-    {
-      id: '4',
-      type: 'equipment',
-      severity: 'low',
-      title: 'Crane Maintenance Overlap',
-      description: 'Liebherr 150 maintenance scheduled during peak usage period',
-      affectedProjects: ['Highway Bridge Renovation'],
-      suggestedAction: 'Move maintenance to weekend or arrange backup crane'
+  const [conflicts, setConflicts] = useState<ResourceConflict[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { allocations } = useResourceAllocations();
+  const { equipment } = useEquipment();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && allocations.length >= 0 && equipment.length >= 0) {
+      generateConflicts();
     }
-  ];
+  }, [allocations, equipment, user]);
+
+  const generateConflicts = () => {
+    const detectedConflicts: ResourceConflict[] = [];
+
+    // Check for overallocated personnel
+    const personnelConflicts = checkPersonnelOverallocation();
+    detectedConflicts.push(...personnelConflicts);
+
+    // Check for equipment conflicts
+    const equipmentConflicts = checkEquipmentConflicts();
+    detectedConflicts.push(...equipmentConflicts);
+
+    // Check for maintenance scheduling conflicts
+    const maintenanceConflicts = checkMaintenanceConflicts();
+    detectedConflicts.push(...maintenanceConflicts);
+
+    setConflicts(detectedConflicts);
+    setLoading(false);
+  };
+
+  const checkPersonnelOverallocation = (): ResourceConflict[] => {
+    const conflicts: ResourceConflict[] = [];
+    const memberAllocationMap = new Map<string, { totalHours: number; projects: string[] }>();
+
+    // Aggregate member allocations across all projects
+    allocations.forEach(allocation => {
+      allocation.members?.forEach(member => {
+        const existing = memberAllocationMap.get(member.name) || { totalHours: 0, projects: [] };
+        existing.totalHours += member.hours_allocated;
+        if (!existing.projects.includes(allocation.team_name)) {
+          existing.projects.push(allocation.team_name);
+        }
+        memberAllocationMap.set(member.name, existing);
+      });
+    });
+
+    // Check for overallocation (more than 40 hours per week)
+    memberAllocationMap.forEach((allocation, memberName) => {
+      if (allocation.totalHours > 40) {
+        conflicts.push({
+          id: `personnel-${memberName}`,
+          type: 'personnel',
+          severity: allocation.totalHours > 50 ? 'critical' : 'high',
+          title: `${memberName} Overallocated`,
+          description: `${memberName} is allocated ${allocation.totalHours} hours per week across multiple projects`,
+          affectedProjects: allocation.projects,
+          suggestedAction: 'Redistribute workload or extend project timeline'
+        });
+      }
+    });
+
+    return conflicts;
+  };
+
+  const checkEquipmentConflicts = (): ResourceConflict[] => {
+    const conflicts: ResourceConflict[] = [];
+    const equipmentProjectMap = new Map<string, string[]>();
+
+    // Group equipment by projects
+    equipment.forEach(item => {
+      if (item.project_id && item.project?.name) {
+        const existing = equipmentProjectMap.get(item.name) || [];
+        if (!existing.includes(item.project.name)) {
+          existing.push(item.project.name);
+        }
+        equipmentProjectMap.set(item.name, existing);
+      }
+    });
+
+    // Check for equipment assigned to multiple projects
+    equipmentProjectMap.forEach((projects, equipmentName) => {
+      if (projects.length > 1) {
+        conflicts.push({
+          id: `equipment-${equipmentName}`,
+          type: 'equipment',
+          severity: 'high',
+          title: `${equipmentName} Double Booking`,
+          description: `${equipmentName} is assigned to multiple projects simultaneously`,
+          affectedProjects: projects,
+          suggestedAction: 'Reschedule one project or arrange backup equipment'
+        });
+      }
+    });
+
+    return conflicts;
+  };
+
+  const checkMaintenanceConflicts = (): ResourceConflict[] => {
+    const conflicts: ResourceConflict[] = [];
+    const today = new Date();
+    const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    equipment.forEach(item => {
+      if (item.maintenance_due && item.project_id) {
+        const maintenanceDate = new Date(item.maintenance_due);
+        
+        // Check if maintenance is due while equipment is in use
+        if (maintenanceDate <= oneWeekFromNow && item.status === 'in-use') {
+          conflicts.push({
+            id: `maintenance-${item.id}`,
+            type: 'schedule',
+            severity: maintenanceDate <= today ? 'critical' : 'medium',
+            title: `${item.name} Maintenance Conflict`,
+            description: `${item.name} maintenance scheduled during active project use`,
+            affectedProjects: item.project?.name ? [item.project.name] : [],
+            suggestedAction: 'Reschedule maintenance or arrange backup equipment',
+            dueDate: item.maintenance_due
+          });
+        }
+      }
+    });
+
+    return conflicts;
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -77,6 +166,21 @@ export const ResourceConflicts = () => {
 
   const criticalCount = conflicts.filter(c => c.severity === 'critical').length;
   const highCount = conflicts.filter(c => c.severity === 'high').length;
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="h-24 bg-slate-200 rounded"></div>
+            <div className="h-24 bg-slate-200 rounded"></div>
+            <div className="h-24 bg-slate-200 rounded"></div>
+          </div>
+          <div className="h-64 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -125,60 +229,68 @@ export const ResourceConflicts = () => {
           <CardTitle>Resource Conflicts</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {conflicts.map((conflict) => (
-              <div key={conflict.id} className={`border rounded-lg p-4 ${getSeverityColor(conflict.severity)} border-l-4`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getTypeIcon(conflict.type)}
-                      <h4 className="font-medium text-slate-800">{conflict.title}</h4>
-                      <Badge variant="outline" className="capitalize">
-                        {conflict.type}
-                      </Badge>
-                      <Badge className={getSeverityColor(conflict.severity)}>
-                        {conflict.severity}
-                      </Badge>
+          {conflicts.length === 0 ? (
+            <div className="text-center py-8">
+              <AlertTriangle size={48} className="mx-auto mb-4 text-slate-400" />
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No Conflicts Found</h3>
+              <p className="text-slate-500">All resources are properly allocated with no conflicts detected.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {conflicts.map((conflict) => (
+                <div key={conflict.id} className={`border rounded-lg p-4 ${getSeverityColor(conflict.severity)} border-l-4`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        {getTypeIcon(conflict.type)}
+                        <h4 className="font-medium text-slate-800">{conflict.title}</h4>
+                        <Badge variant="outline" className="capitalize">
+                          {conflict.type}
+                        </Badge>
+                        <Badge className={getSeverityColor(conflict.severity)}>
+                          {conflict.severity}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-700 mb-3">{conflict.description}</p>
+                      
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-xs font-medium text-slate-600 mb-1">Affected Projects:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {conflict.affectedProjects.map((project, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {project}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <p className="text-xs font-medium text-slate-600 mb-1">Suggested Action:</p>
+                          <p className="text-sm text-slate-700">{conflict.suggestedAction}</p>
+                        </div>
+                        
+                        {conflict.dueDate && (
+                          <div className="text-xs text-slate-500">
+                            Deadline: {new Date(conflict.dueDate).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-700 mb-3">{conflict.description}</p>
                     
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs font-medium text-slate-600 mb-1">Affected Projects:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {conflict.affectedProjects.map((project, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {project}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <p className="text-xs font-medium text-slate-600 mb-1">Suggested Action:</p>
-                        <p className="text-sm text-slate-700">{conflict.suggestedAction}</p>
-                      </div>
-                      
-                      {conflict.dueDate && (
-                        <div className="text-xs text-slate-500">
-                          Deadline: {new Date(conflict.dueDate).toLocaleDateString()}
-                        </div>
-                      )}
+                    <div className="flex flex-col gap-2 ml-4">
+                      <Button variant="outline" size="sm">
+                        Resolve
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        Details
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-2 ml-4">
-                    <Button variant="outline" size="sm">
-                      Resolve
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      Details
-                    </Button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

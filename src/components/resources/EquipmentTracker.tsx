@@ -1,49 +1,9 @@
 
-import { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, Clock, Wrench } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-
-interface Equipment {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  project_id?: string;
-  operator_id?: string;
-  maintenance_due?: string;
-  utilization_rate: number;
-  project?: { name: string };
-  operator?: { full_name?: string };
-}
+import { useEquipment } from '@/hooks/useEquipment';
 
 export const EquipmentTracker = () => {
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchEquipment = async () => {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('equipment')
-        .select(`
-          *,
-          project:projects(name),
-          operator:profiles(full_name)
-        `);
-
-      if (error) {
-        console.error('Error fetching equipment:', error);
-      } else {
-        setEquipment(data || []);
-      }
-      setLoading(false);
-    };
-
-    fetchEquipment();
-  }, [user]);
+  const { equipment, loading } = useEquipment();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -105,7 +65,7 @@ export const EquipmentTracker = () => {
                       {item.name}
                     </h4>
                     <p className="text-sm text-slate-600 mb-2">
-                      Type: {item.type}
+                      Type: {item.type || 'Unknown'}
                     </p>
                     <p className="text-sm text-slate-600 mb-2">
                       Location: {item.project?.name || 'Available'}
@@ -118,7 +78,7 @@ export const EquipmentTracker = () => {
                   <div className="flex items-center gap-2">
                     {getStatusIcon(item.status)}
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                      {item.status.replace('-', ' ')}
+                      {item.status?.replace('-', ' ') || 'unknown'}
                     </span>
                   </div>
                 </div>
@@ -127,12 +87,12 @@ export const EquipmentTracker = () => {
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-slate-600">Utilization</span>
-                      <span className="font-medium text-slate-800">{item.utilization_rate}%</span>
+                      <span className="font-medium text-slate-800">{item.utilization_rate || 0}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div 
                         className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                        style={{ width: `${item.utilization_rate}%` }}
+                        style={{ width: `${Math.min(item.utilization_rate || 0, 100)}%` }}
                       />
                     </div>
                   </div>
