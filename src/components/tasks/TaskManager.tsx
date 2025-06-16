@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
@@ -7,16 +6,20 @@ import { Plus } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { CreateTaskDialog } from './CreateTaskDialog';
+import { EditTaskDialog } from './EditTaskDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { canConvertToPunchList, shouldShowPunchList } from '@/utils/project-lifecycle';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useProjects } from '@/hooks/useProjects';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Task } from '@/types/database';
 
 export const TaskManager = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
   const { tasks, loading, updateTask } = useTasks();
   const { projects } = useProjects();
   const { toast } = useToast();
@@ -75,6 +78,11 @@ export const TaskManager = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setSelectedTaskForEdit(task);
+    setShowEditDialog(true);
   };
 
   if (loading) {
@@ -137,7 +145,7 @@ export const TaskManager = () => {
             onSearchChange={setSearchTerm}
             tasks={regularTasks}
           />
-          <TaskList tasks={filteredTasks} />
+          <TaskList tasks={filteredTasks} onEdit={handleEditTask} />
         </TabsContent>
 
         <TabsContent value="punch-list">
@@ -148,6 +156,12 @@ export const TaskManager = () => {
       <CreateTaskDialog 
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog} 
+      />
+      
+      <EditTaskDialog 
+        open={showEditDialog} 
+        onOpenChange={setShowEditDialog} 
+        task={selectedTaskForEdit}
       />
     </div>
   );

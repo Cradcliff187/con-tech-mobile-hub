@@ -4,9 +4,10 @@ import { ProjectLink } from '@/components/common/ProjectLink';
 
 interface TaskItemProps {
   task: Task;
+  onEdit?: (task: Task) => void;
 }
 
-export const TaskItem = ({ task }: TaskItemProps) => {
+export const TaskItem = ({ task, onEdit }: TaskItemProps) => {
   const priorityColors = {
     low: 'bg-green-100 text-green-800',
     medium: 'bg-orange-100 text-orange-800',
@@ -87,7 +88,10 @@ export const TaskItem = ({ task }: TaskItemProps) => {
       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
         <ProjectLink projectId={task.project_id} showIcon={false} />
         <div className="flex gap-2">
-          <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+          <button 
+            onClick={() => onEdit?.(task)}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
             Edit
           </button>
           <button className="text-xs text-slate-500 hover:text-slate-600 font-medium">
