@@ -1,4 +1,11 @@
 
+export interface StructuredAddress {
+  street_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -15,6 +22,11 @@ export interface Project {
   client_id?: string;
   created_at: string;
   updated_at: string;
+  // Structured address fields
+  street_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
   client?: {
     id: string;
     company_name?: string;
