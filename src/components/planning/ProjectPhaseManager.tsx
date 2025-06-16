@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { generateAutoPunchListItems } from '@/utils/phase-automation';
 
 interface PhaseReadiness {
   currentPhase: string;
@@ -39,7 +40,7 @@ export const ProjectPhaseManager = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
   const { projects } = useProjects();
-  const { tasks } = useTasks();
+  const { tasks, createTask } = useTasks();
   const [showTransitionDialog, setShowTransitionDialog] = useState(false);
   const [targetPhase, setTargetPhase] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -144,59 +145,31 @@ export const ProjectPhaseManager = () => {
     };
   };
 
-  const generatePunchListItems = async () => {
+  const handleGeneratePunchList = async () => {
     if (!projectId) return;
 
     setIsUpdating(true);
+    const punchListItems = generateAutoPunchListItems(projectTasks);
+    
     try {
-      // Create sample punch list items based on common construction finish work
-      const punchListItems = [
-        {
-          title: 'Touch up paint on walls and trim',
-          description: 'Inspect and touch up any paint imperfections on walls and trim work',
-          category: 'Paint',
-          punch_list_category: 'paint',
-          task_type: 'punch_list',
-          priority: 'medium',
-          status: 'not-started'
-        },
-        {
-          title: 'Final electrical fixture alignment',
-          description: 'Ensure all light fixtures and outlets are properly aligned and functional',
-          category: 'Electrical',
-          punch_list_category: 'electrical',
-          task_type: 'punch_list',
-          priority: 'high',
-          status: 'not-started'
-        },
-        {
-          title: 'Clean and test all plumbing fixtures',
-          description: 'Final cleaning and functionality test of all plumbing fixtures',
-          category: 'Plumbing',
-          punch_list_category: 'plumbing',
-          task_type: 'punch_list',
-          priority: 'medium',
-          status: 'not-started'
-        },
-        {
-          title: 'Final flooring inspection and cleaning',
-          description: 'Inspect flooring for defects and perform final cleaning',
-          category: 'Flooring',
-          punch_list_category: 'flooring',
-          task_type: 'punch_list',
-          priority: 'medium',
-          status: 'not-started'
-        }
-      ];
-
       for (const item of punchListItems) {
-        await supabase.from('tasks').insert({
-          ...item,
-          project_id: projectId
+        const { error } = await createTask({
+          title: item.title,
+          description: item.description,
+          project_id: item.project_id,
+          task_type: item.task_type,
+          punch_list_category: item.punch_list_category,
+          priority: item.priority,
+          status: item.status,
+          converted_from_task_id: item.converted_from_task_id,
+          inspection_status: item.inspection_status
         });
+        
+        if (error) throw error;
       }
-
+      
       toast.success(`Generated ${punchListItems.length} punch list items`);
+      
     } catch (error) {
       console.error('Error generating punch list:', error);
       toast.error('Failed to generate punch list items');
@@ -322,7 +295,7 @@ export const ProjectPhaseManager = () => {
                 </span>
               </div>
               <Button
-                onClick={generatePunchListItems}
+                onClick={handleGeneratePunchList}
                 disabled={isUpdating}
                 variant="outline"
                 size="sm"
