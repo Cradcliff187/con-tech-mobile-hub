@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { UserManagement } from './UserManagement';
+import { SystemSettings } from './SystemSettings';
+import { SystemAnalytics } from './SystemAnalytics';
+import { DatabaseManagement } from './DatabaseManagement';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -84,36 +87,15 @@ export const AdminPanel = () => {
           </TabsContent>
           
           <TabsContent value="system" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Configuration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">System settings and configuration options will be implemented here.</p>
-              </CardContent>
-            </Card>
+            <SystemSettings />
           </TabsContent>
           
           <TabsContent value="analytics" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">System usage analytics and reporting will be implemented here.</p>
-              </CardContent>
-            </Card>
+            <SystemAnalytics />
           </TabsContent>
           
           <TabsContent value="database" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Database Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Database administration tools will be implemented here.</p>
-              </CardContent>
-            </Card>
+            <DatabaseManagement />
           </TabsContent>
         </Tabs>
       </div>
