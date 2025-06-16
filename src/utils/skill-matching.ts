@@ -26,7 +26,7 @@ export const PUNCH_LIST_CATEGORY_SKILLS = {
 export type PunchListCategory = keyof typeof PUNCH_LIST_CATEGORY_SKILLS;
 
 export const getSkillsForPunchListCategory = (category: PunchListCategory): string[] => {
-  return PUNCH_LIST_CATEGORY_SKILLS[category] || [];
+  return [...PUNCH_LIST_CATEGORY_SKILLS[category]]; // Create mutable copy
 };
 
 export const filterAndSortWorkersBySkillMatch = (

@@ -38,9 +38,9 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
 
-  // Filter stakeholders to get workers with skills
+  // Filter stakeholders to get workers with skills - fix the stakeholder_type filter
   const workers = stakeholders.filter(s => 
-    s.stakeholder_type === 'worker' && 
+    (s.stakeholder_type === 'employee' || s.stakeholder_type === 'subcontractor') && 
     s.status === 'active'
   );
 
@@ -224,7 +224,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                     return (
                       <SelectItem key={worker.id} value={worker.id}>
                         <div className="flex items-center justify-between w-full">
-                          <span>{worker.contact_person || worker.company_name}</span>
+                          <span>{worker.contact_person || worker.company_name || 'Unknown Worker'}</span>
                           <Badge 
                             variant={matchPercentage >= 80 ? "default" : matchPercentage >= 50 ? "secondary" : "outline"}
                             className="ml-2"
