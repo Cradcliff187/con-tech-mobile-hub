@@ -3,9 +3,17 @@ import { useState } from 'react';
 import { ReportDashboard } from './ReportDashboard';
 import { ReportCharts } from './ReportCharts';
 import { Calendar, Download } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useProjects } from '@/hooks/useProjects';
+import { validateSelectData } from '@/utils/selectHelpers';
 
 export const ProgressReports = () => {
   const [reportType, setReportType] = useState<'dashboard' | 'charts'>('dashboard');
+  const [dateRange, setDateRange] = useState('last_30_days');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  
+  const { projects, loading: projectsLoading } = useProjects();
+  const validatedProjects = validateSelectData(projects);
 
   return (
     <div className="space-y-6">
@@ -47,20 +55,38 @@ export const ProgressReports = () => {
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Calendar size={16} className="text-slate-500" />
-            <select className="border border-slate-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option>Last 30 Days</option>
-              <option>Last 90 Days</option>
-              <option>This Year</option>
-              <option>Custom Range</option>
-            </select>
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select date range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="last_30_days">Last 30 Days</SelectItem>
+                <SelectItem value="last_90_days">Last 90 Days</SelectItem>
+                <SelectItem value="this_year">This Year</SelectItem>
+                <SelectItem value="custom_range">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
-          <select className="border border-slate-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>All Projects</option>
-            <option>Downtown Office Complex</option>
-            <option>Residential Housing Phase 2</option>
-            <option>Highway Bridge Renovation</option>
-          </select>
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {projectsLoading ? (
+                <SelectItem value="loading" disabled>Loading projects...</SelectItem>
+              ) : validatedProjects.length === 0 ? (
+                <SelectItem value="no-projects" disabled>No projects available</SelectItem>
+              ) : (
+                validatedProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name || 'Unnamed Project'}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
         
         {reportType === 'dashboard' ? <ReportDashboard /> : <ReportCharts />}
