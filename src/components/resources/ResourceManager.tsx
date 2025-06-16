@@ -1,49 +1,51 @@
 
 import { useState } from 'react';
-import { ResourceOverview } from './ResourceOverview';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResourceAllocation } from './ResourceAllocation';
+import { ResourceConflicts } from './ResourceConflicts';
+import { MultiProjectResourceView } from './MultiProjectResourceView';
 import { EquipmentTracker } from './EquipmentTracker';
 import { MaintenanceScheduler } from './MaintenanceScheduler';
-import { ResourceConflicts } from './ResourceConflicts';
 
 export const ResourceManager = () => {
-  const [activeView, setActiveView] = useState<'overview' | 'allocation' | 'equipment' | 'maintenance' | 'conflicts'>('overview');
-
-  const views = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'allocation', label: 'Allocation' },
-    { id: 'equipment', label: 'Equipment' },
-    { id: 'maintenance', label: 'Maintenance' },
-    { id: 'conflicts', label: 'Conflicts' }
-  ];
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-slate-800">Resource Management</h2>
-        
-        <div className="flex bg-slate-100 rounded-lg p-1">
-          {views.map((view) => (
-            <button
-              key={view.id}
-              onClick={() => setActiveView(view.id as any)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === view.id
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              {view.label}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Resource Management</h1>
+        <p className="text-slate-600">Manage resources, equipment, and team allocations across projects</p>
       </div>
 
-      {activeView === 'overview' && <ResourceOverview />}
-      {activeView === 'allocation' && <ResourceAllocation />}
-      {activeView === 'equipment' && <EquipmentTracker />}
-      {activeView === 'maintenance' && <MaintenanceScheduler />}
-      {activeView === 'conflicts' && <ResourceConflicts />}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview">Multi-Project View</TabsTrigger>
+          <TabsTrigger value="allocation">Allocations</TabsTrigger>
+          <TabsTrigger value="conflicts">Conflicts</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <MultiProjectResourceView />
+        </TabsContent>
+
+        <TabsContent value="allocation" className="space-y-6">
+          <ResourceAllocation />
+        </TabsContent>
+
+        <TabsContent value="conflicts" className="space-y-6">
+          <ResourceConflicts />
+        </TabsContent>
+
+        <TabsContent value="equipment" className="space-y-6">
+          <EquipmentTracker />
+        </TabsContent>
+
+        <TabsContent value="maintenance" className="space-y-6">
+          <MaintenanceScheduler />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
