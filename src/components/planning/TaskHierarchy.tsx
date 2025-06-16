@@ -1,8 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AddCategoryDialog } from './AddCategoryDialog';
+import { AddTaskDialog } from './AddTaskDialog';
 
 interface TaskHierarchyProps {
   projectId: string;
@@ -24,6 +25,9 @@ interface HierarchyTask {
 export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   const { tasks } = useTasks();
   const [hierarchyTasks, setHierarchyTasks] = useState<HierarchyTask[]>([]);
+  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
+  const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
 
   useEffect(() => {
     // Filter and organize tasks into hierarchy
@@ -75,6 +79,11 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
           : task
       )
     );
+  };
+
+  const handleAddTask = (category?: string) => {
+    setSelectedCategory(category);
+    setShowAddTaskDialog(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -159,11 +168,15 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
           )}
 
           {/* Actions */}
-          {task.status !== 'category' && (
-            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-              <Plus size={14} />
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-slate-500 hover:text-slate-700"
+            onClick={() => handleAddTask(task.status === 'category' ? task.title : task.category)}
+            title={task.status === 'category' ? 'Add task to this category' : 'Add task to same category'}
+          >
+            <Plus size={14} />
+          </Button>
         </div>
       </div>
 
@@ -179,7 +192,20 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
       <div className="text-center py-12">
         <AlertTriangle size={48} className="mx-auto mb-4 text-slate-400" />
         <h3 className="text-lg font-medium text-slate-600 mb-2">No Tasks Found</h3>
-        <p className="text-slate-500">Add tasks to this project to see the hierarchy view.</p>
+        <p className="text-slate-500 mb-4">Add tasks to this project to see the hierarchy view.</p>
+        <Button 
+          onClick={() => setShowAddCategoryDialog(true)}
+          className="bg-orange-600 hover:bg-orange-700"
+        >
+          <Plus size={16} className="mr-2" />
+          Create First Category
+        </Button>
+        
+        <AddCategoryDialog
+          open={showAddCategoryDialog}
+          onOpenChange={setShowAddCategoryDialog}
+          projectId={projectId}
+        />
       </div>
     );
   }
@@ -188,7 +214,11 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-800">Task Hierarchy</h3>
-        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+        <Button 
+          size="sm" 
+          className="bg-orange-600 hover:bg-orange-700"
+          onClick={() => setShowAddCategoryDialog(true)}
+        >
           <Plus size={16} className="mr-2" />
           Add Category
         </Button>
@@ -241,6 +271,20 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
           <div className="text-sm text-red-800">Blocked</div>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <AddCategoryDialog
+        open={showAddCategoryDialog}
+        onOpenChange={setShowAddCategoryDialog}
+        projectId={projectId}
+      />
+      
+      <AddTaskDialog
+        open={showAddTaskDialog}
+        onOpenChange={setShowAddTaskDialog}
+        projectId={projectId}
+        category={selectedCategory}
+      />
     </div>
   );
 };
