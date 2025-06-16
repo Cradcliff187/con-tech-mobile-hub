@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Calendar, User, Briefcase, DollarSign, Clock, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 
 export const StakeholderAssignments = () => {
   const { assignments, loading, updateAssignment } = useStakeholderAssignments();
-  const { projects } = useProjects();
+  const { projects, loading: projectsLoading } = useProjects();
   const { toast } = useToast();
   const [projectFilter, setProjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -46,6 +47,8 @@ export const StakeholderAssignments = () => {
     }
   };
 
+  const validatedProjects = validateSelectData(projects);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -77,11 +80,15 @@ export const StakeholderAssignments = () => {
             </SelectTrigger>
             <SelectContent className="bg-white">
               <SelectItem value="all">All Projects</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
+              {projectsLoading ? (
+                <SelectItem value="loading" disabled>Loading projects...</SelectItem>
+              ) : (
+                validatedProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {getSelectDisplayName(project, ['name'], 'Unnamed Project')}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           
@@ -109,7 +116,7 @@ export const StakeholderAssignments = () => {
       {/* Assignments List */}
       <div className="grid gap-4">
         {filteredAssignments.map((assignment) => {
-          const project = projects.find(p => p.id === assignment.project_id);
+          const project = validatedProjects.find(p => p.id === assignment.project_id);
           
           return (
             <Card key={assignment.id}>
@@ -117,11 +124,11 @@ export const StakeholderAssignments = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <CardTitle className="text-lg">
-                      {assignment.stakeholder?.company_name || 'Unknown Stakeholder'}
+                      {getSelectDisplayName(assignment.stakeholder, ['company_name'], 'Unknown Stakeholder')}
                     </CardTitle>
                     {project && (
                       <p className="text-sm text-slate-600 mt-1">
-                        Project: {project.name}
+                        Project: {getSelectDisplayName(project, ['name'], 'Unnamed Project')}
                       </p>
                     )}
                   </div>

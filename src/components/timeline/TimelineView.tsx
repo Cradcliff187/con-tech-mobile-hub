@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { ProjectTimeline } from './ProjectTimeline';
 import { TaskDetails } from './TaskDetails';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Filter, Download, Calendar } from 'lucide-react';
+import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 
 // CLEANED: Use Supabase hooks for live data now!
 export const TimelineView: React.FC = () => {
@@ -59,8 +61,8 @@ export const TimelineView: React.FC = () => {
     };
   }, [tasks, selectedProject]);
 
-  // Use projects from Supabase
-  const filteredProjects = projects;
+  // Validate projects data before mapping
+  const validatedProjects = validateSelectData(projects);
 
   // Find the selected task when user opens the modal
   const selectedTaskObj = tasks.find(task => task.id === selectedTask);
@@ -160,11 +162,15 @@ export const TimelineView: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Projects</SelectItem>
-                    {filteredProjects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
+                    {projectsLoading ? (
+                      <SelectItem value="loading" disabled>Loading projects...</SelectItem>
+                    ) : (
+                      validatedProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {getSelectDisplayName(project, ['name'], 'Unnamed Project')}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

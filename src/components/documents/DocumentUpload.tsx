@@ -9,6 +9,7 @@ import { Upload, FileText } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
+import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 
 interface DocumentUploadProps {
   projectId?: string;
@@ -22,7 +23,7 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
   const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
   
   const { uploadDocument, uploading } = useDocuments();
-  const { projects } = useProjects();
+  const { projects, loading: projectsLoading } = useProjects();
   const { toast } = useToast();
 
   const categories = [
@@ -34,6 +35,8 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
     { value: 'safety', label: 'Safety Documents' },
     { value: 'other', label: 'Other' }
   ];
+
+  const validatedProjects = validateSelectData(projects);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -142,11 +145,17 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
+                  {projectsLoading ? (
+                    <SelectItem value="loading" disabled>Loading projects...</SelectItem>
+                  ) : validatedProjects.length === 0 ? (
+                    <SelectItem value="no-projects" disabled>No projects available</SelectItem>
+                  ) : (
+                    validatedProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {getSelectDisplayName(project, ['name'], 'Unnamed Project')}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
