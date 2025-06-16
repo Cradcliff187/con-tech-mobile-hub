@@ -29,14 +29,14 @@ export const getSkillsForPunchListCategory = (category: PunchListCategory): stri
   return [...PUNCH_LIST_CATEGORY_SKILLS[category]]; // Create mutable copy
 };
 
-export const filterAndSortWorkersBySkillMatch = <T extends { id: string; skills?: string[]; [key: string]: any }>(
+export const filterAndSortWorkersBySkillMatch = <T extends { id: string; specialties?: string[]; [key: string]: any }>(
   workers: T[],
   requiredSkills: string[]
 ): (T & { skillMatchPercentage: number })[] => {
   return workers
     .map(worker => ({
       ...worker,
-      skillMatchPercentage: calculateSkillMatchPercentage(requiredSkills, worker.skills || [])
+      skillMatchPercentage: calculateSkillMatchPercentage(requiredSkills, worker.specialties || [])
     }))
     .sort((a, b) => b.skillMatchPercentage - a.skillMatchPercentage);
 };

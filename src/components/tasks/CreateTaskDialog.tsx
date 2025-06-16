@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -220,7 +219,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                 </SelectTrigger>
                 <SelectContent>
                   {sortedWorkers.map((worker) => {
-                    const matchPercentage = calculateSkillMatchPercentage(requiredSkills, worker.skills || []);
+                    const matchPercentage = calculateSkillMatchPercentage(requiredSkills, worker.specialties || []);
                     return (
                       <SelectItem key={worker.id} value={worker.id}>
                         <div className="flex items-center justify-between w-full">
