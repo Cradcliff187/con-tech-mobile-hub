@@ -1,8 +1,9 @@
 
-import { FileText, Image, File, Folder, Download, Share, Trash2, Receipt } from 'lucide-react';
+import { FileText, Image, File, Download, Share, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface Document {
   id: string;
@@ -31,8 +32,11 @@ interface DocumentListProps {
 }
 
 export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProps) => {
-  const { deleteDocument } = useDocuments();
+  const { deleteDocument, downloadDocument, shareDocument } = useDocuments();
   const { toast } = useToast();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const getFileIcon = (category?: string, fileType?: string) => {
     if (category === 'receipts') {
@@ -73,20 +77,88 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
     return categoryMap[category || 'other'] || 'Unknown';
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      const { error } = await deleteDocument(id);
+  const handleDownload = async (document: Document) => {
+    setDownloadingId(document.id);
+    try {
+      const { error } = await downloadDocument(document);
+      
       if (error) {
         toast({
-          title: "Delete Failed",
-          description: "Failed to delete document",
+          title: "Download Failed",
+          description: error,
           variant: "destructive"
         });
       } else {
         toast({
           title: "Success",
-          description: "Document deleted successfully"
+          description: "Download started successfully"
         });
+      }
+    } catch (err) {
+      toast({
+        title: "Download Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleShare = async (document: Document) => {
+    setSharingId(document.id);
+    try {
+      const { error } = await shareDocument(document);
+      
+      if (error) {
+        toast({
+          title: "Share Failed",
+          description: error,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Shareable link copied to clipboard (expires in 7 days)"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Share Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setSharingId(null);
+    }
+  };
+
+  const handleDelete = async (document: Document) => {
+    if (window.confirm(`Are you sure you want to delete "${document.name}"?`)) {
+      setDeletingId(document.id);
+      try {
+        const { error } = await deleteDocument(document.id, document.file_path);
+        
+        if (error) {
+          toast({
+            title: "Delete Failed",
+            description: "Failed to delete document",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Document deleted successfully"
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "Delete Failed",
+          description: "An unexpected error occurred",
+          variant: "destructive"
+        });
+      } finally {
+        setDeletingId(null);
       }
     }
   };
@@ -128,23 +200,40 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
                   variant="ghost"
                   size="sm"
                   className="p-1 text-slate-500 hover:text-slate-700"
+                  onClick={() => handleShare(doc)}
+                  disabled={sharingId === doc.id || downloadingId === doc.id || deletingId === doc.id}
                 >
-                  <Share size={16} />
+                  {sharingId === doc.id ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-500"></div>
+                  ) : (
+                    <Share size={16} />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="p-1 text-slate-500 hover:text-slate-700"
+                  onClick={() => handleDownload(doc)}
+                  disabled={downloadingId === doc.id || sharingId === doc.id || deletingId === doc.id}
                 >
-                  <Download size={16} />
+                  {downloadingId === doc.id ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-500"></div>
+                  ) : (
+                    <Download size={16} />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="p-1 text-slate-500 hover:text-red-600"
-                  onClick={() => handleDelete(doc.id, doc.name)}
+                  onClick={() => handleDelete(doc)}
+                  disabled={deletingId === doc.id || downloadingId === doc.id || sharingId === doc.id}
                 >
-                  <Trash2 size={16} />
+                  {deletingId === doc.id ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
                 </Button>
               </div>
             </div>

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Receipt, FileText } from 'lucide-react';
+import { Receipt, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +22,7 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
   const [vendor, setVendor] = useState('');
   const [expenseType, setExpenseType] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
+  const [fileValidation, setFileValidation] = useState<{ isValid: boolean; message?: string } | null>(null);
   
   const { uploadDocument, uploading } = useDocuments();
   const { projects } = useProjects();
@@ -38,9 +39,42 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
     { value: 'other', label: 'Other' }
   ];
 
+  const validateReceipt = (file: File) => {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'text/plain'
+    ];
+
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        message: `File size exceeds 10MB limit. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+      };
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        message: 'Invalid receipt format. Please select a PDF, image (PNG, JPG, GIF), or text file'
+      };
+    }
+
+    return {
+      isValid: true,
+      message: `Receipt looks good! Size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+    };
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      const validation = validateReceipt(file);
+      setFileValidation(validation);
       setSelectedFile(file);
     }
   };
@@ -55,26 +89,29 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
       return;
     }
 
-    // Create receipt metadata
-    const receiptData = {
-      amount: amount ? parseFloat(amount) : null,
-      vendor,
-      expenseType,
-      uploadDate: new Date().toISOString()
-    };
+    if (fileValidation && !fileValidation.isValid) {
+      toast({
+        title: "Invalid Receipt",
+        description: fileValidation.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create receipt description with metadata
+    const receiptDescription = `Receipt - ${vendor || 'Unknown Vendor'} - ${expenseTypes.find(t => t.value === expenseType)?.label || expenseType} - $${amount || '0'}`;
 
     const { error } = await uploadDocument(
       selectedFile, 
       'receipts', 
       selectedProjectId,
-      `Receipt - ${vendor || 'Unknown Vendor'} - ${expenseType} - $${amount || '0'}`
+      receiptDescription
     );
     
     if (error) {
-      const errorMessage = typeof error === 'string' ? error : error.message || 'Failed to upload receipt';
       toast({
         title: "Upload Failed",
-        description: errorMessage,
+        description: error,
         variant: "destructive"
       });
     } else {
@@ -86,6 +123,7 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
       setAmount('');
       setVendor('');
       setExpenseType('');
+      setFileValidation(null);
       setIsOpen(false);
       onUploadComplete?.();
     }
@@ -99,8 +137,19 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const resetForm = () => {
+    setSelectedFile(null);
+    setAmount('');
+    setVendor('');
+    setExpenseType('');
+    setFileValidation(null);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) resetForm();
+    }}>
       <DialogTrigger asChild>
         <Button className="bg-green-600 hover:bg-green-700">
           <Receipt size={20} />
@@ -119,18 +168,33 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
               id="receipt-file"
               type="file"
               onChange={handleFileSelect}
-              accept=".pdf,.jpg,.jpeg,.png,.txt"
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.txt"
+              disabled={uploading}
             />
             {selectedFile && (
-              <div className="mt-2 p-2 bg-slate-50 rounded-lg flex items-center gap-2">
-                <FileText size={16} className="text-slate-500" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatFileSize(selectedFile.size)}
-                  </p>
+              <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <FileText size={16} className="text-slate-500 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {formatFileSize(selectedFile.size)}
+                    </p>
+                    {fileValidation && (
+                      <div className={`flex items-center gap-1 mt-1 text-xs ${
+                        fileValidation.isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {fileValidation.isValid ? (
+                          <CheckCircle size={12} />
+                        ) : (
+                          <AlertCircle size={12} />
+                        )}
+                        <span>{fileValidation.message}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -146,6 +210,7 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                disabled={uploading}
               />
             </div>
             <div>
@@ -155,13 +220,14 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
                 placeholder="Vendor name"
                 value={vendor}
                 onChange={(e) => setVendor(e.target.value)}
+                disabled={uploading}
               />
             </div>
           </div>
 
           <div>
             <Label>Expense Type</Label>
-            <Select value={expenseType} onValueChange={setExpenseType}>
+            <Select value={expenseType} onValueChange={setExpenseType} disabled={uploading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select expense type" />
               </SelectTrigger>
@@ -178,7 +244,7 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
           {!projectId && (
             <div>
               <Label>Project</Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={uploading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
@@ -196,15 +262,23 @@ export const ReceiptUpload = ({ projectId, onUploadComplete }: ReceiptUploadProp
           <div className="flex gap-2 pt-4">
             <Button 
               onClick={handleUpload} 
-              disabled={!selectedFile || !expenseType || uploading}
+              disabled={!selectedFile || !expenseType || uploading || (fileValidation && !fileValidation.isValid)}
               className="flex-1"
             >
-              {uploading ? 'Uploading...' : 'Upload Receipt'}
+              {uploading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Uploading...
+                </div>
+              ) : (
+                'Upload Receipt'
+              )}
             </Button>
             <Button 
               variant="outline" 
               onClick={() => setIsOpen(false)}
               className="flex-1"
+              disabled={uploading}
             >
               Cancel
             </Button>
