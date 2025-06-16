@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -47,15 +46,30 @@ export const QuickTaskAssignDialog = ({
   useEffect(() => {
     if (open && currentProject && preSelectedMember) {
       const currentDate = new Date().toISOString().split('T')[0];
+      
+      // Create a complete mock stakeholder object with all required properties
+      const mockStakeholder = {
+        id: preSelectedMember.user_id || '',
+        profile_id: preSelectedMember.user_id,
+        stakeholder_type: 'employee' as const,
+        company_name: preSelectedMember.name,
+        contact_person: preSelectedMember.name,
+        phone: null,
+        email: null,
+        address: null,
+        specialties: [] as string[], // Empty array instead of undefined
+        crew_size: null,
+        status: 'active' as const,
+        insurance_expiry: null,
+        license_number: null,
+        notes: null,
+        rating: 0,
+        created_at: currentDate,
+        updated_at: currentDate
+      };
+
       const memberDefaults = getTeamMemberDefaults(
-        {
-          id: preSelectedMember.user_id || '',
-          company_name: preSelectedMember.name,
-          contact_person: preSelectedMember.name,
-          stakeholder_type: 'employee' as const,
-          specialties: [], // We don't have specialties in TeamMember, but this is for demo
-          status: 'active' as const
-        },
+        mockStakeholder,
         currentProject,
         currentDate
       );
