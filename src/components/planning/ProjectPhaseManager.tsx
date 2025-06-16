@@ -3,29 +3,14 @@ import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle, 
-  ArrowRight,
-  ListChecks,
-  Target
-} from 'lucide-react';
+import { Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateAutoPunchListItems, calculatePhaseReadiness } from '@/utils/phase-automation';
+import { PhaseStatusCard } from './PhaseStatusCard';
+import { PhaseTransitionDialog } from './PhaseTransitionDialog';
+import { PhaseRequirements } from './PhaseRequirements';
+import { PhaseRecommendations } from './PhaseRecommendations';
 
 interface PhaseReadiness {
   currentPhase: string;
@@ -196,171 +181,37 @@ export const ProjectPhaseManager = () => {
   };
 
   const readiness = calculatePhaseReadinessLegacy();
-  const punchListTasks = projectTasks.filter(t => t.task_type === 'punch_list');
 
-  const getPhaseColor = (phase: string) => {
-    switch (phase) {
-      case 'planning': return 'bg-blue-500';
-      case 'active': return 'bg-green-500';
-      case 'punch_list': return 'bg-orange-500';
-      case 'closeout': return 'bg-purple-500';
-      case 'completed': return 'bg-slate-500';
-      default: return 'bg-slate-400';
-    }
+  const handleAdvancePhase = (phase: string) => {
+    setTargetPhase(phase);
+    setShowTransitionDialog(true);
   };
-
-  const getPhaseIcon = (phase: string) => {
-    switch (phase) {
-      case 'planning': return Clock;
-      case 'active': return Target;
-      case 'punch_list': return ListChecks;
-      case 'closeout': return CheckCircle;
-      case 'completed': return CheckCircle;
-      default: return Clock;
-    }
-  };
-
-  const PhaseIcon = getPhaseIcon(readiness.currentPhase);
 
   return (
     <div className="space-y-6">
-      {/* Current Phase Status */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${getPhaseColor(readiness.currentPhase)} text-white`}>
-              <PhaseIcon size={20} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-800">
-                {readiness.currentPhase.replace('_', ' ').toUpperCase()} PHASE
-              </h3>
-              <p className="text-sm text-slate-600">
-                {Math.round(phaseReadiness.readinessScore)}% Complete
-              </p>
-            </div>
-          </div>
-          
-          <Badge variant={readiness.canAdvance ? 'default' : 'secondary'}>
-            {readiness.canAdvance ? 'Ready to Advance' : 'In Progress'}
-          </Badge>
-        </div>
+      <PhaseStatusCard
+        currentPhase={readiness.currentPhase}
+        readinessScore={phaseReadiness.readinessScore}
+        canAdvance={readiness.canAdvance}
+        nextPhase={readiness.nextPhase}
+        shouldGeneratePunchList={phaseReadiness.shouldGeneratePunchList}
+        isUpdating={isUpdating}
+        onAdvancePhase={handleAdvancePhase}
+        onGeneratePunchList={handleGeneratePunchList}
+      />
 
-        {/* Progress Bar */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-600">Phase Progress</span>
-            <span className="font-medium">{Math.round(phaseReadiness.readinessScore)}%</span>
-          </div>
-          <Progress value={phaseReadiness.readinessScore} className="h-3" />
-        </div>
+      <PhaseRequirements requirements={readiness.requirements} />
 
-        {/* Phase Transition Actions */}
-        {readiness.canAdvance && readiness.nextPhase && (
-          <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle size={16} className="text-green-600" />
-                <span className="text-green-800 font-medium">
-                  Ready to advance to {readiness.nextPhase.replace('_', ' ')} phase
-                </span>
-              </div>
-              <Button
-                onClick={() => {
-                  setTargetPhase(readiness.nextPhase!);
-                  setShowTransitionDialog(true);
-                }}
-                className="bg-green-600 hover:bg-green-700"
-                size="sm"
-              >
-                <ArrowRight size={16} className="mr-1" />
-                Advance Phase
-              </Button>
-            </div>
-          </div>
-        )}
+      <PhaseRecommendations recommendations={readiness.recommendations} />
 
-        {/* Punch List Generation */}
-        {phaseReadiness.shouldGeneratePunchList && (
-          <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ListChecks size={16} className="text-orange-600" />
-                <span className="text-orange-800 font-medium">
-                  Ready to generate punch list items
-                </span>
-              </div>
-              <Button
-                onClick={handleGeneratePunchList}
-                disabled={isUpdating}
-                variant="outline"
-                size="sm"
-                className="border-orange-300 text-orange-700 hover:bg-orange-100"
-              >
-                <ListChecks size={16} className="mr-1" />
-                Generate Punch List
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Phase Requirements */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h4 className="font-semibold text-slate-800 mb-4">Phase Requirements</h4>
-        <div className="space-y-2">
-          {readiness.requirements.map((requirement, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <CheckCircle size={16} className="text-green-500" />
-              <span className="text-slate-600 text-sm">{requirement}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recommendations */}
-      {readiness.recommendations.length > 0 && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Recommendations</AlertTitle>
-          <AlertDescription>
-            <ul className="mt-2 space-y-1">
-              {readiness.recommendations.map((rec, index) => (
-                <li key={index} className="text-sm">• {rec}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Phase Transition Dialog */}
-      <Dialog open={showTransitionDialog} onOpenChange={setShowTransitionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Phase Transition</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to advance the project from{' '}
-              <span className="font-medium">{readiness.currentPhase.replace('_', ' ')}</span> to{' '}
-              <span className="font-medium">{targetPhase.replace('_', ' ')}</span> phase?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowTransitionDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handlePhaseTransition}
-              disabled={isUpdating}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Confirm Transition
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PhaseTransitionDialog
+        open={showTransitionDialog}
+        onOpenChange={setShowTransitionDialog}
+        currentPhase={readiness.currentPhase}
+        targetPhase={targetPhase}
+        isUpdating={isUpdating}
+        onConfirm={handlePhaseTransition}
+      />
     </div>
   );
 };
