@@ -6,8 +6,16 @@ import { Calendar, Clock, AlertTriangle, CheckCircle, User } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+interface TimelineFilters {
+  status: string;
+  category: string;
+  priority: string;
+}
+
 interface ProjectTimelineProps {
   projectId: string;
+  filters?: TimelineFilters;
+  onTaskSelect?: (taskId: string) => void;
 }
 
 interface TimelineTask extends Task {
@@ -15,19 +23,35 @@ interface TimelineTask extends Task {
   dependsOn?: string[];
 }
 
-export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectId }) => {
+export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ 
+  projectId, 
+  filters,
+  onTaskSelect 
+}) => {
   const { tasks, loading } = useTasks();
   const [timelineTasks, setTimelineTasks] = useState<TimelineTask[]>([]);
   const [selectedTimeRange, setSelectedTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
 
   useEffect(() => {
-    if (projectId && projectId !== 'all') {
-      const projectTasks = tasks.filter(task => task.project_id === projectId);
-      setTimelineTasks(projectTasks);
-    } else {
-      setTimelineTasks(tasks);
+    let filteredTasks = projectId && projectId !== 'all' 
+      ? tasks.filter(task => task.project_id === projectId)
+      : tasks;
+
+    // Apply additional filters if provided
+    if (filters) {
+      if (filters.status !== 'all') {
+        filteredTasks = filteredTasks.filter(task => task.status === filters.status);
+      }
+      if (filters.category !== 'all') {
+        filteredTasks = filteredTasks.filter(task => task.category === filters.category);
+      }
+      if (filters.priority !== 'all') {
+        filteredTasks = filteredTasks.filter(task => task.priority === filters.priority);
+      }
     }
-  }, [tasks, projectId]);
+
+    setTimelineTasks(filteredTasks);
+  }, [tasks, projectId, filters]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -84,6 +108,12 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectId }) =
     return new Date(dueDate) < new Date();
   };
 
+  const handleTaskClick = (taskId: string) => {
+    if (onTaskSelect) {
+      onTaskSelect(taskId);
+    }
+  };
+
   const sortedTasks = [...timelineTasks].sort((a, b) => {
     const dateA = new Date(a.due_date || a.created_at);
     const dateB = new Date(b.due_date || b.created_at);
@@ -106,14 +136,25 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectId }) =
   }
 
   if (sortedTasks.length === 0) {
+    const hasActiveFilters = filters && (
+      filters.status !== 'all' || 
+      filters.category !== 'all' || 
+      filters.priority !== 'all'
+    );
+
     return (
       <div className="text-center py-12">
         <Calendar size={48} className="mx-auto mb-4 text-slate-400" />
-        <h3 className="text-lg font-medium text-slate-600 mb-2">No Tasks Found</h3>
+        <h3 className="text-lg font-medium text-slate-600 mb-2">
+          {hasActiveFilters ? 'No Tasks Match Filters' : 'No Tasks Found'}
+        </h3>
         <p className="text-slate-500">
-          {projectId && projectId !== 'all' 
-            ? 'No tasks found for this project.' 
-            : 'Create a project and add tasks to see the timeline.'}
+          {hasActiveFilters 
+            ? 'Try adjusting your filters to see more tasks.' 
+            : projectId && projectId !== 'all' 
+              ? 'No tasks found for this project.' 
+              : 'Create a project and add tasks to see the timeline.'
+          }
         </p>
       </div>
     );
@@ -122,7 +163,14 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectId }) =
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-800">Project Timeline</h3>
+        <h3 className="text-lg font-semibold text-slate-800">
+          Project Timeline
+          {filters && (
+            <span className="text-sm font-normal text-slate-600 ml-2">
+              ({sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''})
+            </span>
+          )}
+        </h3>
         <div className="flex gap-2">
           {(['week', 'month', 'quarter'] as const).map((range) => (
             <button
@@ -152,7 +200,12 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectId }) =
               </div>
               
               {/* Task card */}
-              <Card className={`flex-1 ${isOverdue(task.due_date, task.status) ? 'border-red-200 bg-red-50' : ''}`}>
+              <Card 
+                className={`flex-1 cursor-pointer hover:shadow-md transition-shadow ${
+                  isOverdue(task.due_date, task.status) ? 'border-red-200 bg-red-50' : ''
+                }`}
+                onClick={() => handleTaskClick(task.id)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">

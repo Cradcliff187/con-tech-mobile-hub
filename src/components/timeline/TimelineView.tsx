@@ -11,21 +11,64 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart3, Filter, Download, Calendar } from 'lucide-react';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 
+interface TimelineFilters {
+  status: string;
+  category: string;
+  priority: string;
+}
+
 // CLEANED: Use Supabase hooks for live data now!
 export const TimelineView: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Filter state management
+  const [filters, setFilters] = useState<TimelineFilters>({
+    status: 'all',
+    category: 'all',
+    priority: 'all'
+  });
 
   // Live projects and tasks from Supabase
   const { projects, loading: projectsLoading } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
 
-  // Dynamically compute timeline stats
+  // Filter handlers
+  const handleFilterChange = (filterType: keyof TimelineFilters, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  // Get unique categories and priorities from tasks for filter options
+  const { categories, priorities } = useMemo(() => {
+    const uniqueCategories = [...new Set(tasks.filter(task => task.category).map(task => task.category))];
+    const uniquePriorities = ['low', 'medium', 'high', 'critical'];
+    
+    return {
+      categories: uniqueCategories,
+      priorities: uniquePriorities
+    };
+  }, [tasks]);
+
+  // Dynamically compute timeline stats based on filtered tasks
   const timelineStats = useMemo(() => {
-    const filteredTasks = selectedProject !== 'all'
+    let filteredTasks = selectedProject !== 'all'
       ? tasks.filter(task => task.project_id === selectedProject)
       : tasks;
+
+    // Apply additional filters
+    if (filters.status !== 'all') {
+      filteredTasks = filteredTasks.filter(task => task.status === filters.status);
+    }
+    if (filters.category !== 'all') {
+      filteredTasks = filteredTasks.filter(task => task.category === filters.category);
+    }
+    if (filters.priority !== 'all') {
+      filteredTasks = filteredTasks.filter(task => task.priority === filters.priority);
+    }
 
     const totalTasks = filteredTasks.length;
     let onTrack = 0, atRisk = 0, delayed = 0, criticalPath = 0;
@@ -59,7 +102,7 @@ export const TimelineView: React.FC = () => {
       delayed,
       criticalPath,
     };
-  }, [tasks, selectedProject]);
+  }, [tasks, selectedProject, filters]);
 
   // Validate projects data before mapping
   const validatedProjects = validateSelectData(projects);
@@ -176,7 +219,7 @@ export const TimelineView: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Status</label>
-                <Select defaultValue="all">
+                <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -191,31 +234,33 @@ export const TimelineView: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Category</label>
-                <Select defaultValue="all">
+                <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="foundation">Foundation</SelectItem>
-                    <SelectItem value="structure">Structure</SelectItem>
-                    <SelectItem value="mep">MEP</SelectItem>
-                    <SelectItem value="finishing">Finishing</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Priority</label>
-                <Select defaultValue="all">
+                <Select value={filters.priority} onValueChange={(value) => handleFilterChange('priority', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
+                    {priorities.map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -225,7 +270,11 @@ export const TimelineView: React.FC = () => {
       )}
 
       {/* Timeline Component */}
-      <ProjectTimeline projectId={selectedProject} />
+      <ProjectTimeline 
+        projectId={selectedProject} 
+        filters={filters}
+        onTaskSelect={setSelectedTask}
+      />
 
       {/* Task Details Modal */}
       {selectedTask && selectedTaskObj && (
