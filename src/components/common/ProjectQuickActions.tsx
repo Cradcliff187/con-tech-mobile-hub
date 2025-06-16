@@ -176,13 +176,12 @@ export const ProjectQuickActions = ({
           <CreateTaskDialog
             open={createTaskOpen}
             onOpenChange={setCreateTaskOpen}
-            projectId={project.id}
           />
           
           <AssignStakeholderDialog
             open={assignStakeholderOpen}
             onOpenChange={setAssignStakeholderOpen}
-            projectId={project.id}
+            stakeholder={null}
           />
         </div>
       </TooltipProvider>
@@ -237,13 +236,12 @@ export const ProjectQuickActions = ({
         <CreateTaskDialog
           open={createTaskOpen}
           onOpenChange={setCreateTaskOpen}
-          projectId={project.id}
         />
         
         <AssignStakeholderDialog
           open={assignStakeholderOpen}
           onOpenChange={setAssignStakeholderOpen}
-          projectId={project.id}
+          stakeholder={null}
         />
       </div>
     );
@@ -319,13 +317,12 @@ export const ProjectQuickActions = ({
         <CreateTaskDialog
           open={createTaskOpen}
           onOpenChange={setCreateTaskOpen}
-          projectId={project.id}
         />
         
         <AssignStakeholderDialog
           open={assignStakeholderOpen}
           onOpenChange={setAssignStakeholderOpen}
-          projectId={project.id}
+          stakeholder={null}
         />
       </div>
     </TooltipProvider>
