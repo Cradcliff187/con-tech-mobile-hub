@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
 import { AssignStakeholderDialog } from './AssignStakeholderDialog';
 import { StakeholderDetail } from './StakeholderDetail';
+import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
@@ -50,6 +52,9 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
       window.location.href = `mailto:${stakeholder.email}`;
     }
   };
+
+  const formattedAddress = formatAddress(stakeholder);
+  const formattedPhone = formatPhoneNumber(stakeholder.phone);
 
   return (
     <>
@@ -110,7 +115,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
         </CardHeader>
         
         <CardContent className="space-y-3">
-          {stakeholder.phone && (
+          {formattedPhone && (
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <Button
                 variant="ghost"
@@ -119,7 +124,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
                 className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
               >
                 <Phone size={16} className="mr-2" />
-                <span>{stakeholder.phone}</span>
+                <span>{formattedPhone}</span>
               </Button>
             </div>
           )}
@@ -138,10 +143,10 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
             </div>
           )}
           
-          {stakeholder.address && (
+          {formattedAddress && (
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <MapPin size={16} />
-              <span className="truncate">{stakeholder.address}</span>
+              <span className="truncate">{formattedAddress}</span>
             </div>
           )}
           

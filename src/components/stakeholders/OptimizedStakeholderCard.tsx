@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, Phone, Mail, MapPin, Edit, Trash2 } from 'lucide-react';
+import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
 
 interface Stakeholder {
   id: string;
@@ -16,6 +17,10 @@ interface Stakeholder {
   rating?: number;
   status: string;
   address?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
 }
 
 interface OptimizedStakeholderCardProps {
@@ -31,6 +36,9 @@ export const OptimizedStakeholderCard = memo(({
 }: OptimizedStakeholderCardProps) => {
   const handleEdit = () => onEdit?.(stakeholder);
   const handleDelete = () => onDelete?.(stakeholder);
+
+  const formattedAddress = formatAddress(stakeholder);
+  const formattedPhone = formatPhoneNumber(stakeholder.phone);
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -70,16 +78,16 @@ export const OptimizedStakeholderCard = memo(({
               <span className="truncate">{stakeholder.email}</span>
             </div>
           )}
-          {stakeholder.phone && (
+          {formattedPhone && (
             <div className="flex items-center gap-2">
               <Phone className="h-3 w-3" />
-              <span>{stakeholder.phone}</span>
+              <span>{formattedPhone}</span>
             </div>
           )}
-          {stakeholder.address && (
+          {formattedAddress && (
             <div className="flex items-center gap-2">
               <MapPin className="h-3 w-3" />
-              <span className="truncate">{stakeholder.address}</span>
+              <span className="truncate">{formattedAddress}</span>
             </div>
           )}
         </div>

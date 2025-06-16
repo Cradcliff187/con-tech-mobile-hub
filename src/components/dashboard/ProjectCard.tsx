@@ -1,5 +1,6 @@
 
 import { MapPin, Calendar, Clock, User } from 'lucide-react';
+import { formatAddress } from '@/utils/addressFormatting';
 
 interface ProjectCardProps {
   project: {
@@ -11,6 +12,10 @@ interface ProjectCardProps {
     end_date?: string;
     status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
     location?: string;
+    street_address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
     client?: {
       id: string;
       company_name?: string;
@@ -55,6 +60,14 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
     return project.client.company_name || project.client.contact_person || 'Unknown Client';
   };
 
+  const formattedLocation = formatAddress({
+    street_address: project.street_address,
+    city: project.city,
+    state: project.state,
+    zip_code: project.zip_code,
+    address: project.location
+  });
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between mb-4">
@@ -75,10 +88,10 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
           </div>
         )}
 
-        {project.location && (
+        {formattedLocation && (
           <div className="flex items-center text-sm text-slate-600">
             <MapPin size={16} className="mr-2" />
-            {project.location}
+            {formattedLocation}
           </div>
         )}
 
