@@ -3,6 +3,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddressFormFields } from '@/components/common/AddressFormFields';
+import { PhoneInput } from '@/components/common/PhoneInput';
+import { EmailInput } from '@/components/common/EmailInput';
 
 interface StakeholderFormData {
   stakeholder_type: 'client' | 'subcontractor' | 'employee' | 'vendor';
@@ -10,7 +13,10 @@ interface StakeholderFormData {
   contact_person: string;
   email: string;
   phone: string;
-  address: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip_code: string;
   specialties: string[];
   crew_size: string;
   license_number: string;
@@ -76,12 +82,9 @@ export const StakeholderFormFields = ({
         
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
+          <EmailInput
             value={formData.email}
-            onChange={(e) => onInputChange('email', e.target.value)}
-            placeholder="contact@company.com"
+            onChange={(value) => onInputChange('email', value)}
           />
         </div>
       </div>
@@ -89,11 +92,10 @@ export const StakeholderFormFields = ({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
+          <PhoneInput
             value={formData.phone}
-            onChange={(e) => onInputChange('phone', e.target.value)}
-            placeholder="(555) 123-4567"
+            onChange={(value) => onInputChange('phone', value)}
+            placeholder="Phone number"
           />
         </div>
         
@@ -112,12 +114,13 @@ export const StakeholderFormFields = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
-        <Input
-          id="address"
-          value={formData.address}
-          onChange={(e) => onInputChange('address', e.target.value)}
-          placeholder="Full business address"
+        <Label>Address</Label>
+        <AddressFormFields
+          streetAddress={formData.street_address}
+          city={formData.city}
+          state={formData.state}
+          zipCode={formData.zip_code}
+          onFieldChange={onInputChange}
         />
       </div>
 

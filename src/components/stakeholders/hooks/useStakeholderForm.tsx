@@ -9,7 +9,10 @@ interface StakeholderFormData {
   contact_person: string;
   email: string;
   phone: string;
-  address: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip_code: string;
   specialties: string[];
   crew_size: string;
   license_number: string;
@@ -30,7 +33,10 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
     contact_person: '',
     email: '',
     phone: '',
-    address: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip_code: '',
     specialties: [],
     crew_size: '',
     license_number: '',
@@ -59,7 +65,10 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
       contact_person: '',
       email: '',
       phone: '',
-      address: '',
+      street_address: '',
+      city: '',
+      state: '',
+      zip_code: '',
       specialties: [],
       crew_size: '',
       license_number: '',
@@ -72,8 +81,17 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
     e.preventDefault();
     setLoading(true);
 
+    // Create legacy address field for backward compatibility
+    const legacyAddress = [
+      formData.street_address,
+      formData.city,
+      formData.state,
+      formData.zip_code
+    ].filter(Boolean).join(', ');
+
     const stakeholderData = {
       ...formData,
+      address: legacyAddress || undefined, // Keep for backward compatibility
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
       insurance_expiry: formData.insurance_expiry || undefined,
       specialties: formData.specialties.length > 0 ? formData.specialties : undefined,

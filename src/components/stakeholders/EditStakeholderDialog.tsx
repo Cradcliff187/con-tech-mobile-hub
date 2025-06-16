@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { AddressFormFields } from '@/components/common/AddressFormFields';
+import { PhoneInput } from '@/components/common/PhoneInput';
+import { EmailInput } from '@/components/common/EmailInput';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditStakeholderDialogProps {
@@ -24,7 +27,10 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
     contact_person: '',
     phone: '',
     email: '',
-    address: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip_code: '',
     specialties: '',
     crew_size: '',
     license_number: '',
@@ -36,13 +42,38 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
 
   useEffect(() => {
     if (stakeholder) {
+      // Parse legacy address field if structured fields are empty
+      let streetAddress = stakeholder.street_address || '';
+      let city = stakeholder.city || '';
+      let state = stakeholder.state || '';
+      let zipCode = stakeholder.zip_code || '';
+
+      // If structured fields are empty but legacy address exists, try to parse it
+      if (!streetAddress && !city && !state && !zipCode && stakeholder.address) {
+        const addressParts = stakeholder.address.split(', ');
+        if (addressParts.length >= 3) {
+          streetAddress = addressParts[0] || '';
+          city = addressParts[1] || '';
+          const lastPart = addressParts[addressParts.length - 1] || '';
+          // Try to extract state and zip from last part
+          const stateZipMatch = lastPart.match(/^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/);
+          if (stateZipMatch) {
+            state = stateZipMatch[1];
+            zipCode = stateZipMatch[2];
+          }
+        }
+      }
+
       setFormData({
         stakeholder_type: stakeholder.stakeholder_type,
         company_name: stakeholder.company_name || '',
         contact_person: stakeholder.contact_person || '',
         phone: stakeholder.phone || '',
         email: stakeholder.email || '',
-        address: stakeholder.address || '',
+        street_address: streetAddress,
+        city: city,
+        state: state,
+        zip_code: zipCode,
         specialties: stakeholder.specialties ? stakeholder.specialties.join(', ') : '',
         crew_size: stakeholder.crew_size ? stakeholder.crew_size.toString() : '',
         license_number: stakeholder.license_number || '',
@@ -58,14 +89,6 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
 
     if (!formData.company_name.trim()) {
       newErrors.company_name = formData.stakeholder_type === 'employee' ? 'Full name is required' : 'Company name is required';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
     }
 
     if (formData.crew_size && (isNaN(parseInt(formData.crew_size)) || parseInt(formData.crew_size) < 1)) {
@@ -90,13 +113,25 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
 
     setLoading(true);
 
+    // Create legacy address field for backward compatibility
+    const legacyAddress = [
+      formData.street_address,
+      formData.city,
+      formData.state,
+      formData.zip_code
+    ].filter(Boolean).join(', ');
+
     const updatedData = {
       stakeholder_type: formData.stakeholder_type,
       company_name: formData.company_name.trim(),
       contact_person: formData.contact_person.trim() || undefined,
       phone: formData.phone.trim() || undefined,
       email: formData.email.trim() || undefined,
-      address: formData.address.trim() || undefined,
+      address: legacyAddress || undefined, // Keep for backward compatibility
+      street_address: formData.street_address.trim() || undefined,
+      city: formData.city.trim() || undefined,
+      state: formData.state || undefined,
+      zip_code: formData.zip_code.trim() || undefined,
       specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()).filter(s => s) : undefined,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
       license_number: formData.license_number.trim() || undefined,
@@ -186,36 +221,31 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                type="tel"
+              <PhoneInput
                 value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className={`min-h-[44px] ${errors.phone ? 'border-red-500' : ''}`}
+                onChange={(value) => handleInputChange('phone', value)}
+                className="min-h-[44px]"
               />
-              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
             </div>
             
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
+              <EmailInput
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`min-h-[44px] ${errors.email ? 'border-red-500' : ''}`}
+                onChange={(value) => handleInputChange('email', value)}
+                className="min-h-[44px]"
               />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
             </div>
           </div>
 
           <div>
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              className="min-h-[44px]"
+            <Label>Address</Label>
+            <AddressFormFields
+              streetAddress={formData.street_address}
+              city={formData.city}
+              state={formData.state}
+              zipCode={formData.zip_code}
+              onFieldChange={handleInputChange}
             />
           </div>
 
