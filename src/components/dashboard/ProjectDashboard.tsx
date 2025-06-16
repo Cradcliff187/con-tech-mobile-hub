@@ -1,11 +1,13 @@
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AdvancedMetrics } from './AdvancedMetrics';
 import { ProjectHealthIndicators } from './ProjectHealthIndicators';
 import { QuickStats } from './QuickStats';
 import { RecentActivity } from './RecentActivity';
 import { WeatherWidget } from './WeatherWidget';
 import { CreateProjectDialog } from './CreateProjectDialog';
+import { ProjectPhaseManager } from '@/components/planning/ProjectPhaseManager';
 import { SystemHealthCheck } from '@/components/debug/SystemHealthCheck';
 import { useDebugInfo } from '@/hooks/useDebugInfo';
 import { Button } from '@/components/ui/button';
@@ -14,6 +16,8 @@ import { Plus } from 'lucide-react';
 export const ProjectDashboard = () => {
   const debugInfo = useDebugInfo();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('project');
   const isDevelopment = import.meta.env.DEV;
 
   useEffect(() => {
@@ -40,6 +44,14 @@ export const ProjectDashboard = () => {
 
       {/* System Health Check - Only in Development */}
       {isDevelopment && <SystemHealthCheck />}
+
+      {/* Project Phase Manager - Only shown when a project is selected */}
+      {projectId && (
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Phase Management</h2>
+          <ProjectPhaseManager />
+        </div>
+      )}
 
       {/* Enhanced Metrics Section */}
       <AdvancedMetrics />
