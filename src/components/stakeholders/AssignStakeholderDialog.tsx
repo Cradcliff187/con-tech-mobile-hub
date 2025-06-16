@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStakeholderAssignments, Stakeholder } from '@/hooks/useStakeholders';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { calculateSkillMatchPercentage } from '@/utils/skill-matching';
+import { getAssignmentDefaults } from '@/utils/smart-defaults';
 
 interface AssignStakeholderDialogProps {
   open: boolean;
@@ -35,6 +36,38 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
     notes: ''
   });
   const [loading, setLoading] = useState(false);
+
+  const selectedProject = projects.find(p => p.id === formData.project_id);
+
+  // Apply smart defaults when stakeholder or project changes
+  useEffect(() => {
+    if (stakeholder && selectedProject) {
+      const defaults = getAssignmentDefaults(stakeholder, selectedProject);
+      setFormData(prev => ({
+        ...prev,
+        hourly_rate: defaults.hourly_rate?.toString() || prev.hourly_rate,
+        start_date: defaults.start_date || prev.start_date,
+        end_date: defaults.end_date || prev.end_date,
+        role: defaults.role || prev.role
+      }));
+    }
+  }, [stakeholder, selectedProject]);
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (open && stakeholder) {
+      const currentDate = new Date().toISOString().split('T')[0];
+      setFormData({
+        project_id: '',
+        task_id: '',
+        role: '',
+        start_date: currentDate,
+        end_date: '',
+        hourly_rate: '',
+        notes: ''
+      });
+    }
+  }, [open, stakeholder]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +123,10 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
     setLoading(false);
   };
 
-  const selectedProject = projects.find(p => p.id === formData.project_id);
+  const handleProjectChange = (projectId: string) => {
+    setFormData(prev => ({ ...prev, project_id: projectId, task_id: '' }));
+  };
+
   const availableTasks = tasks.filter(t => t.project_id === formData.project_id);
 
   // Filter and sort tasks by skill match when stakeholder has specialties
@@ -134,7 +170,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
             <Label htmlFor="project_id">Project *</Label>
             <Select 
               value={formData.project_id} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, project_id: value, task_id: '' }))}
+              onValueChange={handleProjectChange}
             >
               <SelectTrigger className="min-h-[44px]">
                 <SelectValue placeholder="Select a project" />
@@ -142,11 +178,18 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
               <SelectContent className="bg-white">
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
-                    {project.name}
+                    {project.name} {project.phase && (
+                      <span className="text-xs text-slate-500 ml-2">({project.phase})</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedProject && stakeholder && (
+              <p className="text-xs text-blue-600 mt-1">
+                Smart defaults applied for {stakeholder.stakeholder_type} in {selectedProject.phase} phase
+              </p>
+            )}
           </div>
 
           {selectedProject && filteredTasks.length > 0 && (
@@ -215,6 +258,11 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
               className="min-h-[44px]"
               placeholder="e.g., Site Supervisor, Equipment Operator, Supplier"
             />
+            {formData.role && (
+              <p className="text-xs text-green-600 mt-1">
+                Role suggested based on skills and project phase
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -254,6 +302,11 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
               className="min-h-[44px]"
               placeholder="0.00"
             />
+            {formData.hourly_rate && (
+              <p className="text-xs text-green-600 mt-1">
+                Rate suggested based on stakeholder type: {stakeholder.stakeholder_type}
+              </p>
+            )}
           </div>
 
           <div>

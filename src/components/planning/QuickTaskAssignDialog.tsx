@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
 import { TeamMember } from '@/types/database';
 import { X, User } from 'lucide-react';
+import { getTeamMemberDefaults, getDefaultRequiredSkills, getDefaultPriority } from '@/utils/smart-defaults';
 
 interface QuickTaskAssignDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ export const QuickTaskAssignDialog = ({
   const [estimatedHours, setEstimatedHours] = useState('');
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
+  const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
   
   const { createTask } = useTasks();
@@ -40,6 +42,47 @@ export const QuickTaskAssignDialog = ({
   const { toast } = useToast();
 
   const currentProject = projects.find(p => p.id === projectId);
+
+  // Apply smart defaults when dialog opens or project/member changes
+  useEffect(() => {
+    if (open && currentProject && preSelectedMember) {
+      const currentDate = new Date().toISOString().split('T')[0];
+      const memberDefaults = getTeamMemberDefaults(
+        {
+          id: preSelectedMember.user_id || '',
+          company_name: preSelectedMember.name,
+          contact_person: preSelectedMember.name,
+          stakeholder_type: 'employee' as const,
+          specialties: [], // We don't have specialties in TeamMember, but this is for demo
+          status: 'active' as const
+        },
+        currentProject,
+        currentDate
+      );
+
+      // Set smart defaults
+      setPriority(getDefaultPriority(currentProject.phase));
+      setEstimatedHours(memberDefaults.hours_allocated?.toString() || '4');
+      
+      // Set default title based on member role and project phase
+      if (preSelectedMember.role && currentProject.phase) {
+        const phaseAction = currentProject.phase === 'punch_list' ? 'Inspect' : 
+                           currentProject.phase === 'closeout' ? 'Finalize' : 'Work on';
+        setTitle(`${phaseAction} - ${preSelectedMember.role}`);
+      }
+    }
+  }, [open, currentProject, preSelectedMember]);
+
+  // Update skills and priority when category changes
+  useEffect(() => {
+    if (category && currentProject) {
+      const categorySkills = getDefaultRequiredSkills(category, currentProject.phase);
+      setRequiredSkills(categorySkills);
+      
+      const smartPriority = getDefaultPriority(currentProject.phase, category);
+      setPriority(smartPriority);
+    }
+  }, [category, currentProject]);
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !requiredSkills.includes(newSkill.trim())) {
@@ -61,6 +104,7 @@ export const QuickTaskAssignDialog = ({
       description: description || undefined,
       project_id: projectId,
       priority,
+      category: category || undefined,
       due_date: dueDate || undefined,
       estimated_hours: estimatedHours ? parseInt(estimatedHours) : undefined,
       progress: 0,
@@ -91,6 +135,7 @@ export const QuickTaskAssignDialog = ({
       setDueDate('');
       setEstimatedHours('');
       setRequiredSkills([]);
+      setCategory('');
       onOpenChange(false);
     }
     
@@ -120,6 +165,11 @@ export const QuickTaskAssignDialog = ({
                   <div>${preSelectedMember.cost_per_hour}/hr</div>
                 </div>
               </div>
+              {currentProject && (
+                <p className="text-xs text-blue-600 mt-2">
+                  Smart defaults applied for {currentProject.phase} phase
+                </p>
+              )}
             </div>
           )}
 
@@ -131,6 +181,16 @@ export const QuickTaskAssignDialog = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder={`Task for ${preSelectedMember?.name || 'team member'}`}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g., Safety, Quality Control, Installation"
             />
           </div>
           

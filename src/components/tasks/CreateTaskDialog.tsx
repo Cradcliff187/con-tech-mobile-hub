@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { calculateSkillMatchPercentage, PUNCH_LIST_CATEGORY_SKILLS, getSkillsForPunchListCategory, filterAndSortWorkersBySkillMatch, PunchListCategory } from '@/utils/skill-matching';
+import { getTaskDefaults, getDefaultRequiredSkills, getDefaultPriority, getDefaultCategories } from '@/utils/smart-defaults';
 import { X } from 'lucide-react';
 
 interface CreateTaskDialogProps {
@@ -37,7 +39,48 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
 
-  // Filter stakeholders to get workers with skills - fix the stakeholder_type filter
+  const selectedProject = projects.find(p => p.id === projectId);
+
+  // Apply smart defaults when project changes
+  useEffect(() => {
+    if (selectedProject) {
+      const defaults = getTaskDefaults(selectedProject);
+      setPriority(defaults.priority || 'medium');
+      setEstimatedHours(defaults.estimated_hours?.toString() || '');
+      setPunchListCategory(defaults.punch_list_category || '');
+      
+      // Set default required skills
+      if (defaults.required_skills && defaults.required_skills.length > 0) {
+        setRequiredSkills(defaults.required_skills);
+      }
+
+      // Set default category based on project phase
+      const defaultCategories = getDefaultCategories(selectedProject.phase);
+      if (defaultCategories.length > 0 && !category) {
+        setCategory(defaultCategories[0]);
+      }
+    }
+  }, [selectedProject]);
+
+  // Update skills when category changes
+  useEffect(() => {
+    if (category && selectedProject) {
+      const categorySkills = getDefaultRequiredSkills(category, selectedProject.phase);
+      if (categorySkills.length > 0) {
+        setRequiredSkills(prev => {
+          const newSkills = [...prev];
+          categorySkills.forEach(skill => {
+            if (!newSkills.includes(skill)) {
+              newSkills.push(skill);
+            }
+          });
+          return newSkills;
+        });
+      }
+    }
+  }, [category, selectedProject]);
+
+  // Filter stakeholders to get workers with skills
   const workers = stakeholders.filter(s => 
     (s.stakeholder_type === 'employee' || s.stakeholder_type === 'subcontractor') && 
     s.status === 'active'
@@ -69,6 +112,15 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
       });
       return newSkills;
     });
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    setCategory(newCategory);
+    // Auto-set priority based on category and project phase
+    if (selectedProject) {
+      const smartPriority = getDefaultPriority(selectedProject.phase, newCategory);
+      setPriority(smartPriority);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,11 +201,18 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
               <SelectContent>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
-                    {project.name}
+                    {project.name} {project.phase && (
+                      <span className="text-xs text-slate-500 ml-2">({project.phase})</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedProject && (
+              <p className="text-xs text-blue-600">
+                Smart defaults applied for {selectedProject.phase} phase
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -167,20 +226,38 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="punchListCategory">Punch List Category</Label>
-            <Select value={punchListCategory} onValueChange={handlePunchListCategoryChange}>
+            <Label htmlFor="category">Category</Label>
+            <Select value={category} onValueChange={handleCategoryChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select category (optional)" />
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {Object.keys(PUNCH_LIST_CATEGORY_SKILLS).map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                {selectedProject && getDefaultCategories(selectedProject.phase).map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {selectedProject?.phase === 'punch_list' && (
+            <div className="space-y-2">
+              <Label htmlFor="punchListCategory">Punch List Category</Label>
+              <Select value={punchListCategory} onValueChange={handlePunchListCategoryChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select punch list category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(PUNCH_LIST_CATEGORY_SKILLS).map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Required Skills</Label>
@@ -256,28 +333,6 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g., Safety, Logistics"
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
               <Label htmlFor="estimatedHours">Est. Hours</Label>
               <Input
                 id="estimatedHours"
@@ -287,6 +342,16 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                 placeholder="0"
               />
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="dueDate">Due Date</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </div>
           
           <div className="flex justify-end gap-2 pt-4">
