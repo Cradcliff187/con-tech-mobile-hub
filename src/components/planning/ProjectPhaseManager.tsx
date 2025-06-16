@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateAutoPunchListItems } from '@/utils/phase-automation';
+import { generateAutoPunchListItems, calculatePhaseReadiness } from '@/utils/phase-automation';
 
 interface PhaseReadiness {
   currentPhase: string;
@@ -57,7 +57,9 @@ export const ProjectPhaseManager = () => {
     );
   }
 
-  const calculatePhaseReadiness = (): PhaseReadiness => {
+  const phaseReadiness = calculatePhaseReadiness(project, projectTasks);
+
+  const calculatePhaseReadinessLegacy = (): PhaseReadiness => {
     const totalTasks = projectTasks.length;
     const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -88,12 +90,12 @@ export const ProjectPhaseManager = () => {
 
       case 'active':
         nextPhase = 'punch_list';
-        canAdvance = completionPercentage >= 90;
+        canAdvance = phaseReadiness.canAdvanceToPunchList;
         requirements = [
           'At least 90% of tasks must be completed',
           'Major construction work should be finished'
         ];
-        if (completionPercentage >= 80 && completionPercentage < 90) {
+        if (phaseReadiness.readinessScore >= 80 && phaseReadiness.readinessScore < 90) {
           recommendations.push('Project is nearing completion - prepare for punch list phase');
         }
         if (budgetUsage > 95) {
@@ -103,18 +105,12 @@ export const ProjectPhaseManager = () => {
 
       case 'punch_list':
         nextPhase = 'closeout';
-        const punchListTasks = projectTasks.filter(t => t.task_type === 'punch_list');
-        const completedPunchList = punchListTasks.filter(t => t.status === 'completed').length;
-        const punchListCompletion = punchListTasks.length > 0 
-          ? (completedPunchList / punchListTasks.length) * 100 
-          : 100;
-        
-        canAdvance = punchListCompletion >= 100 && completionPercentage >= 95;
+        canAdvance = phaseReadiness.canAdvanceToCloseout;
         requirements = [
           'All punch list items must be completed',
           'Overall project completion should be 95%+'
         ];
-        if (punchListTasks.length === 0) {
+        if (phaseReadiness.punchListTasks === 0) {
           recommendations.push('Generate punch list items for final quality checks');
         }
         break;
@@ -199,7 +195,7 @@ export const ProjectPhaseManager = () => {
     setIsUpdating(false);
   };
 
-  const readiness = calculatePhaseReadiness();
+  const readiness = calculatePhaseReadinessLegacy();
   const punchListTasks = projectTasks.filter(t => t.task_type === 'punch_list');
 
   const getPhaseColor = (phase: string) => {
@@ -240,7 +236,7 @@ export const ProjectPhaseManager = () => {
                 {readiness.currentPhase.replace('_', ' ').toUpperCase()} PHASE
               </h3>
               <p className="text-sm text-slate-600">
-                {readiness.completionPercentage}% Complete
+                {Math.round(phaseReadiness.readinessScore)}% Complete
               </p>
             </div>
           </div>
@@ -254,9 +250,9 @@ export const ProjectPhaseManager = () => {
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-slate-600">Phase Progress</span>
-            <span className="font-medium">{readiness.completionPercentage}%</span>
+            <span className="font-medium">{Math.round(phaseReadiness.readinessScore)}%</span>
           </div>
-          <Progress value={readiness.completionPercentage} className="h-3" />
+          <Progress value={phaseReadiness.readinessScore} className="h-3" />
         </div>
 
         {/* Phase Transition Actions */}
@@ -285,7 +281,7 @@ export const ProjectPhaseManager = () => {
         )}
 
         {/* Punch List Generation */}
-        {readiness.currentPhase === 'active' && readiness.completionPercentage >= 90 && punchListTasks.length === 0 && (
+        {phaseReadiness.shouldGeneratePunchList && (
           <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
