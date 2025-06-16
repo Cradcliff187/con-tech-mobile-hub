@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { ReportDashboard } from './ReportDashboard';
 import { ReportCharts } from './ReportCharts';
+import { ExportOptionsDialog } from './ExportOptionsDialog';
 import { Calendar, Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProjects } from '@/hooks/useProjects';
@@ -11,9 +11,14 @@ export const ProgressReports = () => {
   const [reportType, setReportType] = useState<'dashboard' | 'charts'>('dashboard');
   const [dateRange, setDateRange] = useState('last_30_days');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   
   const { projects, loading: projectsLoading } = useProjects();
   const validatedProjects = validateSelectData(projects);
+
+  const handleExportClick = () => {
+    setExportDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -44,7 +49,10 @@ export const ProgressReports = () => {
             </button>
           </div>
           
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button 
+            onClick={handleExportClick}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
             <Download size={20} />
             Export
           </button>
@@ -91,6 +99,14 @@ export const ProgressReports = () => {
         
         {reportType === 'dashboard' ? <ReportDashboard /> : <ReportCharts />}
       </div>
+
+      <ExportOptionsDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        dateRange={dateRange}
+        selectedProjectId={selectedProjectId}
+        reportType={reportType}
+      />
     </div>
   );
 };
