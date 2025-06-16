@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Calendar, Users, Wrench } from 'lucide-react';
+import { AlertTriangle, Calendar, Users, Wrench, CheckCircle, X } from 'lucide-react';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface ResourceConflict {
   id: string;
@@ -17,14 +18,17 @@ interface ResourceConflict {
   affectedProjects: string[];
   suggestedAction: string;
   dueDate?: string;
+  resolved?: boolean;
 }
 
 export const ResourceConflicts = () => {
   const [conflicts, setConflicts] = useState<ResourceConflict[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set());
   const { allocations } = useResourceAllocations();
   const { equipment } = useEquipment();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user && allocations.length >= 0 && equipment.length >= 0) {
@@ -146,6 +150,38 @@ export const ResourceConflicts = () => {
     return conflicts;
   };
 
+  const handleResolveConflict = async (conflictId: string) => {
+    setResolvingIds(prev => new Set(prev).add(conflictId));
+    
+    // Simulate conflict resolution (in real implementation, this would update the database)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setConflicts(prev => prev.map(conflict => 
+      conflict.id === conflictId 
+        ? { ...conflict, resolved: true }
+        : conflict
+    ));
+    
+    setResolvingIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(conflictId);
+      return newSet;
+    });
+
+    toast({
+      title: "Conflict Resolved",
+      description: "The resource conflict has been marked as resolved"
+    });
+  };
+
+  const handleDismissConflict = (conflictId: string) => {
+    setConflicts(prev => prev.filter(conflict => conflict.id !== conflictId));
+    toast({
+      title: "Conflict Dismissed",
+      description: "The conflict has been dismissed"
+    });
+  };
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -164,8 +200,9 @@ export const ResourceConflicts = () => {
     }
   };
 
-  const criticalCount = conflicts.filter(c => c.severity === 'critical').length;
-  const highCount = conflicts.filter(c => c.severity === 'high').length;
+  const activeConflicts = conflicts.filter(c => !c.resolved);
+  const criticalCount = activeConflicts.filter(c => c.severity === 'critical').length;
+  const highCount = activeConflicts.filter(c => c.severity === 'high').length;
 
   if (loading) {
     return (
@@ -191,7 +228,7 @@ export const ResourceConflicts = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600">Total Conflicts</p>
-                <p className="text-2xl font-bold text-slate-800">{conflicts.length}</p>
+                <p className="text-2xl font-bold text-slate-800">{activeConflicts.length}</p>
               </div>
               <AlertTriangle className="text-orange-600" size={24} />
             </div>
@@ -229,15 +266,15 @@ export const ResourceConflicts = () => {
           <CardTitle>Resource Conflicts</CardTitle>
         </CardHeader>
         <CardContent>
-          {conflicts.length === 0 ? (
+          {activeConflicts.length === 0 ? (
             <div className="text-center py-8">
-              <AlertTriangle size={48} className="mx-auto mb-4 text-slate-400" />
-              <h3 className="text-lg font-medium text-slate-600 mb-2">No Conflicts Found</h3>
+              <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No Active Conflicts</h3>
               <p className="text-slate-500">All resources are properly allocated with no conflicts detected.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {conflicts.map((conflict) => (
+              {activeConflicts.map((conflict) => (
                 <div key={conflict.id} className={`border rounded-lg p-4 ${getSeverityColor(conflict.severity)} border-l-4`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -279,11 +316,26 @@ export const ResourceConflicts = () => {
                     </div>
                     
                     <div className="flex flex-col gap-2 ml-4">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleResolveConflict(conflict.id)}
+                        disabled={resolvingIds.has(conflict.id)}
+                      >
+                        {resolvingIds.has(conflict.id) ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b border-green-600 mr-2"></div>
+                        ) : (
+                          <CheckCircle size={14} className="mr-2" />
+                        )}
                         Resolve
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        Details
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDismissConflict(conflict.id)}
+                      >
+                        <X size={14} className="mr-2" />
+                        Dismiss
                       </Button>
                     </div>
                   </div>

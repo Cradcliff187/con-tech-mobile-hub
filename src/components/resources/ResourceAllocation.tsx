@@ -4,11 +4,14 @@ import { useProjects } from '@/hooks/useProjects';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, Plus } from 'lucide-react';
+import { CreateAllocationDialog } from './CreateAllocationDialog';
 
 export const ResourceAllocation = () => {
   const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { allocations, loading } = useResourceAllocations(selectedProjectId);
 
   if (loading) {
@@ -43,18 +46,25 @@ export const ResourceAllocation = () => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-slate-800">Resource Allocation</h3>
           
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">All Projects</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-4">
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">All Projects</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            
+            <Button onClick={() => setShowCreateDialog(true)} size="sm">
+              <Plus size={16} className="mr-2" />
+              Create Allocation
+            </Button>
+          </div>
         </div>
         
         <div className="space-y-6">
@@ -66,7 +76,11 @@ export const ResourceAllocation = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-slate-600 mb-2">No Resource Allocations</h3>
-              <p className="text-slate-500">Start by creating resource allocations for your projects.</p>
+              <p className="text-slate-500 mb-4">Start by creating resource allocations for your projects.</p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus size={16} className="mr-2" />
+                Create First Allocation
+              </Button>
             </div>
           ) : (
             allocations.map((allocation) => (
@@ -125,6 +139,11 @@ export const ResourceAllocation = () => {
           )}
         </div>
       </div>
+
+      <CreateAllocationDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+      />
     </div>
   );
 };

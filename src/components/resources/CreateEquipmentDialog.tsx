@@ -1,0 +1,159 @@
+
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useProjects } from '@/hooks/useProjects';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CreateEquipmentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+export const CreateEquipmentDialog = ({ open, onOpenChange, onSuccess }: CreateEquipmentDialogProps) => {
+  const [name, setName] = useState('');
+  const [type, setType] = useState('');
+  const [status, setStatus] = useState('available');
+  const [projectId, setProjectId] = useState('');
+  const [maintenanceDue, setMaintenanceDue] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { projects } = useProjects();
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !type) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase
+      .from('equipment')
+      .insert({
+        name,
+        type,
+        status,
+        project_id: projectId || null,
+        maintenance_due: maintenanceDue || null,
+        utilization_rate: 0
+      });
+
+    if (error) {
+      toast({
+        title: "Error creating equipment",
+        description: error.message || "Failed to create equipment",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Equipment created successfully"
+      });
+      // Reset form
+      setName('');
+      setType('');
+      setStatus('available');
+      setProjectId('');
+      setMaintenanceDue('');
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    }
+    setLoading(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Equipment</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Equipment Name *</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Excavator CAT 320"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Type *</Label>
+            <Input
+              id="type"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              placeholder="e.g., Heavy Machinery"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="in-use">In Use</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="out-of-service">Out of Service</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="project">Assigned Project</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a project (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No Project</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="maintenanceDue">Maintenance Due Date</Label>
+            <Input
+              id="maintenanceDue"
+              type="date"
+              value={maintenanceDue}
+              onChange={(e) => setMaintenanceDue(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Adding...' : 'Add Equipment'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
