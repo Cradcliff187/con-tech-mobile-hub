@@ -12,6 +12,11 @@ export interface Stakeholder {
   phone?: string;
   email?: string;
   address?: string;
+  // New structured address fields
+  street_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
   specialties?: string[];
   crew_size?: number;
   status: 'active' | 'inactive' | 'pending' | 'suspended';
