@@ -212,13 +212,13 @@ export const useDocuments = (projectId?: string) => {
     }
   };
 
-  const downloadDocument = async (document: DocumentRecord) => {
+  const downloadDocument = async (doc: DocumentRecord) => {
     try {
-      console.log('Downloading document:', document.file_path);
+      console.log('Downloading document:', doc.file_path);
       
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(document.file_path, 3600); // 1 hour expiry
+        .createSignedUrl(doc.file_path, 3600); // 1 hour expiry
 
       if (error) {
         console.error('Download URL error:', error);
@@ -232,7 +232,7 @@ export const useDocuments = (projectId?: string) => {
       // Create download link and trigger download
       const link = document.createElement('a');
       link.href = data.signedUrl;
-      link.download = document.name;
+      link.download = doc.name;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
@@ -245,13 +245,13 @@ export const useDocuments = (projectId?: string) => {
     }
   };
 
-  const shareDocument = async (document: DocumentRecord) => {
+  const shareDocument = async (doc: DocumentRecord) => {
     try {
-      console.log('Sharing document:', document.file_path);
+      console.log('Sharing document:', doc.file_path);
       
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(document.file_path, 604800); // 7 days expiry
+        .createSignedUrl(doc.file_path, 604800); // 7 days expiry
 
       if (error) {
         console.error('Share URL error:', error);
