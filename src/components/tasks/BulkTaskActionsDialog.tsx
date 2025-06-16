@@ -137,7 +137,12 @@ export const BulkTaskActionsDialog = ({ open, onOpenChange, tasks }: BulkTaskAct
                 id="select-all"
                 checked={isAllSelected}
                 ref={(el) => {
-                  if (el) el.indeterminate = isIndeterminate;
+                  if (el) {
+                    const input = el.querySelector('input');
+                    if (input) {
+                      input.indeterminate = isIndeterminate;
+                    }
+                  }
                 }}
                 onCheckedChange={handleSelectAll}
               />
@@ -235,7 +240,7 @@ export const BulkTaskActionsDialog = ({ open, onOpenChange, tasks }: BulkTaskAct
                     <SelectItem value="">Unassign</SelectItem>
                     {stakeholders.map((stakeholder) => (
                       <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                        {stakeholder.full_name || stakeholder.email}
+                        {stakeholder.contact_person || stakeholder.company_name || stakeholder.email}
                       </SelectItem>
                     ))}
                   </SelectContent>
