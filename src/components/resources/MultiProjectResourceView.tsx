@@ -378,7 +378,7 @@ export const MultiProjectResourceView = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span>Over-allocated (>100%)</span>
+              <span>Over-allocated ({'>'} 100%)</span>
             </div>
             <div className="flex items-center gap-2">
               <AlertTriangle className="text-red-500" size={12} />
