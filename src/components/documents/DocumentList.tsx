@@ -1,11 +1,10 @@
-
 import { FileText, Image, File, Download, Share, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
-interface Document {
+interface DocumentRecord {
   id: string;
   project_id?: string;
   name: string;
@@ -28,7 +27,7 @@ interface Document {
 interface DocumentListProps {
   filter: string;
   searchTerm: string;
-  documents: Document[];
+  documents: DocumentRecord[];
 }
 
 export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProps) => {
@@ -77,7 +76,7 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
     return categoryMap[category || 'other'] || 'Unknown';
   };
 
-  const handleDownload = async (document: Document) => {
+  const handleDownload = async (document: DocumentRecord) => {
     setDownloadingId(document.id);
     try {
       const { error } = await downloadDocument(document);
@@ -105,7 +104,7 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
     }
   };
 
-  const handleShare = async (document: Document) => {
+  const handleShare = async (document: DocumentRecord) => {
     setSharingId(document.id);
     try {
       const { error } = await shareDocument(document);
@@ -133,7 +132,7 @@ export const DocumentList = ({ filter, searchTerm, documents }: DocumentListProp
     }
   };
 
-  const handleDelete = async (document: Document) => {
+  const handleDelete = async (document: DocumentRecord) => {
     if (window.confirm(`Are you sure you want to delete "${document.name}"?`)) {
       setDeletingId(document.id);
       try {

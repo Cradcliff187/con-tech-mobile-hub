@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface Document {
+interface DocumentRecord {
   id: string;
   project_id?: string;
   name: string;
@@ -63,7 +63,7 @@ const validateFile = (file: File): { isValid: boolean; error?: string } => {
 };
 
 export const useDocuments = (projectId?: string) => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -212,7 +212,7 @@ export const useDocuments = (projectId?: string) => {
     }
   };
 
-  const downloadDocument = async (document: Document) => {
+  const downloadDocument = async (document: DocumentRecord) => {
     try {
       console.log('Downloading document:', document.file_path);
       
@@ -245,7 +245,7 @@ export const useDocuments = (projectId?: string) => {
     }
   };
 
-  const shareDocument = async (document: Document) => {
+  const shareDocument = async (document: DocumentRecord) => {
     try {
       console.log('Sharing document:', document.file_path);
       
