@@ -7,17 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Calendar, User, Briefcase, DollarSign, Clock, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 
 export const StakeholderAssignments = () => {
-  const { assignments, loading, updateAssignment } = useStakeholderAssignments();
+  const { assignments, loading, updateAssignment, refetch } = useStakeholderAssignments();
   const { projects, loading: projectsLoading } = useProjects();
   const { toast } = useToast();
   const [projectFilter, setProjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [updatingAssignments, setUpdatingAssignments] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    assignmentId: string;
+    newStatus: string;
+    currentStatus: string;
+  }>({ open: false, assignmentId: '', newStatus: '', currentStatus: '' });
 
   const filteredAssignments = assignments.filter(assignment => {
     const matchesProject = projectFilter === 'all' || assignment.project_id === projectFilter;
@@ -30,7 +38,23 @@ export const StakeholderAssignments = () => {
     return matchesProject && matchesStatus && matchesSearch;
   });
 
-  const handleStatusUpdate = async (assignmentId: string, newStatus: string) => {
+  const handleStatusChange = (assignmentId: string, newStatus: string, currentStatus: string) => {
+    // Show confirmation for sensitive status changes
+    if (newStatus === 'cancelled' || (currentStatus === 'completed' && newStatus !== 'completed')) {
+      setConfirmDialog({
+        open: true,
+        assignmentId,
+        newStatus,
+        currentStatus
+      });
+    } else {
+      performStatusUpdate(assignmentId, newStatus);
+    }
+  };
+
+  const performStatusUpdate = async (assignmentId: string, newStatus: string) => {
+    setUpdatingAssignments(prev => new Set([...prev, assignmentId]));
+    
     const { error } = await updateAssignment(assignmentId, { status: newStatus });
     
     if (!error) {
@@ -38,6 +62,8 @@ export const StakeholderAssignments = () => {
         title: "Success",
         description: "Assignment status updated successfully"
       });
+      // Refresh the assignments list
+      await refetch();
     } else {
       toast({
         title: "Error",
@@ -45,6 +71,27 @@ export const StakeholderAssignments = () => {
         variant: "destructive"
       });
     }
+    
+    setUpdatingAssignments(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(assignmentId);
+      return newSet;
+    });
+  };
+
+  const handleConfirmStatusChange = () => {
+    performStatusUpdate(confirmDialog.assignmentId, confirmDialog.newStatus);
+    setConfirmDialog({ open: false, assignmentId: '', newStatus: '', currentStatus: '' });
+  };
+
+  const getStatusConfirmationMessage = (newStatus: string, currentStatus: string) => {
+    if (newStatus === 'cancelled') {
+      return "Are you sure you want to cancel this assignment? This action will mark the assignment as cancelled.";
+    }
+    if (currentStatus === 'completed' && newStatus !== 'completed') {
+      return "This assignment is currently marked as completed. Are you sure you want to change its status?";
+    }
+    return "Are you sure you want to change the status of this assignment?";
   };
 
   const validatedProjects = validateSelectData(projects);
@@ -117,6 +164,7 @@ export const StakeholderAssignments = () => {
       <div className="grid gap-4">
         {filteredAssignments.map((assignment) => {
           const project = validatedProjects.find(p => p.id === assignment.project_id);
+          const isUpdating = updatingAssignments.has(assignment.id);
           
           return (
             <Card key={assignment.id}>
@@ -144,7 +192,8 @@ export const StakeholderAssignments = () => {
                     </Badge>
                     <Select
                       value={assignment.status}
-                      onValueChange={(newStatus) => handleStatusUpdate(assignment.id, newStatus)}
+                      onValueChange={(newStatus) => handleStatusChange(assignment.id, newStatus, assignment.status)}
+                      disabled={isUpdating}
                     >
                       <SelectTrigger className="w-32 h-8">
                         <SelectValue />
@@ -157,6 +206,12 @@ export const StakeholderAssignments = () => {
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
+                    {isUpdating && (
+                      <div className="flex items-center text-sm text-slate-500">
+                        <Clock size={16} className="animate-spin mr-1" />
+                        Updating...
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -233,6 +288,24 @@ export const StakeholderAssignments = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              {getStatusConfirmationMessage(confirmDialog.newStatus, confirmDialog.currentStatus)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmStatusChange}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -5,30 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateAllocationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export const CreateAllocationDialog = ({ open, onOpenChange }: CreateAllocationDialogProps) => {
+export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: CreateAllocationDialogProps) => {
   const [teamName, setTeamName] = useState('');
   const [projectId, setProjectId] = useState('');
-  const [totalBudget, setTotalBudget] = useState('');
   const [weekStartDate, setWeekStartDate] = useState('');
-  const [allocationType, setAllocationType] = useState<'weekly' | 'daily'>('weekly');
+  const [totalBudget, setTotalBudget] = useState('');
+  const [allocationType, setAllocationType] = useState('weekly');
   const [loading, setLoading] = useState(false);
 
-  const { createAllocation } = useResourceAllocations();
   const { projects } = useProjects();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamName || !projectId || !totalBudget || !weekStartDate) {
+    if (!teamName || !weekStartDate) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -38,13 +38,15 @@ export const CreateAllocationDialog = ({ open, onOpenChange }: CreateAllocationD
     }
 
     setLoading(true);
-    const { error } = await createAllocation({
-      team_name: teamName,
-      project_id: projectId,
-      total_budget: parseFloat(totalBudget),
-      week_start_date: weekStartDate,
-      allocation_type: allocationType
-    });
+    const { error } = await supabase
+      .from('resource_allocations')
+      .insert({
+        team_name: teamName,
+        project_id: projectId || null,
+        week_start_date: weekStartDate,
+        total_budget: totalBudget ? parseFloat(totalBudget) : 0,
+        allocation_type: allocationType
+      });
 
     if (error) {
       toast({
@@ -60,10 +62,11 @@ export const CreateAllocationDialog = ({ open, onOpenChange }: CreateAllocationD
       // Reset form
       setTeamName('');
       setProjectId('');
-      setTotalBudget('');
       setWeekStartDate('');
+      setTotalBudget('');
       setAllocationType('weekly');
       onOpenChange(false);
+      if (onSuccess) onSuccess();
     }
     setLoading(false);
   };
@@ -88,12 +91,13 @@ export const CreateAllocationDialog = ({ open, onOpenChange }: CreateAllocationD
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="project">Project *</Label>
+            <Label htmlFor="project">Project</Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a project" />
+                <SelectValue placeholder="Select a project (optional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">No Project</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
@@ -104,21 +108,7 @@ export const CreateAllocationDialog = ({ open, onOpenChange }: CreateAllocationD
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="totalBudget">Total Budget *</Label>
-            <Input
-              id="totalBudget"
-              type="number"
-              value={totalBudget}
-              onChange={(e) => setTotalBudget(e.target.value)}
-              placeholder="0"
-              min="0"
-              step="0.01"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="weekStartDate">Start Date *</Label>
+            <Label htmlFor="weekStartDate">Week Start Date *</Label>
             <Input
               id="weekStartDate"
               type="date"
@@ -129,8 +119,20 @@ export const CreateAllocationDialog = ({ open, onOpenChange }: CreateAllocationD
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="totalBudget">Total Budget</Label>
+            <Input
+              id="totalBudget"
+              type="number"
+              step="0.01"
+              value={totalBudget}
+              onChange={(e) => setTotalBudget(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="allocationType">Allocation Type</Label>
-            <Select value={allocationType} onValueChange={(value: 'weekly' | 'daily') => setAllocationType(value)}>
+            <Select value={allocationType} onValueChange={setAllocationType}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
