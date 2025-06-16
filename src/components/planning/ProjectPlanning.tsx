@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { GanttChart } from './GanttChart';
 import { TaskHierarchy } from './TaskHierarchy';
@@ -6,6 +5,7 @@ import { ResourcePlanning } from './ResourcePlanning';
 import { MilestonePlanning } from './MilestonePlanning';
 import { ClientFilter } from '@/components/projects/ClientFilter';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Users, Target, BarChart3 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useSearchParams } from 'react-router-dom';
@@ -75,18 +75,19 @@ export const ProjectPlanning = () => {
           
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Select Project:</label>
-            <select 
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">Choose a project...</option>
-              {filteredProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name} {project.client && `- ${project.client.company_name || project.client.contact_person}`}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Choose a project..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Choose a project...</SelectItem>
+                {filteredProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name} {project.client && `- ${project.client.company_name || project.client.contact_person}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
