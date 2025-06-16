@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from 'react';
-import { Users, Clock, DollarSign, AlertTriangle, Calendar } from 'lucide-react';
+import { Users, Clock, DollarSign, AlertTriangle, Calendar, UserPlus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { EmptyState } from '@/components/dashboard/EmptyState';
+import { QuickTaskAssignDialog } from './QuickTaskAssignDialog';
+import { TeamMember } from '@/types/database';
 
 interface ResourcePlanningProps {
   projectId: string;
@@ -18,8 +19,15 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
   const [selectedWeek, setSelectedWeek] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
+  const [quickAssignOpen, setQuickAssignOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | undefined>();
 
   const currentProject = projects.find(p => p.id === projectId);
+
+  const handleQuickAssign = (member: TeamMember) => {
+    setSelectedMember(member);
+    setQuickAssignOpen(true);
+  };
 
   const getUtilizationColor = (percentage: number) => {
     if (percentage >= 90) return 'text-red-600 bg-red-100';
@@ -185,6 +193,7 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                         <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Utilization</th>
                         <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Cost</th>
                         <th className="text-left px-6 py-3 text-sm font-medium text-slate-700">Current Tasks</th>
+                        <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -227,6 +236,19 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                               )}
                             </div>
                           </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleQuickAssign(member)}
+                                className="text-xs px-2 py-1 h-7"
+                              >
+                                <Plus size={12} className="mr-1" />
+                                Assign Task
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -255,6 +277,13 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
           </div>
         </div>
       )}
+
+      <QuickTaskAssignDialog
+        open={quickAssignOpen}
+        onOpenChange={setQuickAssignOpen}
+        projectId={projectId}
+        preSelectedMember={selectedMember}
+      />
     </div>
   );
 };
