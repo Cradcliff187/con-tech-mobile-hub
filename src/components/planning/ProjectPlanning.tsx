@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { GanttChart } from './GanttChart';
 import { TaskHierarchy } from './TaskHierarchy';
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, Users, Target, BarChart3 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useSearchParams } from 'react-router-dom';
+import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 
 export const ProjectPlanning = () => {
   const [searchParams] = useSearchParams();
@@ -17,7 +19,7 @@ export const ProjectPlanning = () => {
   const [activeView, setActiveView] = useState<'gantt' | 'hierarchy' | 'resources' | 'milestones'>('gantt');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
-  const { projects } = useProjects();
+  const { projects, loading } = useProjects();
 
   useEffect(() => {
     if (projectFromUrl && projects.length > 0) {
@@ -42,6 +44,9 @@ export const ProjectPlanning = () => {
   const filteredProjects = selectedClientId 
     ? projects.filter(p => p.client_id === selectedClientId)
     : projects;
+
+  // Validate project data to prevent SelectItem errors
+  const validatedProjects = validateSelectData(filteredProjects);
 
   return (
     <div className="space-y-6">
@@ -80,12 +85,19 @@ export const ProjectPlanning = () => {
                 <SelectValue placeholder="Choose a project..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Choose a project...</SelectItem>
-                {filteredProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name} {project.client && `- ${project.client.company_name || project.client.contact_person}`}
-                  </SelectItem>
-                ))}
+                {loading ? (
+                  <SelectItem value="loading" disabled>Loading projects...</SelectItem>
+                ) : validatedProjects.length === 0 && selectedClientId ? (
+                  <SelectItem value="no-projects" disabled>No projects found for the selected client.</SelectItem>
+                ) : validatedProjects.length === 0 ? (
+                  <SelectItem value="no-projects" disabled>No projects available</SelectItem>
+                ) : (
+                  validatedProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {getSelectDisplayName(project, ['name'], 'Unnamed Project')} {project.client && `- ${project.client.company_name || project.client.contact_person}`}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
