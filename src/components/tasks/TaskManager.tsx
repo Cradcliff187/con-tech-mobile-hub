@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { PunchListView } from './PunchListView';
@@ -7,6 +7,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { EditTaskDialog } from './EditTaskDialog';
+import { BulkTaskActionsDialog } from './BulkTaskActionsDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { canConvertToPunchList, shouldShowPunchList } from '@/utils/project-lifecycle';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,7 @@ export const TaskManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
   const { tasks, loading, updateTask } = useTasks();
   const { projects } = useProjects();
@@ -45,6 +47,16 @@ export const TaskManager = () => {
   const selectedProject = useMemo(() => {
     return projects.find(p => p.id === selectedProjectId) || null;
   }, [selectedProjectId, projects]);
+
+  // Listen for bulk actions event from quick actions
+  useEffect(() => {
+    const handleOpenBulkActions = () => {
+      setShowBulkActionsDialog(true);
+    };
+
+    window.addEventListener('openBulkActions', handleOpenBulkActions);
+    return () => window.removeEventListener('openBulkActions', handleOpenBulkActions);
+  }, []);
 
   const handleConvertToPunchList = async () => {
     const tasksToConvert = regularTasks.filter(canConvertToPunchList);
@@ -106,6 +118,13 @@ export const TaskManager = () => {
         <h2 className="text-xl font-semibold text-slate-800">Task Management</h2>
         <div className="flex items-center gap-2">
           <Button
+            onClick={() => setShowBulkActionsDialog(true)}
+            variant="outline"
+            size="sm"
+          >
+            Bulk Actions
+          </Button>
+          <Button
             onClick={handleConvertToPunchList}
             variant="outline"
             size="sm"
@@ -162,6 +181,12 @@ export const TaskManager = () => {
         open={showEditDialog} 
         onOpenChange={setShowEditDialog} 
         task={selectedTaskForEdit}
+      />
+
+      <BulkTaskActionsDialog
+        open={showBulkActionsDialog}
+        onOpenChange={setShowBulkActionsDialog}
+        tasks={filteredTasks}
       />
     </div>
   );

@@ -88,7 +88,11 @@ export const useQuickActions = ({
           id: 'bulk-actions',
           label: 'Bulk Task Actions',
           icon: MoreHorizontal,
-          action: () => {} // Would open bulk actions modal
+          action: () => {
+            // This will be handled by the TaskManager component
+            const event = new CustomEvent('openBulkActions');
+            window.dispatchEvent(event);
+          }
         });
         break;
       case 'dashboard':
