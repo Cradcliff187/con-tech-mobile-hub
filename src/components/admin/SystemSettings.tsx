@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Mail, Layers, Database } from 'lucide-react';
+import { Settings, Mail, Layers, Database, Activity } from 'lucide-react';
+import { ApplicationHealth } from './ApplicationHealth';
 
 export const SystemSettings = () => {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -36,13 +37,18 @@ export const SystemSettings = () => {
         <h2 className="text-2xl font-bold text-slate-800">System Settings</h2>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="health" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="health">Health Monitor</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="defaults">Defaults</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="health" className="space-y-4">
+          <ApplicationHealth />
+        </TabsContent>
 
         <TabsContent value="general" className="space-y-4">
           <Card>

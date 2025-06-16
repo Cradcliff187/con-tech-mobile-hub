@@ -1,12 +1,14 @@
+
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { DatabaseVerification } from '@/components/debug/DatabaseVerification';
 import { WorkflowTester } from '@/components/debug/WorkflowTester';
+import { ApplicationHealth } from '@/components/admin/ApplicationHealth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Database, Shield, TestTube } from 'lucide-react';
+import { Users, Database, Shield, TestTube, Activity } from 'lucide-react';
 import { AddressMigration } from '@/components/admin/AddressMigration';
 
 const Admin = () => {
@@ -37,12 +39,16 @@ const Admin = () => {
             Admin Dashboard
           </h1>
           <p className="text-slate-600">
-            Manage users, migrate data{isDevelopment ? ', verify system health, and test application workflows' : ''}
+            Manage users, monitor system health, migrate data{isDevelopment ? ', verify system integrity, and test application workflows' : ''}
           </p>
         </div>
 
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-5' : 'grid-cols-3'} lg:w-auto`}>
+        <Tabs defaultValue="health" className="space-y-6">
+          <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-6' : 'grid-cols-4'} lg:w-auto`}>
+            <TabsTrigger value="health" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Health Monitor
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               User Management
@@ -68,6 +74,10 @@ const Admin = () => {
               </>
             )}
           </TabsList>
+
+          <TabsContent value="health" className="space-y-6">
+            <ApplicationHealth />
+          </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
             <AdminPanel />
@@ -106,6 +116,7 @@ const Admin = () => {
                     <p className="text-sm text-green-600">✓ Database Connection</p>
                     <p className="text-sm text-green-600">✓ Admin Controls</p>
                     <p className="text-sm text-green-600">✓ Navigation System</p>
+                    <p className="text-sm text-green-600">✓ Health Monitoring</p>
                     {isDevelopment && <p className="text-sm text-green-600">✓ Workflow Testing</p>}
                   </div>
                 </div>
