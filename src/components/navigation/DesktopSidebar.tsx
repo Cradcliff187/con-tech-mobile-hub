@@ -5,12 +5,13 @@ import { Sidebar, SidebarContent, SidebarHeader } from '@/components/ui/sidebar'
 import { Shield, LogOut } from 'lucide-react';
 import { ProfileData } from '@/types/auth';
 import { NavigationItem } from '@/types/navigation';
+import { useSearchParams } from 'react-router-dom';
 
 interface DesktopSidebarProps {
   profile: ProfileData | null;
   navigation: NavigationItem[];
   activeSection: string;
-  onSectionChange: (section: string) => void;
+  onSectionChange: (searchParamsString: string) => void;
   onAdminClick: () => void;
   onSignOut: () => void;
   isAdmin: boolean;
@@ -25,6 +26,18 @@ export const DesktopSidebar = ({
   onSignOut,
   isAdmin
 }: DesktopSidebarProps) => {
+  const [searchParams] = useSearchParams();
+
+  const handleNavigation = (section: string) => {
+    const currentProject = searchParams.get('project');
+    const newParams = new URLSearchParams();
+    newParams.set('section', section);
+    if (currentProject) {
+      newParams.set('project', currentProject);
+    }
+    onSectionChange(newParams.toString());
+  };
+
   return (
     <Sidebar className="hidden lg:flex">
       <SidebarHeader className="p-6 border-b border-slate-200">
@@ -51,7 +64,7 @@ export const DesktopSidebar = ({
             return (
               <button
                 key={item.id}
-                onClick={() => onSectionChange(item.id)}
+                onClick={() => handleNavigation(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                   activeSection === item.id
                     ? 'bg-orange-100 text-orange-800'

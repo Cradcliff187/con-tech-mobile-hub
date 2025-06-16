@@ -39,11 +39,30 @@ const Index = () => {
   const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
 
-  const handleSectionChange = (section: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('section', section);
-    setSearchParams(newParams);
+  const handleSectionChange = (searchParamsString: string) => {
+    setSearchParams(searchParamsString);
     setSidebarOpen(false); // Close sidebar on mobile
+  };
+
+  const handleMobileSectionChange = (section: string) => {
+    const currentProject = searchParams.get('project');
+    const newParams = new URLSearchParams();
+    newParams.set('section', section);
+    if (currentProject) {
+      newParams.set('project', currentProject);
+    }
+    setSearchParams(newParams.toString());
+    setSidebarOpen(false); // Close sidebar on mobile
+  };
+
+  const handleMobileBottomNavigation = (section: string) => {
+    const currentProject = searchParams.get('project');
+    const newParams = new URLSearchParams();
+    newParams.set('section', section);
+    if (currentProject) {
+      newParams.set('project', currentProject);
+    }
+    setSearchParams(newParams.toString());
   };
 
   const navigation: NavigationItem[] = [
@@ -97,7 +116,7 @@ const Index = () => {
             profile={profile}
             navigation={navigation}
             activeSection={activeSection}
-            onSectionChange={handleSectionChange}
+            onSectionChange={handleMobileSectionChange}
             onAdminClick={() => navigate('/admin')}
             onSignOut={signOut}
             onClose={() => setSidebarOpen(false)}
@@ -124,7 +143,7 @@ const Index = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleSectionChange(item.id)}
+                  onClick={() => handleMobileBottomNavigation(item.id)}
                   className={`flex flex-col items-center p-2 rounded-lg ${
                     activeSection === item.id
                       ? 'text-orange-600'
