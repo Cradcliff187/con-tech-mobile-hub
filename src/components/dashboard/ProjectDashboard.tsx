@@ -9,16 +9,32 @@ import { WeatherWidget } from './WeatherWidget';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { ProjectPhaseManager } from '@/components/planning/ProjectPhaseManager';
 import { SystemHealthCheck } from '@/components/debug/SystemHealthCheck';
+import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { useDebugInfo } from '@/hooks/useDebugInfo';
+import { useProjects } from '@/hooks/useProjects';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 export const ProjectDashboard = () => {
   const debugInfo = useDebugInfo();
+  const { projects } = useProjects();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
   const isDevelopment = import.meta.env.DEV;
+
+  const selectedProject = projectId ? projects.find(p => p.id === projectId) : null;
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: 'p',
+      ctrlKey: true,
+      action: () => setIsCreateProjectOpen(true),
+      description: 'Create new project'
+    }
+  ], true);
 
   useEffect(() => {
     console.log('=== PROJECT DASHBOARD DEBUG INFO ===');
@@ -33,13 +49,22 @@ export const ProjectDashboard = () => {
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
           <p className="text-slate-600">Manage your construction projects</p>
         </div>
-        <Button 
-          onClick={() => setIsCreateProjectOpen(true)}
-          className="bg-orange-600 hover:bg-orange-700"
-        >
-          <Plus size={16} className="mr-2" />
-          Create Project
-        </Button>
+        <div className="flex items-center gap-3">
+          {selectedProject && (
+            <ProjectQuickActions 
+              project={selectedProject} 
+              context="dashboard" 
+              variant="compact"
+            />
+          )}
+          <Button 
+            onClick={() => setIsCreateProjectOpen(true)}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            <Plus size={16} className="mr-2" />
+            Create Project
+          </Button>
+        </div>
       </div>
 
       {/* System Health Check - Only in Development */}
@@ -75,6 +100,15 @@ export const ProjectDashboard = () => {
         open={isCreateProjectOpen}
         onOpenChange={setIsCreateProjectOpen}
       />
+
+      {/* Floating Quick Actions for selected project */}
+      {selectedProject && (
+        <ProjectQuickActions 
+          project={selectedProject} 
+          context="dashboard" 
+          variant="floating"
+        />
+      )}
     </div>
   );
 };
