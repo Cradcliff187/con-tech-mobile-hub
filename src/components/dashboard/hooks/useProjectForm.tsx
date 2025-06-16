@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
@@ -6,7 +5,10 @@ import { useToast } from '@/hooks/use-toast';
 interface ProjectFormData {
   name: string;
   description: string;
-  location: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip_code: string;
   budget: string;
   clientId: string;
   status: 'planning' | 'active';
@@ -23,7 +25,10 @@ export const useProjectForm = ({ onClose, defaultValues = {} }: UseProjectFormPr
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
     description: '',
-    location: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip_code: '',
     budget: '',
     clientId: '',
     status: 'planning',
@@ -44,7 +49,10 @@ export const useProjectForm = ({ onClose, defaultValues = {} }: UseProjectFormPr
     setFormData({
       name: '',
       description: '',
-      location: '',
+      street_address: '',
+      city: '',
+      state: '',
+      zip_code: '',
       budget: '',
       clientId: '',
       status: 'planning',
@@ -70,7 +78,13 @@ export const useProjectForm = ({ onClose, defaultValues = {} }: UseProjectFormPr
     const projectData = {
       name: formData.name,
       description: formData.description || undefined,
-      location: formData.location || undefined,
+      street_address: formData.street_address || undefined,
+      city: formData.city || undefined,
+      state: formData.state || undefined,
+      zip_code: formData.zip_code || undefined,
+      // Keep legacy location for backward compatibility during transition
+      location: [formData.street_address, formData.city, formData.state, formData.zip_code]
+        .filter(Boolean).join(', ') || undefined,
       budget: formData.budget ? parseFloat(formData.budget) : undefined,
       client_id: formData.clientId,
       status: formData.status,

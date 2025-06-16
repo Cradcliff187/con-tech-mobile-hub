@@ -7,11 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus } from 'lucide-react';
 import { Stakeholder } from '@/hooks/useStakeholders';
+import { AddressFormFields } from '@/components/common/AddressFormFields';
 
 interface ProjectFormData {
   name: string;
   description: string;
-  location: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip_code: string;
   budget: string;
   clientId: string;
   status: 'planning' | 'active';
@@ -91,12 +95,13 @@ export const ProjectFormFields = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="location">Location</Label>
-        <Input
-          id="location"
-          value={formData.location}
-          onChange={(e) => onInputChange('location', e.target.value)}
-          placeholder="Project site address or location"
+        <Label>Project Location</Label>
+        <AddressFormFields
+          streetAddress={formData.street_address}
+          city={formData.city}
+          state={formData.state}
+          zipCode={formData.zip_code}
+          onFieldChange={onInputChange}
         />
       </div>
       
