@@ -321,6 +321,7 @@ export type Database = {
       projects: {
         Row: {
           budget: number | null
+          city: string | null
           client_id: string | null
           created_at: string | null
           description: string | null
@@ -333,11 +334,15 @@ export type Database = {
           project_manager_id: string | null
           spent: number | null
           start_date: string | null
+          state: string | null
           status: Database["public"]["Enums"]["project_status"] | null
+          street_address: string | null
           updated_at: string | null
+          zip_code: string | null
         }
         Insert: {
           budget?: number | null
+          city?: string | null
           client_id?: string | null
           created_at?: string | null
           description?: string | null
@@ -350,11 +355,15 @@ export type Database = {
           project_manager_id?: string | null
           spent?: number | null
           start_date?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
+          street_address?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Update: {
           budget?: number | null
+          city?: string | null
           client_id?: string | null
           created_at?: string | null
           description?: string | null
@@ -367,8 +376,11 @@ export type Database = {
           project_manager_id?: string | null
           spent?: number | null
           start_date?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
+          street_address?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -676,6 +688,7 @@ export type Database = {
       stakeholders: {
         Row: {
           address: string | null
+          city: string | null
           company_name: string | null
           contact_person: string | null
           created_at: string | null
@@ -690,11 +703,15 @@ export type Database = {
           rating: number | null
           specialties: string[] | null
           stakeholder_type: Database["public"]["Enums"]["stakeholder_type"]
+          state: string | null
           status: Database["public"]["Enums"]["stakeholder_status"] | null
+          street_address: string | null
           updated_at: string | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
+          city?: string | null
           company_name?: string | null
           contact_person?: string | null
           created_at?: string | null
@@ -709,11 +726,15 @@ export type Database = {
           rating?: number | null
           specialties?: string[] | null
           stakeholder_type: Database["public"]["Enums"]["stakeholder_type"]
+          state?: string | null
           status?: Database["public"]["Enums"]["stakeholder_status"] | null
+          street_address?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
+          city?: string | null
           company_name?: string | null
           contact_person?: string | null
           created_at?: string | null
@@ -728,8 +749,11 @@ export type Database = {
           rating?: number | null
           specialties?: string[] | null
           stakeholder_type?: Database["public"]["Enums"]["stakeholder_type"]
+          state?: string | null
           status?: Database["public"]["Enums"]["stakeholder_status"] | null
+          street_address?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {

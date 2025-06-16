@@ -49,7 +49,7 @@ export const AddressMigration = () => {
       // Fetch stakeholders with legacy address data
       const { data: stakeholders, error: stakeholderError } = await supabase
         .from('stakeholders')
-        .select('id, address, street_address, city, state, zip_code')
+        .select('id, address')
         .not('address', 'is', null)
         .neq('address', '');
 
@@ -58,7 +58,7 @@ export const AddressMigration = () => {
       // Fetch projects with legacy location data
       const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select('id, location, street_address, city, state, zip_code')
+        .select('id, location')
         .not('location', 'is', null)
         .neq('location', '');
 
@@ -68,7 +68,7 @@ export const AddressMigration = () => {
 
       // Process stakeholders
       stakeholders?.forEach(stakeholder => {
-        if (stakeholder.address && (!stakeholder.street_address && !stakeholder.city)) {
+        if (stakeholder.address) {
           candidates.push({
             id: stakeholder.id,
             type: 'stakeholder',
@@ -81,7 +81,7 @@ export const AddressMigration = () => {
 
       // Process projects
       projects?.forEach(project => {
-        if (project.location && (!project.street_address && !project.city)) {
+        if (project.location) {
           candidates.push({
             id: project.id,
             type: 'project',
