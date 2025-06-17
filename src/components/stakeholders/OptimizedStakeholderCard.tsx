@@ -44,22 +44,22 @@ export const OptimizedStakeholderCard = memo(({
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-semibold text-slate-800">
+          <div className="flex-1 pr-2">
+            <h3 className="font-semibold text-slate-800 break-words">
               {stakeholder.company_name || 'Unnamed Company'}
             </h3>
             {stakeholder.contact_person && (
-              <p className="text-sm text-slate-600">{stakeholder.contact_person}</p>
+              <p className="text-sm text-slate-600 break-words">{stakeholder.contact_person}</p>
             )}
           </div>
-          <Badge variant={stakeholder.status === 'active' ? 'default' : 'secondary'}>
+          <Badge variant={stakeholder.status === 'active' ? 'default' : 'secondary'} className="flex-shrink-0">
             {stakeholder.status}
           </Badge>
         </div>
       </CardHeader>
       
       <CardContent className="space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className="text-xs">
             {stakeholder.stakeholder_type?.replace('_', ' ')}
           </Badge>
@@ -74,20 +74,20 @@ export const OptimizedStakeholderCard = memo(({
         <div className="space-y-1 text-xs text-slate-600">
           {stakeholder.email && (
             <div className="flex items-center gap-2">
-              <Mail className="h-3 w-3" />
-              <span className="truncate">{stakeholder.email}</span>
+              <Mail className="h-3 w-3 flex-shrink-0" />
+              <span className="break-all">{stakeholder.email}</span>
             </div>
           )}
           {formattedPhone && (
             <div className="flex items-center gap-2">
-              <Phone className="h-3 w-3" />
+              <Phone className="h-3 w-3 flex-shrink-0" />
               <span>{formattedPhone}</span>
             </div>
           )}
           {formattedAddress && (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate">{formattedAddress}</span>
+            <div className="flex items-start gap-2">
+              <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+              <span className="break-words">{formattedAddress}</span>
             </div>
           )}
         </div>

@@ -1,8 +1,9 @@
-
 import { useState, useMemo } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { StakeholderCard } from './StakeholderCard';
+import { StakeholderListView } from './StakeholderListView';
 import { StakeholderFilters } from './StakeholderFilters';
+import { ViewToggle } from './ViewToggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, SortAsc, SortDesc } from 'lucide-react';
@@ -14,6 +15,14 @@ export const StakeholderDirectory = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'rating' | 'type' | 'created'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem('stakeholder-view') as 'grid' | 'list') || 'grid';
+  });
+
+  const handleViewChange = (newView: 'grid' | 'list') => {
+    setView(newView);
+    localStorage.setItem('stakeholder-view', newView);
+  };
 
   const filteredAndSortedStakeholders = useMemo(() => {
     let filtered = stakeholders.filter(stakeholder => {
@@ -111,32 +120,37 @@ export const StakeholderDirectory = () => {
             onStatusFilterChange={setStatusFilter}
           />
           
-          {/* Sort Controls */}
-          <div className="flex gap-2">
-            <Button
-              variant={sortBy === 'name' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('name')}
-              className="min-h-[36px]"
-            >
-              Name {sortBy === 'name' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
-            </Button>
-            <Button
-              variant={sortBy === 'rating' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('rating')}
-              className="min-h-[36px]"
-            >
-              Rating {sortBy === 'rating' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
-            </Button>
-            <Button
-              variant={sortBy === 'type' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('type')}
-              className="min-h-[36px]"
-            >
-              Type {sortBy === 'type' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
-            </Button>
+          <div className="flex items-center gap-4">
+            {/* View Toggle */}
+            <ViewToggle view={view} onViewChange={handleViewChange} />
+            
+            {/* Sort Controls */}
+            <div className="flex gap-2">
+              <Button
+                variant={sortBy === 'name' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('name')}
+                className="min-h-[36px]"
+              >
+                Name {sortBy === 'name' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
+              <Button
+                variant={sortBy === 'rating' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('rating')}
+                className="min-h-[36px]"
+              >
+                Rating {sortBy === 'rating' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
+              <Button
+                variant={sortBy === 'type' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('type')}
+                className="min-h-[36px]"
+              >
+                Type {sortBy === 'type' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -146,12 +160,16 @@ export const StakeholderDirectory = () => {
         Showing {filteredAndSortedStakeholders.length} of {stakeholders.length} stakeholders
       </div>
 
-      {/* Stakeholder Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredAndSortedStakeholders.map((stakeholder) => (
-          <StakeholderCard key={stakeholder.id} stakeholder={stakeholder} />
-        ))}
-      </div>
+      {/* Stakeholder Display */}
+      {view === 'list' ? (
+        <StakeholderListView stakeholders={filteredAndSortedStakeholders} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAndSortedStakeholders.map((stakeholder) => (
+            <StakeholderCard key={stakeholder.id} stakeholder={stakeholder} />
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
       {filteredAndSortedStakeholders.length === 0 && (

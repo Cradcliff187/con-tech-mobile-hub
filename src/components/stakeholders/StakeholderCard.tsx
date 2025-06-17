@@ -123,12 +123,12 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3 className="font-semibold text-slate-800 truncate">
+            <div className="flex-1 pr-2">
+              <h3 className="font-semibold text-slate-800 break-words">
                 {stakeholder.company_name || 'Individual'}
               </h3>
               {stakeholder.contact_person && (
-                <p className="text-sm text-slate-600 truncate">{stakeholder.contact_person}</p>
+                <p className="text-sm text-slate-600 break-words">{stakeholder.contact_person}</p>
               )}
             </div>
             
@@ -137,7 +137,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 w-8 p-0 min-h-[32px]"
+                  className="h-8 w-8 p-0 min-h-[32px] flex-shrink-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreHorizontal size={16} />
@@ -167,7 +167,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
             </DropdownMenu>
           </div>
           
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge className={getTypeColor(stakeholder.stakeholder_type)}>
               {stakeholder.stakeholder_type}
             </Badge>
@@ -184,9 +184,9 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
                 variant="ghost"
                 size="sm"
                 onClick={handlePhoneCall}
-                className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
+                className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600 break-words"
               >
-                <Phone size={16} className="mr-2" />
+                <Phone size={16} className="mr-2 flex-shrink-0" />
                 <span>{formattedPhone}</span>
               </Button>
             </div>
@@ -198,18 +198,18 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
                 variant="ghost"
                 size="sm"
                 onClick={handleEmailSend}
-                className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
+                className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600 break-all"
               >
-                <Mail size={16} className="mr-2" />
-                <span className="truncate">{stakeholder.email}</span>
+                <Mail size={16} className="mr-2 flex-shrink-0" />
+                <span>{stakeholder.email}</span>
               </Button>
             </div>
           )}
           
           {formattedAddress && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <MapPin size={16} />
-              <span className="truncate">{formattedAddress}</span>
+            <div className="flex items-start gap-2 text-sm text-slate-600">
+              <MapPin size={16} className="mt-0.5 flex-shrink-0" />
+              <span className="break-words">{formattedAddress}</span>
             </div>
           )}
           
