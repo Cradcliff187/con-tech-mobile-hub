@@ -1,6 +1,7 @@
 
 import { Task } from '@/types/database';
-import { getTaskPosition, getConstructionPhaseColor, calculateTaskDatesFromEstimate } from './ganttUtils';
+import { getTaskGridPosition, getColumnWidth, calculateTaskDatesFromEstimate } from './ganttUtils';
+import { getConstructionPhaseColor } from './ganttUtils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GanttTimelineBarProps {
@@ -27,7 +28,8 @@ export const GanttTimelineBar = ({
   onDragEnd
 }: GanttTimelineBarProps) => {
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-  const position = getTaskPosition(task, timelineStart, timelineEnd);
+  const gridPosition = getTaskGridPosition(task, timelineStart, timelineEnd, viewMode);
+  const columnWidth = getColumnWidth(viewMode);
   const phaseColor = getConstructionPhaseColor(task);
   
   const handleClick = () => {
@@ -104,12 +106,11 @@ export const GanttTimelineBar = ({
     }
   };
 
-  // Calculate actual width, ensuring minimum visibility
-  const actualWidth = Math.max(parseFloat(config.minWidth.replace('px', '')), (position.width * window.innerWidth) / 100);
-  const displayWidth = position.width < 2 ? '2%' : `${position.width}%`;
-
   const hasActualDates = task.start_date && task.due_date;
   const isOverdue = calculatedEndDate < new Date() && task.status !== 'completed';
+
+  // Calculate actual width based on grid positioning
+  const actualWidth = gridPosition.columnSpan * columnWidth;
 
   return (
     <div className={`relative ${getBarHeight()} flex-1 border-r border-slate-200`}>
@@ -124,8 +125,8 @@ export const GanttTimelineBar = ({
               !hasActualDates ? 'border-2 border-dashed border-white border-opacity-50' : ''
             }`}
             style={{
-              left: `${position.left}%`,
-              width: displayWidth,
+              left: `${gridPosition.startColumnIndex * columnWidth}px`,
+              width: `${gridPosition.columnSpan * columnWidth}px`,
               minWidth: config.minWidth
             }}
             onClick={handleClick}
