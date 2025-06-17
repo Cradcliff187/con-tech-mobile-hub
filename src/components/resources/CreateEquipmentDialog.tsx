@@ -2,246 +2,244 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useProjects } from '@/hooks/useProjects';
-import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar } from 'lucide-react';
+import { EquipmentFormFields } from './equipment/EquipmentFormFields';
+import { AllocationSection } from './equipment/AllocationSection';
+import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 
 interface CreateEquipmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
-export const CreateEquipmentDialog = ({ open, onOpenChange, onSuccess }: CreateEquipmentDialogProps) => {
-  const [name, setName] = useState('');
-  const [type, setType] = useState('');
-  const [status, setStatus] = useState('available');
-  const [projectId, setProjectId] = useState('');
-  const [maintenanceDue, setMaintenanceDue] = useState('');
-  const [allocationStartDate, setAllocationStartDate] = useState('');
-  const [allocationEndDate, setAllocationEndDate] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const { projects } = useProjects();
-  const { createAllocation } = useEquipmentAllocations();
+export const CreateEquipmentDialog = ({
+  open,
+  onOpenChange,
+  onSuccess
+}: CreateEquipmentDialogProps) => {
   const { toast } = useToast();
+  const { createAllocation, getConflictingAllocations } = useEquipmentAllocations();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    type: '',
+    status: 'available',
+    maintenance_due: ''
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !type) {
+  const [allocationData, setAllocationData] = useState({
+    projectId: '',
+    operatorType: 'employee' as 'employee' | 'user',
+    operatorId: '',
+    taskId: '',
+    startDate: '',
+    endDate: '',
+    notes: ''
+  });
+
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [allocateToProject, setAllocateToProject] = useState(false);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: '',
+      status: 'available',
+      maintenance_due: ''
+    });
+    setAllocationData({
+      projectId: '',
+      operatorType: 'employee',
+      operatorId: '',
+      taskId: '',
+      startDate: '',
+      endDate: '',
+      notes: ''
+    });
+    setConflicts([]);
+    setAllocateToProject(false);
+  };
+
+  const checkForConflicts = async (equipmentId: string) => {
+    if (!allocationData.startDate || !allocationData.endDate) return;
+
+    const { conflicts: foundConflicts } = await getConflictingAllocations(
+      equipmentId,
+      allocationData.startDate,
+      allocationData.endDate
+    );
+    setConflicts(foundConflicts || []);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.type) {
       toast({
-        title: "Validation Error",
+        title: "Error",
         description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
-    // Validate allocation dates if project is assigned
-    if (projectId && status === 'in-use') {
-      if (!allocationStartDate || !allocationEndDate) {
+    if (allocateToProject) {
+      if (!allocationData.projectId || !allocationData.operatorId || !allocationData.startDate || !allocationData.endDate) {
         toast({
-          title: "Validation Error",
-          description: "Please specify allocation dates when assigning to a project",
+          title: "Error",
+          description: "Please fill in all allocation fields",
           variant: "destructive"
         });
         return;
       }
 
-      if (new Date(allocationEndDate) <= new Date(allocationStartDate)) {
+      if (conflicts.length > 0) {
         toast({
-          title: "Validation Error",
-          description: "End date must be after start date",
+          title: "Error",
+          description: "Cannot create allocation due to conflicts. Please resolve conflicts first.",
           variant: "destructive"
         });
         return;
       }
     }
 
-    setLoading(true);
-    
+    setIsSubmitting(true);
+
     try {
-      // Create equipment first
-      const { data: equipmentData, error: equipmentError } = await supabase
+      // Create equipment
+      const { data: equipment, error: equipmentError } = await supabase
         .from('equipment')
         .insert({
-          name,
-          type,
-          status,
-          project_id: projectId || null,
-          maintenance_due: maintenanceDue || null,
-          utilization_rate: 0
+          name: formData.name,
+          type: formData.type,
+          status: allocateToProject ? 'in-use' : formData.status,
+          maintenance_due: formData.maintenance_due || null
         })
         .select()
         .single();
 
       if (equipmentError) throw equipmentError;
 
-      // Create allocation if equipment is assigned to project
-      if (projectId && allocationStartDate && allocationEndDate) {
-        const { error: allocationError } = await createAllocation({
-          equipment_id: equipmentData.id,
-          project_id: projectId,
-          start_date: allocationStartDate,
-          end_date: allocationEndDate
+      // Create allocation if requested
+      if (allocateToProject && equipment) {
+        const allocationResult = await createAllocation({
+          equipment_id: equipment.id,
+          project_id: allocationData.projectId,
+          task_id: allocationData.taskId || undefined,
+          operator_type: allocationData.operatorType,
+          operator_id: allocationData.operatorId,
+          start_date: allocationData.startDate,
+          end_date: allocationData.endDate,
+          notes: allocationData.notes || undefined
         });
 
-        if (allocationError) {
-          // Clean up equipment if allocation fails
-          await supabase.from('equipment').delete().eq('id', equipmentData.id);
-          throw allocationError;
+        if (allocationResult.error) {
+          throw new Error(allocationResult.error.message || 'Failed to create allocation');
         }
       }
 
       toast({
         title: "Success",
-        description: "Equipment created successfully"
+        description: `Equipment "${formData.name}" has been created${allocateToProject ? ' and allocated' : ''} successfully`
       });
 
-      // Reset form
-      setName('');
-      setType('');
-      setStatus('available');
-      setProjectId('');
-      setMaintenanceDue('');
-      setAllocationStartDate('');
-      setAllocationEndDate('');
-      
+      resetForm();
+      onSuccess();
       onOpenChange(false);
-      if (onSuccess) onSuccess();
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error creating equipment:', error);
       toast({
-        title: "Error creating equipment",
-        description: error.message || "Failed to create equipment",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create equipment",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Equipment</DialogTitle>
+          <DialogTitle>Add New Equipment</DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Equipment Name *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Excavator CAT 320"
-              required
-            />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="type">Type *</Label>
-            <Input
-              id="type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              placeholder="e.g., Heavy Machinery"
-              required
-            />
-          </div>
+        <div className="space-y-6">
+          <EquipmentFormFields
+            formData={formData}
+            onChange={setFormData}
+            showProjectAssignment={false}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="in-use">In Use</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="out-of-service">Out of Service</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="project">Assigned Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a project (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No Project</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Allocation Dates - shown when project is selected and status is in-use */}
-          {projectId && status === 'in-use' && (
-            <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                <Calendar size={14} />
-                Allocation Period
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="allocationStartDate" className="text-sm">Start Date *</Label>
-                  <Input
-                    id="allocationStartDate"
-                    type="date"
-                    value={allocationStartDate}
-                    onChange={(e) => setAllocationStartDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="allocationEndDate" className="text-sm">End Date *</Label>
-                  <Input
-                    id="allocationEndDate"
-                    type="date"
-                    value={allocationEndDate}
-                    onChange={(e) => setAllocationEndDate(e.target.value)}
-                    min={allocationStartDate || new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                </div>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="allocate-to-project"
+                checked={allocateToProject}
+                onChange={(e) => setAllocateToProject(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="allocate-to-project" className="text-sm font-medium">
+                Allocate to project immediately
+              </label>
             </div>
-          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="maintenanceDue">Maintenance Due Date</Label>
-            <Input
-              id="maintenanceDue"
-              type="date"
-              value={maintenanceDue}
-              onChange={(e) => setMaintenanceDue(e.target.value)}
-            />
+            {allocateToProject && (
+              <AllocationSection
+                projectId={allocationData.projectId}
+                operatorType={allocationData.operatorType}
+                operatorId={allocationData.operatorId}
+                taskId={allocationData.taskId}
+                startDate={allocationData.startDate}
+                endDate={allocationData.endDate}
+                notes={allocationData.notes}
+                onProjectChange={(projectId) => 
+                  setAllocationData(prev => ({ ...prev, projectId }))
+                }
+                onOperatorTypeChange={(operatorType) => 
+                  setAllocationData(prev => ({ ...prev, operatorType, operatorId: '' }))
+                }
+                onOperatorChange={(operatorId) => 
+                  setAllocationData(prev => ({ ...prev, operatorId }))
+                }
+                onTaskChange={(taskId) => 
+                  setAllocationData(prev => ({ ...prev, taskId: taskId || '' }))
+                }
+                onStartDateChange={(startDate) => 
+                  setAllocationData(prev => ({ ...prev, startDate }))
+                }
+                onEndDateChange={(endDate) => 
+                  setAllocationData(prev => ({ ...prev, endDate }))
+                }
+                onNotesChange={(notes) => 
+                  setAllocationData(prev => ({ ...prev, notes }))
+                }
+                conflicts={conflicts}
+                showConflicts={conflicts.length > 0}
+              />
+            )}
           </div>
-          
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Equipment'}
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isSubmitting ? 'Creating...' : 'Create Equipment'}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

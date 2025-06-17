@@ -7,13 +7,20 @@ export interface EquipmentAllocation {
   id: string;
   equipment_id: string;
   project_id: string;
+  task_id?: string;
+  operator_type?: 'employee' | 'user';
+  operator_id?: string;
   start_date: string;
   end_date: string;
   allocated_by?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
   project?: { id: string; name: string };
   equipment?: { id: string; name: string; type: string };
+  task?: { id: string; title: string };
+  operator_stakeholder?: { id: string; contact_person?: string; company_name?: string };
+  operator_user?: { id: string; full_name?: string };
 }
 
 export const useEquipmentAllocations = (equipmentId?: string) => {
@@ -31,7 +38,10 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
         .select(`
           *,
           project:projects(id, name),
-          equipment:equipment(id, name, type)
+          equipment:equipment(id, name, type),
+          task:tasks(id, title),
+          operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
+          operator_user:profiles!operator_id(id, full_name)
         `)
         .order('start_date', { ascending: true });
 
@@ -56,8 +66,12 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   const createAllocation = async (allocationData: {
     equipment_id: string;
     project_id: string;
+    task_id?: string;
+    operator_type?: 'employee' | 'user';
+    operator_id?: string;
     start_date: string;
     end_date: string;
+    notes?: string;
   }) => {
     if (!user) return { error: 'User not authenticated' };
 
@@ -70,7 +84,10 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .select(`
         *,
         project:projects(id, name),
-        equipment:equipment(id, name, type)
+        equipment:equipment(id, name, type),
+        task:tasks(id, title),
+        operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
+        operator_user:profiles!operator_id(id, full_name)
       `)
       .single();
 
@@ -89,7 +106,10 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .select(`
         *,
         project:projects(id, name),
-        equipment:equipment(id, name, type)
+        equipment:equipment(id, name, type),
+        task:tasks(id, title),
+        operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
+        operator_user:profiles!operator_id(id, full_name)
       `)
       .single();
 
@@ -131,6 +151,31 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     return { isAvailable: data, error };
   };
 
+  const getConflictingAllocations = async (
+    equipmentId: string,
+    startDate: string,
+    endDate: string,
+    excludeAllocationId?: string
+  ) => {
+    let query = supabase
+      .from('equipment_allocations')
+      .select(`
+        *,
+        project:projects(id, name),
+        operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
+        operator_user:profiles!operator_id(id, full_name)
+      `)
+      .eq('equipment_id', equipmentId)
+      .or(`start_date.lte.${endDate},end_date.gte.${startDate}`);
+
+    if (excludeAllocationId) {
+      query = query.neq('id', excludeAllocationId);
+    }
+
+    const { data, error } = await query;
+    return { conflicts: data || [], error };
+  };
+
   useEffect(() => {
     fetchAllocations();
   }, [user, equipmentId]);
@@ -142,6 +187,7 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     updateAllocation,
     deleteAllocation,
     checkAvailability,
+    getConflictingAllocations,
     refetch: fetchAllocations
   };
 };

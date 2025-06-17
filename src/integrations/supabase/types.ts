@@ -182,8 +182,12 @@ export type Database = {
           end_date: string
           equipment_id: string
           id: string
+          notes: string | null
+          operator_id: string | null
+          operator_type: string | null
           project_id: string
           start_date: string
+          task_id: string | null
           updated_at: string
         }
         Insert: {
@@ -192,8 +196,12 @@ export type Database = {
           end_date: string
           equipment_id: string
           id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_type?: string | null
           project_id: string
           start_date: string
+          task_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -202,8 +210,12 @@ export type Database = {
           end_date?: string
           equipment_id?: string
           id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_type?: string | null
           project_id?: string
           start_date?: string
+          task_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -219,6 +231,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_allocations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
