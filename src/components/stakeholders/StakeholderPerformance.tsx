@@ -16,27 +16,36 @@ export const StakeholderPerformance = () => {
     .filter(stakeholder => typeFilter === 'all' || stakeholder.stakeholder_type === typeFilter)
     .sort((a, b) => {
       if (sortBy === 'rating') {
+        // Handle null ratings - put them at the end
+        if (a.rating === null && b.rating === null) return 0;
+        if (a.rating === null) return 1;
+        if (b.rating === null) return -1;
         return b.rating - a.rating;
       }
       return (a.company_name || '').localeCompare(b.company_name || '');
     });
 
-  const averageRating = stakeholders.length > 0 
-    ? stakeholders.reduce((sum, s) => sum + s.rating, 0) / stakeholders.length 
+  // Calculate average rating only from stakeholders with ratings
+  const stakeholdersWithRatings = stakeholders.filter(s => s.rating !== null);
+  const averageRating = stakeholdersWithRatings.length > 0 
+    ? stakeholdersWithRatings.reduce((sum, s) => sum + s.rating!, 0) / stakeholdersWithRatings.length 
     : 0;
 
+  // Top performers are those with rating 4.0 or higher
   const topPerformers = stakeholders
-    .filter(s => s.rating >= 4.0)
-    .sort((a, b) => b.rating - a.rating)
+    .filter(s => s.rating !== null && s.rating >= 4.0)
+    .sort((a, b) => b.rating! - a.rating!)
     .slice(0, 5);
 
-  const getPerformanceColor = (rating: number) => {
+  const getPerformanceColor = (rating: number | null) => {
+    if (rating === null) return 'text-slate-400';
     if (rating >= 4.5) return 'text-green-600';
     if (rating >= 3.5) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getPerformanceBadge = (rating: number) => {
+  const getPerformanceBadge = (rating: number | null) => {
+    if (rating === null) return { label: 'No Rating', color: 'bg-slate-100 text-slate-600' };
     if (rating >= 4.5) return { label: 'Excellent', color: 'bg-green-100 text-green-800' };
     if (rating >= 3.5) return { label: 'Good', color: 'bg-yellow-100 text-yellow-800' };
     if (rating >= 2.5) return { label: 'Average', color: 'bg-orange-100 text-orange-800' };
@@ -66,8 +75,12 @@ export const StakeholderPerformance = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <Star className="h-8 w-8 text-yellow-500" />
-              <span className="text-2xl font-bold">{averageRating.toFixed(1)}</span>
-              <span className="text-sm text-slate-500">/ 5.0</span>
+              <span className="text-2xl font-bold">
+                {stakeholdersWithRatings.length > 0 ? averageRating.toFixed(1) : 'N/A'}
+              </span>
+              {stakeholdersWithRatings.length > 0 && (
+                <span className="text-sm text-slate-500">/ 5.0</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -94,6 +107,7 @@ export const StakeholderPerformance = () => {
           </SelectTrigger>
           <SelectContent className="bg-white">
             <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="client">Clients</SelectItem>
             <SelectItem value="subcontractor">Subcontractors</SelectItem>
             <SelectItem value="employee">Employees</SelectItem>
             <SelectItem value="vendor">Vendors</SelectItem>
@@ -147,16 +161,24 @@ export const StakeholderPerformance = () => {
                       <span className="text-sm font-medium">Overall Rating</span>
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <span className={`font-bold ${getPerformanceColor(stakeholder.rating)}`}>
-                          {stakeholder.rating.toFixed(1)}
-                        </span>
-                        <span className="text-sm text-slate-500">/ 5.0</span>
+                        {stakeholder.rating !== null ? (
+                          <>
+                            <span className={`font-bold ${getPerformanceColor(stakeholder.rating)}`}>
+                              {stakeholder.rating.toFixed(1)}
+                            </span>
+                            <span className="text-sm text-slate-500">/ 5.0</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-slate-500">No rating yet</span>
+                        )}
                       </div>
                     </div>
-                    <Progress 
-                      value={(stakeholder.rating / 5) * 100} 
-                      className="h-2"
-                    />
+                    {stakeholder.rating !== null && (
+                      <Progress 
+                        value={(stakeholder.rating / 5) * 100} 
+                        className="h-2"
+                      />
+                    )}
                   </div>
 
                   {/* Specialties */}
