@@ -154,7 +154,7 @@ export const EditEquipmentDialog = ({
       });
 
       if (allocationResult.error) {
-        throw new Error(allocationResult.error.message || 'Failed to create allocation');
+        throw new Error(typeof allocationResult.error === 'string' ? allocationResult.error : allocationResult.error.message || 'Failed to create allocation');
       }
 
       // Update equipment status to in-use
@@ -208,9 +208,14 @@ export const EditEquipmentDialog = ({
 
           <TabsContent value="details" className="space-y-6">
             <EquipmentFormFields
-              formData={formData}
-              onChange={setFormData}
-              showProjectAssignment={false}
+              name={formData.name}
+              setName={(name) => setFormData(prev => ({ ...prev, name }))}
+              type={formData.type}
+              setType={(type) => setFormData(prev => ({ ...prev, type }))}
+              status={formData.status}
+              setStatus={(status) => setFormData(prev => ({ ...prev, status }))}
+              maintenanceDue={formData.maintenance_due}
+              setMaintenanceDue={(maintenance_due) => setFormData(prev => ({ ...prev, maintenance_due }))}
             />
 
             <div className="flex justify-end space-x-3 pt-4 border-t">

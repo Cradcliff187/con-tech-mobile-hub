@@ -52,7 +52,7 @@ export const AllocationSection = ({
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
   const { users } = useUsers();
-  const { tasks } = useTasks(projectId);
+  const { tasks } = useTasks();
 
   const availableOperators = operatorType === 'employee' 
     ? stakeholders.filter(s => s.stakeholder_type === 'employee' && s.status === 'active')

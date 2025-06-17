@@ -54,7 +54,12 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       if (error) {
         console.error('Error fetching equipment allocations:', error);
       } else {
-        setAllocations(data || []);
+        // Type cast the data to ensure proper typing
+        const typedAllocations = (data || []).map(allocation => ({
+          ...allocation,
+          operator_type: allocation.operator_type as 'employee' | 'user' | undefined
+        }));
+        setAllocations(typedAllocations);
       }
     } catch (error) {
       console.error('Error fetching equipment allocations:', error);
@@ -92,7 +97,11 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .single();
 
     if (!error && data) {
-      setAllocations(prev => [...prev, data]);
+      const typedAllocation = {
+        ...data,
+        operator_type: data.operator_type as 'employee' | 'user' | undefined
+      };
+      setAllocations(prev => [...prev, typedAllocation]);
     }
 
     return { data, error };
@@ -114,8 +123,12 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .single();
 
     if (!error && data) {
+      const typedAllocation = {
+        ...data,
+        operator_type: data.operator_type as 'employee' | 'user' | undefined
+      };
       setAllocations(prev => prev.map(allocation => 
-        allocation.id === id ? data : allocation
+        allocation.id === id ? typedAllocation : allocation
       ));
     }
 
