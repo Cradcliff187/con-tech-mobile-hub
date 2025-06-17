@@ -1,6 +1,5 @@
-
 import React, { memo, useCallback, useState } from 'react';
-import { FileText, Image, File, Download, Share, Trash2, Receipt, AlertCircle } from 'lucide-react';
+import { FileText, Image, File, Download, Share, Trash2, Receipt, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +10,8 @@ import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 import { useDialogState } from '@/hooks/useDialogState';
+import { DocumentPreviewDialog } from './DocumentPreviewDialog';
+import { getFileTypeInfo, formatFileSize } from '@/utils/fileTypeHelpers';
 
 interface DocumentRecord {
   id: string;
@@ -42,6 +43,7 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
   const { deleteDocument, downloadDocument, shareDocument } = useDocuments();
   const { toast } = useToast();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
+  const [previewDocument, setPreviewDocument] = useState<DocumentRecord | null>(null);
 
   const downloadOperation = useAsyncOperation({
     successMessage: "Download started successfully",
@@ -58,20 +60,26 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
     errorMessage: "Failed to delete document. Please try again."
   });
 
+  const fileTypeInfo = getFileTypeInfo(doc.file_type, doc.name);
+
   const getFileIcon = (category?: string, fileType?: string) => {
     if (category === 'receipts') {
       return <Receipt className="text-green-600" size={20} />;
     }
     
-    if (category === 'photos' || fileType?.startsWith('image/')) {
-      return <Image className="text-green-500" size={20} />;
+    const typeInfo = getFileTypeInfo(fileType, doc.name);
+    switch (typeInfo.category) {
+      case 'image':
+        return <Image className="text-green-500" size={20} />;
+      case 'pdf':
+        return <FileText className="text-red-500" size={20} />;
+      case 'office':
+        return <FileText className="text-blue-500" size={20} />;
+      case 'text':
+        return <FileText className="text-slate-500" size={20} />;
+      default:
+        return <File className="text-slate-500" size={20} />;
     }
-    
-    if (fileType?.includes('pdf') || category === 'plans' || category === 'permits' || category === 'contracts' || category === 'reports') {
-      return <FileText className="text-red-500" size={20} />;
-    }
-    
-    return <File className="text-slate-500" size={20} />;
   };
 
   const formatFileSize = (bytes?: number) => {
@@ -96,6 +104,10 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
     };
     return categoryMap[category || 'other'] || 'Unknown';
   };
+
+  const handlePreview = useCallback(() => {
+    setPreviewDocument(doc);
+  }, [doc]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -138,6 +150,9 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
                 <span>{getCategoryLabel(doc.category)}</span>
                 <span>{formatFileSize(doc.file_size)}</span>
                 <span>Modified: {new Date(doc.updated_at).toLocaleDateString()}</span>
+                {fileTypeInfo.canPreview && (
+                  <span className="text-green-600 font-medium">Preview Available</span>
+                )}
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
                 <span>Project: {doc.project?.name || 'No project'}</span>
@@ -147,6 +162,18 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
           </div>
           
           <div className="flex items-center gap-2 ml-4">
+            {fileTypeInfo.canPreview && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-1 text-slate-500 hover:text-blue-600 transition-colors duration-200 focus:ring-2 focus:ring-blue-300"
+                onClick={handlePreview}
+                disabled={isLoading}
+                title="Preview document"
+              >
+                <Eye size={16} />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -193,6 +220,15 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
         </div>
       </div>
 
+      {/* Preview Dialog */}
+      <DocumentPreviewDialog
+        document={previewDocument}
+        open={!!previewDocument}
+        onOpenChange={(open) => !open && setPreviewDocument(null)}
+        onDownload={handleDownload}
+      />
+
+      {/* Delete Confirmation Dialog */}
       <ResponsiveDialog
         open={isDialogOpen('delete')}
         onOpenChange={(open) => !open && closeDialog()}

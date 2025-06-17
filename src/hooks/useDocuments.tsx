@@ -234,13 +234,21 @@ export const useDocuments = (projectId?: string) => {
         throw new Error('Failed to generate download link');
       }
 
+      // Create download link with proper filename
       const link = document.createElement('a');
       link.href = data.signedUrl;
       link.download = doc.name;
       link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      
+      // Handle different browsers
+      if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+        // Safari handles downloads differently
+        window.open(data.signedUrl, '_blank');
+      } else {
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
 
       return { error: null };
     } catch (error) {
@@ -281,6 +289,27 @@ export const useDocuments = (projectId?: string) => {
     }
   }, []);
 
+  const previewDocument = useCallback(async (doc: DocumentRecord) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(doc.file_path, 3600);
+
+      if (error) {
+        throw new Error(`Failed to generate preview link: ${error.message}`);
+      }
+
+      if (!data?.signedUrl) {
+        throw new Error('Failed to generate preview link');
+      }
+
+      return { data: { signedUrl: data.signedUrl }, error: null };
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      throw error;
+    }
+  }, []);
+
   return {
     documents,
     loading,
@@ -290,6 +319,7 @@ export const useDocuments = (projectId?: string) => {
     deleteDocument,
     downloadDocument,
     shareDocument,
+    previewDocument,
     refetch: fetchDocuments
   };
 };
