@@ -1,13 +1,13 @@
 
-import { User, AlertTriangle } from 'lucide-react';
+import { User, AlertTriangle, Clock } from 'lucide-react';
 import { Task } from '@/types/database';
 import { CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   getAssigneeName, 
-  formatDateRange, 
-  getCategoryBadgeColor 
+  getCategoryBadgeColor,
+  calculateTaskDatesFromEstimate 
 } from './ganttUtils';
 
 interface GanttTaskCardProps {
@@ -25,7 +25,30 @@ const getPriorityIcon = (priority: string) => {
   }
 };
 
+const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) => {
+  const start = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const end = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  
+  // Calculate duration in days
+  const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const durationText = durationDays === 1 ? '1 day' : `${durationDays} days`;
+  
+  // Show if dates are calculated vs actual
+  const hasActualDates = task.start_date && task.due_date;
+  const indicator = hasActualDates ? '' : ' (calculated)';
+  
+  return {
+    dateRange: `${start} - ${end}`,
+    duration: durationText,
+    isCalculated: !hasActualDates,
+    indicator
+  };
+};
+
 export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: GanttTaskCardProps) => {
+  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+  const dateInfo = formatCalculatedDateRange(calculatedStartDate, calculatedEndDate, task);
+  
   const handleClick = () => {
     if (onSelect) {
       onSelect(task.id);
@@ -84,9 +107,18 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: 
         {/* Progress Bar */}
         <Progress value={task.progress || 0} className="h-2 mb-3" />
         
-        {/* Dates */}
-        <div className="text-xs text-slate-500 mb-2">
-          {formatDateRange(task.start_date, task.due_date)}
+        {/* Enhanced Dates with Duration */}
+        <div className="space-y-1 mb-2">
+          <div className={`text-xs ${dateInfo.isCalculated ? 'text-slate-500' : 'text-slate-700'}`}>
+            {dateInfo.dateRange}{dateInfo.indicator}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-slate-500">
+            <Clock size={12} className="flex-shrink-0" />
+            <span>{dateInfo.duration}</span>
+            {task.estimated_hours && (
+              <span className="ml-2">• {task.estimated_hours}h estimated</span>
+            )}
+          </div>
         </div>
 
         {/* Required Skills */}
