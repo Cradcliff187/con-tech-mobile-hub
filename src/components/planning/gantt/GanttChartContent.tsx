@@ -1,12 +1,12 @@
+
 import { Task } from '@/types/database';
 import { GanttTimelineHeader } from './GanttTimelineHeader';
-import { GanttTaskCard } from './GanttTaskCard';
-import { GanttTimelineBar } from './GanttTimelineBar';
+import { GanttTaskRow } from './GanttTaskRow';
+import { GanttProgressIndicator } from './GanttProgressIndicator';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { VirtualScrollGantt } from './navigation/VirtualScrollGantt';
 import { GanttOverlayManager } from './overlays/GanttOverlayManager';
-import { useRef, useEffect, useState, useMemo } from 'react';
-import { getColumnIndexForDate } from './ganttUtils';
+import { useRef, useEffect, useState } from 'react';
 
 interface GanttChartContentProps {
   displayTasks: Task[];
@@ -55,63 +55,6 @@ export const GanttChartContent = ({
 }: GanttChartContentProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
-
-  // Generate timeline units based on view mode (same logic as GanttTimelineHeader)
-  const timelineUnits = useMemo(() => {
-    const units = [];
-    const current = new Date(timelineStart);
-    
-    while (current <= timelineEnd) {
-      switch (viewMode) {
-        case 'days':
-          units.push({
-            key: current.getTime(),
-            label: current.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric'
-            }),
-            isWeekend: current.getDay() === 0 || current.getDay() === 6
-          });
-          current.setDate(current.getDate() + 1);
-          break;
-          
-        case 'weeks':
-          // Start of week (Sunday)
-          const weekStart = new Date(current);
-          weekStart.setDate(current.getDate() - current.getDay());
-          units.push({
-            key: weekStart.getTime(),
-            label: weekStart.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric'
-            }),
-            isWeekend: false
-          });
-          current.setDate(current.getDate() + 7);
-          break;
-          
-        case 'months':
-          units.push({
-            key: current.getTime(),
-            label: current.toLocaleDateString('en-US', { 
-              month: 'short',
-              year: 'numeric'
-            }),
-            isWeekend: false
-          });
-          current.setMonth(current.getMonth() + 1);
-          break;
-      }
-    }
-    
-    return units;
-  }, [timelineStart, timelineEnd, viewMode]);
-
-  // Calculate which column contains today's date
-  const todayColumnIndex = useMemo(() => {
-    const today = new Date();
-    return getColumnIndexForDate(today, timelineUnits, viewMode);
-  }, [timelineUnits, viewMode]);
 
   // Use virtual scrolling for large task lists (>50 tasks)
   useEffect(() => {
@@ -227,73 +170,25 @@ export const GanttChartContent = ({
         onDrop={onDrop}
       >
         {displayTasks.map((task, index) => (
-          <div key={task.id} className="flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
-            {/* Task Card */}
-            <div className="w-80 lg:w-96 border-r border-slate-200">
-              <GanttTaskCard
-                task={task}
-                isSelected={selectedTaskId === task.id}
-                onSelect={onTaskSelect}
-                viewMode={viewMode}
-              />
-            </div>
-
-            {/* Timeline Area */}
-            <div className="flex-1 relative">
-              {/* Timeline Grid Background - Fixed scroll sync */}
-              <div className="absolute inset-0 z-0 pointer-events-none">
-                <div className="min-w-max flex h-full">
-                  {timelineUnits.map((unit, unitIndex) => {
-                    const isCurrentColumn = unitIndex === todayColumnIndex;
-                    const isWeekendColumn = viewMode === 'days' && unit.isWeekend;
-                    
-                    return (
-                      <div
-                        key={unit.key}
-                        className={`flex-shrink-0 border-r border-slate-100 h-full ${
-                          viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
-                        } ${
-                          isCurrentColumn ? 'bg-blue-50 bg-opacity-50' : ''
-                        } ${
-                          isWeekendColumn ? 'bg-slate-50' : ''
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div 
-                ref={index === 0 ? scrollContainerRef : undefined}
-                className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 relative z-10"
-              >
-                <div className="min-w-max relative">
-                  <GanttTimelineBar
-                    task={task}
-                    timelineStart={timelineStart}
-                    timelineEnd={timelineEnd}
-                    isSelected={selectedTaskId === task.id}
-                    onSelect={onTaskSelect}
-                    viewMode={viewMode}
-                    isDragging={draggedTaskId === task.id}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEnd}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <GanttTaskRow
+            key={task.id}
+            task={task}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={onTaskSelect}
+            viewMode={viewMode}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            isDragging={isDragging}
+            draggedTaskId={draggedTaskId}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            isFirstRow={index === 0}
+            scrollContainerRef={scrollContainerRef}
+          />
         ))}
 
         {/* Construction Project Progress Indicator */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-slate-200">
-          <div 
-            className="h-full bg-gradient-to-r from-blue-500 via-orange-500 to-green-500 transition-all duration-500"
-            style={{ 
-              width: `${Math.min(100, (displayTasks.filter(t => t.status === 'completed').length / displayTasks.length) * 100)}%` 
-            }}
-          />
-        </div>
+        <GanttProgressIndicator tasks={displayTasks} />
 
         {/* Enhanced Overlay Manager with full drag integration */}
         <GanttOverlayManager
