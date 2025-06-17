@@ -51,7 +51,7 @@ export const useImprovedTaskSubscription = ({
 
     // Create subscription callback
     const handleTaskUpdate: SubscriptionCallback = (payload) => {
-      console.log('Task real-time update:', payload.eventType, payload.new?.id || payload.old?.id);
+      console.log('Task real-time update:', payload.eventType, payload.new?.id || (payload.old as any)?.id);
 
       if (payload.eventType === 'INSERT' && payload.new) {
         const newTask = mapTaskFromDb(payload.new);
