@@ -12,6 +12,9 @@ interface GanttTimelineBarProps {
   task: Task;
   timelineStart: Date;
   timelineEnd: Date;
+  isSelected?: boolean;
+  onSelect?: (taskId: string) => void;
+  viewMode?: 'days' | 'weeks' | 'months';
 }
 
 const getStatusIcon = (status: string) => {
@@ -24,8 +27,22 @@ const getStatusIcon = (status: string) => {
   }
 };
 
-export const GanttTimelineBar = ({ task, timelineStart, timelineEnd }: GanttTimelineBarProps) => {
+export const GanttTimelineBar = ({ 
+  task, 
+  timelineStart, 
+  timelineEnd, 
+  isSelected = false, 
+  onSelect,
+  viewMode = 'weeks'
+}: GanttTimelineBarProps) => {
   const position = getTaskPosition(task, timelineStart, timelineEnd);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(task.id);
+    }
+  };
 
   return (
     <div className="flex-1 relative py-4 px-2 min-h-[120px]">
@@ -33,11 +50,18 @@ export const GanttTimelineBar = ({ task, timelineStart, timelineEnd }: GanttTime
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              className={`absolute inset-y-0 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer group ${getConstructionPhaseColor(task)}`}
+              className={`absolute inset-y-0 rounded-lg shadow-sm transition-all group ${
+                onSelect ? 'cursor-pointer' : ''
+              } ${
+                isSelected 
+                  ? 'ring-2 ring-blue-400 shadow-md' 
+                  : 'hover:shadow-md'
+              } ${getConstructionPhaseColor(task)}`}
               style={{
                 left: `${position.left}%`,
                 width: `${Math.max(3, position.width)}%`
               }}
+              onClick={handleClick}
             >
               {/* Progress overlay */}
               {task.progress && task.progress > 0 && (
@@ -80,6 +104,7 @@ export const GanttTimelineBar = ({ task, timelineStart, timelineEnd }: GanttTime
               <div>Progress: {task.progress || 0}%</div>
               <div>Status: {task.status}</div>
               <div>Category: {task.category || 'General'}</div>
+              {isSelected && <div className="text-blue-400 font-medium">Selected</div>}
             </div>
           </TooltipContent>
         </Tooltip>

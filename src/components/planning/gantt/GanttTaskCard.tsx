@@ -12,6 +12,8 @@ import {
 
 interface GanttTaskCardProps {
   task: Task;
+  isSelected?: boolean;
+  onSelect?: (taskId: string) => void;
 }
 
 const getPriorityIcon = (priority: string) => {
@@ -22,15 +24,32 @@ const getPriorityIcon = (priority: string) => {
   }
 };
 
-export const GanttTaskCard = ({ task }: GanttTaskCardProps) => {
+export const GanttTaskCard = ({ task, isSelected = false, onSelect }: GanttTaskCardProps) => {
+  const handleClick = () => {
+    if (onSelect) {
+      onSelect(task.id);
+    }
+  };
+
   return (
-    <div className="w-80 lg:w-96 border-r border-slate-200">
+    <div 
+      className={`w-80 lg:w-96 border-r border-slate-200 transition-all ${
+        onSelect ? 'cursor-pointer' : ''
+      } ${
+        isSelected 
+          ? 'ring-2 ring-blue-400 bg-blue-50' 
+          : 'hover:bg-slate-25'
+      }`}
+      onClick={handleClick}
+    >
       <CardContent className="p-4">
         {/* Priority + Title */}
         <div className="flex items-start gap-2 mb-3">
           {getPriorityIcon(task.priority)}
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight">
+            <h4 className={`text-sm font-semibold line-clamp-2 leading-tight ${
+              isSelected ? 'text-blue-800' : 'text-slate-800'
+            }`}>
               {task.title}
             </h4>
           </div>
@@ -56,7 +75,9 @@ export const GanttTaskCard = ({ task }: GanttTaskCardProps) => {
             <User size={12} className="flex-shrink-0" />
             <span className="truncate">{getAssigneeName(task)}</span>
           </div>
-          <span className="text-sm font-semibold text-slate-800">{task.progress || 0}%</span>
+          <span className={`text-sm font-semibold ${
+            isSelected ? 'text-blue-800' : 'text-slate-800'
+          }`}>{task.progress || 0}%</span>
         </div>
         
         {/* Progress Bar */}

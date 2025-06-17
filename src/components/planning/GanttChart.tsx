@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { Calendar, Clock, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
@@ -9,7 +10,9 @@ import { GanttTimelineHeader } from './gantt/GanttTimelineHeader';
 import { GanttTaskCard } from './gantt/GanttTaskCard';
 import { GanttTimelineBar } from './gantt/GanttTimelineBar';
 import { GanttLegend } from './gantt/GanttLegend';
-import { getDaysBetween } from './gantt/ganttUtils';
+import { GanttControls } from './gantt/GanttControls';
+import { GanttStats } from './gantt/GanttStats';
+import { getDaysBetween, getAssigneeName } from './gantt/ganttUtils';
 
 interface GanttChartProps {
   projectId: string;
@@ -20,18 +23,35 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
   const [timelineStart, setTimelineStart] = useState<Date>(new Date());
   const [timelineEnd, setTimelineEnd] = useState<Date>(new Date());
   const [projectTasks, setProjectTasks] = useState<Task[]>([]);
+  
+  // Interactive state
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<{
+    status: string[];
+    priority: string[];
+    category: string[];
+    phase: string[];
+  }>({
+    status: [],
+    priority: [],
+    category: [],
+    phase: []
+  });
+  const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('weeks');
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     // Filter tasks for the selected project
-    const filteredTasks = projectId && projectId !== 'all' 
+    const filtered = projectId && projectId !== 'all' 
       ? tasks.filter(task => task.project_id === projectId)
       : tasks;
     
-    if (filteredTasks.length > 0) {
-      setProjectTasks(filteredTasks);
+    if (filtered.length > 0) {
+      setProjectTasks(filtered);
 
       // Calculate timeline bounds using actual task dates
-      const tasksWithDates = filteredTasks.filter(task => task.start_date || task.due_date);
+      const tasksWithDates = filtered.filter(task => task.start_date || task.due_date);
       
       if (tasksWithDates.length > 0) {
         const allDates = tasksWithDates.flatMap(task => [
@@ -43,9 +63,10 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
           const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
           const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
           
-          // Add padding
-          minDate.setDate(minDate.getDate() - 7);
-          maxDate.setDate(maxDate.getDate() + 7);
+          // Add padding based on view mode
+          const padding = viewMode === 'days' ? 3 : viewMode === 'weeks' ? 7 : 30;
+          minDate.setDate(minDate.getDate() - padding);
+          maxDate.setDate(maxDate.getDate() + padding);
           
           setTimelineStart(minDate);
           setTimelineEnd(maxDate);
@@ -54,7 +75,58 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     } else {
       setProjectTasks([]);
     }
-  }, [tasks, projectId]);
+  }, [tasks, projectId, viewMode]);
+
+  // Apply search and filters
+  useEffect(() => {
+    let filtered = [...projectTasks];
+    
+    // Apply search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(task => 
+        task.title.toLowerCase().includes(query) ||
+        (task.description && task.description.toLowerCase().includes(query)) ||
+        getAssigneeName(task).toLowerCase().includes(query) ||
+        (task.category && task.category.toLowerCase().includes(query))
+      );
+    }
+    
+    // Apply filters (AND logic)
+    if (filters.status.length > 0) {
+      filtered = filtered.filter(task => filters.status.includes(task.status));
+    }
+    
+    if (filters.priority.length > 0) {
+      filtered = filtered.filter(task => filters.priority.includes(task.priority));
+    }
+    
+    if (filters.category.length > 0) {
+      filtered = filtered.filter(task => 
+        task.category && filters.category.some(cat => 
+          task.category!.toLowerCase().includes(cat.toLowerCase())
+        )
+      );
+    }
+    
+    // Phase filtering is complex since it's not directly stored on tasks
+    // For now, we'll skip it but the infrastructure is there
+    
+    setFilteredTasks(filtered);
+  }, [projectTasks, searchQuery, filters]);
+
+  // Handle task selection
+  const handleTaskSelect = (taskId: string) => {
+    setSelectedTaskId(selectedTaskId === taskId ? null : taskId);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filterType: string, values: string[]) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: values
+    }));
+  };
 
   // Handle loading state
   if (loading) {
@@ -91,7 +163,7 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     );
   }
 
-  const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+  const completedTasks = filteredTasks.filter(t => t.status === 'completed').length;
   const totalDays = getDaysBetween(timelineStart, timelineEnd);
 
   return (
@@ -111,26 +183,55 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
             </div>
             <div className="flex items-center gap-2">
               <Wrench size={16} className="text-purple-600" />
-              <span>{projectTasks.filter(t => t.task_type === 'punch_list').length} punch list</span>
+              <span>{filteredTasks.filter(t => t.task_type === 'punch_list').length} punch list</span>
             </div>
           </div>
         </div>
 
+        {/* Interactive Controls */}
+        <GanttControls
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+
+        {/* Summary Statistics */}
+        <GanttStats tasks={filteredTasks} />
+
+        {/* Gantt Chart */}
         <Card className="border-slate-200 overflow-hidden">
           <GanttTimelineHeader timelineStart={timelineStart} timelineEnd={timelineEnd} />
 
           {/* Enhanced Tasks */}
           <div className="max-h-[600px] overflow-y-auto">
-            {projectTasks.map((task, index) => (
-              <div key={task.id} className={`flex border-b border-slate-200 hover:bg-slate-25 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                <GanttTaskCard task={task} />
-                <GanttTimelineBar 
-                  task={task} 
-                  timelineStart={timelineStart} 
-                  timelineEnd={timelineEnd} 
-                />
+            {filteredTasks.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <Calendar size={32} className="mx-auto mb-2 text-slate-400" />
+                <p>No tasks match your search and filter criteria.</p>
+                <p className="text-sm">Try adjusting your filters or search terms.</p>
               </div>
-            ))}
+            ) : (
+              filteredTasks.map((task, index) => (
+                <div key={task.id} className={`flex border-b border-slate-200 hover:bg-slate-25 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                  <GanttTaskCard 
+                    task={task} 
+                    isSelected={selectedTaskId === task.id}
+                    onSelect={handleTaskSelect}
+                  />
+                  <GanttTimelineBar 
+                    task={task} 
+                    timelineStart={timelineStart} 
+                    timelineEnd={timelineEnd}
+                    isSelected={selectedTaskId === task.id}
+                    onSelect={handleTaskSelect}
+                    viewMode={viewMode}
+                  />
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
