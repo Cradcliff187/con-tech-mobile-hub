@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -6,6 +5,7 @@ import { useDragAndDrop } from './useDragAndDrop';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
 import { useGanttFilters } from './hooks/useGanttFilters';
 import { useTaskProcessing } from './hooks/useTaskProcessing';
+import { useDebugMode } from './hooks/useDebugMode';
 
 interface UseGanttChartProps {
   projectId: string;
@@ -20,6 +20,15 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   // Interactive state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('weeks');
+
+  // Debug mode functionality
+  const {
+    isDebugMode,
+    debugPreferences,
+    toggleDebugMode,
+    updateDebugPreference,
+    isDevelopment
+  } = useDebugMode();
 
   // Get selected project data
   const selectedProject = projectId && projectId !== 'all' 
@@ -60,6 +69,8 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     const updateTimelineRect = () => {
       if (timelineRef.current) {
         setTimelineRect(timelineRef.current.getBoundingClientRect());
+        // Add data attribute for debug overlay
+        timelineRef.current.setAttribute('data-timeline-container', 'true');
       }
     };
 
@@ -112,6 +123,13 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     handleFilterChange,
     
     // Drag and Drop
-    dragAndDrop
+    dragAndDrop,
+
+    // Debug Mode
+    isDebugMode,
+    debugPreferences,
+    toggleDebugMode,
+    updateDebugPreference,
+    isDevelopment
   };
 };

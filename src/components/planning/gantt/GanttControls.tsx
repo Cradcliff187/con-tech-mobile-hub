@@ -1,5 +1,4 @@
-
-import { Search, Filter, Calendar, Clock, BarChart3 } from 'lucide-react';
+import { Search, Filter, Calendar, Clock, BarChart3, Bug } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,10 @@ interface GanttControlsProps {
   onFilterChange: (filterType: string, values: string[]) => void;
   viewMode: 'days' | 'weeks' | 'months';
   onViewModeChange: (mode: 'days' | 'weeks' | 'months') => void;
+  // Debug mode props
+  isDebugMode?: boolean;
+  onToggleDebugMode?: () => void;
+  isDevelopment?: boolean;
 }
 
 export const GanttControls = ({
@@ -32,7 +35,10 @@ export const GanttControls = ({
   filters,
   onFilterChange,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  isDebugMode = false,
+  onToggleDebugMode,
+  isDevelopment = false
 }: GanttControlsProps) => {
   
   const getActiveFilterCount = () => {
@@ -114,6 +120,28 @@ export const GanttControls = ({
           ))}
         </div>
       </div>
+
+      {/* Debug Toggle - Development Only */}
+      {isDevelopment && onToggleDebugMode && (
+        <Button
+          variant={isDebugMode ? "destructive" : "outline"}
+          size="sm"
+          onClick={onToggleDebugMode}
+          className="relative min-h-[44px] touch-manipulation"
+          title="Toggle debug overlay (Development only)"
+        >
+          <Bug size={16} className="mr-2" />
+          <span className="hidden sm:inline">Debug</span>
+          {isDebugMode && (
+            <Badge 
+              variant="secondary" 
+              className="ml-2 px-1.5 py-0.5 text-xs bg-red-600 text-white hover:bg-red-700"
+            >
+              ON
+            </Badge>
+          )}
+        </Button>
+      )}
 
       {/* Enhanced Filters */}
       <DropdownMenu>
