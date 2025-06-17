@@ -28,26 +28,37 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const processAllocationData = (rawData: any): EquipmentAllocation => {
+  const fetchOperatorDetails = async (allocation: any) => {
+    let operator_stakeholder = null;
+    let operator_user = null;
+
+    if (allocation.operator_id && allocation.operator_type) {
+      if (allocation.operator_type === 'employee') {
+        const { data: stakeholder } = await supabase
+          .from('stakeholders')
+          .select('id, contact_person, company_name')
+          .eq('id', allocation.operator_id)
+          .single();
+        operator_stakeholder = stakeholder;
+      } else if (allocation.operator_type === 'user') {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('id', allocation.operator_id)
+          .single();
+        operator_user = userProfile;
+      }
+    }
+
     return {
-      ...rawData,
-      operator_type: rawData.operator_type as 'employee' | 'user' | null,
-      operator_stakeholder: rawData.operator_stakeholder && !('error' in rawData.operator_stakeholder) 
-        ? rawData.operator_stakeholder 
-        : null,
-      operator_user: rawData.operator_user && !('error' in rawData.operator_user) 
-        ? rawData.operator_user 
-        : null,
-      project: rawData.project && !('error' in rawData.project) 
-        ? rawData.project 
-        : null,
-      equipment: rawData.equipment && !('error' in rawData.equipment) 
-        ? rawData.equipment 
-        : null,
-      task: rawData.task && !('error' in rawData.task) 
-        ? rawData.task 
-        : null
+      ...allocation,
+      operator_stakeholder,
+      operator_user
     };
+  };
+
+  const processAllocationData = async (rawData: any): Promise<EquipmentAllocation> => {
+    return await fetchOperatorDetails(rawData);
   };
 
   const fetchAllocations = async () => {
@@ -59,11 +70,9 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
         .from('equipment_allocations')
         .select(`
           *,
-          project:projects(id, name),
+          project:projects!inner(id, name),
           equipment:equipment(id, name, type),
-          task:tasks(id, title),
-          operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
-          operator_user:profiles!operator_id(id, full_name)
+          task:tasks(id, title)
         `)
         .order('start_date', { ascending: true });
 
@@ -76,7 +85,10 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       if (error) {
         console.error('Error fetching equipment allocations:', error);
       } else {
-        const processedData = (data || []).map(processAllocationData);
+        // Process allocations with operator details
+        const processedData = await Promise.all(
+          (data || []).map(allocation => processAllocationData(allocation))
+        );
         setAllocations(processedData);
       }
     } catch (error) {
@@ -106,16 +118,14 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       })
       .select(`
         *,
-        project:projects(id, name),
+        project:projects!inner(id, name),
         equipment:equipment(id, name, type),
-        task:tasks(id, title),
-        operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
-        operator_user:profiles!operator_id(id, full_name)
+        task:tasks(id, title)
       `)
       .single();
 
     if (!error && data) {
-      const processedAllocation = processAllocationData(data);
+      const processedAllocation = await processAllocationData(data);
       setAllocations(prev => [...prev, processedAllocation]);
     }
 
@@ -129,16 +139,14 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .eq('id', id)
       .select(`
         *,
-        project:projects(id, name),
+        project:projects!inner(id, name),
         equipment:equipment(id, name, type),
-        task:tasks(id, title),
-        operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
-        operator_user:profiles!operator_id(id, full_name)
+        task:tasks(id, title)
       `)
       .single();
 
     if (!error && data) {
-      const processedAllocation = processAllocationData(data);
+      const processedAllocation = await processAllocationData(data);
       setAllocations(prev => prev.map(allocation => 
         allocation.id === id ? processedAllocation : allocation
       ));
@@ -186,9 +194,7 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .from('equipment_allocations')
       .select(`
         *,
-        project:projects(id, name),
-        operator_stakeholder:stakeholders!operator_id(id, contact_person, company_name),
-        operator_user:profiles!operator_id(id, full_name)
+        project:projects!inner(id, name)
       `)
       .eq('equipment_id', equipmentId)
       .or(`start_date.lte.${endDate},end_date.gte.${startDate}`);
@@ -199,7 +205,10 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
 
     const { data, error } = await query;
     
-    const processedConflicts = (data || []).map(processAllocationData);
+    // Process conflicts with operator details
+    const processedConflicts = await Promise.all(
+      (data || []).map(allocation => processAllocationData(allocation))
+    );
     return { conflicts: processedConflicts, error };
   };
 
