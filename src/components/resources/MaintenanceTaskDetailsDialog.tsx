@@ -3,19 +3,7 @@ import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Clock, User, Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
-
-interface MaintenanceTask {
-  id: string;
-  equipmentId: string;
-  equipmentName: string;
-  type: 'routine' | 'repair' | 'inspection';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  scheduledDate: string;
-  estimatedHours: number;
-  assignedTo?: string;
-  status: 'scheduled' | 'in-progress' | 'completed' | 'overdue';
-  description: string;
-}
+import { MaintenanceTask } from './maintenance/types';
 
 interface MaintenanceTaskDetailsDialogProps {
   open: boolean;
