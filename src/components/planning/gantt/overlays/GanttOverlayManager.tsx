@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Settings } from 'lucide-react';
 import { 
   MarkerData, 
-  TimelineBounds,
   batchMarkerUpdates,
   resolveMarkerCollisions,
-  isMarkerVisible
+  isMarkerVisible,
+  MARKER_ZONES
 } from '../utils/overlayUtils';
 import { GanttMilestoneMarkers } from './GanttMilestoneMarkers';
 import { GanttWeatherMarkers } from './GanttWeatherMarkers';
@@ -48,40 +48,19 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
   });
   const [showControls, setShowControls] = useState(false);
 
-  // Create timeline bounds for consistent positioning
-  const timelineBounds: TimelineBounds = useMemo(() => ({
-    start: timelineStart,
-    end: timelineEnd,
-    totalDays: Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
-  }), [timelineStart, timelineEnd]);
-
   // Collect all markers from different sources
   const allMarkers = useMemo(() => {
     const markers: MarkerData[] = [];
-
-    // Add milestone markers
-    if (overlayControls.milestones && projectId) {
-      // This will be populated by the milestone component
-    }
-
-    // Add weather markers
-    if (overlayControls.weather) {
-      // This will be populated by the weather component
-    }
-
-    // Add conflict markers
-    if (overlayControls.conflicts) {
-      // This will be populated by the conflict component
-    }
-
+    // Note: Individual marker components now handle their own positioning
+    // This could be enhanced to collect markers from all sources for unified collision detection
     return markers;
-  }, [tasks, timelineBounds, overlayControls, projectId]);
+  }, [tasks, timelineStart, timelineEnd, overlayControls, projectId]);
 
   // Process markers for positioning and collision resolution
   const processedMarkers = useMemo(() => {
-    const withPositions = batchMarkerUpdates(allMarkers, timelineBounds);
+    const withPositions = batchMarkerUpdates(allMarkers, timelineStart, timelineEnd, viewMode);
     return resolveMarkerCollisions(withPositions);
-  }, [allMarkers, timelineBounds]);
+  }, [allMarkers, timelineStart, timelineEnd, viewMode]);
 
   // Filter visible markers for performance
   const visibleMarkers = useMemo(() => {
@@ -153,11 +132,11 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
         </div>
       </div>
 
-      {/* Unified Overlay Layers */}
+      {/* Unified Overlay Layers with proper z-index management */}
       <div className="absolute inset-0">
         {/* Layer 1: Critical Path Background (z-10) */}
         {overlayControls.criticalPath && (
-          <div className="absolute inset-0" style={{ zIndex: 10 }}>
+          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.BACKGROUND.zIndex }}>
             <GanttCriticalPathOverlay
               tasks={tasks}
               timelineStart={timelineStart}
@@ -169,7 +148,7 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
 
         {/* Layer 2: Weather Overlays (z-20) */}
         {overlayControls.weather && (
-          <div className="absolute inset-0" style={{ zIndex: 20 }}>
+          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.TERTIARY.zIndex }}>
             <GanttWeatherMarkers
               timelineStart={timelineStart}
               timelineEnd={timelineEnd}
@@ -180,7 +159,7 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
 
         {/* Layer 3: Resource Conflicts (z-30) */}
         {overlayControls.conflicts && (
-          <div className="absolute inset-0" style={{ zIndex: 30 }}>
+          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.SECONDARY.zIndex }}>
             <GanttResourceConflictMarkers
               tasks={tasks}
               timelineStart={timelineStart}
@@ -191,7 +170,7 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
 
         {/* Layer 4: Milestones (z-40) - Highest Priority */}
         {overlayControls.milestones && projectId && (
-          <div className="absolute inset-0" style={{ zIndex: 40 }}>
+          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.PRIMARY.zIndex }}>
             <GanttMilestoneMarkers
               projectId={projectId}
               timelineStart={timelineStart}
@@ -201,7 +180,7 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
           </div>
         )}
 
-        {/* Unified Marker Renderer */}
+        {/* Unified Marker Renderer for additional markers */}
         <div className="absolute inset-0" style={{ zIndex: 50 }}>
           {visibleMarkers.map(marker => (
             <Tooltip key={marker.id}>
@@ -242,6 +221,8 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs p-2 rounded pointer-events-auto">
           Markers: {visibleMarkers.length}/{processedMarkers.length}
+          <div>Timeline: {timelineStart.toLocaleDateString()} - {timelineEnd.toLocaleDateString()}</div>
+          <div>View Mode: {viewMode}</div>
         </div>
       )}
     </div>

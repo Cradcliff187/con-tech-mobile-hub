@@ -2,7 +2,7 @@
 import { AlertTriangle, Users, Wrench } from 'lucide-react';
 import { Task } from '@/types/database';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { calculateTimelinePosition, TimelineBounds } from '../utils/overlayUtils';
+import { getMarkerPosition, getMarkerVerticalPosition, getMarkerColor } from '../utils/overlayUtils';
 import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
 
 interface GanttResourceConflictMarkersProps {
@@ -72,12 +72,6 @@ export const GanttResourceConflictMarkers = ({
 }: GanttResourceConflictMarkersProps) => {
   const conflicts = detectResourceConflicts(tasks);
 
-  const timelineBounds: TimelineBounds = {
-    start: timelineStart,
-    end: timelineEnd,
-    totalDays: Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
-  };
-
   const getConflictIcon = (type: string) => {
     switch (type) {
       case 'personnel': return <Users size={8} className="text-red-600" />;
@@ -87,17 +81,10 @@ export const GanttResourceConflictMarkers = ({
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'bg-red-500 border-red-600';
-      case 'medium': return 'bg-orange-500 border-orange-600';
-      case 'low': return 'bg-yellow-500 border-yellow-600';
-      default: return 'bg-gray-500 border-gray-600';
-    }
-  };
-
+  // Filter visible conflicts using standardized positioning
   const visibleConflicts = conflicts.filter(conflict => {
-    return conflict.date >= timelineStart && conflict.date <= timelineEnd;
+    const position = getMarkerPosition(conflict.date, timelineStart, timelineEnd);
+    return position.isVisible;
   });
 
   if (visibleConflicts.length === 0) return null;
@@ -105,16 +92,22 @@ export const GanttResourceConflictMarkers = ({
   return (
     <div className="absolute top-0 bottom-0 left-0 right-0">
       {visibleConflicts.map(conflict => {
-        const position = calculateTimelinePosition(conflict.date, timelineBounds);
+        const position = getMarkerPosition(conflict.date, timelineStart, timelineEnd);
+        const verticalPos = getMarkerVerticalPosition('conflict');
+        const colorClass = getMarkerColor('conflict', conflict.severity);
         
         return (
           <Tooltip key={conflict.id}>
             <TooltipTrigger asChild>
               <div
-                className="absolute top-8 pointer-events-auto"
-                style={{ left: `${position}%` }}
+                className="absolute pointer-events-auto"
+                style={{ 
+                  left: `${position.left}%`,
+                  top: `${verticalPos.top}px`,
+                  zIndex: verticalPos.zIndex
+                }}
               >
-                <div className={`w-3 h-3 rounded-full ${getSeverityColor(conflict.severity)} flex items-center justify-center shadow-sm border-2 border-white animate-pulse`}>
+                <div className={`w-3 h-3 rounded-full ${colorClass} flex items-center justify-center shadow-sm border-2 border-white animate-pulse`}>
                   {getConflictIcon(conflict.type)}
                 </div>
               </div>

@@ -2,7 +2,7 @@
 import { Calendar, Flag, AlertTriangle } from 'lucide-react';
 import { useMilestones } from '@/hooks/useMilestones';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { calculateTimelinePosition, TimelineBounds } from '../utils/overlayUtils';
+import { getMarkerPosition, getMarkerVerticalPosition, MARKER_ZONES } from '../utils/overlayUtils';
 
 interface GanttMilestoneMarkersProps {
   projectId: string;
@@ -18,12 +18,6 @@ export const GanttMilestoneMarkers = ({
   viewMode
 }: GanttMilestoneMarkersProps) => {
   const { milestones } = useMilestones(projectId);
-
-  const timelineBounds: TimelineBounds = {
-    start: timelineStart,
-    end: timelineEnd,
-    totalDays: Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
-  };
 
   const getMilestoneIcon = (title: string) => {
     if (title.includes('Start')) return <Flag size={10} className="text-green-600" />;
@@ -41,29 +35,36 @@ export const GanttMilestoneMarkers = ({
     }
   };
 
+  // Filter visible milestones using standardized positioning
   const visibleMilestones = milestones.filter(milestone => {
     const milestoneDate = new Date(milestone.due_date);
-    return milestoneDate >= timelineStart && milestoneDate <= timelineEnd;
+    const position = getMarkerPosition(milestoneDate, timelineStart, timelineEnd, viewMode);
+    return position.isVisible;
   });
 
   return (
     <>
       {visibleMilestones.map(milestone => {
         const milestoneDate = new Date(milestone.due_date);
-        const position = calculateTimelinePosition(milestoneDate, timelineBounds);
+        const position = getMarkerPosition(milestoneDate, timelineStart, timelineEnd, viewMode);
+        const verticalPos = getMarkerVerticalPosition('milestone');
         
         return (
           <Tooltip key={milestone.id}>
             <TooltipTrigger asChild>
               <div
-                className="absolute top-0 bottom-0 pointer-events-auto"
-                style={{ left: `${position}%` }}
+                className="absolute pointer-events-auto"
+                style={{ 
+                  left: `${position.left}%`,
+                  top: `${verticalPos.top}px`,
+                  zIndex: verticalPos.zIndex
+                }}
               >
                 {/* Milestone line */}
-                <div className="w-0.5 h-full bg-slate-400 opacity-60"></div>
+                <div className="w-0.5 h-full bg-slate-400 opacity-60 absolute" style={{ height: '100vh' }}></div>
                 
                 {/* Milestone marker */}
-                <div className={`absolute -top-1 -left-3 w-6 h-6 rounded-full border-2 ${getStatusColor(milestone.status)} flex items-center justify-center shadow-sm`}>
+                <div className={`relative -left-3 w-6 h-6 rounded-full border-2 ${getStatusColor(milestone.status)} flex items-center justify-center shadow-sm`}>
                   {getMilestoneIcon(milestone.title)}
                 </div>
                 

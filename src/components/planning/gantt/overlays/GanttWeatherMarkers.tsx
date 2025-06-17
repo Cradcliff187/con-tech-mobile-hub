@@ -1,7 +1,7 @@
 
 import { Cloud, CloudRain, Snowflake, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { calculateTimelinePosition, TimelineBounds } from '../utils/overlayUtils';
+import { getMarkerPosition, getMarkerVerticalPosition, getMarkerColor } from '../utils/overlayUtils';
 
 interface GanttWeatherMarkersProps {
   timelineStart: Date;
@@ -52,12 +52,6 @@ export const GanttWeatherMarkers = ({
 }: GanttWeatherMarkersProps) => {
   const weatherDelays = getWeatherDelays(timelineStart, timelineEnd);
 
-  const timelineBounds: TimelineBounds = {
-    start: timelineStart,
-    end: timelineEnd,
-    totalDays: Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24))
-  };
-
   const getWeatherIcon = (type: string) => {
     switch (type) {
       case 'rain': return <CloudRain size={8} className="text-blue-600" />;
@@ -68,30 +62,33 @@ export const GanttWeatherMarkers = ({
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'bg-red-500 border-red-600';
-      case 'moderate': return 'bg-orange-500 border-orange-600';
-      case 'low': return 'bg-yellow-500 border-yellow-600';
-      default: return 'bg-gray-500 border-gray-600';
-    }
-  };
-
   if (viewMode === 'months') return null; // Too granular for month view
+
+  // Filter visible weather delays using standardized positioning
+  const visibleDelays = weatherDelays.filter(delay => {
+    const position = getMarkerPosition(delay.date, timelineStart, timelineEnd, viewMode);
+    return position.isVisible;
+  });
 
   return (
     <div className="absolute top-0 bottom-0 left-0 right-0">
-      {weatherDelays.map(delay => {
-        const position = calculateTimelinePosition(delay.date, timelineBounds);
+      {visibleDelays.map(delay => {
+        const position = getMarkerPosition(delay.date, timelineStart, timelineEnd, viewMode);
+        const verticalPos = getMarkerVerticalPosition('weather');
+        const colorClass = getMarkerColor('weather', delay.severity);
         
         return (
           <Tooltip key={delay.id}>
             <TooltipTrigger asChild>
               <div
-                className="absolute top-12 pointer-events-auto"
-                style={{ left: `${position}%` }}
+                className="absolute pointer-events-auto"
+                style={{ 
+                  left: `${position.left}%`,
+                  top: `${verticalPos.top}px`,
+                  zIndex: verticalPos.zIndex
+                }}
               >
-                <div className={`w-3 h-3 rounded-full ${getSeverityColor(delay.severity)} flex items-center justify-center shadow-sm border-2 border-white`}>
+                <div className={`w-3 h-3 rounded-full ${colorClass} flex items-center justify-center shadow-sm border-2 border-white`}>
                   {getWeatherIcon(delay.type)}
                 </div>
               </div>
@@ -107,7 +104,7 @@ export const GanttWeatherMarkers = ({
                 </div>
                 <div className="text-sm text-slate-600">{delay.description}</div>
                 <div className="text-xs">
-                  <span className={`inline-block w-2 h-2 rounded-full mr-2 ${getSeverityColor(delay.severity)}`}></span>
+                  <span className={`inline-block w-2 h-2 rounded-full mr-2 ${getMarkerColor('weather', delay.severity)}`}></span>
                   {delay.severity} impact
                 </div>
               </div>
