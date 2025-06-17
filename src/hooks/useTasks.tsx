@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/database';
-import { useTaskSubscription } from './tasks/useTaskSubscription';
+import { useImprovedTaskSubscription } from './tasks/useImprovedTaskSubscription';
 import { useTaskOperations } from './tasks/useTaskOperations';
 import { useTaskFetching } from './tasks/useTaskFetching';
 
@@ -12,7 +12,8 @@ export const useTasks = () => {
 
   const { loading, error, fetchTasks } = useTaskFetching(user);
   const { createTask, updateTask } = useTaskOperations(user);
-  const { subscriptionStatus } = useTaskSubscription({ 
+  
+  useImprovedTaskSubscription({ 
     user, 
     onTasksUpdate: setTasks 
   });
@@ -39,7 +40,6 @@ export const useTasks = () => {
     tasks,
     loading,
     error,
-    subscriptionStatus,
     createTask,
     updateTask,
     refetch
