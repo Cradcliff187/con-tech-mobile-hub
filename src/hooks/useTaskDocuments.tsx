@@ -19,6 +19,7 @@ interface TaskDocument {
     file_type?: string;
     category?: string;
     created_at: string;
+    updated_at: string;
   };
 }
 
@@ -51,7 +52,8 @@ export const useTaskDocuments = (taskId?: string) => {
             file_size,
             file_type,
             category,
-            created_at
+            created_at,
+            updated_at
           )
         `)
         .eq('task_id', taskId)
@@ -61,7 +63,13 @@ export const useTaskDocuments = (taskId?: string) => {
         throw new Error(`Failed to fetch task documents: ${error.message}`);
       }
 
-      setTaskDocuments(data || []);
+      // Type cast the data to ensure proper typing
+      const typedData = (data || []).map(item => ({
+        ...item,
+        relationship_type: item.relationship_type as 'attachment' | 'reference' | 'requirement'
+      })) as TaskDocument[];
+
+      setTaskDocuments(typedData);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch task documents');
       console.error('Error fetching task documents:', error);
@@ -99,7 +107,8 @@ export const useTaskDocuments = (taskId?: string) => {
             file_size,
             file_type,
             category,
-            created_at
+            created_at,
+            updated_at
           )
         `)
         .single();
@@ -112,7 +121,13 @@ export const useTaskDocuments = (taskId?: string) => {
       }
 
       if (data) {
-        setTaskDocuments(prev => [data, ...prev]);
+        // Type cast the response data
+        const typedData = {
+          ...data,
+          relationship_type: data.relationship_type as 'attachment' | 'reference' | 'requirement'
+        } as TaskDocument;
+
+        setTaskDocuments(prev => [typedData, ...prev]);
         toast({
           title: "Document attached",
           description: "Document has been successfully attached to the task."
@@ -180,7 +195,8 @@ export const useTaskDocuments = (taskId?: string) => {
             file_size,
             file_type,
             category,
-            created_at
+            created_at,
+            updated_at
           )
         `)
         .single();
@@ -190,8 +206,14 @@ export const useTaskDocuments = (taskId?: string) => {
       }
 
       if (data) {
+        // Type cast the response data
+        const typedData = {
+          ...data,
+          relationship_type: data.relationship_type as 'attachment' | 'reference' | 'requirement'
+        } as TaskDocument;
+
         setTaskDocuments(prev => prev.map(td => 
-          td.id === taskDocumentId ? data : td
+          td.id === taskDocumentId ? typedData : td
         ));
       }
 

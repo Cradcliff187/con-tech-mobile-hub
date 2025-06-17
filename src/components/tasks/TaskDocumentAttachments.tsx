@@ -110,6 +110,14 @@ export const TaskDocumentAttachments: React.FC<TaskDocumentAttachmentsProps> = (
 
             const fileTypeInfo = getFileTypeInfo(doc.file_type, doc.name);
 
+            // Create a DocumentRecord-compatible object for downloadDocument
+            const documentRecord = {
+              ...doc,
+              updated_at: doc.updated_at || doc.created_at,
+              uploaded_by: undefined,
+              project_id: task.project_id
+            };
+
             return (
               <div
                 key={taskDoc.id}
@@ -140,8 +148,8 @@ export const TaskDocumentAttachments: React.FC<TaskDocumentAttachmentsProps> = (
                 <div className="flex items-center gap-1">
                   <Select
                     value={taskDoc.relationship_type}
-                    onValueChange={(value: 'attachment' | 'reference' | 'requirement') =>
-                      updateRelationshipType(taskDoc.id, value)
+                    onValueChange={(value) =>
+                      updateRelationshipType(taskDoc.id, value as 'attachment' | 'reference' | 'requirement')
                     }
                   >
                     <SelectTrigger className="w-24 h-8 text-xs">
@@ -158,7 +166,7 @@ export const TaskDocumentAttachments: React.FC<TaskDocumentAttachmentsProps> = (
                     size="sm"
                     variant="ghost"
                     className="h-8 w-8 p-0"
-                    onClick={() => downloadDocument(doc)}
+                    onClick={() => downloadDocument(documentRecord)}
                   >
                     <Download size={14} />
                   </Button>
@@ -213,7 +221,10 @@ export const TaskDocumentAttachments: React.FC<TaskDocumentAttachmentsProps> = (
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Relationship Type
                 </label>
-                <Select value={relationshipType} onValueChange={setRelationshipType}>
+                <Select 
+                  value={relationshipType} 
+                  onValueChange={(value) => setRelationshipType(value as 'attachment' | 'reference' | 'requirement')}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
