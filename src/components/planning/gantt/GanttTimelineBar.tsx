@@ -1,140 +1,119 @@
 
-import { CheckCircle, Play, AlertTriangle, PauseCircle } from 'lucide-react';
 import { Task } from '@/types/database';
+import { getTaskPosition, getConstructionPhaseColor, calculateTaskDatesFromEstimate, formatDateRange } from './ganttUtils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  getTaskPosition, 
-  getConstructionPhaseColor, 
-  getAssigneeInitials 
-} from './ganttUtils';
 
 interface GanttTimelineBarProps {
   task: Task;
   timelineStart: Date;
   timelineEnd: Date;
-  isSelected?: boolean;
-  onSelect?: (taskId: string) => void;
-  viewMode?: 'days' | 'weeks' | 'months';
+  isSelected: boolean;
+  onSelect: (taskId: string) => void;
+  viewMode: 'days' | 'weeks' | 'months';
   isDragging?: boolean;
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
 }
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'completed': return <CheckCircle size={12} className="text-white" />;
-    case 'in-progress': return <Play size={12} className="text-white" />;
-    case 'blocked': return <AlertTriangle size={12} className="text-white" />;
-    case 'on-hold': return <PauseCircle size={12} className="text-white" />;
-    default: return null;
-  }
-};
-
-export const GanttTimelineBar = ({ 
-  task, 
-  timelineStart, 
-  timelineEnd, 
-  isSelected = false, 
+export const GanttTimelineBar = ({
+  task,
+  timelineStart,
+  timelineEnd,
+  isSelected,
   onSelect,
-  viewMode = 'weeks',
+  viewMode,
   isDragging = false,
   onDragStart,
   onDragEnd
 }: GanttTimelineBarProps) => {
+  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
   const position = getTaskPosition(task, timelineStart, timelineEnd);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onSelect && !isDragging) {
-      onSelect(task.id);
-    }
+  const phaseColor = getConstructionPhaseColor(task);
+  
+  const handleClick = () => {
+    onSelect(task.id);
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.stopPropagation();
     if (onDragStart) {
       onDragStart(e, task);
     }
   };
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    e.stopPropagation();
-    if (onDragEnd) {
-      onDragEnd();
+  const formatTooltipDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getTaskDisplayText = () => {
+    if (viewMode === 'days') {
+      return task.title.slice(0, 20) + (task.title.length > 20 ? '...' : '');
+    } else if (viewMode === 'weeks') {
+      return task.title.slice(0, 15) + (task.title.length > 15 ? '...' : '');
+    } else {
+      return task.title.slice(0, 10) + (task.title.length > 10 ? '...' : '');
     }
   };
 
   return (
-    <div className="flex-1 relative py-4 px-2 min-h-[120px]">
-      <div className="relative h-8 bg-slate-100 rounded-lg overflow-hidden">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              draggable
-              className={`absolute inset-y-0 rounded-lg shadow-sm transition-all group ${
-                onSelect ? 'cursor-pointer' : ''
-              } ${
-                isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab hover:shadow-md'
-              } ${
-                isSelected 
-                  ? 'ring-2 ring-blue-400 shadow-md' 
-                  : ''
-              } ${getConstructionPhaseColor(task)}`}
-              style={{
-                left: `${position.left}%`,
-                width: `${Math.max(3, position.width)}%`
-              }}
-              onClick={handleClick}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              {/* Progress overlay */}
-              {task.progress && task.progress > 0 && (
-                <div 
-                  className="absolute inset-y-0 bg-white bg-opacity-30 rounded-lg transition-all"
-                  style={{ width: `${task.progress}%` }}
-                />
-              )}
-              
-              {/* Task content */}
-              <div className="flex items-center justify-between h-full px-2 text-white">
-                <div className="flex items-center gap-1 min-w-0 flex-1">
-                  {getStatusIcon(task.status)}
-                  {position.width > 15 && (
-                    <span className="truncate text-xs font-medium">
-                      {task.title}
-                    </span>
-                  )}
-                </div>
-                
-                {/* Progress percentage for wider bars */}
-                {position.width > 8 && task.progress && task.progress > 0 && (
-                  <span className="text-xs font-bold ml-1">
-                    {task.progress}%
-                  </span>
-                )}
-                
-                {/* Assignee indicator for longer bars */}
-                {position.width > 20 && (
-                  <div className="w-5 h-5 bg-white bg-opacity-20 rounded-full text-xs flex items-center justify-center font-medium ml-1">
-                    {getAssigneeInitials(task)}
-                  </div>
-                )}
-              </div>
+    <div className="relative h-16 flex-1 border-r border-slate-200">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={`absolute top-3 h-10 rounded ${phaseColor} cursor-pointer transition-all duration-200 hover:opacity-80 ${
+              isSelected ? 'ring-2 ring-orange-500 shadow-lg' : ''
+            } ${isDragging ? 'opacity-50 z-10' : ''}`}
+            style={{
+              left: `${position.left}%`,
+              width: `${position.width}%`,
+              minWidth: '8px'
+            }}
+            onClick={handleClick}
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={onDragEnd}
+          >
+            <div className="px-2 py-1 text-white text-xs font-medium truncate">
+              {position.width > 8 ? getTaskDisplayText() : ''}
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
+            
+            {/* Progress indicator */}
+            {task.progress && task.progress > 0 && (
+              <div 
+                className="absolute bottom-0 left-0 h-1 bg-white bg-opacity-50 rounded-b"
+                style={{ width: `${task.progress}%` }}
+              />
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="space-y-1">
+            <div className="font-semibold">{task.title}</div>
             <div className="text-sm">
-              <div className="font-semibold">{task.title}</div>
-              <div>Progress: {task.progress || 0}%</div>
-              <div>Status: {task.status}</div>
-              <div>Category: {task.category || 'General'}</div>
-              {isSelected && <div className="text-blue-400 font-medium">Selected</div>}
-              {isDragging && <div className="text-orange-400 font-medium">Dragging...</div>}
+              <strong>Duration:</strong> {formatTooltipDate(calculatedStartDate)} - {formatTooltipDate(calculatedEndDate)}
             </div>
-          </TooltipContent>
-        </Tooltip>
-      </div>
+            <div className="text-sm">
+              <strong>Status:</strong> {task.status}
+            </div>
+            <div className="text-sm">
+              <strong>Priority:</strong> {task.priority}
+            </div>
+            {task.estimated_hours && (
+              <div className="text-sm">
+                <strong>Estimated Hours:</strong> {task.estimated_hours}
+              </div>
+            )}
+            {task.progress && task.progress > 0 && (
+              <div className="text-sm">
+                <strong>Progress:</strong> {task.progress}%
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 };

@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 import { Task } from '@/types/database';
 import { useDragAndDrop } from './useDragAndDrop';
-import { getDaysBetween, getAssigneeName } from './ganttUtils';
+import { getDaysBetween, getAssigneeName, getProjectTimelineBounds, calculateTaskDatesFromEstimate } from './ganttUtils';
 
 interface UseGanttChartProps {
   projectId: string;
@@ -22,6 +22,12 @@ const CONSTRUCTION_PHASE_DURATIONS = {
 };
 
 const getTaskDurationEstimate = (task: Task): number => {
+  // First try to use estimated_hours converted to days
+  if (task.estimated_hours && task.estimated_hours > 0) {
+    return Math.ceil(task.estimated_hours / 8); // 8-hour workday
+  }
+  
+  // Fallback to category-based estimates
   const category = task.category?.toLowerCase() || '';
   
   for (const [phase, duration] of Object.entries(CONSTRUCTION_PHASE_DURATIONS)) {
@@ -33,7 +39,48 @@ const getTaskDurationEstimate = (task: Task): number => {
   return CONSTRUCTION_PHASE_DURATIONS.default;
 };
 
-const calculateTimelineRange = (tasks: Task[], viewMode: 'days' | 'weeks' | 'months') => {
+const calculateTimelineRange = (
+  tasks: Task[], 
+  viewMode: 'days' | 'weeks' | 'months',
+  selectedProject: any = null
+) => {
+  // **PHASE 1: PRIMARY - Use project start/end dates**
+  if (selectedProject?.start_date && selectedProject?.end_date) {
+    const projectStart = new Date(selectedProject.start_date);
+    const projectEnd = new Date(selectedProject.end_date);
+    
+    // Check if any tasks extend beyond project boundaries
+    let earliestTaskDate = projectStart;
+    let latestTaskDate = projectEnd;
+    
+    tasks.forEach(task => {
+      const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+      
+      if (calculatedStartDate < earliestTaskDate) {
+        earliestTaskDate = calculatedStartDate;
+      }
+      if (calculatedEndDate > latestTaskDate) {
+        latestTaskDate = calculatedEndDate;
+      }
+    });
+    
+    // Use the broader range (project dates or extended task dates)
+    const timelineStart = earliestTaskDate < projectStart ? earliestTaskDate : projectStart;
+    const timelineEnd = latestTaskDate > projectEnd ? latestTaskDate : projectEnd;
+    
+    // Add buffer based on view mode (1-2 weeks)
+    const bufferDays = viewMode === 'days' ? 7 : viewMode === 'weeks' ? 14 : 21;
+    
+    const start = new Date(timelineStart);
+    start.setDate(start.getDate() - bufferDays);
+    
+    const end = new Date(timelineEnd);
+    end.setDate(end.getDate() + bufferDays);
+    
+    return { start, end };
+  }
+  
+  // **FALLBACK: Use task-based calculation if project dates missing**
   if (tasks.length === 0) {
     const now = new Date();
     const start = new Date(now);
@@ -46,35 +93,12 @@ const calculateTimelineRange = (tasks: Task[], viewMode: 'days' | 'weeks' | 'mon
   let minDate: Date | null = null;
   let maxDate: Date | null = null;
 
-  // Process all tasks to find actual date ranges
+  // Process all tasks to find actual date ranges with enhanced calculation
   tasks.forEach(task => {
-    let taskStart: Date;
-    let taskEnd: Date;
-
-    if (task.start_date && task.due_date) {
-      taskStart = new Date(task.start_date);
-      taskEnd = new Date(task.due_date);
-    } else if (task.due_date) {
-      // Calculate implied start date based on category
-      taskEnd = new Date(task.due_date);
-      const estimatedDuration = getTaskDurationEstimate(task);
-      taskStart = new Date(taskEnd);
-      taskStart.setDate(taskStart.getDate() - estimatedDuration);
-    } else if (task.start_date) {
-      taskStart = new Date(task.start_date);
-      const estimatedDuration = getTaskDurationEstimate(task);
-      taskEnd = new Date(taskStart);
-      taskEnd.setDate(taskEnd.getDate() + estimatedDuration);
-    } else {
-      // Use created_at as fallback
-      taskStart = new Date(task.created_at);
-      const estimatedDuration = getTaskDurationEstimate(task);
-      taskEnd = new Date(taskStart);
-      taskEnd.setDate(taskEnd.getDate() + estimatedDuration);
-    }
-
-    if (!minDate || taskStart < minDate) minDate = taskStart;
-    if (!maxDate || taskEnd > maxDate) maxDate = taskEnd;
+    const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+    
+    if (!minDate || calculatedStartDate < minDate) minDate = calculatedStartDate;
+    if (!maxDate || calculatedEndDate > maxDate) maxDate = calculatedEndDate;
   });
 
   if (!minDate || !maxDate) {
@@ -120,6 +144,7 @@ const calculateTimelineRange = (tasks: Task[], viewMode: 'days' | 'weeks' | 'mon
 
 export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   const { tasks, loading, error } = useTasks();
+  const { projects } = useProjects();
   const [timelineStart, setTimelineStart] = useState<Date>(new Date());
   const [timelineEnd, setTimelineEnd] = useState<Date>(new Date());
   const [projectTasks, setProjectTasks] = useState<Task[]>([]);
@@ -143,6 +168,11 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('weeks');
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
 
+  // Get selected project data
+  const selectedProject = projectId && projectId !== 'all' 
+    ? projects.find(p => p.id === projectId) 
+    : null;
+
   // Drag and drop functionality
   const dragAndDrop = useDragAndDrop(timelineStart, timelineEnd, viewMode);
 
@@ -155,23 +185,12 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     setProjectTasks(filtered);
   }, [tasks, projectId]);
 
-  // Calculate timeline bounds when tasks or view mode changes
+  // Calculate timeline bounds when tasks, view mode, or project changes
   useEffect(() => {
-    if (projectTasks.length > 0) {
-      const { start, end } = calculateTimelineRange(projectTasks, viewMode);
-      setTimelineStart(start);
-      setTimelineEnd(end);
-    } else {
-      // Set default 6-month construction timeline
-      const now = new Date();
-      const start = new Date(now);
-      start.setMonth(start.getMonth() - 1);
-      const end = new Date(now);
-      end.setMonth(end.getMonth() + 5);
-      setTimelineStart(start);
-      setTimelineEnd(end);
-    }
-  }, [projectTasks, viewMode]);
+    const { start, end } = calculateTimelineRange(projectTasks, viewMode, selectedProject);
+    setTimelineStart(start);
+    setTimelineEnd(end);
+  }, [projectTasks, viewMode, selectedProject]);
 
   // Apply search and filters
   useEffect(() => {
@@ -250,6 +269,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     displayTasks,
     loading,
     error,
+    selectedProject,
     
     // Timeline
     timelineStart,
