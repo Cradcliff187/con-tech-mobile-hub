@@ -3,17 +3,17 @@ import { PanelLeft } from 'lucide-react';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 
 interface EnhancedSidebarTriggerProps {
   className?: string;
   floating?: boolean;
 }
 
-export const EnhancedSidebarTrigger = ({ 
+export const EnhancedSidebarTrigger = forwardRef<HTMLButtonElement, EnhancedSidebarTriggerProps>(({ 
   className, 
   floating = false 
-}: EnhancedSidebarTriggerProps) => {
+}, ref) => {
   const { state } = useSidebar();
   const [isMac, setIsMac] = useState(false);
 
@@ -51,6 +51,7 @@ export const EnhancedSidebarTrigger = ({
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
         <SidebarTrigger 
+          ref={ref}
           className={triggerClasses}
           data-state={state}
         >
@@ -70,4 +71,6 @@ export const EnhancedSidebarTrigger = ({
       </TooltipContent>
     </Tooltip>
   );
-};
+});
+
+EnhancedSidebarTrigger.displayName = 'EnhancedSidebarTrigger';
