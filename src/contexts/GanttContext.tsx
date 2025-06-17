@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useMemo, useCallback, useEffect } from 'react';
 import { Task } from '@/types/database';
 import { useImprovedTaskSubscription } from '@/hooks/tasks/useImprovedTaskSubscription';
