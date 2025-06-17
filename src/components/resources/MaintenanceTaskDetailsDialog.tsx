@@ -3,7 +3,7 @@ import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Clock, User, Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
-import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
+import { MaintenanceTask } from '@/types/maintenance';
 
 interface MaintenanceTaskDetailsDialogProps {
   open: boolean;

@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Wrench, AlertTriangle, CalendarDays } from 'lucide-react';
-import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
+import { MaintenanceTask } from '@/types/maintenance';
 
 interface MaintenanceSummaryCardsProps {
   tasks: MaintenanceTask[];

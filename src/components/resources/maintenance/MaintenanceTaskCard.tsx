@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertTriangle, CalendarDays } from 'lucide-react';
-import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
+import { MaintenanceTask } from '@/types/maintenance';
 import { getStatusColor, getPriorityColor } from './utils';
 
 interface MaintenanceTaskCardProps {

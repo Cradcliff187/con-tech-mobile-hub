@@ -1,5 +1,5 @@
 
-import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
+import { MaintenanceTask } from '@/types/maintenance';
 import type { Equipment } from '@/hooks/useEquipment';
 
 // Updated to work with real MaintenanceTask data from the database
