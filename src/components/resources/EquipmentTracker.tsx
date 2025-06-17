@@ -25,6 +25,11 @@ export const EquipmentTracker = () => {
     setShowCreateDialog(true);
   };
 
+  // Fixed: Updated to match the expected signature (id: string) => void
+  const handleDeleteEquipment = (id: string) => {
+    handleDelete(id);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -50,7 +55,7 @@ export const EquipmentTracker = () => {
                 key={item.id}
                 equipment={item}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={handleDeleteEquipment}
                 onStatusUpdate={handleStatusUpdate}
                 deletingId={deletingId}
               />

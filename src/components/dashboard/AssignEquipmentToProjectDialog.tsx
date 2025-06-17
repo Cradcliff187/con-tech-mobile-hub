@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -136,7 +137,10 @@ export const AssignEquipmentToProjectDialog = ({
         });
 
         if (allocationResult.error) {
-          throw new Error(allocationResult.error.message || 'Failed to allocate equipment');
+          const errorMessage = typeof allocationResult.error === 'string' 
+            ? allocationResult.error 
+            : allocationResult.error.message || 'Failed to allocate equipment';
+          throw new Error(errorMessage);
         }
 
         const operatorId = operatorAssignments[equipmentId];
