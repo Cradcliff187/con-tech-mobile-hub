@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, Download, X, ZoomIn, ZoomOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { getFileTypeInfo, formatFileSize } from '@/utils/fileTypeHelpers';
+import { getFileTypeInfo } from '@/utils/fileTypeHelpers';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { PreviewHeader } from './PreviewHeader';
+import { PreviewContent } from './PreviewContent';
 
 interface DocumentRecord {
   id: string;
@@ -108,155 +108,27 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     }
   };
 
-  const renderPreviewContent = () => {
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-          <span className="ml-2 text-slate-600">Loading preview...</span>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-96 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={loadPreview} variant="outline">
-            Retry
-          </Button>
-        </div>
-      );
-    }
-
-    if (!fileTypeInfo.canPreview) {
-      return (
-        <div className="flex flex-col items-center justify-center h-96 text-center">
-          <div className="mb-4">
-            <div className="text-4xl mb-2">📄</div>
-            <h3 className="text-lg font-medium text-slate-800">{fileTypeInfo.displayName}</h3>
-            <p className="text-slate-600 mt-2">Preview not available for this file type</p>
-            <p className="text-sm text-slate-500 mt-1">
-              Size: {formatFileSize(document.file_size)}
-            </p>
-          </div>
-          <Button onClick={handleDownload} className="flex items-center gap-2">
-            <Download size={16} />
-            Download to View
-          </Button>
-        </div>
-      );
-    }
-
-    switch (fileTypeInfo.category) {
-      case 'pdf':
-        return (
-          <div className="w-full h-full">
-            <iframe
-              src={previewUrl || ''}
-              className="w-full h-full border-0"
-              title={document.name}
-              style={{ minHeight: '500px' }}
-            />
-          </div>
-        );
-
-      case 'image':
-        return (
-          <div className="flex items-center justify-center p-4">
-            <img
-              src={previewUrl || ''}
-              alt={document.name}
-              className="max-w-full max-h-full object-contain"
-              style={{ 
-                transform: `scale(${zoom / 100})`,
-                transition: 'transform 0.2s ease'
-              }}
-            />
-          </div>
-        );
-
-      case 'text':
-        return (
-          <div className="p-4">
-            <pre className="whitespace-pre-wrap text-sm text-slate-800 bg-slate-50 p-4 rounded-lg overflow-auto max-h-96">
-              {textContent}
-            </pre>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="flex items-center justify-center h-96">
-            <p className="text-slate-600">Preview not supported</p>
-          </div>
-        );
-    }
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-medium text-slate-800 truncate">
-            {document.name}
-          </h3>
-          <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
-            <span>{fileTypeInfo.displayName}</span>
-            <span>{formatFileSize(document.file_size)}</span>
-            <span>
-              Uploaded by {document.uploader?.full_name || document.uploader?.email || 'Unknown'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 ml-4">
-          {fileTypeInfo.category === 'image' && fileTypeInfo.canPreview && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setZoom(Math.max(25, zoom - 25))}
-                disabled={zoom <= 25}
-              >
-                <ZoomOut size={16} />
-              </Button>
-              <span className="text-sm text-slate-600 min-w-[3rem] text-center">
-                {zoom}%
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setZoom(Math.min(200, zoom + 25))}
-                disabled={zoom >= 200}
-              >
-                <ZoomIn size={16} />
-              </Button>
-            </>
-          )}
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownload}
-            className="flex items-center gap-2"
-          >
-            <Download size={16} />
-            Download
-          </Button>
-          
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X size={16} />
-            </Button>
-          )}
-        </div>
-      </div>
+      <PreviewHeader
+        document={document}
+        zoom={zoom}
+        onZoomChange={setZoom}
+        onDownload={handleDownload}
+        onClose={onClose}
+      />
 
-      {/* Preview Content */}
       <div className="min-h-[400px]">
-        {renderPreviewContent()}
+        <PreviewContent
+          document={document}
+          previewUrl={previewUrl}
+          textContent={textContent}
+          loading={loading}
+          error={error}
+          zoom={zoom}
+          onRetry={loadPreview}
+          onDownload={handleDownload}
+        />
       </div>
     </div>
   );
