@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -214,10 +213,10 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
 
           <div className="space-y-2">
             <Label>Operator Assignment</Label>
-            <Tabs value={operatorType} onValueChange={(value) => setOperatorType(value as 'employee' | 'user')} disabled={updateOperation.loading}>
+            <Tabs value={operatorType} onValueChange={(value) => setOperatorType(value as 'employee' | 'user')}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="employee">Employee</TabsTrigger>
-                <TabsTrigger value="user">Internal User</TabsTrigger>
+                <TabsTrigger value="employee" disabled={updateOperation.loading}>Employee</TabsTrigger>
+                <TabsTrigger value="user" disabled={updateOperation.loading}>Internal User</TabsTrigger>
               </TabsList>
               
               <TabsContent value="employee" className="space-y-2">
