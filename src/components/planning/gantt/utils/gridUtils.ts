@@ -85,9 +85,15 @@ export const getColumnIndexForDate = (
         break;
         
       case 'weeks':
-        const weekEnd = new Date(unitDate);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        if (date >= unitDate && date <= weekEnd) {
+        // Get the start of the week for this column
+        const columnWeekStart = new Date(unitDate);
+        
+        // Get the start of the week for the target date
+        const targetWeekStart = new Date(date);
+        targetWeekStart.setDate(date.getDate() - date.getDay());
+        
+        // Check if they're the same week
+        if (columnWeekStart.getTime() === targetWeekStart.getTime()) {
           return i;
         }
         break;
