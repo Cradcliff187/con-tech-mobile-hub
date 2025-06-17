@@ -43,37 +43,45 @@ export const PreviewHeader: React.FC<PreviewHeaderProps> = ({
   const fileTypeInfo = getFileTypeInfo(document.file_type, document.name);
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-slate-200">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 border-b border-slate-200 gap-4">
       <div className="flex-1 min-w-0">
-        <h3 className="text-lg font-medium text-slate-800 truncate">
+        <h3 className="text-lg font-semibold text-slate-800 truncate">
           {document.name}
         </h3>
-        <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
+        <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-sm text-slate-500 mt-1">
           <span>{fileTypeInfo.displayName}</span>
           <span>{formatFileSize(document.file_size)}</span>
-          <span>
+          <span className="hidden sm:inline">
             Uploaded by {document.uploader?.full_name || document.uploader?.email || 'Unknown'}
           </span>
         </div>
+        {document.project?.name && (
+          <div className="text-sm text-slate-500 mt-1">
+            Project: <span className="font-medium">{document.project.name}</span>
+          </div>
+        )}
       </div>
       
-      <div className="flex items-center gap-2 ml-4">
+      <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
         {fileTypeInfo.category === 'image' && fileTypeInfo.canPreview && (
           <ZoomControls zoom={zoom} onZoomChange={onZoomChange} />
         )}
         
         <Button
-          variant="ghost"
-          size="sm"
           onClick={onDownload}
-          className="flex items-center gap-2"
+          className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-sm px-3 py-2"
         >
           <Download size={16} />
-          Download
+          <span className="hidden sm:inline">Download</span>
         </Button>
         
         {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button 
+            variant="ghost" 
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-700 p-2"
+            aria-label="Close preview"
+          >
             <X size={16} />
           </Button>
         )}

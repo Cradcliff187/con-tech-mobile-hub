@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,23 +10,36 @@ import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 interface DocumentUploadProps {
   projectId?: string;
   onUploadComplete?: () => void;
+  variant?: 'dialog' | 'inline';
+  className?: string;
 }
 
-export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadProps) => {
+export const DocumentUpload = ({ 
+  projectId, 
+  onUploadComplete, 
+  variant = 'dialog',
+  className 
+}: DocumentUploadProps) => {
+  const [searchParams] = useSearchParams();
+  const currentProjectId = projectId || searchParams.get('project') || '';
+  
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
+  const [selectedProjectId, setSelectedProjectId] = useState(currentProjectId);
   const [description, setDescription] = useState('');
   const [fileValidation, setFileValidation] = useState<{ isValid: boolean; message?: string } | null>(null);
   
   const { uploadDocument, uploading } = useDocuments();
   const { projects, loading: projectsLoading } = useProjects();
+  const { profile } = useAuth();
   const { toast } = useToast();
 
   const categories = [
@@ -76,6 +90,13 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
     };
   };
 
+  const sanitizeFileName = (fileName: string): string => {
+    return fileName
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_|_$/g, '');
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -108,25 +129,41 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
       return;
     }
 
-    const { error } = await uploadDocument(selectedFile, category, selectedProjectId, description);
-    
-    if (error) {
+    if (!profile?.is_company_user && !selectedProjectId) {
       toast({
-        title: "Upload Failed",
-        description: error,
+        title: "Project Required",
+        description: "Please select a project for this document",
         variant: "destructive"
       });
-    } else {
+      return;
+    }
+
+    try {
+      await uploadDocument(selectedFile, category, selectedProjectId, description);
+      
       toast({
-        title: "Success",
-        description: "Document uploaded successfully"
+        title: "Upload Successful",
+        description: `${selectedFile.name} has been uploaded successfully`
       });
-      setSelectedFile(null);
-      setCategory('');
-      setDescription('');
-      setFileValidation(null);
+      
+      resetForm();
       setIsOpen(false);
       onUploadComplete?.();
+      
+      // Update URL with document context if we have a project
+      if (selectedProjectId && category) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('section', 'documents');
+        newParams.set('project', selectedProjectId);
+        newParams.set('category', category);
+        window.history.replaceState({}, '', `/?${newParams.toString()}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload document",
+        variant: "destructive"
+      });
     }
   };
 
@@ -145,137 +182,163 @@ export const DocumentUpload = ({ projectId, onUploadComplete }: DocumentUploadPr
     setFileValidation(null);
   };
 
+  const canUpload = profile && (
+    (profile.is_company_user && profile.account_status === 'approved') ||
+    (!profile.is_company_user && profile.account_status === 'approved')
+  );
+
+  if (!canUpload) {
+    return null;
+  }
+
+  const uploadContent = (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="file" className="text-slate-700 font-medium">Select File</Label>
+        <Input
+          id="file"
+          type="file"
+          onChange={handleFileSelect}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+          disabled={uploading}
+          className="mt-1 border-slate-200 focus:border-blue-500"
+        />
+        {selectedFile && (
+          <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <FileText size={16} className="text-slate-500 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-800 truncate">
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {formatFileSize(selectedFile.size)}
+                </p>
+                {fileValidation && (
+                  <div className={`flex items-center gap-1 mt-1 text-xs ${
+                    fileValidation.isValid ? 'text-green-600' : 'text-orange-500'
+                  }`}>
+                    {fileValidation.isValid ? (
+                      <CheckCircle size={12} />
+                    ) : (
+                      <AlertCircle size={12} />
+                    )}
+                    <span>{fileValidation.message}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="description" className="text-slate-700 font-medium">Document Name</Label>
+        <Input
+          id="description"
+          placeholder="Enter document name..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          disabled={uploading}
+          className="mt-1 border-slate-200 focus:border-blue-500"
+        />
+      </div>
+
+      <div>
+        <Label className="text-slate-700 font-medium">Category</Label>
+        <Select value={category} onValueChange={setCategory} disabled={uploading}>
+          <SelectTrigger className="mt-1 border-slate-200 focus:border-blue-500">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!currentProjectId && (
+        <div>
+          <Label className="text-slate-700 font-medium">Project</Label>
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={uploading}>
+            <SelectTrigger className="mt-1 border-slate-200 focus:border-blue-500">
+              <SelectValue placeholder="Select project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projectsLoading ? (
+                <SelectItem value="loading" disabled>Loading projects...</SelectItem>
+              ) : validatedProjects.length === 0 ? (
+                <SelectItem value="no-projects" disabled>No projects available</SelectItem>
+              ) : (
+                validatedProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {getSelectDisplayName(project, ['name'], 'Unnamed Project')}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="flex gap-3 pt-4">
+        <Button 
+          onClick={handleUpload} 
+          disabled={!selectedFile || !category || uploading || (fileValidation && !fileValidation.isValid)}
+          className="flex-1 bg-blue-600 hover:bg-blue-700"
+        >
+          {uploading ? (
+            <div className="flex items-center gap-2">
+              <LoadingSpinner size="sm" />
+              Uploading...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Upload size={16} />
+              Upload Document
+            </div>
+          )}
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => setIsOpen(false)}
+          className="flex-1 border-slate-200 text-slate-700 hover:bg-slate-50"
+          disabled={uploading}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (variant === 'inline') {
+    return (
+      <div className={`bg-white rounded-lg border border-slate-200 p-4 ${className}`}>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Upload Document</h3>
+        {uploadContent}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open);
       if (!open) resetForm();
     }}>
       <DialogTrigger asChild>
-        <Button className="bg-slate-600 hover:bg-slate-700">
+        <Button className={`bg-blue-600 hover:bg-blue-700 ${className}`}>
           <Upload size={20} />
           Upload Document
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Upload Document</DialogTitle>
+          <DialogTitle className="text-slate-800">Upload Document</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="file">Select File</Label>
-            <Input
-              id="file"
-              type="file"
-              onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
-              disabled={uploading}
-            />
-            {selectedFile && (
-              <div className="mt-2 p-3 bg-slate-50 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <FileText size={16} className="text-slate-500 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatFileSize(selectedFile.size)}
-                    </p>
-                    {fileValidation && (
-                      <div className={`flex items-center gap-1 mt-1 text-xs ${
-                        fileValidation.isValid ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {fileValidation.isValid ? (
-                          <CheckCircle size={12} />
-                        ) : (
-                          <AlertCircle size={12} />
-                        )}
-                        <span>{fileValidation.message}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="description">Document Name</Label>
-            <Input
-              id="description"
-              placeholder="Enter document name..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={uploading}
-            />
-          </div>
-
-          <div>
-            <Label>Category</Label>
-            <Select value={category} onValueChange={setCategory} disabled={uploading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {!projectId && (
-            <div>
-              <Label>Project</Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={uploading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectsLoading ? (
-                    <SelectItem value="loading" disabled>Loading projects...</SelectItem>
-                  ) : validatedProjects.length === 0 ? (
-                    <SelectItem value="no-projects" disabled>No projects available</SelectItem>
-                  ) : (
-                    validatedProjects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {getSelectDisplayName(project, ['name'], 'Unnamed Project')}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="flex gap-2 pt-4">
-            <Button 
-              onClick={handleUpload} 
-              disabled={!selectedFile || !category || uploading || (fileValidation && !fileValidation.isValid)}
-              className="flex-1"
-            >
-              {uploading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Uploading...
-                </div>
-              ) : (
-                'Upload'
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsOpen(false)}
-              className="flex-1"
-              disabled={uploading}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+        {uploadContent}
       </DialogContent>
     </Dialog>
   );

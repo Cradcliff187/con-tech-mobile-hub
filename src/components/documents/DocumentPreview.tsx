@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PreviewHeader } from './PreviewHeader';
 import { PreviewContent } from './PreviewContent';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
 
 interface DocumentRecord {
   id: string;
@@ -65,23 +67,19 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      // Fix file path - remove "documents/" prefix if it exists since we'll add it in the URL
       const cleanPath = document.file_path.startsWith('documents/') 
         ? document.file_path.substring('documents/'.length)
         : document.file_path;
 
-      // Construct the public URL correctly
       const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${cleanPath}`;
       console.log('Trying public URL:', publicUrl);
 
-      // Test if public URL works
       const testResponse = await fetch(publicUrl, { method: 'HEAD' });
       
       let finalUrl = publicUrl;
       
       if (!testResponse.ok) {
         console.log('Public URL failed, trying signed URL');
-        // Fall back to signed URL - use original file path for Supabase client
         const { data, error: urlError } = await supabase.storage
           .from('documents')
           .createSignedUrl(document.file_path, 3600);
@@ -96,7 +94,6 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
       if (fileTypeInfo.category === 'text') {
         console.log('Loading text content from:', finalUrl);
-        // Fetch text content
         const response = await fetch(finalUrl);
         if (!response.ok) {
           throw new Error(`Failed to fetch text content: ${response.status} ${response.statusText}`);
@@ -143,6 +140,50 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+        <div className="p-4 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="h-6 bg-slate-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 bg-slate-200 rounded w-2/3 animate-pulse"></div>
+            </div>
+            <div className="flex gap-2 ml-4">
+              <div className="h-8 w-16 bg-slate-200 rounded animate-pulse"></div>
+              <div className="h-8 w-8 bg-slate-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="min-h-[400px] flex items-center justify-center">
+          <LoadingSpinner size="lg" text="Loading preview..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+        <PreviewHeader
+          document={document}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onDownload={handleDownload}
+          onClose={onClose}
+        />
+        <div className="min-h-[400px]">
+          <ErrorFallback
+            title="Preview Error"
+            description={error}
+            resetError={loadPreview}
+            showHomeButton={false}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200">
       <PreviewHeader
@@ -158,8 +199,8 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
           document={document}
           previewUrl={previewUrl}
           textContent={textContent}
-          loading={loading}
-          error={error}
+          loading={false}
+          error={null}
           zoom={zoom}
           onRetry={loadPreview}
           onDownload={handleDownload}
