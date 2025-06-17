@@ -22,6 +22,7 @@ export const StakeholderFilters = ({
         </SelectTrigger>
         <SelectContent className="bg-white">
           <SelectItem value="all">All Types</SelectItem>
+          <SelectItem value="client">Clients</SelectItem>
           <SelectItem value="subcontractor">Subcontractors</SelectItem>
           <SelectItem value="employee">Employees</SelectItem>
           <SelectItem value="vendor">Vendors</SelectItem>
