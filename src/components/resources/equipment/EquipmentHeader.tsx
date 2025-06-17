@@ -1,59 +1,80 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
-import { Plus, Upload, Settings, Wrench } from 'lucide-react';
+import { Plus, Upload, Settings, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EquipmentHeaderProps {
   onAddEquipment: () => void;
   onImportEquipment: () => void;
-  onBulkActions?: () => void;
+  onBulkActions: () => void;
+  onQuickAllocation?: () => void;
+  selectedCount?: number;
 }
 
-export const EquipmentHeader = ({ 
-  onAddEquipment, 
+export const EquipmentHeader = ({
+  onAddEquipment,
   onImportEquipment,
-  onBulkActions 
+  onBulkActions,
+  onQuickAllocation,
+  selectedCount = 0
 }: EquipmentHeaderProps) => {
   return (
-    <CardHeader>
+    <div className="p-6 border-b border-slate-200">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench size={20} />
-            Equipment Management
-          </CardTitle>
-          <p className="text-sm text-slate-600">
-            Track and manage construction equipment, assignments, and maintenance
-          </p>
+          <h2 className="text-xl font-semibold text-slate-800">Equipment Tracker</h2>
+          <p className="text-slate-600">Manage your equipment inventory and allocations</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          {onBulkActions && (
-            <TouchFriendlyButton
+        
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Allocation Button - only show when equipment is selected */}
+          {onQuickAllocation && selectedCount === 1 && (
+            <Button
+              onClick={onQuickAllocation}
               variant="outline"
-              onClick={onBulkActions}
-              className="order-3 sm:order-1"
+              size="sm"
+              className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
             >
-              <Settings size={16} className="mr-2" />
-              Bulk Actions
-            </TouchFriendlyButton>
+              <Zap size={16} />
+              Quick Allocate
+            </Button>
           )}
-          <TouchFriendlyButton
+
+          {/* Bulk Actions - show count when items selected */}
+          <Button
+            onClick={onBulkActions}
             variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Settings size={16} />
+            Bulk Actions
+            {selectedCount > 0 && (
+              <span className="bg-orange-100 text-orange-800 text-xs px-1.5 py-0.5 rounded">
+                {selectedCount}
+              </span>
+            )}
+          </Button>
+          
+          <Button
             onClick={onImportEquipment}
-            className="order-2 sm:order-2"
+            variant="outline"
+            size="sm"
+            className="gap-2"
           >
-            <Upload size={16} className="mr-2" />
+            <Upload size={16} />
             Import
-          </TouchFriendlyButton>
-          <TouchFriendlyButton
+          </Button>
+          
+          <Button
             onClick={onAddEquipment}
-            className="bg-orange-600 hover:bg-orange-700 order-1 sm:order-3"
+            className="bg-orange-600 hover:bg-orange-700 gap-2"
+            size="sm"
           >
-            <Plus size={16} className="mr-2" />
+            <Plus size={16} />
             Add Equipment
-          </TouchFriendlyButton>
+          </Button>
         </div>
       </div>
-    </CardHeader>
+    </div>
   );
 };
