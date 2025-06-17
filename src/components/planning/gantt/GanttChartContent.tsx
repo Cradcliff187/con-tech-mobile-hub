@@ -4,7 +4,12 @@ import { GanttTimelineHeader } from './GanttTimelineHeader';
 import { GanttTaskCard } from './GanttTaskCard';
 import { GanttTimelineBar } from './GanttTimelineBar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { useRef, useEffect } from 'react';
+import { VirtualScrollGantt } from './navigation/VirtualScrollGantt';
+import { GanttMilestoneMarkers } from './markers/GanttMilestoneMarkers';
+import { WeatherDelayMarkers } from './markers/WeatherDelayMarkers';
+import { CriticalPathHighlight } from './markers/CriticalPathHighlight';
+import { ResourceConflictIndicators } from './markers/ResourceConflictIndicators';
+import { useRef, useEffect, useState } from 'react';
 
 interface GanttChartContentProps {
   displayTasks: Task[];
@@ -20,6 +25,7 @@ interface GanttChartContentProps {
   onDragStart: (e: React.DragEvent, task: Task) => void;
   onDragEnd: () => void;
   draggedTaskId?: string;
+  projectId?: string;
 }
 
 export const GanttChartContent = ({
@@ -35,9 +41,16 @@ export const GanttChartContent = ({
   onDrop,
   onDragStart,
   onDragEnd,
-  draggedTaskId
+  draggedTaskId,
+  projectId
 }: GanttChartContentProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [useVirtualScroll, setUseVirtualScroll] = useState(false);
+
+  // Use virtual scrolling for large task lists (>50 tasks)
+  useEffect(() => {
+    setUseVirtualScroll(displayTasks.length > 50);
+  }, [displayTasks.length]);
 
   // Sync horizontal scroll between header and content
   const handleScrollSync = (headerScrollRef: React.RefObject<HTMLDivElement>) => {
@@ -73,6 +86,64 @@ export const GanttChartContent = ({
         />
         <div className="p-8 text-center">
           <LoadingSpinner size="sm" text="Loading tasks..." />
+        </div>
+      </div>
+    );
+  }
+
+  // Use virtual scrolling for performance with large task lists
+  if (useVirtualScroll) {
+    return (
+      <div className="space-y-4">
+        {/* Timeline Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <GanttTimelineHeader
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            viewMode={viewMode}
+          />
+        </div>
+
+        {/* Virtual Scrolled Gantt */}
+        <div className="relative">
+          <VirtualScrollGantt
+            tasks={displayTasks}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={onTaskSelect}
+            viewMode={viewMode}
+            containerHeight={600}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            draggedTaskId={draggedTaskId}
+          />
+
+          {/* Overlay markers for virtual scroll */}
+          {projectId && (
+            <GanttMilestoneMarkers
+              projectId={projectId}
+              timelineStart={timelineStart}
+              timelineEnd={timelineEnd}
+              viewMode={viewMode}
+            />
+          )}
+          <WeatherDelayMarkers
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            viewMode={viewMode}
+          />
+          <CriticalPathHighlight
+            tasks={displayTasks}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            viewMode={viewMode}
+          />
+          <ResourceConflictIndicators
+            tasks={displayTasks}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+          />
         </div>
       </div>
     );
@@ -140,6 +211,35 @@ export const GanttChartContent = ({
             }}
           />
         </div>
+
+        {/* Construction-specific overlay markers */}
+        {projectId && (
+          <GanttMilestoneMarkers
+            projectId={projectId}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            viewMode={viewMode}
+          />
+        )}
+        
+        <WeatherDelayMarkers
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          viewMode={viewMode}
+        />
+        
+        <CriticalPathHighlight
+          tasks={displayTasks}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          viewMode={viewMode}
+        />
+        
+        <ResourceConflictIndicators
+          tasks={displayTasks}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+        />
       </div>
     </div>
   );

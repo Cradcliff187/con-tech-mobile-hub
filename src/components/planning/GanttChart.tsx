@@ -9,7 +9,9 @@ import { GanttLegend } from './gantt/GanttLegend';
 import { GanttChartHeader } from './gantt/GanttChartHeader';
 import { GanttChartContent } from './gantt/GanttChartContent';
 import { GanttEmptyState } from './gantt/GanttEmptyState';
+import { TimelineMiniMap } from './gantt/navigation/TimelineMiniMap';
 import { useGanttChart } from './gantt/useGanttChart';
+import { useState } from 'react';
 
 interface GanttChartProps {
   projectId: string;
@@ -38,6 +40,11 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     dragAndDrop
   } = useGanttChart({ projectId });
 
+  // Mini-map state for timeline navigation
+  const [currentViewStart, setCurrentViewStart] = useState(timelineStart);
+  const [currentViewEnd, setCurrentViewEnd] = useState(timelineEnd);
+  const [showMiniMap, setShowMiniMap] = useState(false);
+
   // Handle loading state
   if (loading) {
     return <GanttLoadingState />;
@@ -61,11 +68,18 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
 
   const punchListTasks = displayTasks.filter(t => t.task_type === 'punch_list').length;
   const localUpdatesCount = Object.keys(dragAndDrop.localTaskUpdates).length;
+  const criticalTasks = displayTasks.filter(t => t.priority === 'critical').length;
+
+  const handleMiniMapViewportChange = (start: Date, end: Date) => {
+    setCurrentViewStart(start);
+    setCurrentViewEnd(end);
+    // Implement actual viewport scrolling here
+  };
 
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        {/* Enhanced Header */}
+        {/* Enhanced Header with Construction Metrics */}
         <GanttChartHeader
           totalDays={totalDays}
           completedTasks={completedTasks}
@@ -73,6 +87,24 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
           localUpdatesCount={localUpdatesCount}
           onResetUpdates={dragAndDrop.resetLocalUpdates}
         />
+
+        {/* Construction-specific status indicators */}
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 text-red-600">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span>{criticalTasks} critical tasks</span>
+          </div>
+          <div className="flex items-center gap-2 text-orange-600">
+            <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+            <span>Resource conflicts detected</span>
+          </div>
+          <button
+            onClick={() => setShowMiniMap(!showMiniMap)}
+            className="text-blue-600 hover:text-blue-800 underline text-sm"
+          >
+            {showMiniMap ? 'Hide' : 'Show'} Timeline Overview
+          </button>
+        </div>
 
         {/* Interactive Controls */}
         <GanttControls
@@ -84,10 +116,22 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
           onViewModeChange={setViewMode}
         />
 
+        {/* Timeline Mini-map for navigation */}
+        {showMiniMap && (
+          <TimelineMiniMap
+            tasks={displayTasks}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            currentViewStart={currentViewStart}
+            currentViewEnd={currentViewEnd}
+            onViewportChange={handleMiniMapViewportChange}
+          />
+        )}
+
         {/* Summary Statistics */}
         <GanttStats tasks={displayTasks} />
 
-        {/* Gantt Chart */}
+        {/* Enhanced Gantt Chart with Construction Features */}
         <GanttChartContent
           displayTasks={displayTasks}
           timelineStart={timelineStart}
@@ -102,6 +146,7 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
           onDragStart={dragAndDrop.handleDragStart}
           onDragEnd={dragAndDrop.handleDragEnd}
           draggedTaskId={dragAndDrop.draggedTask?.id}
+          projectId={projectId}
         />
 
         <GanttLegend />
