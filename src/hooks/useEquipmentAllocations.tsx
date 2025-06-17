@@ -7,26 +7,48 @@ export interface EquipmentAllocation {
   id: string;
   equipment_id: string;
   project_id: string;
-  task_id?: string;
-  operator_type?: 'employee' | 'user';
-  operator_id?: string;
+  task_id?: string | null;
+  operator_type?: 'employee' | 'user' | null;
+  operator_id?: string | null;
   start_date: string;
   end_date: string;
-  allocated_by?: string;
-  notes?: string;
+  allocated_by?: string | null;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
-  project?: { id: string; name: string };
-  equipment?: { id: string; name: string; type: string };
-  task?: { id: string; title: string };
-  operator_stakeholder?: { id: string; contact_person?: string; company_name?: string };
-  operator_user?: { id: string; full_name?: string };
+  project?: { id: string; name: string } | null;
+  equipment?: { id: string; name: string; type: string } | null;
+  task?: { id: string; title: string } | null;
+  operator_stakeholder?: { id: string; contact_person?: string; company_name?: string } | null;
+  operator_user?: { id: string; full_name?: string } | null;
 }
 
 export const useEquipmentAllocations = (equipmentId?: string) => {
   const [allocations, setAllocations] = useState<EquipmentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+
+  const processAllocationData = (rawData: any): EquipmentAllocation => {
+    return {
+      ...rawData,
+      operator_type: rawData.operator_type as 'employee' | 'user' | null,
+      operator_stakeholder: rawData.operator_stakeholder && !('error' in rawData.operator_stakeholder) 
+        ? rawData.operator_stakeholder 
+        : null,
+      operator_user: rawData.operator_user && !('error' in rawData.operator_user) 
+        ? rawData.operator_user 
+        : null,
+      project: rawData.project && !('error' in rawData.project) 
+        ? rawData.project 
+        : null,
+      equipment: rawData.equipment && !('error' in rawData.equipment) 
+        ? rawData.equipment 
+        : null,
+      task: rawData.task && !('error' in rawData.task) 
+        ? rawData.task 
+        : null
+    };
+  };
 
   const fetchAllocations = async () => {
     if (!user) return;
@@ -54,12 +76,8 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       if (error) {
         console.error('Error fetching equipment allocations:', error);
       } else {
-        // Type cast the data to ensure proper typing
-        const typedAllocations = (data || []).map(allocation => ({
-          ...allocation,
-          operator_type: allocation.operator_type as 'employee' | 'user' | undefined
-        }));
-        setAllocations(typedAllocations);
+        const processedData = (data || []).map(processAllocationData);
+        setAllocations(processedData);
       }
     } catch (error) {
       console.error('Error fetching equipment allocations:', error);
@@ -97,11 +115,8 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .single();
 
     if (!error && data) {
-      const typedAllocation = {
-        ...data,
-        operator_type: data.operator_type as 'employee' | 'user' | undefined
-      };
-      setAllocations(prev => [...prev, typedAllocation]);
+      const processedAllocation = processAllocationData(data);
+      setAllocations(prev => [...prev, processedAllocation]);
     }
 
     return { data, error };
@@ -123,12 +138,9 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       .single();
 
     if (!error && data) {
-      const typedAllocation = {
-        ...data,
-        operator_type: data.operator_type as 'employee' | 'user' | undefined
-      };
+      const processedAllocation = processAllocationData(data);
       setAllocations(prev => prev.map(allocation => 
-        allocation.id === id ? typedAllocation : allocation
+        allocation.id === id ? processedAllocation : allocation
       ));
     }
 
@@ -186,7 +198,9 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     }
 
     const { data, error } = await query;
-    return { conflicts: data || [], error };
+    
+    const processedConflicts = (data || []).map(processAllocationData);
+    return { conflicts: processedConflicts, error };
   };
 
   useEffect(() => {
