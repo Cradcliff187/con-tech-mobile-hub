@@ -242,6 +242,81 @@ export type Database = {
           },
         ]
       }
+      equipment_assignment_history: {
+        Row: {
+          assigned_by: string | null
+          assigned_operator_id: string | null
+          created_at: string
+          end_date: string | null
+          equipment_id: string
+          id: string
+          notes: string | null
+          operator_id: string | null
+          project_id: string | null
+          start_date: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_operator_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          project_id?: string | null
+          start_date: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_operator_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          project_id?: string | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_assignment_history_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignment_history_assigned_operator_id_fkey"
+            columns: ["assigned_operator_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignment_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignment_history_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignment_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string

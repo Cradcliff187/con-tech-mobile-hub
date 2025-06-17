@@ -7,7 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { EquipmentFormFields } from './equipment/EquipmentFormFields';
 import { AllocationSection } from './equipment/AllocationSection';
 import { AllocationStatus } from './equipment/AllocationStatus';
+import { EquipmentAssignmentHistoryComponent } from './equipment/EquipmentAssignmentHistory';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
+import { useEquipmentAssignmentHistory } from '@/hooks/useEquipmentAssignmentHistory';
 import type { Equipment } from '@/hooks/useEquipment';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -26,6 +28,7 @@ export const EditEquipmentDialog = ({
 }: EditEquipmentDialogProps) => {
   const { toast } = useToast();
   const { allocations, createAllocation, getConflictingAllocations } = useEquipmentAllocations(equipment?.id);
+  const { createHistoryRecord, endCurrentAssignment } = useEquipmentAssignmentHistory(equipment?.id);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -90,6 +93,11 @@ export const EditEquipmentDialog = ({
     setIsSubmitting(true);
 
     try {
+      // Check if status changed from assigned to available - end current assignment
+      if (equipment.status !== 'available' && formData.status === 'available') {
+        await endCurrentAssignment(equipment.id, new Date().toISOString().split('T')[0]);
+      }
+
       const { error } = await supabase
         .from('equipment')
         .update({
@@ -142,6 +150,9 @@ export const EditEquipmentDialog = ({
     }
 
     try {
+      // End any current assignments before creating new one
+      await endCurrentAssignment(equipment.id, allocationData.startDate);
+
       const allocationResult = await createAllocation({
         equipment_id: equipment.id,
         project_id: allocationData.projectId,
@@ -156,6 +167,17 @@ export const EditEquipmentDialog = ({
       if (allocationResult.error) {
         throw new Error(typeof allocationResult.error === 'string' ? allocationResult.error : allocationResult.error.message || 'Failed to create allocation');
       }
+
+      // Create assignment history record
+      await createHistoryRecord({
+        equipment_id: equipment.id,
+        project_id: allocationData.projectId,
+        operator_id: allocationData.operatorType === 'user' ? allocationData.operatorId : undefined,
+        assigned_operator_id: allocationData.operatorType === 'employee' ? allocationData.operatorId : undefined,
+        start_date: allocationData.startDate,
+        end_date: allocationData.endDate,
+        notes: allocationData.notes || `Allocated to ${allocationData.operatorType === 'user' ? 'user' : 'stakeholder'}`
+      });
 
       // Update equipment status to in-use
       await supabase
@@ -194,7 +216,7 @@ export const EditEquipmentDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Equipment - {equipment.name}</DialogTitle>
         </DialogHeader>
@@ -204,6 +226,7 @@ export const EditEquipmentDialog = ({
             <TabsTrigger value="details">Equipment Details</TabsTrigger>
             <TabsTrigger value="allocation">Current Allocation</TabsTrigger>
             <TabsTrigger value="new-allocation">New Allocation</TabsTrigger>
+            <TabsTrigger value="history">Assignment History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
@@ -305,6 +328,10 @@ export const EditEquipmentDialog = ({
                 Create Allocation
               </Button>
             </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-6">
+            <EquipmentAssignmentHistoryComponent equipmentId={equipment.id} />
           </TabsContent>
         </Tabs>
       </DialogContent>
