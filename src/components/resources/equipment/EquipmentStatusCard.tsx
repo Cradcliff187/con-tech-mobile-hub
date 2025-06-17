@@ -4,7 +4,7 @@ import { Calendar, Clock, User, Wrench, AlertTriangle, CheckCircle } from 'lucid
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Equipment } from '@/hooks/useEquipment';
-import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
+import { MaintenanceTask } from '@/types/maintenance';
 import { format, isAfter, isBefore, addDays } from 'date-fns';
 
 interface EquipmentStatusCardProps {
