@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { Task } from '@/types/database';
-import { Calendar, Clock, AlertTriangle, CheckCircle, User } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle, User, Eye } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface TimelineFilters {
   status: string;
@@ -15,7 +16,8 @@ interface TimelineFilters {
 interface ProjectTimelineProps {
   projectId: string;
   filters?: TimelineFilters;
-  onTaskSelect?: (taskId: string) => void;
+  onTaskNavigate?: (taskId: string) => void;
+  onTaskModal?: (taskId: string) => void;
 }
 
 interface TimelineTask extends Task {
@@ -26,7 +28,8 @@ interface TimelineTask extends Task {
 export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ 
   projectId, 
   filters,
-  onTaskSelect 
+  onTaskNavigate,
+  onTaskModal
 }) => {
   const { tasks, loading } = useTasks();
   const [timelineTasks, setTimelineTasks] = useState<TimelineTask[]>([]);
@@ -109,8 +112,15 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({
   };
 
   const handleTaskClick = (taskId: string) => {
-    if (onTaskSelect) {
-      onTaskSelect(taskId);
+    if (onTaskNavigate) {
+      onTaskNavigate(taskId);
+    }
+  };
+
+  const handleTaskModalClick = (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation(); // Prevent the main click handler from firing
+    if (onTaskModal) {
+      onTaskModal(taskId);
     }
   };
 
@@ -246,6 +256,15 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({
                     </div>
                     
                     <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handleTaskModalClick(e, task.id)}
+                        className="h-8 px-2"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Details
+                      </Button>
                       <Badge variant="outline" className={`${getPriorityColor(task.priority)} text-white border-0`}>
                         {task.priority}
                       </Badge>

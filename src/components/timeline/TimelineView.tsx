@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Filter, Download, Calendar } from 'lucide-react';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 interface TimelineFilters {
   status: string;
@@ -21,6 +21,7 @@ interface TimelineFilters {
 // CLEANED: Use Supabase hooks for live data now!
 export const TimelineView: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const projectFromUrl = searchParams.get('project');
   
   const [selectedProject, setSelectedProject] = useState<string>('all');
@@ -61,6 +62,24 @@ export const TimelineView: React.FC = () => {
       ...prev,
       [filterType]: value
     }));
+  };
+
+  // Navigation handler for task clicks
+  const handleTaskNavigation = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    const projectId = task?.project_id || selectedProject;
+    
+    // Navigate to TaskManager with task and project context
+    if (projectId && projectId !== 'all') {
+      navigate(`/?section=tasks&project=${projectId}&task=${taskId}`);
+    } else {
+      navigate(`/?section=tasks&task=${taskId}`);
+    }
+  };
+
+  // Modal handler for task details (secondary option)
+  const handleTaskModal = (taskId: string) => {
+    setSelectedTask(taskId);
   };
 
   // Get unique categories and priorities from tasks for filter options
@@ -294,7 +313,8 @@ export const TimelineView: React.FC = () => {
       <ProjectTimeline 
         projectId={selectedProject} 
         filters={filters}
-        onTaskSelect={setSelectedTask}
+        onTaskNavigate={handleTaskNavigation}
+        onTaskModal={handleTaskModal}
       />
 
       {/* Task Details Modal */}
