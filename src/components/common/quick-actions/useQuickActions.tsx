@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { Plus, Calendar, Users, CheckCircle, FileText, MoreHorizontal, Wrench } from 'lucide-react';
+import { Plus, Calendar, Users, CheckCircle, FileText, MoreHorizontal, Wrench, Upload, FolderOpen, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Project } from '@/types/database';
 import { QuickAction, ActionContext } from './types';
@@ -51,6 +51,60 @@ export const useQuickActions = ({
         shortcut: 'Ctrl+E'
       });
     }
+
+    // Document-related actions
+    const documentActions: QuickAction[] = [
+      {
+        id: 'upload-document',
+        label: 'Upload Document',
+        icon: Upload,
+        action: () => navigate(`/?section=documents&project=${project.id}`),
+        shortcut: 'Ctrl+D'
+      },
+      {
+        id: 'view-documents',
+        label: 'View Documents',
+        icon: FolderOpen,
+        action: () => navigate(`/?section=documents&project=${project.id}`),
+        shortcut: 'Ctrl+Shift+D'
+      }
+    ];
+
+    // Phase-specific document actions
+    if (project.phase === 'planning') {
+      documentActions.push({
+        id: 'upload-plans',
+        label: 'Upload Plans',
+        icon: FileText,
+        action: () => navigate(`/?section=documents&project=${project.id}&category=plans`),
+        badge: 'Required',
+        variant: 'secondary' as const
+      });
+    }
+
+    if (project.phase === 'active') {
+      documentActions.push({
+        id: 'progress-photos',
+        label: 'Progress Photos',
+        icon: Camera,
+        action: () => navigate(`/?section=documents&project=${project.id}&category=photos`),
+        badge: 'Active',
+        variant: 'default' as const
+      });
+    }
+
+    if (project.phase === 'completion' || project.phase === 'punch_list') {
+      documentActions.push({
+        id: 'completion-docs',
+        label: 'Completion Docs',
+        icon: CheckCircle,
+        action: () => navigate(`/?section=documents&project=${project.id}&category=reports`),
+        badge: 'Final',
+        variant: 'destructive' as const
+      });
+    }
+
+    baseActions.push(...documentActions);
 
     baseActions.push({
       id: 'view-timeline',
