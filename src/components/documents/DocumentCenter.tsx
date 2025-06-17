@@ -5,16 +5,19 @@ import { DocumentFilters } from './DocumentFilters';
 import { DocumentUpload } from './DocumentUpload';
 import { ReceiptUpload } from './ReceiptUpload';
 import { PhotoUpload } from './PhotoUpload';
-import { Folder, AlertCircle } from 'lucide-react';
+import { DocumentTestPanel } from './DocumentTestPanel';
+import { Folder, AlertCircle, TestTube } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const DocumentCenterContent = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTestPanel, setShowTestPanel] = useState(false);
   
   const { documents, loading, refetch } = useDocuments();
 
@@ -58,12 +61,24 @@ const DocumentCenterContent = () => {
           <PhotoUpload onUploadComplete={handleUploadComplete} />
           <DocumentUpload onUploadComplete={handleUploadComplete} />
           <ReceiptUpload onUploadComplete={handleUploadComplete} />
+          <Button
+            variant="outline"
+            onClick={() => setShowTestPanel(!showTestPanel)}
+            className="flex items-center gap-2"
+          >
+            <TestTube size={16} />
+            {showTestPanel ? 'Hide Tests' : 'Show Tests'}
+          </Button>
           <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
             <Folder size={20} />
             New Folder
           </button>
         </div>
       </div>
+
+      {showTestPanel && (
+        <DocumentTestPanel />
+      )}
 
       <DocumentFilters 
         currentFilter={filter}

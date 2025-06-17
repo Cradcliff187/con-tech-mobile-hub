@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,6 +78,7 @@ export const useDocuments = (projectId?: string) => {
       return;
     }
 
+    console.log('Fetching documents for user:', user.id, 'Project:', projectId);
     setLoading(true);
     try {
       let query = supabase
@@ -98,6 +100,7 @@ export const useDocuments = (projectId?: string) => {
         throw new Error(`Failed to fetch documents: ${error.message}`);
       }
       
+      console.log('Fetched documents:', data?.length || 0);
       setDocuments(data || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -126,6 +129,8 @@ export const useDocuments = (projectId?: string) => {
       throw new Error('User not authenticated');
     }
 
+    console.log('Uploading document:', file.name, 'Size:', file.size, 'Type:', file.type);
+
     const validation = validateFile(file);
     if (!validation.isValid) {
       throw new Error(validation.error);
@@ -140,6 +145,8 @@ export const useDocuments = (projectId?: string) => {
       const projectPath = targetProjectId || projectId || 'general';
       const filePath = `${projectPath}/${timestamp}_${sanitizedFileName}`;
 
+      console.log('Uploading to path:', filePath);
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file, {
@@ -148,8 +155,11 @@ export const useDocuments = (projectId?: string) => {
         });
 
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
+
+      console.log('File uploaded successfully:', uploadData.path);
 
       const documentName = description || file.name;
 
@@ -172,10 +182,13 @@ export const useDocuments = (projectId?: string) => {
         .single();
 
       if (error) {
+        console.error('Database insert error:', error);
         // Clean up uploaded file if database insert fails
         await supabase.storage.from('documents').remove([uploadData.path]);
         throw new Error(`Failed to save document metadata: ${error.message}`);
       }
+
+      console.log('Document metadata saved:', data.id);
 
       if (data) {
         setDocuments(prev => [data, ...prev]);
@@ -192,6 +205,7 @@ export const useDocuments = (projectId?: string) => {
   }, [user, projectId]);
 
   const deleteDocument = useCallback(async (id: string, filePath: string) => {
+    console.log('Deleting document:', id, 'File path:', filePath);
     try {
       // Try to delete from storage first (non-blocking)
       const { error: storageError } = await supabase.storage
@@ -212,6 +226,7 @@ export const useDocuments = (projectId?: string) => {
         throw new Error(`Failed to delete document: ${error.message}`);
       }
 
+      console.log('Document deleted successfully:', id);
       setDocuments(prev => prev.filter(doc => doc.id !== id));
       return { error: null };
     } catch (error) {
@@ -221,35 +236,52 @@ export const useDocuments = (projectId?: string) => {
   }, []);
 
   const downloadDocument = useCallback(async (doc: DocumentRecord) => {
+    console.log('Downloading document:', doc.name, 'Path:', doc.file_path);
     try {
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(doc.file_path, 3600);
+      // Try public URL first
+      const publicUrl = `${supabase.supabaseUrl}/storage/v1/object/public/documents/${doc.file_path}`;
+      
+      // Test if public URL works
+      const testResponse = await fetch(publicUrl, { method: 'HEAD' });
+      
+      let downloadUrl = publicUrl;
+      
+      if (!testResponse.ok) {
+        console.log('Public URL failed, using signed URL for download');
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(doc.file_path, 3600);
 
-      if (error) {
-        throw new Error(`Failed to generate download link: ${error.message}`);
+        if (error) {
+          throw new Error(`Failed to generate download link: ${error.message}`);
+        }
+
+        if (!data?.signedUrl) {
+          throw new Error('Failed to generate download link');
+        }
+        
+        downloadUrl = data.signedUrl;
       }
 
-      if (!data?.signedUrl) {
-        throw new Error('Failed to generate download link');
-      }
+      console.log('Using download URL:', downloadUrl);
 
       // Create download link with proper filename
       const link = document.createElement('a');
-      link.href = data.signedUrl;
+      link.href = downloadUrl;
       link.download = doc.name;
       link.target = '_blank';
       
       // Handle different browsers
       if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
         // Safari handles downloads differently
-        window.open(data.signedUrl, '_blank');
+        window.open(downloadUrl, '_blank');
       } else {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
 
+      console.log('Download initiated for:', doc.name);
       return { error: null };
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -258,10 +290,12 @@ export const useDocuments = (projectId?: string) => {
   }, []);
 
   const shareDocument = useCallback(async (doc: DocumentRecord) => {
+    console.log('Sharing document:', doc.name);
     try {
+      // For sharing, always use signed URL with longer expiration
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(doc.file_path, 604800);
+        .createSignedUrl(doc.file_path, 604800); // 7 days
 
       if (error) {
         throw new Error(`Failed to generate share link: ${error.message}`);
@@ -282,6 +316,7 @@ export const useDocuments = (projectId?: string) => {
         document.body.removeChild(textArea);
       }
 
+      console.log('Share URL copied to clipboard');
       return { error: null, url: data.signedUrl };
     } catch (error) {
       console.error('Error sharing document:', error);
@@ -290,6 +325,7 @@ export const useDocuments = (projectId?: string) => {
   }, []);
 
   const previewDocument = useCallback(async (doc: DocumentRecord) => {
+    console.log('Generating preview for document:', doc.name);
     try {
       const { data, error } = await supabase.storage
         .from('documents')

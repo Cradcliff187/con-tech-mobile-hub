@@ -1,3 +1,4 @@
+
 import React, { memo, useCallback, useState } from 'react';
 import { FileText, Image, File, Download, Share, Trash2, Receipt, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -82,15 +83,6 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
     }
   };
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'Unknown size';
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   const getCategoryLabel = (category?: string) => {
     const categoryMap: Record<string, string> = {
       'plans': 'Plans & Drawings',
@@ -106,33 +98,52 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
   };
 
   const handlePreview = useCallback(() => {
+    console.log('Opening preview for document:', doc.name, 'Type:', doc.file_type);
     setPreviewDocument(doc);
   }, [doc]);
 
   const handleDownload = useCallback(async () => {
     try {
       await downloadOperation.execute(() => downloadDocument(doc));
+      console.log('Download completed for:', doc.name);
     } catch (error) {
       console.error('Download failed:', error);
+      toast({
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Failed to download document",
+        variant: "destructive"
+      });
     }
-  }, [doc, downloadDocument, downloadOperation]);
+  }, [doc, downloadDocument, downloadOperation, toast]);
 
   const handleShare = useCallback(async () => {
     try {
       await shareOperation.execute(() => shareDocument(doc));
+      console.log('Share completed for:', doc.name);
     } catch (error) {
       console.error('Share failed:', error);
+      toast({
+        title: "Share failed",
+        description: error instanceof Error ? error.message : "Failed to generate share link",
+        variant: "destructive"
+      });
     }
-  }, [doc, shareDocument, shareOperation]);
+  }, [doc, shareDocument, shareOperation, toast]);
 
   const handleDeleteConfirm = useCallback(async () => {
     try {
       await deleteOperation.execute(() => deleteDocument(doc.id, doc.file_path));
+      console.log('Delete completed for:', doc.name);
       closeDialog();
     } catch (error) {
       console.error('Delete failed:', error);
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Failed to delete document",
+        variant: "destructive"
+      });
     }
-  }, [doc.id, doc.file_path, deleteDocument, deleteOperation, closeDialog]);
+  }, [doc.id, doc.file_path, deleteDocument, deleteOperation, closeDialog, toast]);
 
   const isLoading = downloadOperation.loading || shareOperation.loading || deleteOperation.loading;
 
