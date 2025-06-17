@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
@@ -8,6 +7,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { EditTaskDialog } from './EditTaskDialog';
+import { TaskDetailsDialog } from './TaskDetailsDialog';
 import { BulkTaskActionsDialog } from './BulkTaskActionsDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { canConvertToPunchList, shouldShowPunchList } from '@/utils/project-lifecycle';
@@ -20,6 +20,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
+import { useDialogState } from '@/hooks/useDialogState';
 
 const TaskManagerContent = memo(() => {
   const [filter, setFilter] = useState('all');
@@ -28,9 +29,11 @@ const TaskManagerContent = memo(() => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
+  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Task | null>(null);
   const { tasks, loading, updateTask, error } = useTasks();
   const { projects } = useProjects();
   const { toast } = useToast();
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -116,6 +119,11 @@ const TaskManagerContent = memo(() => {
     setShowEditDialog(true);
   }, []);
 
+  const handleViewDetails = useCallback((task: Task) => {
+    setSelectedTaskForDetails(task);
+    openDialog('task-details');
+  }, [openDialog]);
+
   const handleCreateClick = useCallback(() => {
     setShowCreateDialog(true);
   }, []);
@@ -123,6 +131,13 @@ const TaskManagerContent = memo(() => {
   const handleBulkActionsClick = useCallback(() => {
     setShowBulkActionsDialog(true);
   }, []);
+
+  const handleTaskDetailsClose = useCallback((open: boolean) => {
+    if (!open) {
+      closeDialog();
+      setSelectedTaskForDetails(null);
+    }
+  }, [closeDialog]);
 
   if (error) {
     return (
@@ -217,7 +232,11 @@ const TaskManagerContent = memo(() => {
               />
             }
           >
-            <TaskList tasks={filteredTasks} onEdit={handleEditTask} />
+            <TaskList 
+              tasks={filteredTasks} 
+              onEdit={handleEditTask} 
+              onViewDetails={handleViewDetails}
+            />
           </ErrorBoundary>
         </TabsContent>
 
@@ -245,6 +264,12 @@ const TaskManagerContent = memo(() => {
         open={showEditDialog} 
         onOpenChange={setShowEditDialog} 
         task={selectedTaskForEdit}
+      />
+
+      <TaskDetailsDialog
+        open={isDialogOpen('task-details')}
+        onOpenChange={handleTaskDetailsClose}
+        task={selectedTaskForDetails}
       />
 
       <BulkTaskActionsDialog

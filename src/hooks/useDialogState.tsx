@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 
-export type DialogType = 'none' | 'details' | 'edit' | 'assign' | 'delete' | 'export';
+export type DialogType = 'none' | 'details' | 'edit' | 'assign' | 'delete' | 'export' | 'task-details';
 
 export const useDialogState = (initialState: DialogType = 'none') => {
   const [activeDialog, setActiveDialog] = useState<DialogType>(initialState);
