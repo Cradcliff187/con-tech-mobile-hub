@@ -27,13 +27,16 @@ export const GanttTimelineHeader = ({
       headers.push(
         <div 
           key={i} 
-          className={`text-xs px-2 py-2 border-r border-slate-200 min-w-[60px] text-center flex-shrink-0 ${
-            isToday ? 'bg-orange-100 font-semibold text-orange-700' : 
-            isWeekend ? 'bg-slate-50 text-slate-500' : 'text-slate-600'
+          className={`text-xs px-1 py-2 border-r border-slate-200 min-w-[80px] max-w-[80px] text-center flex-shrink-0 ${
+            isToday ? 'bg-orange-200 font-bold text-orange-800 shadow-sm' : 
+            isWeekend ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700'
           }`}
         >
-          <div className="font-medium">
-            {current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          <div className="font-semibold text-sm">
+            {current.getDate()}
+          </div>
+          <div className="text-xs font-medium">
+            {current.toLocaleDateString('en-US', { month: 'short' })}
           </div>
           <div className="text-xs text-slate-400">
             {current.toLocaleDateString('en-US', { weekday: 'short' })}
@@ -48,11 +51,10 @@ export const GanttTimelineHeader = ({
 
   const generateWeeksView = () => {
     const headers = [];
-    const totalDays = getDaysBetween(timelineStart, timelineEnd);
     const current = new Date(timelineStart);
     const today = new Date();
     
-    // Align to week boundaries
+    // Align to week boundaries (Sunday start)
     const startOfWeek = new Date(current);
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     
@@ -66,15 +68,18 @@ export const GanttTimelineHeader = ({
       headers.push(
         <div 
           key={weekCount} 
-          className={`text-xs px-3 py-2 border-r border-slate-200 min-w-[120px] text-center flex-shrink-0 ${
-            isCurrentWeek ? 'bg-orange-50 font-semibold text-orange-700' : 'text-slate-600'
+          className={`text-xs px-2 py-2 border-r border-slate-200 min-w-[140px] max-w-[140px] text-center flex-shrink-0 ${
+            isCurrentWeek ? 'bg-blue-100 font-semibold text-blue-800 shadow-sm' : 'bg-white text-slate-700'
           }`}
         >
-          <div className="font-medium">
-            {startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekEnd.toLocaleDateString('en-US', { day: 'numeric' })}
-          </div>
-          <div className="text-xs text-slate-400">
+          <div className="font-semibold text-sm">
             Week {weekCount + 1}
+          </div>
+          <div className="font-medium text-xs">
+            {startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+          <div className="text-xs text-slate-500">
+            {weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </div>
         </div>
       );
@@ -98,33 +103,42 @@ export const GanttTimelineHeader = ({
       const isCurrentMonth = today.getFullYear() === current.getFullYear() && 
                            today.getMonth() === current.getMonth();
       
-      // Calculate month width based on days in month
+      // Calculate dynamic width based on days in month
       const daysInMonth = monthEnd.getDate();
-      const totalProjectDays = getDaysBetween(timelineStart, timelineEnd);
-      const monthWidth = Math.max(150, (daysInMonth / totalProjectDays) * 800);
+      const minWidth = Math.max(200, daysInMonth * 8);
       
       headers.push(
         <div 
           key={`${current.getFullYear()}-${current.getMonth()}`}
-          className={`text-xs px-4 py-2 border-r border-slate-200 text-center flex-shrink-0 ${
-            isCurrentMonth ? 'bg-orange-50 font-semibold text-orange-700' : 'text-slate-600'
+          className={`text-xs px-3 py-2 border-r border-slate-200 text-center flex-shrink-0 ${
+            isCurrentMonth ? 'bg-slate-200 font-bold text-slate-800 shadow-sm' : 'bg-slate-50 text-slate-700'
           }`}
-          style={{ minWidth: `${monthWidth}px` }}
+          style={{ minWidth: `${minWidth}px`, maxWidth: `${minWidth}px` }}
         >
-          <div className="font-medium text-sm">
-            {current.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          <div className="font-bold text-sm mb-1">
+            {current.toLocaleDateString('en-US', { month: 'long' })}
           </div>
-          <div className="text-xs text-slate-400 mt-1">
-            {daysInMonth} days
+          <div className="text-xs text-slate-500 mb-2">
+            {current.getFullYear()} • {daysInMonth} days
           </div>
           
-          {/* Week subdivisions */}
-          <div className="flex justify-between mt-1 text-xs text-slate-400">
-            {Array.from({ length: Math.ceil(daysInMonth / 7) }, (_, weekIndex) => (
-              <span key={weekIndex} className="text-xs">
-                W{weekIndex + 1}
-              </span>
-            ))}
+          {/* Week subdivisions with better styling */}
+          <div className="grid grid-cols-4 gap-1 text-xs">
+            {Array.from({ length: Math.ceil(daysInMonth / 7) }, (_, weekIndex) => {
+              const weekStart = weekIndex * 7 + 1;
+              const weekEnd = Math.min((weekIndex + 1) * 7, daysInMonth);
+              return (
+                <div 
+                  key={weekIndex} 
+                  className="bg-white bg-opacity-60 rounded px-1 py-0.5 text-slate-600"
+                >
+                  W{weekIndex + 1}
+                  <div className="text-xs text-slate-500">
+                    {weekStart}-{weekEnd}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       );
@@ -147,20 +161,32 @@ export const GanttTimelineHeader = ({
     }
   };
 
-  const getViewModeLabel = () => {
+  const getViewModeInfo = () => {
     const totalDays = getDaysBetween(timelineStart, timelineEnd);
     const startDate = timelineStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const endDate = timelineEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     
-    return `${startDate} - ${endDate} (${totalDays} days)`;
+    const viewModeLabels = {
+      days: `Daily View • ${totalDays} days`,
+      weeks: `Weekly View • ${Math.ceil(totalDays / 7)} weeks`,
+      months: `Monthly View • ${Math.ceil(totalDays / 30)} months`
+    };
+    
+    return {
+      label: viewModeLabels[viewMode],
+      range: `${startDate} - ${endDate}`
+    };
   };
 
+  const viewInfo = getViewModeInfo();
+
   return (
-    <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+    <div className="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 border-b-2 border-slate-300 shadow-sm">
       <div className="flex">
-        <div className="w-80 lg:w-96 px-4 py-3 border-r border-slate-200 bg-white">
-          <div className="font-semibold text-slate-700">Task Details</div>
-          <div className="text-xs text-slate-500 mt-1">{getViewModeLabel()}</div>
+        <div className="w-80 lg:w-96 px-4 py-3 border-r-2 border-slate-300 bg-white shadow-sm">
+          <div className="font-bold text-slate-800 text-sm">Task Details</div>
+          <div className="text-xs text-slate-600 mt-1 font-medium">{viewInfo.label}</div>
+          <div className="text-xs text-slate-500 mt-0.5">{viewInfo.range}</div>
         </div>
         <div className="flex-1 overflow-x-auto">
           <div className="flex min-w-max">

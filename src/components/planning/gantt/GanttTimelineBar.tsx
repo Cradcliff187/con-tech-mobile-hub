@@ -1,6 +1,6 @@
 
 import { Task } from '@/types/database';
-import { getTaskPosition, getConstructionPhaseColor, calculateTaskDatesFromEstimate, formatDateRange } from './ganttUtils';
+import { getTaskPosition, getConstructionPhaseColor, calculateTaskDatesFromEstimate } from './ganttUtils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GanttTimelineBarProps {
@@ -48,69 +48,119 @@ export const GanttTimelineBar = ({
     });
   };
 
+  const getViewModeConfig = () => {
+    switch (viewMode) {
+      case 'days':
+        return {
+          minWidth: '12px',
+          textLength: 25,
+          fontSize: 'text-xs',
+          height: 'h-8',
+          topOffset: 'top-4'
+        };
+      case 'weeks':
+        return {
+          minWidth: '16px',
+          textLength: 20,
+          fontSize: 'text-xs',
+          height: 'h-10',
+          topOffset: 'top-3'
+        };
+      case 'months':
+        return {
+          minWidth: '24px',
+          textLength: 15,
+          fontSize: 'text-sm',
+          height: 'h-12',
+          topOffset: 'top-2'
+        };
+      default:
+        return {
+          minWidth: '16px',
+          textLength: 20,
+          fontSize: 'text-xs',
+          height: 'h-10',
+          topOffset: 'top-3'
+        };
+    }
+  };
+
+  const config = getViewModeConfig();
+  
   const getTaskDisplayText = () => {
-    if (viewMode === 'days') {
-      return task.title.slice(0, 20) + (task.title.length > 20 ? '...' : '');
-    } else if (viewMode === 'weeks') {
-      return task.title.slice(0, 15) + (task.title.length > 15 ? '...' : '');
-    } else {
-      return task.title.slice(0, 10) + (task.title.length > 10 ? '...' : '');
+    return task.title.slice(0, config.textLength) + (task.title.length > config.textLength ? '...' : '');
+  };
+
+  const getBarHeight = () => {
+    switch (viewMode) {
+      case 'days': return 'h-16';
+      case 'weeks': return 'h-16';
+      case 'months': return 'h-20';
+      default: return 'h-16';
     }
   };
 
   return (
-    <div className="relative h-16 flex-1 border-r border-slate-200">
+    <div className={`relative ${getBarHeight()} flex-1 border-r border-slate-200`}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`absolute top-3 h-10 rounded ${phaseColor} cursor-pointer transition-all duration-200 hover:opacity-80 ${
-              isSelected ? 'ring-2 ring-orange-500 shadow-lg' : ''
+            className={`absolute ${config.topOffset} ${config.height} rounded-md ${phaseColor} cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md ${
+              isSelected ? 'ring-2 ring-orange-500 shadow-lg scale-105' : ''
             } ${isDragging ? 'opacity-50 z-10' : ''}`}
             style={{
               left: `${position.left}%`,
               width: `${position.width}%`,
-              minWidth: '8px'
+              minWidth: config.minWidth
             }}
             onClick={handleClick}
             draggable
             onDragStart={handleDragStart}
             onDragEnd={onDragEnd}
           >
-            <div className="px-2 py-1 text-white text-xs font-medium truncate">
-              {position.width > 8 ? getTaskDisplayText() : ''}
+            <div className={`px-2 py-1 text-white ${config.fontSize} font-medium truncate`}>
+              {position.width > (viewMode === 'days' ? 5 : viewMode === 'weeks' ? 8 : 12) ? getTaskDisplayText() : ''}
             </div>
             
-            {/* Progress indicator */}
+            {/* Enhanced progress indicator */}
             {task.progress && task.progress > 0 && (
-              <div 
-                className="absolute bottom-0 left-0 h-1 bg-white bg-opacity-50 rounded-b"
-                style={{ width: `${task.progress}%` }}
-              />
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-20 rounded-b-md">
+                <div 
+                  className="h-full bg-white bg-opacity-80 rounded-b-md transition-all duration-300"
+                  style={{ width: `${task.progress}%` }}
+                />
+              </div>
+            )}
+
+            {/* View mode specific indicators */}
+            {viewMode === 'days' && isSelected && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></div>
             )}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
-          <div className="space-y-1">
-            <div className="font-semibold">{task.title}</div>
-            <div className="text-sm">
+        <TooltipContent side="top" className="max-w-xs bg-white border border-slate-200 shadow-lg">
+          <div className="space-y-2 p-1">
+            <div className="font-semibold text-slate-800">{task.title}</div>
+            <div className="text-sm text-slate-600">
               <strong>Duration:</strong> {formatTooltipDate(calculatedStartDate)} - {formatTooltipDate(calculatedEndDate)}
             </div>
-            <div className="text-sm">
-              <strong>Status:</strong> {task.status}
-            </div>
-            <div className="text-sm">
-              <strong>Priority:</strong> {task.priority}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><strong>Status:</strong> {task.status}</div>
+              <div><strong>Priority:</strong> {task.priority}</div>
             </div>
             {task.estimated_hours && (
-              <div className="text-sm">
-                <strong>Estimated Hours:</strong> {task.estimated_hours}
+              <div className="text-sm text-slate-600">
+                <strong>Est. Hours:</strong> {task.estimated_hours}h
               </div>
             )}
             {task.progress && task.progress > 0 && (
-              <div className="text-sm">
+              <div className="text-sm text-slate-600">
                 <strong>Progress:</strong> {task.progress}%
               </div>
             )}
+            <div className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+              View: {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>
