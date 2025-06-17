@@ -1,37 +1,40 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 interface UseTimelineNavigationProps {
   timelineStart: Date;
   timelineEnd: Date;
   viewMode: 'days' | 'weeks' | 'months';
+  scrollContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const useTimelineNavigation = ({
   timelineStart,
   timelineEnd,
-  viewMode
+  viewMode,
+  scrollContainerRef
 }: UseTimelineNavigationProps) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const internalScrollRef = useRef<HTMLDivElement>(null);
+  const activeScrollRef = scrollContainerRef || internalScrollRef;
   const [scrollPosition, setScrollPosition] = useState(0);
   const [maxScroll, setMaxScroll] = useState(0);
 
   const updateScrollInfo = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
+    if (activeScrollRef.current) {
+      const container = activeScrollRef.current;
       setScrollPosition(container.scrollLeft);
       setMaxScroll(container.scrollWidth - container.clientWidth);
     }
-  }, []);
+  }, [activeScrollRef]);
 
   const scrollToToday = useCallback(() => {
-    if (!scrollContainerRef.current) return;
+    if (!activeScrollRef.current) return;
 
     const today = new Date();
     const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
     const daysFromStart = Math.ceil((today.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
     
-    const container = scrollContainerRef.current;
+    const container = activeScrollRef.current;
     const scrollableWidth = container.scrollWidth - container.clientWidth;
     const targetPosition = (daysFromStart / totalDays) * scrollableWidth;
     
@@ -42,24 +45,24 @@ export const useTimelineNavigation = ({
       left: centeredPosition,
       behavior: 'smooth'
     });
-  }, [timelineStart, timelineEnd]);
+  }, [timelineStart, timelineEnd, activeScrollRef]);
 
   const scrollLeft = useCallback(() => {
-    if (!scrollContainerRef.current) return;
+    if (!activeScrollRef.current) return;
     
-    const container = scrollContainerRef.current;
+    const container = activeScrollRef.current;
     const scrollAmount = container.clientWidth * 0.75; // Scroll 75% of viewport
     
     container.scrollTo({
       left: Math.max(0, container.scrollLeft - scrollAmount),
       behavior: 'smooth'
     });
-  }, []);
+  }, [activeScrollRef]);
 
   const scrollRight = useCallback(() => {
-    if (!scrollContainerRef.current) return;
+    if (!activeScrollRef.current) return;
     
-    const container = scrollContainerRef.current;
+    const container = activeScrollRef.current;
     const scrollAmount = container.clientWidth * 0.75; // Scroll 75% of viewport
     const maxScrollLeft = container.scrollWidth - container.clientWidth;
     
@@ -67,23 +70,23 @@ export const useTimelineNavigation = ({
       left: Math.min(maxScrollLeft, container.scrollLeft + scrollAmount),
       behavior: 'smooth'
     });
-  }, []);
+  }, [activeScrollRef]);
 
   const zoomToProject = useCallback(() => {
-    if (!scrollContainerRef.current) return;
+    if (!activeScrollRef.current) return;
     
-    const container = scrollContainerRef.current;
+    const container = activeScrollRef.current;
     container.scrollTo({
       left: 0,
       behavior: 'smooth'
     });
-  }, []);
+  }, [activeScrollRef]);
 
   const hasScrollLeft = scrollPosition > 0;
   const hasScrollRight = scrollPosition < maxScroll;
 
   return {
-    scrollContainerRef,
+    scrollContainerRef: activeScrollRef,
     scrollToToday,
     scrollLeft,
     scrollRight,
