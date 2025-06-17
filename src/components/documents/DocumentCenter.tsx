@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DocumentList } from './DocumentList';
 import { DocumentFilters } from './DocumentFilters';
 import { DocumentUpload } from './DocumentUpload';
@@ -15,11 +16,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 const DocumentCenterContent = () => {
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('project');
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestPanel, setShowTestPanel] = useState(false);
   
-  const { documents, loading, refetch } = useDocuments();
+  const { documents, loading, refetch, canUpload } = useDocuments(projectId || undefined);
 
   const handleUploadComplete = () => {
     refetch().catch(console.error);
@@ -54,32 +57,68 @@ const DocumentCenterContent = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-slate-800">Document Center</h2>
+      {/* Header Section - Mobile-First Responsive */}
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-800">
+            {projectId ? 'Project Documents' : 'Document Center'}
+          </h2>
+          {projectId && (
+            <p className="text-sm text-slate-500 mt-1">
+              Manage documents for this project
+            </p>
+          )}
+        </div>
         
-        <div className="flex flex-wrap gap-2">
-          <PhotoUpload onUploadComplete={handleUploadComplete} />
-          <DocumentUpload onUploadComplete={handleUploadComplete} />
-          <ReceiptUpload onUploadComplete={handleUploadComplete} />
-          <Button
-            variant="outline"
-            onClick={() => setShowTestPanel(!showTestPanel)}
-            className="flex items-center gap-2"
-          >
-            <TestTube size={16} />
-            {showTestPanel ? 'Hide Tests' : 'Show Tests'}
-          </Button>
-          <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
-            <Folder size={20} />
-            New Folder
-          </button>
+        {/* Action Buttons - Mobile Responsive */}
+        <div className="flex flex-wrap gap-2 lg:gap-3">
+          {canUpload() && (
+            <>
+              <PhotoUpload 
+                projectId={projectId || undefined} 
+                onUploadComplete={handleUploadComplete} 
+              />
+              <DocumentUpload 
+                projectId={projectId || undefined} 
+                onUploadComplete={handleUploadComplete} 
+              />
+              <ReceiptUpload 
+                projectId={projectId || undefined} 
+                onUploadComplete={handleUploadComplete} 
+              />
+            </>
+          )}
+          
+          {/* Test Panel Toggle - Development only */}
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              variant="outline"
+              onClick={() => setShowTestPanel(!showTestPanel)}
+              className="flex items-center gap-2"
+            >
+              <TestTube size={16} />
+              <span className="hidden sm:inline">{showTestPanel ? 'Hide Tests' : 'Show Tests'}</span>
+            </Button>
+          )}
         </div>
       </div>
 
-      {showTestPanel && (
+      {/* Access Message for Non-Company Users */}
+      {!canUpload() && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            Document upload is restricted. Contact your project manager for access.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Test Panel - Development only */}
+      {showTestPanel && process.env.NODE_ENV === 'development' && (
         <DocumentTestPanel />
       )}
 
+      {/* Document Filters */}
       <DocumentFilters 
         currentFilter={filter}
         onFilterChange={setFilter}
@@ -87,6 +126,7 @@ const DocumentCenterContent = () => {
         onSearchChange={setSearchTerm}
       />
 
+      {/* Document List */}
       <ErrorBoundary
         fallback={
           <ErrorFallback

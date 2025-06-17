@@ -1,109 +1,68 @@
 
 export interface FileTypeInfo {
-  category: 'pdf' | 'image' | 'text' | 'office' | 'unknown';
+  category: 'image' | 'pdf' | 'office' | 'text' | 'unknown';
   canPreview: boolean;
   icon: string;
-  displayName: string;
 }
 
-export const getFileTypeInfo = (mimeType?: string, fileName?: string): FileTypeInfo => {
-  if (!mimeType) {
-    // Fallback to file extension
-    const extension = fileName?.split('.').pop()?.toLowerCase();
-    return getFileTypeInfoByExtension(extension);
+export const getFileTypeInfo = (fileType?: string, fileName?: string): FileTypeInfo => {
+  if (!fileType && !fileName) {
+    return { category: 'unknown', canPreview: false, icon: 'file' };
   }
 
-  switch (mimeType) {
-    case 'application/pdf':
-      return {
-        category: 'pdf',
-        canPreview: true,
-        icon: 'FileText',
-        displayName: 'PDF Document'
-      };
-    
-    case 'image/png':
-    case 'image/jpeg':
-    case 'image/jpg':
-    case 'image/gif':
-      return {
-        category: 'image',
-        canPreview: true,
-        icon: 'Image',
-        displayName: 'Image'
-      };
-    
-    case 'text/plain':
-      return {
-        category: 'text',
-        canPreview: true,
-        icon: 'FileText',
-        displayName: 'Text File'
-      };
-    
-    case 'application/msword':
-    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      return {
-        category: 'office',
-        canPreview: false,
-        icon: 'FileText',
-        displayName: 'Word Document'
-      };
-    
-    case 'application/vnd.ms-excel':
-    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-      return {
-        category: 'office',
-        canPreview: false,
-        icon: 'FileText',
-        displayName: 'Excel Spreadsheet'
-      };
-    
-    default:
-      return {
-        category: 'unknown',
-        canPreview: false,
-        icon: 'File',
-        displayName: 'Document'
-      };
-  }
-};
+  const type = fileType?.toLowerCase() || '';
+  const name = fileName?.toLowerCase() || '';
 
-const getFileTypeInfoByExtension = (extension?: string): FileTypeInfo => {
-  if (!extension) {
-    return {
-      category: 'unknown',
-      canPreview: false,
-      icon: 'File',
-      displayName: 'Document'
-    };
+  // Image files
+  if (type.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp|svg)$/.test(name)) {
+    return { category: 'image', canPreview: true, icon: 'image' };
   }
 
-  switch (extension) {
-    case 'pdf':
-      return { category: 'pdf', canPreview: true, icon: 'FileText', displayName: 'PDF Document' };
-    case 'png':
-    case 'jpg':
-    case 'jpeg':
-    case 'gif':
-      return { category: 'image', canPreview: true, icon: 'Image', displayName: 'Image' };
-    case 'txt':
-      return { category: 'text', canPreview: true, icon: 'FileText', displayName: 'Text File' };
-    case 'doc':
-    case 'docx':
-      return { category: 'office', canPreview: false, icon: 'FileText', displayName: 'Word Document' };
-    case 'xls':
-    case 'xlsx':
-      return { category: 'office', canPreview: false, icon: 'FileText', displayName: 'Excel Spreadsheet' };
-    default:
-      return { category: 'unknown', canPreview: false, icon: 'File', displayName: 'Document' };
+  // PDF files
+  if (type === 'application/pdf' || name.endsWith('.pdf')) {
+    return { category: 'pdf', canPreview: true, icon: 'file-text' };
   }
+
+  // Office documents
+  if (
+    type.includes('word') || 
+    type.includes('excel') || 
+    type.includes('powerpoint') ||
+    type.includes('spreadsheet') ||
+    /\.(doc|docx|xls|xlsx|ppt|pptx)$/.test(name)
+  ) {
+    return { category: 'office', canPreview: false, icon: 'file-text' };
+  }
+
+  // Text files
+  if (type.startsWith('text/') || /\.(txt|md|csv)$/.test(name)) {
+    return { category: 'text', canPreview: true, icon: 'file-text' };
+  }
+
+  return { category: 'unknown', canPreview: false, icon: 'file' };
 };
 
 export const formatFileSize = (bytes?: number): string => {
   if (!bytes || bytes === 0) return '0 Bytes';
+  
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+export const isImageFile = (fileType?: string, fileName?: string): boolean => {
+  const info = getFileTypeInfo(fileType, fileName);
+  return info.category === 'image';
+};
+
+export const isPdfFile = (fileType?: string, fileName?: string): boolean => {
+  const info = getFileTypeInfo(fileType, fileName);
+  return info.category === 'pdf';
+};
+
+export const canPreviewFile = (fileType?: string, fileName?: string): boolean => {
+  const info = getFileTypeInfo(fileType, fileName);
+  return info.canPreview;
 };

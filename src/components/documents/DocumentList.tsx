@@ -41,7 +41,7 @@ interface DocumentListProps {
 }
 
 const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
-  const { deleteDocument, downloadDocument, shareDocument } = useDocuments();
+  const { deleteDocument, downloadDocument, shareDocument, canDelete } = useDocuments();
   const { toast } = useToast();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [previewDocument, setPreviewDocument] = useState<DocumentRecord | null>(null);
@@ -146,6 +146,7 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
   }, [doc.id, doc.file_path, deleteDocument, deleteOperation, closeDialog, toast]);
 
   const isLoading = downloadOperation.loading || shareOperation.loading || deleteOperation.loading;
+  const userCanDelete = canDelete(doc);
 
   return (
     <>
@@ -157,27 +158,28 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
               <h4 className="text-sm font-medium text-slate-800 truncate">
                 {doc.name}
               </h4>
-              <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
+              <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-xs text-slate-500 mt-1">
                 <span>{getCategoryLabel(doc.category)}</span>
                 <span>{formatFileSize(doc.file_size)}</span>
-                <span>Modified: {new Date(doc.updated_at).toLocaleDateString()}</span>
+                <span className="hidden sm:inline">Modified: {new Date(doc.updated_at).toLocaleDateString()}</span>
                 {fileTypeInfo.canPreview && (
                   <span className="text-green-600 font-medium">Preview Available</span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
-                <span>Project: {doc.project?.name || 'No project'}</span>
-                <span>By: {doc.uploader?.full_name || doc.uploader?.email || 'Unknown'}</span>
+              <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-xs text-slate-500 mt-1">
+                <span className="truncate">Project: {doc.project?.name || 'No project'}</span>
+                <span className="truncate">By: {doc.uploader?.full_name || doc.uploader?.email || 'Unknown'}</span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 ml-4">
+          {/* Action Buttons - Mobile-First Layout */}
+          <div className="flex items-center gap-1 ml-2 lg:gap-2">
             {fileTypeInfo.canPreview && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="p-1 text-slate-500 hover:text-blue-600 transition-colors duration-200 focus:ring-2 focus:ring-blue-300"
+                className="p-2 lg:p-1 text-slate-500 hover:text-blue-600 transition-colors duration-200"
                 onClick={handlePreview}
                 disabled={isLoading}
                 title="Preview document"
@@ -188,7 +190,7 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 text-slate-500 hover:text-slate-700 transition-colors duration-200 focus:ring-2 focus:ring-slate-300"
+              className="p-2 lg:p-1 text-slate-500 hover:text-slate-700 transition-colors duration-200"
               onClick={handleShare}
               disabled={isLoading}
               title="Share document"
@@ -202,7 +204,7 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 text-slate-500 hover:text-slate-700 transition-colors duration-200 focus:ring-2 focus:ring-slate-300"
+              className="p-2 lg:p-1 text-slate-500 hover:text-slate-700 transition-colors duration-200"
               onClick={handleDownload}
               disabled={isLoading}
               title="Download document"
@@ -213,20 +215,22 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
                 <Download size={16} />
               )}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-1 text-slate-500 hover:text-red-600 transition-colors duration-200 focus:ring-2 focus:ring-red-300"
-              onClick={() => openDialog('delete')}
-              disabled={isLoading}
-              title="Delete document"
-            >
-              {deleteOperation.loading ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                <Trash2 size={16} />
-              )}
-            </Button>
+            {userCanDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 lg:p-1 text-slate-500 hover:text-red-600 transition-colors duration-200"
+                onClick={() => openDialog('delete')}
+                disabled={isLoading}
+                title="Delete document"
+              >
+                {deleteOperation.loading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -286,12 +290,12 @@ export const DocumentList = memo(({ filter, searchTerm, documents }: DocumentLis
 
   if (filteredDocuments.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 lg:p-12 text-center">
         <FileText size={48} className="mx-auto mb-4 text-slate-300" />
         <h3 className="text-lg font-medium text-slate-600 mb-2">
           {searchTerm || filter !== 'all' ? 'No documents match your criteria' : 'No documents yet'}
         </h3>
-        <p className="text-slate-500">
+        <p className="text-slate-500 text-sm">
           {searchTerm || filter !== 'all' 
             ? 'Try adjusting your search or filter settings'
             : 'Upload your first document to get started'

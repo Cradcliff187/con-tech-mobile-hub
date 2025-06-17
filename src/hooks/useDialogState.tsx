@@ -1,22 +1,20 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-export type DialogType = 'none' | 'details' | 'edit' | 'assign' | 'delete' | 'export' | 'task-details';
+export const useDialogState = () => {
+  const [activeDialog, setActiveDialog] = useState<string | null>(null);
 
-export const useDialogState = (initialState: DialogType = 'none') => {
-  const [activeDialog, setActiveDialog] = useState<DialogType>(initialState);
+  const openDialog = useCallback((dialogId: string) => {
+    setActiveDialog(dialogId);
+  }, []);
 
-  const openDialog = (type: DialogType) => {
-    setActiveDialog(type);
-  };
+  const closeDialog = useCallback(() => {
+    setActiveDialog(null);
+  }, []);
 
-  const closeDialog = () => {
-    setActiveDialog('none');
-  };
-
-  const isDialogOpen = (type: DialogType) => {
-    return activeDialog === type;
-  };
+  const isDialogOpen = useCallback((dialogId: string) => {
+    return activeDialog === dialogId;
+  }, [activeDialog]);
 
   return {
     activeDialog,

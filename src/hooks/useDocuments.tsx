@@ -68,7 +68,7 @@ export const useDocuments = (projectId?: string) => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
 
   const fetchDocuments = useCallback(async () => {
@@ -144,7 +144,6 @@ export const useDocuments = (projectId?: string) => {
       const timestamp = Date.now();
       const projectPath = targetProjectId || projectId || 'general';
       
-      // Store the file path WITHOUT the "documents/" prefix since it's added by the bucket
       const filePath = `${projectPath}/${timestamp}_${sanitizedFileName}`;
 
       console.log('Uploading to path:', filePath);
@@ -169,7 +168,7 @@ export const useDocuments = (projectId?: string) => {
         .from('documents')
         .insert({
           name: documentName,
-          file_path: uploadData.path, // This will be the clean path without "documents/" prefix
+          file_path: uploadData.path,
           file_size: file.size,
           file_type: file.type,
           category,
@@ -185,7 +184,6 @@ export const useDocuments = (projectId?: string) => {
 
       if (error) {
         console.error('Database insert error:', error);
-        // Clean up uploaded file if database insert fails
         await supabase.storage.from('documents').remove([uploadData.path]);
         throw new Error(`Failed to save document metadata: ${error.message}`);
       }
@@ -209,14 +207,12 @@ export const useDocuments = (projectId?: string) => {
   const deleteDocument = useCallback(async (id: string, filePath: string) => {
     console.log('Deleting document:', id, 'File path:', filePath);
     try {
-      // Try to delete from storage first (non-blocking)
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([filePath]);
 
       if (storageError) {
         console.warn('Storage deletion failed:', storageError);
-        // Continue with database deletion even if storage fails
       }
 
       const { error } = await supabase
@@ -240,15 +236,12 @@ export const useDocuments = (projectId?: string) => {
   const downloadDocument = useCallback(async (doc: DocumentRecord) => {
     console.log('Downloading document:', doc.name, 'Path:', doc.file_path);
     try {
-      // Fix file path - remove "documents/" prefix if it exists
       const cleanPath = doc.file_path.startsWith('documents/') 
         ? doc.file_path.substring('documents/'.length)
         : doc.file_path;
 
-      // Try public URL first
       const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${cleanPath}`;
       
-      // Test if public URL works
       const testResponse = await fetch(publicUrl, { method: 'HEAD' });
       
       let downloadUrl = publicUrl;
@@ -272,15 +265,12 @@ export const useDocuments = (projectId?: string) => {
 
       console.log('Using download URL:', downloadUrl);
 
-      // Create download link with proper filename
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = doc.name;
       link.target = '_blank';
       
-      // Handle different browsers
       if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
-        // Safari handles downloads differently
         window.open(downloadUrl, '_blank');
       } else {
         document.body.appendChild(link);
@@ -299,7 +289,6 @@ export const useDocuments = (projectId?: string) => {
   const shareDocument = useCallback(async (doc: DocumentRecord) => {
     console.log('Sharing document:', doc.name);
     try {
-      // For sharing, always use signed URL with longer expiration
       const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(doc.file_path, 604800); // 7 days
@@ -353,6 +342,23 @@ export const useDocuments = (projectId?: string) => {
     }
   }, []);
 
+  const canUpload = useCallback(() => {
+    return user && profile && (
+      (profile.is_company_user && profile.account_status === 'approved') ||
+      (!profile.is_company_user && profile.account_status === 'approved')
+    );
+  }, [user, profile]);
+
+  const canDelete = useCallback((document: DocumentRecord) => {
+    if (!user || !profile) return false;
+    
+    // Users can delete their own documents
+    if (document.uploaded_by === user.id) return true;
+    
+    // Company users can delete any document
+    return profile.is_company_user && profile.account_status === 'approved';
+  }, [user, profile]);
+
   return {
     documents,
     loading,
@@ -363,6 +369,8 @@ export const useDocuments = (projectId?: string) => {
     downloadDocument,
     shareDocument,
     previewDocument,
-    refetch: fetchDocuments
+    refetch: fetchDocuments,
+    canUpload,
+    canDelete
   };
 };
