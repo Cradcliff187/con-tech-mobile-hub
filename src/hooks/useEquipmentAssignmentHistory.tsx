@@ -21,6 +21,22 @@ export interface EquipmentAssignmentHistory {
   assigned_by_user?: { id: string; full_name?: string } | null;
 }
 
+// Helper function to check if a value is a SelectQueryError
+const isSelectQueryError = (value: any): boolean => {
+  return value && typeof value === 'object' && value.error === true;
+};
+
+// Process raw history data to handle SelectQueryError objects
+const processHistoryData = (rawData: any[]): EquipmentAssignmentHistory[] => {
+  return rawData.map(record => ({
+    ...record,
+    project: isSelectQueryError(record.project) ? null : record.project,
+    operator: isSelectQueryError(record.operator) ? null : record.operator,
+    assigned_operator: isSelectQueryError(record.assigned_operator) ? null : record.assigned_operator,
+    assigned_by_user: isSelectQueryError(record.assigned_by_user) ? null : record.assigned_by_user,
+  }));
+};
+
 export const useEquipmentAssignmentHistory = (equipmentId?: string) => {
   const [history, setHistory] = useState<EquipmentAssignmentHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +73,8 @@ export const useEquipmentAssignmentHistory = (equipmentId?: string) => {
           variant: "destructive"
         });
       } else {
-        setHistory(data || []);
+        const processedData = processHistoryData(data || []);
+        setHistory(processedData);
       }
     } catch (error) {
       console.error('Error fetching assignment history:', error);
@@ -99,14 +116,15 @@ export const useEquipmentAssignmentHistory = (equipmentId?: string) => {
         .single();
 
       if (!error && data) {
-        setHistory(prev => [data, ...prev]);
+        const processedData = processHistoryData([data]);
+        setHistory(prev => [processedData[0], ...prev]);
         toast({
           title: "Success",
           description: "Assignment history recorded"
         });
       }
 
-      return { data, error };
+      return { data: processedData?.[0] || data, error };
     } catch (error) {
       console.error('Error creating history record:', error);
       return { error };
