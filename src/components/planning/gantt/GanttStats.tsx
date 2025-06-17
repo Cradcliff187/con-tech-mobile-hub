@@ -13,8 +13,7 @@ export const GanttStats = ({ tasks }: GanttStatsProps) => {
     completed: tasks.filter(t => t.status === 'completed').length,
     inProgress: tasks.filter(t => t.status === 'in-progress').length,
     blocked: tasks.filter(t => t.status === 'blocked').length,
-    notStarted: tasks.filter(t => t.status === 'not-started').length,
-    onHold: tasks.filter(t => t.status === 'on-hold').length
+    notStarted: tasks.filter(t => t.status === 'not-started').length
   };
 
   const statCards = [
