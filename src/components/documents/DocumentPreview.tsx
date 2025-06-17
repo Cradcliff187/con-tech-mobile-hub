@@ -212,7 +212,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         </div>
         
         <div className="flex items-center gap-2 ml-4">
-          {fileTypeInfo.category === private && fileTypeInfo.canPreview && (
+          {fileTypeInfo.category === 'image' && fileTypeInfo.canPreview && (
             <>
               <Button
                 variant="ghost"
