@@ -1,3 +1,4 @@
+
 import { Calendar, User, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Task } from '@/types/database';
 import { ProjectLink } from '@/components/common/ProjectLink';
@@ -5,9 +6,10 @@ import { ProjectLink } from '@/components/common/ProjectLink';
 interface TaskItemProps {
   task: Task;
   onEdit?: (task: Task) => void;
+  onViewDetails?: (task: Task) => void;
 }
 
-export const TaskItem = ({ task, onEdit }: TaskItemProps) => {
+export const TaskItem = ({ task, onEdit, onViewDetails }: TaskItemProps) => {
   const priorityColors = {
     low: 'bg-green-100 text-green-800',
     medium: 'bg-orange-100 text-orange-800',
@@ -94,7 +96,10 @@ export const TaskItem = ({ task, onEdit }: TaskItemProps) => {
           >
             Edit
           </button>
-          <button className="text-xs text-slate-500 hover:text-slate-600 font-medium">
+          <button 
+            onClick={() => onViewDetails?.(task)}
+            className="text-xs text-slate-500 hover:text-slate-600 font-medium"
+          >
             View Details
           </button>
         </div>
