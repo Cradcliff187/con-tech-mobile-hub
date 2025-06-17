@@ -39,7 +39,11 @@ export const GanttChartContent = ({
 }: GanttChartContentProps) => {
   return (
     <Card className="border-slate-200 overflow-hidden">
-      <GanttTimelineHeader timelineStart={timelineStart} timelineEnd={timelineEnd} />
+      <GanttTimelineHeader 
+        timelineStart={timelineStart} 
+        timelineEnd={timelineEnd}
+        viewMode={viewMode}
+      />
 
       <div 
         ref={timelineRef}
