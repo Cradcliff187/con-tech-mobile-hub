@@ -15,9 +15,11 @@ import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { NavigationItem } from '@/types/navigation';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { EnhancedSidebarTrigger } from '@/components/navigation/EnhancedSidebarTrigger';
+import { useSidebarFocus } from '@/hooks/useSidebarFocus';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -29,6 +31,7 @@ import {
   BarChart3,
   Clock
 } from 'lucide-react';
+import '../components/ui/enhanced-sidebar.css';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +39,7 @@ const Index = () => {
   const { signOut, profile } = useAuth();
   const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
+  const { triggerRef } = useSidebarFocus();
 
   const handleSectionChange = (searchParamsString: string) => {
     setSearchParams(searchParamsString);
@@ -100,44 +104,56 @@ const Index = () => {
           isAdmin={isAdmin}
         />
 
-        <MobileHeader profile={profile} />
+        <SidebarInset className="flex flex-col w-full">
+          <MobileHeader profile={profile} />
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="lg:hidden h-16"></div>
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <SidebarTrigger className="hidden lg:flex" />
-              <Breadcrumbs />
+          {/* Floating Sidebar Trigger - Hidden on mobile when header trigger is visible */}
+          <div className="hidden lg:block">
+            <EnhancedSidebarTrigger 
+              floating 
+              ref={triggerRef}
+            />
+          </div>
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-auto main-content-shift">
+            <div className="lg:hidden h-16"></div>
+            <div className="p-6 lg:pl-16">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="lg:hidden">
+                  <EnhancedSidebarTrigger />
+                </div>
+                <Breadcrumbs />
+              </div>
+              <ErrorBoundary>
+                {renderContent()}
+              </ErrorBoundary>
             </div>
-            <ErrorBoundary>
-              {renderContent()}
-            </ErrorBoundary>
-          </div>
-        </main>
+          </main>
 
-        {/* Mobile Bottom Navigation - Enhanced with Planning */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2">
-          <div className="flex justify-around">
-            {mobileNavItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleMobileBottomNavigation(item.id)}
-                  className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                    activeSection === item.id
-                      ? 'text-orange-600 bg-orange-50'
-                      : 'text-slate-600'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="text-xs mt-1">{item.label}</span>
-                </button>
-              );
-            })}
+          {/* Mobile Bottom Navigation - Enhanced with Planning */}
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 z-30">
+            <div className="flex justify-around">
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMobileBottomNavigation(item.id)}
+                    className={`flex flex-col items-center p-3 rounded-lg transition-all duration-200 touch-manipulation min-w-[44px] min-h-[44px] ${
+                      activeSection === item.id
+                        ? 'text-orange-600 bg-orange-50 scale-105'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span className="text-xs mt-1 font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </SidebarInset>
       </SidebarProvider>
     </div>
   );
