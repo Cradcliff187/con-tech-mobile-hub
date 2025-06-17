@@ -1,5 +1,7 @@
 
 import { Search } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
 
 interface DocumentFiltersProps {
   currentFilter: string;
@@ -14,6 +16,8 @@ export const DocumentFilters = ({
   searchTerm, 
   onSearchChange 
 }: DocumentFiltersProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const filters = [
     { id: 'all', label: 'All Files' },
     { id: 'plans', label: 'Plans & Drawings' },
@@ -23,6 +27,27 @@ export const DocumentFilters = ({
     { id: 'reports', label: 'Reports' },
     { id: 'receipts', label: 'Receipts' }
   ];
+
+  // Sync URL category with current filter
+  useEffect(() => {
+    const urlCategory = searchParams.get('category');
+    if (urlCategory && urlCategory !== currentFilter) {
+      onFilterChange(urlCategory);
+    }
+  }, [searchParams, currentFilter, onFilterChange]);
+
+  const handleFilterChange = (filterId: string) => {
+    onFilterChange(filterId);
+    
+    // Update URL searchParams while preserving existing ones
+    const newParams = new URLSearchParams(searchParams);
+    if (filterId === 'all') {
+      newParams.delete('category');
+    } else {
+      newParams.set('category', filterId);
+    }
+    setSearchParams(newParams, { replace: true });
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
@@ -44,8 +69,8 @@ export const DocumentFilters = ({
           {filters.map((filter) => (
             <button
               key={filter.id}
-              onClick={() => onFilterChange(filter.id)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
+              onClick={() => handleFilterChange(filter.id)}
+              className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors min-h-[44px] ${
                 currentFilter === filter.id
                   ? 'bg-blue-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'

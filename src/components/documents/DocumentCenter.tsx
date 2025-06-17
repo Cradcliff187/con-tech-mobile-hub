@@ -1,14 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DocumentList } from './DocumentList';
 import { DocumentFilters } from './DocumentFilters';
-import { DocumentUpload } from './DocumentUpload';
-import { ReceiptUpload } from './ReceiptUpload';
-import { PhotoUpload } from './PhotoUpload';
+import { DocumentQuickActions } from './DocumentQuickActions';
 import { DocumentTestPanel } from './DocumentTestPanel';
-import { Folder, AlertCircle, TestTube } from 'lucide-react';
+import { AlertCircle, TestTube } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
+import { useProjects } from '@/hooks/useProjects';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -18,11 +17,20 @@ import { Button } from '@/components/ui/button';
 const DocumentCenterContent = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
-  const [filter, setFilter] = useState('all');
+  const urlCategory = searchParams.get('category') || 'all';
+  
+  const [filter, setFilter] = useState(urlCategory);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestPanel, setShowTestPanel] = useState(false);
   
   const { documents, loading, refetch, canUpload } = useDocuments(projectId || undefined);
+  const { projects } = useProjects();
+  const currentProject = projectId ? projects.find(p => p.id === projectId) : undefined;
+
+  // Sync filter with URL category changes
+  useEffect(() => {
+    setFilter(urlCategory);
+  }, [urlCategory]);
 
   const handleUploadComplete = () => {
     refetch().catch(console.error);
@@ -61,40 +69,32 @@ const DocumentCenterContent = () => {
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div>
           <h2 className="text-xl font-semibold text-slate-800">
-            {projectId ? 'Project Documents' : 'Document Center'}
+            {currentProject ? `${currentProject.name} Documents` : 'Document Center'}
           </h2>
-          {projectId && (
+          {currentProject && (
             <p className="text-sm text-slate-500 mt-1">
-              Manage documents for this project
+              {currentProject.phase === 'planning' && 'Upload plans and permits to get started'}
+              {currentProject.phase === 'active' && 'Track progress with photos and reports'}
+              {currentProject.phase === 'completed' && 'Finalize project documentation'}
+              {currentProject.phase === 'punch_list' && 'Complete final inspections and documentation'}
             </p>
           )}
         </div>
         
-        {/* Action Buttons - Mobile Responsive */}
+        {/* Quick Actions - Mobile Responsive */}
         <div className="flex flex-wrap gap-2 lg:gap-3">
-          {canUpload() && (
-            <>
-              <PhotoUpload 
-                projectId={projectId || undefined} 
-                onUploadComplete={handleUploadComplete} 
-              />
-              <DocumentUpload 
-                projectId={projectId || undefined} 
-                onUploadComplete={handleUploadComplete} 
-              />
-              <ReceiptUpload 
-                projectId={projectId || undefined} 
-                onUploadComplete={handleUploadComplete} 
-              />
-            </>
-          )}
+          <DocumentQuickActions 
+            project={currentProject}
+            variant="inline"
+            className="flex-wrap"
+          />
           
           {/* Test Panel Toggle - Development only */}
           {process.env.NODE_ENV === 'development' && (
             <Button
               variant="outline"
               onClick={() => setShowTestPanel(!showTestPanel)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 min-h-[44px]"
             >
               <TestTube size={16} />
               <span className="hidden sm:inline">{showTestPanel ? 'Hide Tests' : 'Show Tests'}</span>
@@ -143,6 +143,16 @@ const DocumentCenterContent = () => {
           documents={documents}
         />
       </ErrorBoundary>
+
+      {/* Mobile Floating Action - Only on small screens */}
+      {currentProject && canUpload() && (
+        <div className="block sm:hidden">
+          <DocumentQuickActions 
+            project={currentProject}
+            variant="floating"
+          />
+        </div>
+      )}
     </div>
   );
 };

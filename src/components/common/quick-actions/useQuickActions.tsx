@@ -30,7 +30,7 @@ export const useQuickActions = ({
         icon: Plus,
         action: onCreateTask,
         shortcut: 'Ctrl+N',
-        primary: true
+        primary: context !== 'documents'
       },
       {
         id: 'assign-stakeholder',
@@ -52,14 +52,15 @@ export const useQuickActions = ({
       });
     }
 
-    // Document-related actions
+    // Document-related actions - prioritize for document context
     const documentActions: QuickAction[] = [
       {
         id: 'upload-document',
         label: 'Upload Document',
         icon: Upload,
         action: () => navigate(`/?section=documents&project=${project.id}`),
-        shortcut: 'Ctrl+D'
+        shortcut: 'Ctrl+D',
+        primary: context === 'documents'
       },
       {
         id: 'view-documents',
@@ -104,7 +105,12 @@ export const useQuickActions = ({
       });
     }
 
-    baseActions.push(...documentActions);
+    // Prioritize document actions for document context
+    if (context === 'documents') {
+      baseActions.unshift(...documentActions);
+    } else {
+      baseActions.push(...documentActions);
+    }
 
     baseActions.push({
       id: 'view-timeline',
@@ -176,6 +182,9 @@ export const useQuickActions = ({
           icon: FileText,
           action: () => navigate(`/?project=${project.id}`)
         });
+        break;
+      case 'documents':
+        // Document-specific actions are already added above
         break;
     }
 

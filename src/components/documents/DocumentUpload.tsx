@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,20 +19,25 @@ interface DocumentUploadProps {
   onUploadComplete?: () => void;
   variant?: 'dialog' | 'inline';
   className?: string;
+  preselectedCategory?: string;
+  triggerButton?: React.ReactNode;
 }
 
 export const DocumentUpload = ({ 
   projectId, 
   onUploadComplete, 
   variant = 'dialog',
-  className 
+  className,
+  preselectedCategory,
+  triggerButton
 }: DocumentUploadProps) => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const currentProjectId = projectId || searchParams.get('project') || '';
+  const urlCategory = searchParams.get('category');
   
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(preselectedCategory || urlCategory || '');
   const [selectedProjectId, setSelectedProjectId] = useState(currentProjectId);
   const [description, setDescription] = useState('');
   const [fileValidation, setFileValidation] = useState<{ isValid: boolean; message?: string } | null>(null);
@@ -41,6 +46,15 @@ export const DocumentUpload = ({
   const { projects, loading: projectsLoading } = useProjects();
   const { profile } = useAuth();
   const { toast } = useToast();
+
+  // Update category when URL changes or preselected category changes
+  useEffect(() => {
+    if (preselectedCategory) {
+      setCategory(preselectedCategory);
+    } else if (urlCategory) {
+      setCategory(urlCategory);
+    }
+  }, [preselectedCategory, urlCategory]);
 
   const categories = [
     { value: 'plans', label: 'Plans & Drawings' },
@@ -88,13 +102,6 @@ export const DocumentUpload = ({
       isValid: true,
       message: `File looks good! Size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
     };
-  };
-
-  const sanitizeFileName = (fileName: string): string => {
-    return fileName
-      .replace(/[^a-zA-Z0-9.-]/g, '_')
-      .replace(/_{2,}/g, '_')
-      .replace(/^_|_$/g, '');
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,13 +157,12 @@ export const DocumentUpload = ({
       setIsOpen(false);
       onUploadComplete?.();
       
-      // Update URL with document context if we have a project
-      if (selectedProjectId && category) {
+      // Update URL with document context if we have a project and we're on documents page
+      if (selectedProjectId && category && searchParams.get('section') === 'documents') {
         const newParams = new URLSearchParams(searchParams);
-        newParams.set('section', 'documents');
         newParams.set('project', selectedProjectId);
         newParams.set('category', category);
-        window.history.replaceState({}, '', `/?${newParams.toString()}`);
+        setSearchParams(newParams, { replace: true });
       }
     } catch (error) {
       toast({
@@ -177,7 +183,7 @@ export const DocumentUpload = ({
 
   const resetForm = () => {
     setSelectedFile(null);
-    setCategory('');
+    setCategory(preselectedCategory || urlCategory || '');
     setDescription('');
     setFileValidation(null);
   };
@@ -288,7 +294,7 @@ export const DocumentUpload = ({
         <Button 
           onClick={handleUpload} 
           disabled={!selectedFile || !category || uploading || (fileValidation && !fileValidation.isValid)}
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 min-h-[44px]"
         >
           {uploading ? (
             <div className="flex items-center gap-2">
@@ -302,14 +308,16 @@ export const DocumentUpload = ({
             </div>
           )}
         </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => setIsOpen(false)}
-          className="flex-1 border-slate-200 text-slate-700 hover:bg-slate-50"
-          disabled={uploading}
-        >
-          Cancel
-        </Button>
+        {variant === 'dialog' && (
+          <Button 
+            variant="outline" 
+            onClick={() => setIsOpen(false)}
+            className="flex-1 border-slate-200 text-slate-700 hover:bg-slate-50 min-h-[44px]"
+            disabled={uploading}
+          >
+            Cancel
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -329,10 +337,12 @@ export const DocumentUpload = ({
       if (!open) resetForm();
     }}>
       <DialogTrigger asChild>
-        <Button className={`bg-blue-600 hover:bg-blue-700 ${className}`}>
-          <Upload size={20} />
-          Upload Document
-        </Button>
+        {triggerButton || (
+          <Button className={`bg-blue-600 hover:bg-blue-700 min-h-[44px] ${className}`}>
+            <Upload size={20} />
+            Upload Document
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
