@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { getDateFromPosition, getTaskDuration, createDragPreview } from './ganttUtils';
@@ -8,12 +9,14 @@ import {
   DependencyViolation,
   TaskImpact 
 } from './utils/constructionValidation';
+import { useToast } from '@/hooks/use-toast';
 
 interface EnhancedDragAndDropState {
   draggedTask: Task | null;
   dragPosition: { x: number; y: number } | null;
   dropPreviewDate: Date | null;
   isDragging: boolean;
+  isSaving: boolean;
   localTaskUpdates: Record<string, Partial<Task>>;
   affectedTasks: string[];
   dependencyViolations: DependencyViolation[];
@@ -25,17 +28,29 @@ interface EnhancedDragAndDropState {
   suggestedDropDate: Date | null;
 }
 
-export const useDragAndDrop = (
-  timelineStart: Date,
-  timelineEnd: Date,
-  viewMode: 'days' | 'weeks' | 'months',
-  allTasks: Task[] = []
-) => {
+interface UseDragAndDropProps {
+  timelineStart: Date;
+  timelineEnd: Date;
+  viewMode: 'days' | 'weeks' | 'months';
+  allTasks?: Task[];
+  updateTask: (id: string, updates: Partial<Task>) => Promise<{ data?: any; error?: string }>;
+}
+
+export const useDragAndDrop = ({
+  timelineStart,
+  timelineEnd,
+  viewMode,
+  allTasks = [],
+  updateTask
+}: UseDragAndDropProps) => {
+  const { toast } = useToast();
+  
   const [state, setState] = useState<EnhancedDragAndDropState>({
     draggedTask: null,
     dragPosition: null,
     dropPreviewDate: null,
     isDragging: false,
+    isSaving: false,
     localTaskUpdates: {},
     affectedTasks: [],
     dependencyViolations: [],
@@ -83,6 +98,12 @@ export const useDragAndDrop = (
   }, [allTasks]);
 
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
+    // Don't allow drag during save operations
+    if (state.isSaving) {
+      e.preventDefault();
+      return;
+    }
+    
     const dropZones = calculateDropZones(task);
     
     setState(prev => ({ 
@@ -112,7 +133,7 @@ export const useDragAndDrop = (
         dragImage.parentNode.removeChild(dragImage);
       }
     }, 100);
-  }, [calculateDropZones]);
+  }, [calculateDropZones, state.isSaving]);
 
   const handleDragEnd = useCallback(() => {
     setState(prev => ({
@@ -135,7 +156,7 @@ export const useDragAndDrop = (
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
-    if (!state.draggedTask) return;
+    if (!state.draggedTask || state.isSaving) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
@@ -163,12 +184,12 @@ export const useDragAndDrop = (
       violationMessages: analysis.violationMessages,
       suggestedDropDate: analysis.suggestedDate
     }));
-  }, [state.draggedTask, timelineStart, timelineEnd, viewMode, analyzeDropImpact]);
+  }, [state.draggedTask, state.isSaving, timelineStart, timelineEnd, viewMode, analyzeDropImpact]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     
-    if (!state.draggedTask) return;
+    if (!state.draggedTask || state.isSaving) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
@@ -187,8 +208,11 @@ export const useDragAndDrop = (
     
     // Allow drops with warnings, but block invalid drops
     if (finalAnalysis.validity === 'invalid') {
-      // Could show a toast notification here
-      console.warn('Drop blocked due to validation errors:', finalAnalysis.violationMessages);
+      toast({
+        title: "Invalid Move",
+        description: finalAnalysis.violationMessages.join(', '),
+        variant: "destructive"
+      });
       handleDragEnd();
       return;
     }
@@ -203,15 +227,17 @@ export const useDragAndDrop = (
       dragPosition: null,
       showDropZones: false
     }));
-  }, [state.draggedTask, timelineStart, timelineEnd, viewMode, analyzeDropImpact]);
+  }, [state.draggedTask, state.isSaving, timelineStart, timelineEnd, viewMode, analyzeDropImpact, toast]);
 
-  const updateTaskDates = useCallback((
+  const updateTaskDates = useCallback(async (
     taskId: string, 
     newStartDate: Date, 
     impacts: TaskImpact[]
   ) => {
     const task = state.draggedTask;
     if (!task) return;
+    
+    setState(prev => ({ ...prev, isSaving: true }));
     
     const duration = getTaskDuration(task);
     const newEndDate = new Date(newStartDate);
@@ -242,6 +268,7 @@ export const useDragAndDrop = (
       }
     });
     
+    // Apply local updates immediately for UI responsiveness
     setState(prev => ({
       ...prev,
       localTaskUpdates: {
@@ -249,7 +276,46 @@ export const useDragAndDrop = (
         ...updates
       }
     }));
-  }, [state.draggedTask, allTasks]);
+    
+    // Persist to database
+    try {
+      const updatePromises = Object.entries(updates).map(async ([id, taskUpdates]) => {
+        const { error } = await updateTask(id, taskUpdates);
+        if (error) throw new Error(`Failed to update task ${id}: ${error}`);
+        return id;
+      });
+      
+      await Promise.all(updatePromises);
+      
+      // Clear local updates after successful save
+      setState(prev => ({ 
+        ...prev, 
+        localTaskUpdates: {},
+        isSaving: false
+      }));
+      
+      toast({
+        title: "Tasks Updated",
+        description: `Successfully moved ${Object.keys(updates).length} task(s)`,
+      });
+      
+    } catch (error) {
+      console.error('Failed to save task updates:', error);
+      
+      // Rollback local updates on failure
+      setState(prev => ({ 
+        ...prev, 
+        localTaskUpdates: {},
+        isSaving: false
+      }));
+      
+      toast({
+        title: "Save Failed", 
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+    }
+  }, [state.draggedTask, allTasks, updateTask, toast]);
 
   const resetLocalUpdates = useCallback(() => {
     setState(prev => ({ ...prev, localTaskUpdates: {} }));

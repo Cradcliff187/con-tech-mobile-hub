@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
 import { useDragAndDrop } from './useDragAndDrop';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
 import { useGanttFilters } from './hooks/useGanttFilters';
@@ -12,6 +13,7 @@ interface UseGanttChartProps {
 
 export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   const { projects } = useProjects();
+  const { updateTask } = useTasks();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [timelineRect, setTimelineRect] = useState<DOMRect | null>(null);
   
@@ -43,8 +45,14 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     handleFilterChange 
   } = useGanttFilters({ projectTasks });
 
-  // Drag and drop functionality
-  const dragAndDrop = useDragAndDrop(timelineStart, timelineEnd, viewMode);
+  // Drag and drop functionality with database persistence
+  const dragAndDrop = useDragAndDrop({
+    timelineStart,
+    timelineEnd,
+    viewMode,
+    allTasks: projectTasks,
+    updateTask
+  });
 
   // Update timeline rect on resize or when timeline changes
   useEffect(() => {
