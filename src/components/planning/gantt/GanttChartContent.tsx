@@ -23,6 +23,17 @@ interface GanttChartContentProps {
   onDragEnd: () => void;
   draggedTaskId?: string;
   projectId?: string;
+  // Enhanced drag state props for overlay integration
+  dragState?: {
+    dropPreviewDate: Date | null;
+    dragPosition: { x: number; y: number } | null;
+    currentValidity: 'valid' | 'warning' | 'invalid';
+    validDropZones: Array<{ start: Date; end: Date; validity: 'valid' | 'warning' | 'invalid' }>;
+    showDropZones: boolean;
+    violationMessages: string[];
+    suggestedDropDate: Date | null;
+    affectedMarkerIds: string[];
+  };
 }
 
 export const GanttChartContent = ({
@@ -39,7 +50,8 @@ export const GanttChartContent = ({
   onDragStart,
   onDragEnd,
   draggedTaskId,
-  projectId
+  projectId,
+  dragState
 }: GanttChartContentProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
@@ -116,7 +128,7 @@ export const GanttChartContent = ({
             draggedTaskId={draggedTaskId}
           />
 
-          {/* Unified Overlay Manager for virtual scroll */}
+          {/* Enhanced Overlay Manager for virtual scroll with drag integration */}
           <GanttOverlayManager
             tasks={displayTasks}
             timelineStart={timelineStart}
@@ -124,6 +136,16 @@ export const GanttChartContent = ({
             viewMode={viewMode}
             projectId={projectId}
             className="pointer-events-none"
+            isDragging={isDragging}
+            draggedTaskId={draggedTaskId}
+            affectedMarkerIds={dragState?.affectedMarkerIds || []}
+            dropPreviewDate={dragState?.dropPreviewDate}
+            dragPosition={dragState?.dragPosition}
+            currentValidity={dragState?.currentValidity || 'valid'}
+            validDropZones={dragState?.validDropZones || []}
+            showDropZones={dragState?.showDropZones || false}
+            violationMessages={dragState?.violationMessages || []}
+            suggestedDropDate={dragState?.suggestedDropDate}
           />
         </div>
       </div>
@@ -193,13 +215,23 @@ export const GanttChartContent = ({
           />
         </div>
 
-        {/* Unified Overlay Manager replaces all individual marker components */}
+        {/* Enhanced Overlay Manager with full drag integration */}
         <GanttOverlayManager
           tasks={displayTasks}
           timelineStart={timelineStart}
           timelineEnd={timelineEnd}
           viewMode={viewMode}
           projectId={projectId}
+          isDragging={isDragging}
+          draggedTaskId={draggedTaskId}
+          affectedMarkerIds={dragState?.affectedMarkerIds || []}
+          dropPreviewDate={dragState?.dropPreviewDate}
+          dragPosition={dragState?.dragPosition}
+          currentValidity={dragState?.currentValidity || 'valid'}
+          validDropZones={dragState?.validDropZones || []}
+          showDropZones={dragState?.showDropZones || false}
+          violationMessages={dragState?.violationMessages || []}
+          suggestedDropDate={dragState?.suggestedDropDate}
         />
       </div>
     </div>

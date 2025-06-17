@@ -76,6 +76,18 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     // Implement actual viewport scrolling here
   };
 
+  // Enhanced drag state for overlay integration
+  const enhancedDragState = {
+    dropPreviewDate: dragAndDrop.dropPreviewDate,
+    dragPosition: dragAndDrop.dragPosition,
+    currentValidity: dragAndDrop.currentValidity,
+    validDropZones: dragAndDrop.validDropZones,
+    showDropZones: dragAndDrop.showDropZones,
+    violationMessages: dragAndDrop.violationMessages,
+    suggestedDropDate: dragAndDrop.suggestedDropDate,
+    affectedMarkerIds: dragAndDrop.affectedMarkerIds
+  };
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -98,6 +110,12 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
             <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
             <span>Resource conflicts detected</span>
           </div>
+          {dragAndDrop.isDragging && (
+            <div className="flex items-center gap-2 text-blue-600">
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+              <span>Drag in progress - {dragAndDrop.currentValidity} move</span>
+            </div>
+          )}
           <button
             onClick={() => setShowMiniMap(!showMiniMap)}
             className="text-blue-600 hover:text-blue-800 underline text-sm"
@@ -131,7 +149,7 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
         {/* Summary Statistics */}
         <GanttStats tasks={displayTasks} />
 
-        {/* Enhanced Gantt Chart with Construction Features */}
+        {/* Enhanced Gantt Chart with Construction Features and Drag Integration */}
         <GanttChartContent
           displayTasks={displayTasks}
           timelineStart={timelineStart}
@@ -147,6 +165,7 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
           onDragEnd={dragAndDrop.handleDragEnd}
           draggedTaskId={dragAndDrop.draggedTask?.id}
           projectId={projectId}
+          dragState={enhancedDragState}
         />
 
         <GanttLegend />
