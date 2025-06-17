@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProjects } from '@/hooks/useProjects';
+import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Equipment } from '@/hooks/useEquipment';
@@ -19,15 +21,25 @@ interface EditEquipmentDialogProps {
   onSuccess?: () => void;
 }
 
+interface User {
+  id: string;
+  full_name?: string;
+  email: string;
+}
+
 export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }: EditEquipmentDialogProps) => {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('available');
   const [projectId, setProjectId] = useState('');
+  const [operatorType, setOperatorType] = useState<'employee' | 'user'>('employee');
+  const [assignedOperatorId, setAssignedOperatorId] = useState('');
   const [operatorId, setOperatorId] = useState('');
   const [maintenanceDue, setMaintenanceDue] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
 
   const { projects } = useProjects();
+  const { stakeholders } = useStakeholders();
   const { toast } = useToast();
 
   const updateOperation = useAsyncOperation({
@@ -39,6 +51,27 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
     }
   });
 
+  // Fetch company users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('is_company_user', true)
+        .eq('account_status', 'approved');
+
+      if (error) {
+        console.error('Error fetching users:', error);
+      } else {
+        setUsers(data || []);
+      }
+    };
+
+    if (open) {
+      fetchUsers();
+    }
+  }, [open]);
+
   // Pre-fill form with equipment data when dialog opens
   useEffect(() => {
     if (equipment && open) {
@@ -46,8 +79,18 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
       setType(equipment.type || '');
       setStatus(equipment.status);
       setProjectId(equipment.project_id || '');
+      setAssignedOperatorId(equipment.assigned_operator_id || '');
       setOperatorId(equipment.operator_id || '');
       setMaintenanceDue(equipment.maintenance_due || '');
+      
+      // Set operator type based on which field has a value
+      if (equipment.assigned_operator_id) {
+        setOperatorType('employee');
+      } else if (equipment.operator_id) {
+        setOperatorType('user');
+      } else {
+        setOperatorType('employee');
+      }
     }
   }, [equipment, open]);
 
@@ -64,16 +107,19 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
     }
 
     await updateOperation.execute(async () => {
+      const updateData = {
+        name: name.trim(),
+        type: type.trim(),
+        status,
+        project_id: projectId || null,
+        maintenance_due: maintenanceDue || null,
+        assigned_operator_id: operatorType === 'employee' ? (assignedOperatorId || null) : null,
+        operator_id: operatorType === 'user' ? (operatorId || null) : null,
+      };
+
       const { error } = await supabase
         .from('equipment')
-        .update({
-          name: name.trim(),
-          type: type.trim(),
-          status,
-          project_id: projectId || null,
-          operator_id: operatorId || null,
-          maintenance_due: maintenanceDue || null,
-        })
+        .update(updateData)
         .eq('id', equipment.id);
 
       if (error) {
@@ -87,6 +133,8 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
     setType('');
     setStatus('available');
     setProjectId('');
+    setOperatorType('employee');
+    setAssignedOperatorId('');
     setOperatorId('');
     setMaintenanceDue('');
   };
@@ -97,6 +145,8 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
     }
     onOpenChange(newOpen);
   };
+
+  const employeeStakeholders = stakeholders.filter(s => s.stakeholder_type === 'employee');
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -163,14 +213,45 @@ export const EditEquipmentDialog = ({ open, onOpenChange, equipment, onSuccess }
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-operator">Operator</Label>
-            <Input
-              id="edit-operator"
-              value={operatorId}
-              onChange={(e) => setOperatorId(e.target.value)}
-              placeholder="Operator ID (optional)"
-              disabled={updateOperation.loading}
-            />
+            <Label>Operator Assignment</Label>
+            <Tabs value={operatorType} onValueChange={(value) => setOperatorType(value as 'employee' | 'user')} disabled={updateOperation.loading}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="employee">Employee</TabsTrigger>
+                <TabsTrigger value="user">Internal User</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="employee" className="space-y-2">
+                <Select value={assignedOperatorId} onValueChange={setAssignedOperatorId} disabled={updateOperation.loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an employee (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Employee</SelectItem>
+                    {employeeStakeholders.map((stakeholder) => (
+                      <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                        {stakeholder.contact_person || stakeholder.company_name || 'Unknown Employee'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TabsContent>
+              
+              <TabsContent value="user" className="space-y-2">
+                <Select value={operatorId} onValueChange={setOperatorId} disabled={updateOperation.loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an internal user (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No User</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.full_name || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="space-y-2">

@@ -10,12 +10,14 @@ export interface Equipment {
   status: string;
   project_id?: string;
   operator_id?: string;
+  assigned_operator_id?: string;
   maintenance_due?: string;
   utilization_rate: number;
   created_at: string;
   updated_at: string;
   project?: { id: string; name: string };
   operator?: { id: string; full_name?: string };
+  assigned_operator?: { id: string; contact_person?: string; company_name?: string };
 }
 
 export const useEquipment = () => {
@@ -33,7 +35,8 @@ export const useEquipment = () => {
         .select(`
           *,
           project:projects(id, name),
-          operator:profiles(id, full_name)
+          operator:profiles(id, full_name),
+          assigned_operator:stakeholders(id, contact_person, company_name)
         `)
         .order('created_at', { ascending: false });
 
