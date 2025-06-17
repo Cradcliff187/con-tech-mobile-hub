@@ -1,6 +1,6 @@
 
 import { MaintenanceTask } from './types';
-import type { Equipment } from '@/types/database';
+import type { Equipment } from '@/hooks/useEquipment';
 
 export const generateMaintenanceTasks = (equipment: Equipment[]): MaintenanceTask[] => {
   const tasks: MaintenanceTask[] = [];
