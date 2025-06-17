@@ -1,10 +1,9 @@
 
-import { useState } from 'react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Phone, Mail, MapPin, Users, Star, MoreHorizontal, Edit, Trash, UserPlus } from 'lucide-react';
+import { Phone, Mail, MapPin, Users, Star, MoreHorizontal, Edit, Trash, UserPlus, Eye } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
@@ -12,17 +11,15 @@ import { AssignStakeholderDialog } from './AssignStakeholderDialog';
 import { StakeholderDetail } from './StakeholderDetail';
 import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
 import { useToast } from '@/hooks/use-toast';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
 }
 
 export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const { toast } = useToast();
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -60,14 +57,13 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
     }
   };
 
-  const handlePhoneCall = async () => {
+  const handlePhoneCall = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!stakeholder.phone) return;
 
     try {
-      // Try to open phone app
       window.location.href = `tel:${stakeholder.phone}`;
       
-      // Show success toast after a brief delay
       setTimeout(() => {
         toast({
           title: "Opening phone app",
@@ -76,23 +72,20 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
       }, 100);
     } catch (error) {
       console.error('Failed to open phone app:', error);
-      // Fallback to copying phone number
       await copyToClipboard(stakeholder.phone, 'phone');
     }
   };
 
-  const handleEmailSend = async () => {
+  const handleEmailSend = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!stakeholder.email) return;
 
     try {
-      // Create mailto URL with pre-filled subject
       const subject = encodeURIComponent(`Contact: ${stakeholder.company_name || stakeholder.contact_person || 'Stakeholder'}`);
       const mailtoUrl = `mailto:${stakeholder.email}?subject=${subject}`;
       
-      // Try to open email client
       window.location.href = mailtoUrl;
       
-      // Show success toast after a brief delay
       setTimeout(() => {
         toast({
           title: "Opening email client",
@@ -101,8 +94,25 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
       }, 100);
     } catch (error) {
       console.error('Failed to open email client:', error);
-      // Fallback to copying email address
       await copyToClipboard(stakeholder.email, 'email');
+    }
+  };
+
+  const handleMenuAction = (action: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    switch (action) {
+      case 'details':
+        openDialog('details');
+        break;
+      case 'edit':
+        openDialog('edit');
+        break;
+      case 'assign':
+        openDialog('assign');
+        break;
+      case 'delete':
+        openDialog('delete');
+        break;
     }
   };
 
@@ -112,10 +122,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
   return (
     <>
       <Card className="hover:shadow-md transition-shadow">
-        <CardHeader 
-          className="pb-3 cursor-pointer"
-          onClick={() => setShowDetailDialog(true)}
-        >
+        <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="font-semibold text-slate-800 truncate">
@@ -138,16 +145,20 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white">
-                <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                <DropdownMenuItem onClick={(e) => handleMenuAction('details', e)}>
+                  <Eye size={16} className="mr-2" />
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => handleMenuAction('edit', e)}>
                   <Edit size={16} className="mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowAssignDialog(true)}>
+                <DropdownMenuItem onClick={(e) => handleMenuAction('assign', e)}>
                   <UserPlus size={16} className="mr-2" />
                   Assign to Project
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={() => setShowDeleteDialog(true)}
+                  onClick={(e) => handleMenuAction('delete', e)}
                   className="text-red-600"
                 >
                   <Trash size={16} className="mr-2" />
@@ -173,7 +184,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => { e.stopPropagation(); handlePhoneCall(); }}
+                onClick={handlePhoneCall}
                 className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
               >
                 <Phone size={16} className="mr-2" />
@@ -187,7 +198,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => { e.stopPropagation(); handleEmailSend(); }}
+                onClick={handleEmailSend}
                 className="p-0 h-auto font-normal text-slate-600 hover:text-orange-600"
               >
                 <Mail size={16} className="mr-2" />
@@ -233,26 +244,26 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
       </Card>
 
       <StakeholderDetail
-        open={showDetailDialog}
-        onOpenChange={setShowDetailDialog}
+        open={isDialogOpen('details')}
+        onOpenChange={(open) => !open && closeDialog()}
         stakeholderId={stakeholder.id}
       />
 
       <EditStakeholderDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
+        open={isDialogOpen('edit')}
+        onOpenChange={(open) => !open && closeDialog()}
         stakeholder={stakeholder}
       />
 
       <DeleteStakeholderDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
+        open={isDialogOpen('delete')}
+        onOpenChange={(open) => !open && closeDialog()}
         stakeholder={stakeholder}
       />
 
       <AssignStakeholderDialog
-        open={showAssignDialog}
-        onOpenChange={setShowAssignDialog}
+        open={isDialogOpen('assign')}
+        onOpenChange={(open) => !open && closeDialog()}
         stakeholder={stakeholder}
       />
     </>
