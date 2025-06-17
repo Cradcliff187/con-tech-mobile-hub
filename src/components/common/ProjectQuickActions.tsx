@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Project } from '@/types/database';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
 import { AssignStakeholderDialog } from '@/components/stakeholders/AssignStakeholderDialog';
+import { AssignEquipmentToProjectDialog } from '@/components/dashboard/AssignEquipmentToProjectDialog';
 import { useQuickActions } from './quick-actions/useQuickActions';
 import { CompactActions } from './quick-actions/variants/CompactActions';
 import { InlineActions } from './quick-actions/variants/InlineActions';
@@ -24,12 +25,14 @@ export const ProjectQuickActions = ({
 }: ProjectQuickActionsProps) => {
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [assignStakeholderOpen, setAssignStakeholderOpen] = useState(false);
+  const [assignEquipmentOpen, setAssignEquipmentOpen] = useState(false);
 
   const { actions, primaryAction, secondaryActions } = useQuickActions({
     project,
     context,
     onCreateTask: () => setCreateTaskOpen(true),
-    onAssignStakeholder: () => setAssignStakeholderOpen(true)
+    onAssignStakeholder: () => setAssignStakeholderOpen(true),
+    onAssignEquipment: () => setAssignEquipmentOpen(true)
   });
 
   const renderVariant = () => {
@@ -74,6 +77,15 @@ export const ProjectQuickActions = ({
         open={assignStakeholderOpen}
         onOpenChange={setAssignStakeholderOpen}
         stakeholder={null}
+      />
+
+      <AssignEquipmentToProjectDialog
+        project={project}
+        open={assignEquipmentOpen}
+        onOpenChange={setAssignEquipmentOpen}
+        onSuccess={() => {
+          // Equipment assignment completed
+        }}
       />
     </>
   );

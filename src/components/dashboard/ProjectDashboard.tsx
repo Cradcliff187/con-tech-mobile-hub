@@ -11,6 +11,7 @@ import { ProjectPhaseManager } from '@/components/planning/ProjectPhaseManager';
 import { SystemHealthCheck } from '@/components/debug/SystemHealthCheck';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { ProjectEquipmentSection } from './ProjectEquipmentSection';
+import { ProjectEquipmentQuickCard } from './ProjectEquipmentQuickCard';
 import { useDebugInfo } from '@/hooks/useDebugInfo';
 import { useProjects } from '@/hooks/useProjects';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -76,6 +77,17 @@ export const ProjectDashboard = () => {
         <div>
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Phase Management</h2>
           <ProjectPhaseManager />
+        </div>
+      )}
+
+      {/* Project Quick Cards - Only shown when a project is selected */}
+      {selectedProject && (
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ProjectEquipmentQuickCard project={selectedProject} />
+            {/* Add more quick cards here as needed */}
+          </div>
         </div>
       )}
 

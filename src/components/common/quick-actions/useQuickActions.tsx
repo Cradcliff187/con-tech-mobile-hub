@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { Plus, Calendar, Users, CheckCircle, FileText, MoreHorizontal } from 'lucide-react';
+import { Plus, Calendar, Users, CheckCircle, FileText, MoreHorizontal, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Project } from '@/types/database';
 import { QuickAction, ActionContext } from './types';
@@ -10,13 +10,15 @@ interface UseQuickActionsProps {
   context: ActionContext;
   onCreateTask: () => void;
   onAssignStakeholder: () => void;
+  onAssignEquipment?: () => void;
 }
 
 export const useQuickActions = ({ 
   project, 
   context, 
   onCreateTask, 
-  onAssignStakeholder 
+  onAssignStakeholder,
+  onAssignEquipment 
 }: UseQuickActionsProps) => {
   const navigate = useNavigate();
 
@@ -36,15 +38,27 @@ export const useQuickActions = ({
         icon: Users,
         action: onAssignStakeholder,
         shortcut: 'Ctrl+U'
-      },
-      {
-        id: 'view-timeline',
-        label: 'View Timeline',
-        icon: Calendar,
-        action: () => navigate(`/?section=timeline&project=${project.id}`),
-        shortcut: 'Ctrl+T'
       }
     ];
+
+    // Add equipment assignment action for project contexts
+    if (onAssignEquipment && (context === 'dashboard' || context === 'planning')) {
+      baseActions.push({
+        id: 'assign-equipment',
+        label: 'Assign Equipment',
+        icon: Wrench,
+        action: onAssignEquipment,
+        shortcut: 'Ctrl+E'
+      });
+    }
+
+    baseActions.push({
+      id: 'view-timeline',
+      label: 'View Timeline',
+      icon: Calendar,
+      action: () => navigate(`/?section=timeline&project=${project.id}`),
+      shortcut: 'Ctrl+T'
+    });
 
     // Phase-specific actions
     const phaseActions: QuickAction[] = [];
@@ -82,6 +96,12 @@ export const useQuickActions = ({
           icon: Users,
           action: () => navigate(`/?section=planning&project=${project.id}&tab=resources`)
         });
+        contextActions.push({
+          id: 'equipment-view',
+          label: 'Equipment Overview',
+          icon: Wrench,
+          action: () => navigate(`/?section=resources&project=${project.id}&tab=equipment`)
+        });
         break;
       case 'tasks':
         contextActions.push({
@@ -106,7 +126,7 @@ export const useQuickActions = ({
     }
 
     return [...baseActions, ...phaseActions, ...contextActions];
-  }, [project, context, navigate, onCreateTask, onAssignStakeholder]);
+  }, [project, context, navigate, onCreateTask, onAssignStakeholder, onAssignEquipment]);
 
   const primaryAction = actions.find(a => a.primary);
   const secondaryActions = actions.filter(a => !a.primary);
