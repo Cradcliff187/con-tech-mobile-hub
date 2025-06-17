@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/database';
@@ -8,7 +8,12 @@ export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const { user } = useAuth();
+  
+  // Use ref to track subscription and prevent multiple subscriptions
+  const subscriptionRef = useRef<any>(null);
+  const channelNameRef = useRef<string>('');
 
   // Helper function to map database response to Task interface
   const mapTaskFromDb = (dbTask: any): Task => ({
@@ -64,40 +69,93 @@ export const useTasks = () => {
     }
   };
 
+  // Helper function to cleanup existing subscription
+  const cleanupSubscription = async () => {
+    if (subscriptionRef.current) {
+      try {
+        console.log('Cleaning up existing subscription:', channelNameRef.current);
+        await supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+        channelNameRef.current = '';
+        setSubscriptionStatus('idle');
+      } catch (error) {
+        console.warn('Error during subscription cleanup:', error);
+      }
+    }
+  };
+
+  // Helper function to setup real-time subscription
+  const setupSubscription = async () => {
+    if (!user || subscriptionRef.current) return;
+
+    try {
+      setSubscriptionStatus('connecting');
+      
+      // Generate unique channel name to prevent conflicts
+      const uniqueChannelName = `tasks-changes-${user.id}-${Date.now()}`;
+      channelNameRef.current = uniqueChannelName;
+      
+      console.log('Setting up subscription with channel:', uniqueChannelName);
+
+      const subscription = supabase
+        .channel(uniqueChannelName)
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'tasks' },
+          (payload) => {
+            console.log('Real-time task update:', payload);
+
+            if (payload.eventType === 'INSERT') {
+              const newTask = mapTaskFromDb(payload.new);
+              setTasks(prev => [newTask, ...prev]);
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedTask = mapTaskFromDb(payload.new);
+              setTasks(prev => prev.map(task => 
+                task.id === updatedTask.id ? updatedTask : task
+              ));
+            } else if (payload.eventType === 'DELETE') {
+              setTasks(prev => prev.filter(task => task.id !== payload.old.id));
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            setSubscriptionStatus('connected');
+          } else if (status === 'CHANNEL_ERROR') {
+            setSubscriptionStatus('error');
+            console.error('Channel subscription error');
+          }
+        });
+
+      subscriptionRef.current = subscription;
+      
+    } catch (error) {
+      console.error('Error setting up subscription:', error);
+      setSubscriptionStatus('error');
+    }
+  };
+
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Clean up subscription if user logs out
+      cleanupSubscription();
+      return;
+    }
 
     // Initial fetch
     fetchTasks();
 
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('tasks-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'tasks' },
-        (payload) => {
-          console.log('Real-time task update:', payload);
+    // Setup subscription with delay to ensure component is stable
+    const setupTimer = setTimeout(() => {
+      setupSubscription();
+    }, 100);
 
-          if (payload.eventType === 'INSERT') {
-            const newTask = mapTaskFromDb(payload.new);
-            setTasks(prev => [newTask, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedTask = mapTaskFromDb(payload.new);
-            setTasks(prev => prev.map(task => 
-              task.id === updatedTask.id ? updatedTask : task
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            setTasks(prev => prev.filter(task => task.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
+    // Cleanup function
     return () => {
-      supabase.removeChannel(subscription);
+      clearTimeout(setupTimer);
+      cleanupSubscription();
     };
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id to prevent unnecessary re-runs
 
   const createTask = async (taskData: Partial<Task>) => {
     if (!user) return { error: 'User not authenticated' };
@@ -172,6 +230,7 @@ export const useTasks = () => {
     tasks,
     loading,
     error,
+    subscriptionStatus,
     createTask,
     updateTask,
     refetch: fetchTasks
