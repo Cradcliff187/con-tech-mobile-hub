@@ -1,18 +1,37 @@
 
 import { getDaysBetween } from './ganttUtils';
+import { GanttTimelineNavigation } from './GanttTimelineNavigation';
+import { GanttCurrentDateIndicator } from './GanttCurrentDateIndicator';
+import { useTimelineNavigation } from './hooks/useTimelineNavigation';
+import { useEffect } from 'react';
 
 interface GanttTimelineHeaderProps {
   timelineStart: Date;
   timelineEnd: Date;
   viewMode?: 'days' | 'weeks' | 'months';
+  onScrollUpdate?: (ref: React.RefObject<HTMLDivElement>) => void;
 }
 
 export const GanttTimelineHeader = ({ 
   timelineStart, 
   timelineEnd, 
-  viewMode = 'weeks' 
+  viewMode = 'weeks',
+  onScrollUpdate
 }: GanttTimelineHeaderProps) => {
   
+  const timelineNavigation = useTimelineNavigation({
+    timelineStart,
+    timelineEnd,
+    viewMode
+  });
+
+  // Provide scroll container ref to parent
+  useEffect(() => {
+    if (onScrollUpdate) {
+      onScrollUpdate(timelineNavigation.scrollContainerRef);
+    }
+  }, [onScrollUpdate, timelineNavigation.scrollContainerRef]);
+
   const generateDaysView = () => {
     const headers = [];
     const totalDays = getDaysBetween(timelineStart, timelineEnd);
@@ -183,14 +202,51 @@ export const GanttTimelineHeader = ({
   return (
     <div className="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 border-b-2 border-slate-300 shadow-sm">
       <div className="flex">
-        <div className="w-80 lg:w-96 px-4 py-3 border-r-2 border-slate-300 bg-white shadow-sm">
-          <div className="font-bold text-slate-800 text-sm">Task Details</div>
-          <div className="text-xs text-slate-600 mt-1 font-medium">{viewInfo.label}</div>
-          <div className="text-xs text-slate-500 mt-0.5">{viewInfo.range}</div>
+        <div className="w-80 lg:w-96 px-4 py-3 border-r-2 border-slate-300 bg-white shadow-sm flex items-center justify-between">
+          <div>
+            <div className="font-bold text-slate-800 text-sm">Task Details</div>
+            <div className="text-xs text-slate-600 mt-1 font-medium">{viewInfo.label}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{viewInfo.range}</div>
+          </div>
         </div>
-        <div className="flex-1 overflow-x-auto">
-          <div className="flex min-w-max">
-            {generateTimelineHeaders()}
+
+        {/* Timeline Navigation Controls */}
+        <GanttTimelineNavigation
+          onGoToToday={timelineNavigation.scrollToToday}
+          onScrollLeft={timelineNavigation.scrollLeft}
+          onScrollRight={timelineNavigation.scrollRight}
+          onZoomToProject={timelineNavigation.zoomToProject}
+          currentDate={new Date()}
+          viewMode={viewMode}
+          hasScrollLeft={timelineNavigation.hasScrollLeft}
+          hasScrollRight={timelineNavigation.hasScrollRight}
+        />
+
+        {/* Scrollable Timeline Headers */}
+        <div className="flex-1 relative">
+          <div 
+            ref={timelineNavigation.scrollContainerRef}
+            className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+            onScroll={timelineNavigation.updateScrollInfo}
+          >
+            <div className="flex min-w-max relative">
+              {generateTimelineHeaders()}
+              
+              {/* Current Date Indicator */}
+              <GanttCurrentDateIndicator
+                timelineStart={timelineStart}
+                timelineEnd={timelineEnd}
+                viewMode={viewMode}
+              />
+            </div>
+
+            {/* Scroll Shadows */}
+            {timelineNavigation.hasScrollLeft && (
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-slate-100 to-transparent pointer-events-none z-10"></div>
+            )}
+            {timelineNavigation.hasScrollRight && (
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-100 to-transparent pointer-events-none z-10"></div>
+            )}
           </div>
         </div>
       </div>
