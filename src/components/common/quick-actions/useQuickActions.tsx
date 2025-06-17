@@ -93,7 +93,7 @@ export const useQuickActions = ({
       });
     }
 
-    if (project.phase === 'completion' || project.phase === 'punch_list') {
+    if (project.phase === 'completed' || project.phase === 'punch_list') {
       documentActions.push({
         id: 'completion-docs',
         label: 'Completion Docs',

@@ -9,7 +9,6 @@ import { useTimelineStats } from './hooks/useTimelineStats';
 import { useTimelineFilters } from './hooks/useTimelineFilters';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
-import { useDocuments } from '@/hooks/useDocuments';
 import { Button } from '@/components/ui/button';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -22,10 +21,9 @@ export const TimelineView: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Live projects, tasks, and documents from Supabase
+  // Live projects and tasks from Supabase
   const { projects, loading: projectsLoading } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
-  const { documents, loading: documentsLoading } = useDocuments(selectedProject !== 'all' ? selectedProject : undefined);
 
   // Custom hooks for filters and stats
   const { filters, categories, priorities, handleFilterChange } = useTimelineFilters(tasks);
@@ -58,18 +56,6 @@ export const TimelineView: React.FC = () => {
     }
   };
 
-  // Navigation handler for document clicks
-  const handleDocumentNavigation = (documentId: string) => {
-    const document = documents.find(d => d.id === documentId);
-    const projectId = document?.project_id || selectedProject;
-    
-    if (projectId && projectId !== 'all') {
-      navigate(`/?section=documents&project=${projectId}&document=${documentId}`);
-    } else {
-      navigate(`/?section=documents&document=${documentId}`);
-    }
-  };
-
   // Modal handler for task details (secondary option)
   const handleTaskModal = (taskId: string) => {
     setSelectedTask(taskId);
@@ -78,7 +64,7 @@ export const TimelineView: React.FC = () => {
   // Find the selected task when user opens the modal
   const selectedTaskObj = tasks.find(task => task.id === selectedTask);
 
-  const loading = projectsLoading || tasksLoading || documentsLoading;
+  const loading = projectsLoading || tasksLoading;
 
   return (
     <div className="space-y-6">
@@ -88,19 +74,8 @@ export const TimelineView: React.FC = () => {
         onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      {/* Stats Overview - Enhanced with document stats */}
-      <TimelineStats 
-        stats={{
-          ...timelineStats,
-          totalDocuments: documents.length,
-          recentDocuments: documents.filter(doc => {
-            const createdAt = new Date(doc.created_at);
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            return createdAt > weekAgo;
-          }).length
-        }} 
-      />
+      {/* Stats Overview */}
+      <TimelineStats stats={timelineStats} />
 
       {/* Filters Panel */}
       {showFilters && (
@@ -116,14 +91,12 @@ export const TimelineView: React.FC = () => {
         />
       )}
 
-      {/* Timeline Component with Document Integration */}
+      {/* Timeline Component */}
       <ProjectTimeline 
         projectId={selectedProject} 
         filters={filters}
-        documents={documents}
         onTaskNavigate={handleTaskNavigation}
         onTaskModal={handleTaskModal}
-        onDocumentNavigate={handleDocumentNavigation}
         loading={loading}
       />
 

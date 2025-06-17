@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
@@ -22,8 +23,6 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { useDialogState } from '@/hooks/useDialogState';
 import { useSearchParams } from 'react-router-dom';
-import { FileText } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const TaskManagerContent = memo(() => {
   const [filter, setFilter] = useState('all');
@@ -39,7 +38,6 @@ const TaskManagerContent = memo(() => {
   const { toast } = useToast();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -92,12 +90,6 @@ const TaskManagerContent = memo(() => {
   const selectedProject = useMemo(() => {
     return projects.find(p => p.id === selectedProjectId) || null;
   }, [selectedProjectId, projects]);
-
-  // Add document-aware task filtering
-  const documentsRequiredForPhase = useMemo(() => {
-    if (!selectedProject) return false;
-    return ['planning', 'permits', 'active'].includes(selectedProject.phase);
-  }, [selectedProject]);
 
   useEffect(() => {
     const handleOpenBulkActions = () => {
@@ -233,22 +225,6 @@ const TaskManagerContent = memo(() => {
           <AlertDescription>
             This project is in the <span className="font-semibold capitalize">{selectedProject.phase.replace('_', ' ')}</span> phase. 
             New tasks should likely be Punch List items.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {documentsRequiredForPhase && selectedProject && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <FileText className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            This project requires documentation for the <span className="font-semibold capitalize">{selectedProject.phase}</span> phase. 
-            Consider attaching relevant documents to tasks or{" "}
-            <button 
-              onClick={() => navigate(`/?section=documents&project=${selectedProject.id}`)}
-              className="underline hover:no-underline font-medium"
-            >
-              upload project documents
-            </button>.
           </AlertDescription>
         </Alert>
       )}
