@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 interface Step {
   id: string;
   name: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ size?: string | number }>;
   completed: boolean;
   current: boolean;
 }
