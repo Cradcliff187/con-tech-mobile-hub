@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useEquipment, Equipment } from '@/hooks/useEquipment';
 import { CreateEquipmentDialog } from './CreateEquipmentDialog';
@@ -25,9 +24,11 @@ export const EquipmentTracker = () => {
     setShowCreateDialog(true);
   };
 
-  // Fixed: Updated to match the expected signature (id: string) => void
+  // Fixed: Updated to pass both equipment ID and name
   const handleDeleteEquipment = (id: string) => {
-    handleDelete(id);
+    const equipmentItem = equipment.find(eq => eq.id === id);
+    const equipmentName = equipmentItem?.name || 'Unknown Equipment';
+    handleDelete(id, equipmentName);
   };
 
   if (loading) {
