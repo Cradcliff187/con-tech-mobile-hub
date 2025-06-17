@@ -1,15 +1,17 @@
-
 import { AlertTriangle, CheckCircle, Clock, Wrench, Plus, Edit, Trash } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useEquipment } from '@/hooks/useEquipment';
+import { useEquipment, Equipment } from '@/hooks/useEquipment';
 import { useToast } from '@/hooks/use-toast';
 import { CreateEquipmentDialog } from './CreateEquipmentDialog';
+import { EditEquipmentDialog } from './EditEquipmentDialog';
 import { supabase } from '@/integrations/supabase/client';
 
 export const EquipmentTracker = () => {
   const { equipment, loading, refetch } = useEquipment();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -37,6 +39,11 @@ export const EquipmentTracker = () => {
       default:
         return 'bg-slate-100 text-slate-800';
     }
+  };
+
+  const handleEdit = (equipmentItem: Equipment) => {
+    setSelectedEquipment(equipmentItem);
+    setShowEditDialog(true);
   };
 
   const handleDelete = async (equipmentId: string, equipmentName: string) => {
@@ -157,6 +164,7 @@ export const EquipmentTracker = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
+                        onClick={() => handleEdit(item)}
                         title="Edit equipment"
                       >
                         <Edit size={14} />
@@ -212,6 +220,13 @@ export const EquipmentTracker = () => {
       <CreateEquipmentDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
+        onSuccess={refetch}
+      />
+
+      <EditEquipmentDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        equipment={selectedEquipment}
         onSuccess={refetch}
       />
     </div>
