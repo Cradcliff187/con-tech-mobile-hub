@@ -1,7 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface DocumentRecord {
   id: string;
@@ -68,9 +68,14 @@ export const useDocuments = (projectId?: string) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const fetchDocuments = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -95,17 +100,20 @@ export const useDocuments = (projectId?: string) => {
       
       setDocuments(data || []);
     } catch (error) {
+      console.error('Error fetching documents:', error);
       setDocuments([]);
-      throw error;
+      toast({
+        title: "Error loading documents",
+        description: error instanceof Error ? error.message : "Failed to load documents",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
-  }, [user, projectId]);
+  }, [user, projectId, toast]);
 
   useEffect(() => {
-    fetchDocuments().catch(() => {
-      // Error handling is done in the component level
-    });
+    fetchDocuments();
   }, [fetchDocuments]);
 
   const uploadDocument = useCallback(async (
@@ -114,7 +122,9 @@ export const useDocuments = (projectId?: string) => {
     targetProjectId?: string,
     description?: string
   ) => {
-    if (!user) throw new Error('User not authenticated');
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
     const validation = validateFile(file);
     if (!validation.isValid) {
@@ -162,6 +172,7 @@ export const useDocuments = (projectId?: string) => {
         .single();
 
       if (error) {
+        // Clean up uploaded file if database insert fails
         await supabase.storage.from('documents').remove([uploadData.path]);
         throw new Error(`Failed to save document metadata: ${error.message}`);
       }
@@ -171,6 +182,9 @@ export const useDocuments = (projectId?: string) => {
       }
 
       return { data, error: null };
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      throw error;
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -179,11 +193,13 @@ export const useDocuments = (projectId?: string) => {
 
   const deleteDocument = useCallback(async (id: string, filePath: string) => {
     try {
+      // Try to delete from storage first (non-blocking)
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([filePath]);
 
       if (storageError) {
+        console.warn('Storage deletion failed:', storageError);
         // Continue with database deletion even if storage fails
       }
 
@@ -199,6 +215,7 @@ export const useDocuments = (projectId?: string) => {
       setDocuments(prev => prev.filter(doc => doc.id !== id));
       return { error: null };
     } catch (error) {
+      console.error('Error deleting document:', error);
       throw error;
     }
   }, []);
@@ -227,6 +244,7 @@ export const useDocuments = (projectId?: string) => {
 
       return { error: null };
     } catch (error) {
+      console.error('Error downloading document:', error);
       throw error;
     }
   }, []);
@@ -258,6 +276,7 @@ export const useDocuments = (projectId?: string) => {
 
       return { error: null, url: data.signedUrl };
     } catch (error) {
+      console.error('Error sharing document:', error);
       throw error;
     }
   }, []);

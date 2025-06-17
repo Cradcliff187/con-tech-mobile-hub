@@ -1,12 +1,14 @@
 
 import React, { memo, useCallback, useState } from 'react';
-import { FileText, Image, File, Download, Share, Trash2, Receipt } from 'lucide-react';
+import { FileText, Image, File, Download, Share, Trash2, Receipt, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DocumentRecord {
   id: string;
@@ -41,17 +43,17 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
 
   const downloadOperation = useAsyncOperation({
     successMessage: "Download started successfully",
-    errorMessage: "Failed to download document"
+    errorMessage: "Failed to download document. Please try again."
   });
 
   const shareOperation = useAsyncOperation({
     successMessage: "Shareable link copied to clipboard (expires in 7 days)",
-    errorMessage: "Failed to generate share link"
+    errorMessage: "Failed to generate share link. Please try again."
   });
 
   const deleteOperation = useAsyncOperation({
     successMessage: "Document deleted successfully",
-    errorMessage: "Failed to delete document"
+    errorMessage: "Failed to delete document. Please try again."
   });
 
   const getFileIcon = (category?: string, fileType?: string) => {
@@ -94,15 +96,28 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
   };
 
   const handleDownload = useCallback(async () => {
-    await downloadOperation.execute(() => downloadDocument(doc));
+    try {
+      await downloadOperation.execute(() => downloadDocument(doc));
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
   }, [doc, downloadDocument, downloadOperation]);
 
   const handleShare = useCallback(async () => {
-    await shareOperation.execute(() => shareDocument(doc));
+    try {
+      await shareOperation.execute(() => shareDocument(doc));
+    } catch (error) {
+      console.error('Share failed:', error);
+    }
   }, [doc, shareDocument, shareOperation]);
 
   const handleDeleteConfirm = useCallback(async () => {
-    await deleteOperation.execute(() => deleteDocument(doc.id, doc.file_path));
+    try {
+      await deleteOperation.execute(() => deleteDocument(doc.id, doc.file_path));
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
   }, [doc.id, doc.file_path, deleteDocument, deleteOperation]);
 
   const isLoading = downloadOperation.loading || shareOperation.loading || deleteOperation.loading;
@@ -200,26 +215,28 @@ export const DocumentList = memo(({ filter, searchTerm, documents }: DocumentLis
     return matchesFilter && matchesSearch;
   });
 
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-      <div className="divide-y divide-slate-100">
-        {filteredDocuments.map((doc) => (
-          <DocumentItem key={doc.id} doc={doc} />
-        ))}
+  if (filteredDocuments.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
+        <FileText size={48} className="mx-auto mb-4 text-slate-300" />
+        <h3 className="text-lg font-medium text-slate-600 mb-2">
+          {searchTerm || filter !== 'all' ? 'No documents match your criteria' : 'No documents yet'}
+        </h3>
+        <p className="text-slate-500">
+          {searchTerm || filter !== 'all' 
+            ? 'Try adjusting your search or filter settings'
+            : 'Upload your first document to get started'
+          }
+        </p>
       </div>
-      
-      {filteredDocuments.length === 0 && (
-        <div className="p-8 text-center">
-          <FileText size={48} className="mx-auto mb-4 text-slate-400" />
-          <h3 className="text-lg font-medium text-slate-600 mb-2">No Documents Found</h3>
-          <p className="text-slate-500">
-            {documents.length === 0 
-              ? "Upload your first document to get started"
-              : "No documents match your current filters"
-            }
-          </p>
-        </div>
-      )}
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 divide-y divide-slate-200">
+      {filteredDocuments.map((doc) => (
+        <DocumentItem key={doc.id} doc={doc} />
+      ))}
     </div>
   );
 });

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useSearchParams } from 'react-router-dom';
-import { Target } from 'lucide-react';
+import { Target, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateAutoPunchListItems, calculatePhaseReadiness } from '@/utils/phase-automation';
@@ -11,6 +11,10 @@ import { PhaseStatusCard } from './PhaseStatusCard';
 import { PhaseTransitionDialog } from './PhaseTransitionDialog';
 import { PhaseRequirements } from './PhaseRequirements';
 import { PhaseRecommendations } from './PhaseRecommendations';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PhaseReadiness {
   currentPhase: string;
@@ -24,14 +28,33 @@ interface PhaseReadiness {
 export const ProjectPhaseManager = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
-  const { projects } = useProjects();
-  const { tasks, createTask } = useTasks();
+  const { projects, loading: projectsLoading } = useProjects();
+  const { tasks, createTask, loading: tasksLoading } = useTasks();
   const [showTransitionDialog, setShowTransitionDialog] = useState(false);
   const [targetPhase, setTargetPhase] = useState<string>('');
-  const [isUpdating, setIsUpdating] = useState(false);
+
+  const generatePunchListOperation = useAsyncOperation({
+    successMessage: "",
+    errorMessage: "Failed to generate punch list items. Please try again."
+  });
+
+  const phaseTransitionOperation = useAsyncOperation({
+    successMessage: "",
+    errorMessage: "Failed to update project phase. Please try again."
+  });
 
   const project = projectId ? projects.find(p => p.id === projectId) : null;
   const projectTasks = projectId ? tasks.filter(t => t.project_id === projectId) : [];
+
+  const loading = projectsLoading || tasksLoading;
+
+  if (loading) {
+    return (
+      <div className="bg-slate-50 rounded-lg p-6">
+        <LoadingSpinner size="lg" text="Loading phase information..." className="mx-auto" />
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -42,7 +65,19 @@ export const ProjectPhaseManager = () => {
     );
   }
 
-  const phaseReadiness = calculatePhaseReadiness(project, projectTasks);
+  let phaseReadiness;
+  try {
+    phaseReadiness = calculatePhaseReadiness(project, projectTasks);
+  } catch (error) {
+    console.error('Error calculating phase readiness:', error);
+    return (
+      <ErrorFallback
+        title="Phase Calculation Error"
+        description="There was a problem calculating the project phase readiness."
+        resetError={() => window.location.reload()}
+      />
+    );
+  }
 
   const calculatePhaseReadinessLegacy = (): PhaseReadiness => {
     const totalTasks = projectTasks.length;
@@ -129,55 +164,56 @@ export const ProjectPhaseManager = () => {
   const handleGeneratePunchList = async () => {
     if (!projectId) return;
 
-    setIsUpdating(true);
-    const punchListItems = generateAutoPunchListItems(projectTasks);
-    
-    try {
-      for (const item of punchListItems) {
-        const { error } = await createTask({
-          title: item.title,
-          description: item.description,
-          project_id: item.project_id,
-          task_type: item.task_type,
-          punch_list_category: item.punch_list_category,
-          priority: item.priority,
-          status: item.status,
-          converted_from_task_id: item.converted_from_task_id,
-          inspection_status: item.inspection_status
+    await generatePunchListOperation.execute(async () => {
+      try {
+        const punchListItems = generateAutoPunchListItems(projectTasks);
+        
+        const promises = punchListItems.map(async (item) => {
+          const { error } = await createTask({
+            title: item.title,
+            description: item.description,
+            project_id: item.project_id,
+            task_type: item.task_type,
+            punch_list_category: item.punch_list_category,
+            priority: item.priority,
+            status: item.status,
+            converted_from_task_id: item.converted_from_task_id,
+            inspection_status: item.inspection_status
+          });
+          
+          if (error) throw new Error(`Failed to create task: ${item.title}`);
         });
         
-        if (error) throw error;
+        await Promise.all(promises);
+        
+        toast.success(`Generated ${punchListItems.length} punch list items`);
+      } catch (error) {
+        console.error('Error generating punch list:', error);
+        throw error;
       }
-      
-      toast.success(`Generated ${punchListItems.length} punch list items`);
-      
-    } catch (error) {
-      console.error('Error generating punch list:', error);
-      toast.error('Failed to generate punch list items');
-    }
-    setIsUpdating(false);
+    });
   };
 
   const handlePhaseTransition = async () => {
     if (!projectId || !targetPhase) return;
 
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ phase: targetPhase })
-        .eq('id', projectId);
+    await phaseTransitionOperation.execute(async () => {
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ phase: targetPhase })
+          .eq('id', projectId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast.success(`Project advanced to ${targetPhase.replace('_', ' ')} phase`);
-      setShowTransitionDialog(false);
-      setTargetPhase('');
-    } catch (error) {
-      console.error('Error updating project phase:', error);
-      toast.error('Failed to update project phase');
-    }
-    setIsUpdating(false);
+        toast.success(`Project advanced to ${targetPhase.replace('_', ' ')} phase`);
+        setShowTransitionDialog(false);
+        setTargetPhase('');
+      } catch (error) {
+        console.error('Error updating project phase:', error);
+        throw error;
+      }
+    });
   };
 
   const readiness = calculatePhaseReadinessLegacy();
@@ -187,8 +223,19 @@ export const ProjectPhaseManager = () => {
     setShowTransitionDialog(true);
   };
 
+  const isUpdating = generatePunchListOperation.loading || phaseTransitionOperation.loading;
+
   return (
     <div className="space-y-6">
+      {(generatePunchListOperation.error || phaseTransitionOperation.error) && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {generatePunchListOperation.error?.message || phaseTransitionOperation.error?.message}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <PhaseStatusCard
         currentPhase={readiness.currentPhase}
         readinessScore={phaseReadiness.readinessScore}
@@ -209,7 +256,7 @@ export const ProjectPhaseManager = () => {
         onOpenChange={setShowTransitionDialog}
         currentPhase={readiness.currentPhase}
         targetPhase={targetPhase}
-        isUpdating={isUpdating}
+        isUpdating={phaseTransitionOperation.loading}
         onConfirm={handlePhaseTransition}
       />
     </div>

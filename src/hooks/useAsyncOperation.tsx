@@ -1,11 +1,13 @@
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseAsyncOperationOptions {
   successMessage?: string;
   errorMessage?: string;
-  onSuccess?: () => void;
+  showSuccessToast?: boolean;
+  showErrorToast?: boolean;
+  onSuccess?: (result?: any) => void;
   onError?: (error: Error) => void;
 }
 
@@ -14,13 +16,14 @@ export const useAsyncOperation = (options: UseAsyncOperationOptions = {}) => {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  // Memoize the options to prevent unnecessary recreations
-  const memoizedOptions = useMemo(() => options, [
-    options.successMessage,
-    options.errorMessage,
-    options.onSuccess,
-    options.onError
-  ]);
+  const {
+    successMessage,
+    errorMessage,
+    showSuccessToast = true,
+    showErrorToast = true,
+    onSuccess,
+    onError
+  } = options;
 
   const execute = useCallback(async (operation: () => Promise<any>) => {
     setLoading(true);
@@ -29,35 +32,42 @@ export const useAsyncOperation = (options: UseAsyncOperationOptions = {}) => {
     try {
       const result = await operation();
       
-      if (memoizedOptions.successMessage) {
+      if (successMessage && showSuccessToast) {
         toast({
           title: "Success",
-          description: memoizedOptions.successMessage,
+          description: successMessage,
         });
       }
       
-      memoizedOptions.onSuccess?.();
+      onSuccess?.(result);
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An unexpected error occurred');
       setError(error);
       
-      toast({
-        title: "Error",
-        description: memoizedOptions.errorMessage || error.message,
-        variant: "destructive",
-      });
+      if (showErrorToast) {
+        toast({
+          title: "Error",
+          description: errorMessage || error.message,
+          variant: "destructive",
+        });
+      }
       
-      memoizedOptions.onError?.(error);
+      onError?.(error);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [memoizedOptions, toast]);
+  }, [successMessage, errorMessage, showSuccessToast, showErrorToast, onSuccess, onError, toast]);
 
   const retry = useCallback(() => {
     setError(null);
   }, []);
 
-  return { execute, loading, error, retry };
+  const reset = useCallback(() => {
+    setLoading(false);
+    setError(null);
+  }, []);
+
+  return { execute, loading, error, retry, reset };
 };

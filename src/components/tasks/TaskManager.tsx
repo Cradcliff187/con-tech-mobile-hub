@@ -19,6 +19,7 @@ import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
 
 const TaskManagerContent = memo(() => {
   const [filter, setFilter] = useState('all');
@@ -27,7 +28,7 @@ const TaskManagerContent = memo(() => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
-  const { tasks, loading, updateTask } = useTasks();
+  const { tasks, loading, updateTask, error } = useTasks();
   const { projects } = useProjects();
   const { toast } = useToast();
 
@@ -35,7 +36,7 @@ const TaskManagerContent = memo(() => {
 
   const convertOperation = useAsyncOperation({
     successMessage: "",
-    errorMessage: "Failed to convert tasks"
+    errorMessage: "Failed to convert tasks. Please try again."
   });
 
   const regularTasks = useMemo(() => 
@@ -88,20 +89,25 @@ const TaskManagerContent = memo(() => {
     }
 
     await convertOperation.execute(async () => {
-      const promises = tasksToConvert.map(task => 
-        updateTask(task.id, {
-          task_type: 'punch_list',
-          converted_from_task_id: task.id,
-          inspection_status: 'pending'
-        })
-      );
-      
-      await Promise.all(promises);
-      
-      toast({
-        title: "Success",
-        description: `${tasksToConvert.length} tasks converted to punch list items.`,
-      });
+      try {
+        const promises = tasksToConvert.map(task => 
+          updateTask(task.id, {
+            task_type: 'punch_list',
+            converted_from_task_id: task.id,
+            inspection_status: 'pending'
+          })
+        );
+        
+        await Promise.all(promises);
+        
+        toast({
+          title: "Success",
+          description: `${tasksToConvert.length} tasks converted to punch list items.`,
+        });
+      } catch (error) {
+        console.error('Error converting tasks:', error);
+        throw new Error('Failed to convert some tasks');
+      }
     });
   }, [regularTasks, updateTask, convertOperation, toast]);
 
@@ -118,12 +124,23 @@ const TaskManagerContent = memo(() => {
     setShowBulkActionsDialog(true);
   }, []);
 
+  if (error) {
+    return (
+      <ErrorFallback
+        error={error}
+        title="Task Loading Error"
+        description="There was a problem loading tasks. Please try refreshing the page."
+        resetError={() => window.location.reload()}
+        showHomeButton
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <LoadingSpinner size="lg" />
-          <span className="ml-3 text-slate-600">Loading tasks...</span>
+          <LoadingSpinner size="lg" text="Loading tasks..." />
         </div>
       </div>
     );
@@ -191,11 +208,31 @@ const TaskManagerContent = memo(() => {
             onSearchChange={setSearchTerm}
             tasks={regularTasks}
           />
-          <TaskList tasks={filteredTasks} onEdit={handleEditTask} />
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback
+                title="Task Display Error"
+                description="There was a problem displaying the tasks."
+                resetError={() => setFilter('all')}
+              />
+            }
+          >
+            <TaskList tasks={filteredTasks} onEdit={handleEditTask} />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="punch-list">
-          <PunchListView />
+          <ErrorBoundary
+            fallback={
+              <ErrorFallback
+                title="Punch List Error"
+                description="There was a problem loading the punch list."
+                resetError={() => window.location.reload()}
+              />
+            }
+          >
+            <PunchListView />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
       
@@ -223,7 +260,7 @@ TaskManagerContent.displayName = 'TaskManagerContent';
 
 export const TaskManager = () => {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary showHomeButton>
       <TaskManagerContent />
     </ErrorBoundary>
   );
