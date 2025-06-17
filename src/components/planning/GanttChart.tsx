@@ -13,12 +13,15 @@ import { GanttEnhancedHeader } from './gantt/components/GanttEnhancedHeader';
 import { GanttStatusIndicators } from './gantt/components/GanttStatusIndicators';
 import { GanttErrorState } from './gantt/components/GanttErrorState';
 import { useGanttState } from './gantt/hooks/useGanttState';
+import { GanttProjectOverview } from './gantt/GanttProjectOverview';
+import { useProjects } from '@/hooks/useProjects';
 
 interface GanttChartProps {
   projectId: string;
 }
 
 export const GanttChart = ({ projectId }: GanttChartProps) => {
+  const { projects } = useProjects();
   const {
     projectTasks,
     displayTasks,
@@ -49,6 +52,11 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     timelineReady,
     handleMiniMapViewportChange
   } = useGanttState({ timelineStart, timelineEnd });
+
+  // Get selected project
+  const selectedProject = projectId && projectId !== 'all' 
+    ? projects.find(p => p.id === projectId) 
+    : null;
 
   // Handle loading state
   if (loading) {
@@ -84,6 +92,27 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     violationMessages: dragAndDrop.violationMessages,
     suggestedDropDate: dragAndDrop.suggestedDropDate,
     affectedMarkerIds: dragAndDrop.affectedMarkerIds
+  };
+
+  // Navigation handler for project overview
+  const handleNavigateToDate = (date: Date) => {
+    // Use existing timeline navigation functionality
+    if (timelineRef.current) {
+      const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+      const daysFromStart = Math.ceil((date.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+      
+      const container = timelineRef.current;
+      const scrollableWidth = container.scrollWidth - container.clientWidth;
+      const targetPosition = (daysFromStart / totalDays) * scrollableWidth;
+      
+      // Center the target date in the viewport
+      const centeredPosition = Math.max(0, targetPosition - container.clientWidth / 2);
+      
+      container.scrollTo({
+        left: centeredPosition,
+        behavior: 'smooth'
+      });
+    }
   };
 
   return (
@@ -131,6 +160,19 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
 
         {/* Summary Statistics */}
         <GanttStats tasks={displayTasks} />
+
+        {/* Project Overview Timeline */}
+        <GanttProjectOverview
+          project={selectedProject}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          currentViewStart={currentViewStart}
+          currentViewEnd={currentViewEnd}
+          completedTasks={completedTasks}
+          totalTasks={displayTasks.length}
+          onNavigateToDate={handleNavigateToDate}
+          viewMode={viewMode}
+        />
 
         {/* Enhanced Gantt Chart with Construction Features and Drag Integration */}
         <GanttChartContent
