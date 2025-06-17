@@ -354,10 +354,10 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
                 <div>Validity: {currentValidity}</div>
                 <div>Affected: {affectedMarkerIds.length}</div>
                 <div>Drop Zones: {validDropZones.length}</div>
-              </>
-            )}
-          </div>
-        )}
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
