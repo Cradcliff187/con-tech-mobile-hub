@@ -240,28 +240,26 @@ export const GanttChartContent = ({
 
             {/* Timeline Area */}
             <div className="flex-1 relative">
-              {/* Timeline Grid Background */}
+              {/* Timeline Grid Background - Fixed scroll sync */}
               <div className="absolute inset-0 z-0 pointer-events-none">
-                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-                  <div className="min-w-max flex h-full">
-                    {timelineUnits.map((unit, unitIndex) => {
-                      const isCurrentColumn = unitIndex === todayColumnIndex;
-                      const isWeekendColumn = viewMode === 'days' && unit.isWeekend;
-                      
-                      return (
-                        <div
-                          key={unit.key}
-                          className={`flex-shrink-0 border-r border-slate-100 h-full ${
-                            viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
-                          } ${
-                            isCurrentColumn ? 'bg-blue-50 bg-opacity-50' : ''
-                          } ${
-                            isWeekendColumn ? 'bg-slate-50' : ''
-                          }`}
-                        />
-                      );
-                    })}
-                  </div>
+                <div className="min-w-max flex h-full">
+                  {timelineUnits.map((unit, unitIndex) => {
+                    const isCurrentColumn = unitIndex === todayColumnIndex;
+                    const isWeekendColumn = viewMode === 'days' && unit.isWeekend;
+                    
+                    return (
+                      <div
+                        key={unit.key}
+                        className={`flex-shrink-0 border-r border-slate-100 h-full ${
+                          viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
+                        } ${
+                          isCurrentColumn ? 'bg-blue-50 bg-opacity-50' : ''
+                        } ${
+                          isWeekendColumn ? 'bg-slate-50' : ''
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
