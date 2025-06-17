@@ -1,40 +1,32 @@
 
-import { MaintenanceTask } from './types';
+import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
 import type { Equipment } from '@/hooks/useEquipment';
 
-export const generateMaintenanceTasks = (equipment: Equipment[]): MaintenanceTask[] => {
-  const tasks: MaintenanceTask[] = [];
-  
-  equipment.forEach((item, index) => {
-    // Only generate tasks for equipment that needs maintenance
-    if (item.maintenance_due) {
-      const dueDate = new Date(item.maintenance_due);
-      const today = new Date();
-      const isOverdue = dueDate < today;
-      
-      tasks.push({
-        id: `maintenance-${item.id}-${index}`,
-        equipmentId: item.id,
-        equipmentName: item.name || 'Unknown Equipment',
-        type: 'routine',
-        priority: isOverdue ? 'critical' : 'medium',
-        scheduledDate: item.maintenance_due,
-        estimatedHours: 4, // Default estimate
-        status: isOverdue ? 'overdue' : 'scheduled',
-        description: `Routine maintenance for ${item.name || 'equipment'}`
-      });
-    }
-  });
-  
-  return tasks.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+// Updated to work with real MaintenanceTask data from the database
+export const generateMaintenanceTasks = (equipment: Equipment[], tasks: MaintenanceTask[]): MaintenanceTask[] => {
+  // Return real tasks from the database, already sorted by scheduled_date
+  return tasks.map(task => ({
+    ...task,
+    equipmentId: task.equipment_id,
+    equipmentName: task.equipment?.name || 'Unknown Equipment',
+    type: task.task_type as 'routine' | 'repair' | 'inspection',
+    priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
+    scheduledDate: task.scheduled_date,
+    estimatedHours: task.estimated_hours || 4,
+    assignedTo: task.assigned_stakeholder?.contact_person || task.assigned_user?.full_name,
+    status: task.status as 'scheduled' | 'in-progress' | 'completed' | 'overdue',
+    description: task.description || ''
+  }));
 };
 
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case 'completed': return 'bg-green-100 text-green-800';
+    case 'in_progress': 
     case 'in-progress': return 'bg-blue-100 text-blue-800';
     case 'overdue': return 'bg-red-100 text-red-800';
     case 'scheduled': return 'bg-yellow-100 text-yellow-800';
+    case 'cancelled': return 'bg-gray-100 text-gray-800';
     default: return 'bg-gray-100 text-gray-800';
   }
 };
@@ -47,4 +39,20 @@ export const getPriorityColor = (priority: string): string => {
     case 'low': return 'bg-green-100 text-green-800';
     default: return 'bg-gray-100 text-gray-800';
   }
+};
+
+// Helper function to format maintenance task data for the existing components
+export const formatMaintenanceTaskForCard = (task: MaintenanceTask) => {
+  return {
+    id: task.id,
+    equipmentId: task.equipment_id,
+    equipmentName: task.equipment?.name || 'Unknown Equipment',
+    type: task.task_type,
+    priority: task.priority,
+    scheduledDate: task.scheduled_date,
+    estimatedHours: task.estimated_hours || 4,
+    assignedTo: task.assigned_stakeholder?.contact_person || task.assigned_user?.full_name,
+    status: task.status,
+    description: task.description || ''
+  };
 };

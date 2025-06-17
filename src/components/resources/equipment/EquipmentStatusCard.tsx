@@ -1,16 +1,11 @@
 
 import { useState } from 'react';
+import { Calendar, Clock, User, Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Wrench, Calendar, MoreVertical, Edit, Trash2, User, History } from 'lucide-react';
-import { AllocationStatus } from './AllocationStatus';
-import { EquipmentAssignmentHistoryComponent } from './EquipmentAssignmentHistory';
-import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
-import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
-import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
-import { useDialogState } from '@/hooks/useDialogState';
-import type { Equipment } from '@/hooks/useEquipment';
+import { Button } from '@/components/ui/button';
+import { Equipment } from '@/hooks/useEquipment';
+import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
+import { format, isAfter, isBefore, addDays } from 'date-fns';
 
 interface EquipmentStatusCardProps {
   equipment: Equipment;
@@ -18,6 +13,7 @@ interface EquipmentStatusCardProps {
   onDelete: (id: string) => void;
   onStatusUpdate: (id: string, status: string) => void;
   deletingId?: string;
+  maintenanceTasks?: MaintenanceTask[];
 }
 
 export const EquipmentStatusCard = ({
@@ -25,159 +21,183 @@ export const EquipmentStatusCard = ({
   onEdit,
   onDelete,
   onStatusUpdate,
-  deletingId
+  deletingId,
+  maintenanceTasks = []
 }: EquipmentStatusCardProps) => {
-  const { allocations } = useEquipmentAllocations(equipment.id);
-  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
-  
-  const currentAllocation = allocations.find(a => 
-    new Date(a.start_date) <= new Date() && new Date() <= new Date(a.end_date)
-  );
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'in-use':
-        return 'bg-orange-100 text-orange-800';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'repair':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'available': return 'bg-green-100 text-green-800';
+      case 'in-use': return 'bg-blue-100 text-blue-800';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
+      case 'repair': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const isMaintenanceDue = equipment.maintenance_due && 
-    new Date(equipment.maintenance_due) <= new Date();
+  const getMaintenanceStatus = () => {
+    if (!equipment.maintenance_due) return null;
 
-  const handleMenuAction = (action: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    switch (action) {
-      case 'edit':
-        onEdit(equipment);
-        break;
-      case 'delete':
-        onDelete(equipment.id);
-        break;
-      case 'maintenance':
-        onStatusUpdate(equipment.id, 'maintenance');
-        break;
-      case 'available':
-        onStatusUpdate(equipment.id, 'available');
-        break;
-      case 'history':
-        openDialog('details');
-        break;
+    const maintenanceDate = new Date(equipment.maintenance_due);
+    const today = new Date();
+    const warningDate = addDays(today, 7);
+
+    if (isBefore(maintenanceDate, today)) {
+      return { status: 'overdue', color: 'bg-red-100 text-red-800', icon: AlertTriangle };
+    } else if (isBefore(maintenanceDate, warningDate)) {
+      return { status: 'due_soon', color: 'bg-orange-100 text-orange-800', icon: Clock };
+    } else {
+      return { status: 'scheduled', color: 'bg-green-100 text-green-800', icon: CheckCircle };
     }
   };
+
+  const maintenanceStatus = getMaintenanceStatus();
+  const activeTasks = maintenanceTasks.filter(task => 
+    task.status === 'scheduled' || task.status === 'in_progress'
+  );
+  const overdueTasks = maintenanceTasks.filter(task => task.status === 'overdue');
 
   return (
-    <>
-      <Card className="p-4">
-        <CardContent className="p-0">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3 flex-1 min-w-0">
-              <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
-                <Wrench className="h-5 w-5 text-orange-600" />
+    <div className="p-6 hover:bg-slate-50 transition-colors">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-lg font-medium text-slate-900">{equipment.name}</h3>
+            <Badge className={getStatusColor(equipment.status || 'available')}>
+              {equipment.status || 'available'}
+            </Badge>
+            {equipment.type && (
+              <Badge variant="outline">{equipment.type}</Badge>
+            )}
+            
+            {/* Maintenance Status Indicators */}
+            {maintenanceStatus && (
+              <Badge className={maintenanceStatus.color}>
+                <maintenanceStatus.icon size={12} className="mr-1" />
+                {maintenanceStatus.status === 'overdue' && 'Maintenance Overdue'}
+                {maintenanceStatus.status === 'due_soon' && 'Maintenance Due Soon'}
+                {maintenanceStatus.status === 'scheduled' && 'Maintenance Scheduled'}
+              </Badge>
+            )}
+            
+            {overdueTasks.length > 0 && (
+              <Badge className="bg-red-100 text-red-800">
+                <AlertTriangle size={12} className="mr-1" />
+                {overdueTasks.length} Overdue Task{overdueTasks.length > 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-slate-600">
+            {equipment.project && (
+              <div className="flex items-center gap-2">
+                <Calendar size={16} />
+                <span>Project: {equipment.project.name}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-gray-900 truncate">{equipment.name}</h3>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge className={getStatusColor(equipment.status || 'available')}>
-                      {equipment.status}
-                    </Badge>
-                    {isMaintenanceDue && (
-                      <Badge variant="destructive">Maintenance Due</Badge>
-                    )}
-                  </div>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-2 truncate">{equipment.type}</p>
-                
-                {/* Allocation Status */}
-                <AllocationStatus allocation={currentAllocation} compact />
-                
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500 mt-2">
-                  <div className="flex items-center gap-1">
-                    <User className="h-3 w-3 flex-shrink-0" />
-                    <span>Utilization: {equipment.utilization_rate || 0}%</span>
-                  </div>
-                  {equipment.maintenance_due && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Maintenance: {equipment.maintenance_due}</span>
+            )}
+            
+            {equipment.operator && (
+              <div className="flex items-center gap-2">
+                <User size={16} />
+                <span>Operator: {equipment.operator.full_name}</span>
+              </div>
+            )}
+            
+            {equipment.assigned_operator && (
+              <div className="flex items-center gap-2">
+                <User size={16} />
+                <span>Assigned: {equipment.assigned_operator.contact_person}</span>
+              </div>
+            )}
+
+            {equipment.maintenance_due && (
+              <div className="flex items-center gap-2">
+                <Wrench size={16} />
+                <span>Next Maintenance: {format(new Date(equipment.maintenance_due), 'MMM dd, yyyy')}</span>
+              </div>
+            )}
+
+            {activeTasks.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Clock size={16} />
+                <span>{activeTasks.length} Active Task{activeTasks.length > 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <span>Utilization: {equipment.utilization_rate || 0}%</span>
+            </div>
+          </div>
+
+          {/* Maintenance Tasks Summary */}
+          {(activeTasks.length > 0 || overdueTasks.length > 0) && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-700">
+                  Maintenance Tasks ({maintenanceTasks.length} total)
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  {isExpanded ? 'Hide' : 'Show'} Details
+                </Button>
+              </div>
+              
+              {isExpanded && (
+                <div className="mt-2 space-y-2">
+                  {maintenanceTasks.slice(0, 3).map((task) => (
+                    <div key={task.id} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${
+                            task.status === 'overdue' ? 'border-red-200 text-red-700' :
+                            task.status === 'in_progress' ? 'border-blue-200 text-blue-700' :
+                            'border-yellow-200 text-yellow-700'
+                          }`}
+                        >
+                          {task.status}
+                        </Badge>
+                        <span className="font-medium">{task.title}</span>
+                      </div>
+                      <span className="text-slate-500">
+                        {format(new Date(task.scheduled_date), 'MMM dd')}
+                      </span>
+                    </div>
+                  ))}
+                  {maintenanceTasks.length > 3 && (
+                    <div className="text-xs text-slate-500">
+                      +{maintenanceTasks.length - 3} more tasks
                     </div>
                   )}
                 </div>
-
-                {/* History Button */}
-                <div className="mt-3">
-                  <TouchFriendlyButton
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => handleMenuAction('history', e)}
-                    className="text-xs w-full sm:w-auto"
-                  >
-                    <History className="h-3 w-3 mr-1" />
-                    View History
-                  </TouchFriendlyButton>
-                </div>
-              </div>
+              )}
             </div>
+          )}
+        </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <TouchFriendlyButton variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
-                  <MoreVertical className="h-4 w-4" />
-                </TouchFriendlyButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="z-50 bg-white">
-                <DropdownMenuItem onClick={(e) => handleMenuAction('edit', e)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Equipment
-                </DropdownMenuItem>
-                {equipment.status === 'available' && (
-                  <DropdownMenuItem onClick={(e) => handleMenuAction('maintenance', e)}>
-                    <Wrench className="h-4 w-4 mr-2" />
-                    Mark for Maintenance
-                  </DropdownMenuItem>
-                )}
-                {equipment.status === 'maintenance' && (
-                  <DropdownMenuItem onClick={(e) => handleMenuAction('available', e)}>
-                    <Wrench className="h-4 w-4 mr-2" />
-                    Mark Available
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={(e) => handleMenuAction('history', e)}>
-                  <History className="h-4 w-4 mr-2" />
-                  View History
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => handleMenuAction('delete', e)}
-                  className="text-red-600"
-                  disabled={deletingId === equipment.id}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {deletingId === equipment.id ? 'Deleting...' : 'Delete'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Assignment History Dialog */}
-      <ResponsiveDialog
-        open={isDialogOpen('details')}
-        onOpenChange={(open) => !open && closeDialog()}
-        title={`Assignment History - ${equipment.name}`}
-        className="max-w-3xl"
-      >
-        <EquipmentAssignmentHistoryComponent equipmentId={equipment.id} />
-      </ResponsiveDialog>
-    </>
+        <div className="flex items-center gap-2 ml-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(equipment)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => onDelete(equipment.id)}
+            disabled={deletingId === equipment.id}
+          >
+            {deletingId === equipment.id ? 'Deleting...' : 'Delete'}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };

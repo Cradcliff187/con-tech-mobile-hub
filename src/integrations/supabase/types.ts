@@ -317,6 +317,232 @@ export type Database = {
           },
         ]
       }
+      maintenance_history: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          description: string
+          details: Json | null
+          equipment_id: string
+          id: string
+          maintenance_task_id: string | null
+          performed_by: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          description: string
+          details?: Json | null
+          equipment_id: string
+          id?: string
+          maintenance_task_id?: string | null
+          performed_by?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          description?: string
+          details?: Json | null
+          equipment_id?: string
+          id?: string
+          maintenance_task_id?: string | null
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_history_maintenance_task_id_fkey"
+            columns: ["maintenance_task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_history_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_schedules: {
+        Row: {
+          auto_assign_to_stakeholder_id: string | null
+          checklist_template: Json | null
+          created_at: string | null
+          description: string | null
+          equipment_id: string
+          estimated_hours: number | null
+          frequency_type: string
+          frequency_value: number
+          id: string
+          is_active: boolean | null
+          last_generated_date: string | null
+          next_due_date: string | null
+          schedule_name: string
+          task_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_assign_to_stakeholder_id?: string | null
+          checklist_template?: Json | null
+          created_at?: string | null
+          description?: string | null
+          equipment_id: string
+          estimated_hours?: number | null
+          frequency_type: string
+          frequency_value?: number
+          id?: string
+          is_active?: boolean | null
+          last_generated_date?: string | null
+          next_due_date?: string | null
+          schedule_name: string
+          task_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_assign_to_stakeholder_id?: string | null
+          checklist_template?: Json | null
+          created_at?: string | null
+          description?: string | null
+          equipment_id?: string
+          estimated_hours?: number | null
+          frequency_type?: string
+          frequency_value?: number
+          id?: string
+          is_active?: boolean | null
+          last_generated_date?: string | null
+          next_due_date?: string | null
+          schedule_name?: string
+          task_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_schedules_auto_assign_to_stakeholder_id_fkey"
+            columns: ["auto_assign_to_stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_schedules_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_tasks: {
+        Row: {
+          actual_hours: number | null
+          assigned_to_stakeholder_id: string | null
+          assigned_to_user_id: string | null
+          checklist_items: Json | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          equipment_id: string
+          estimated_hours: number | null
+          id: string
+          notes: string | null
+          priority: string
+          scheduled_date: string
+          status: string
+          task_type: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to_stakeholder_id?: string | null
+          assigned_to_user_id?: string | null
+          checklist_items?: Json | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          equipment_id: string
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          scheduled_date: string
+          status?: string
+          task_type?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to_stakeholder_id?: string | null
+          assigned_to_user_id?: string | null
+          checklist_items?: Json | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          equipment_id?: string
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          scheduled_date?: string
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_assigned_to_stakeholder_id_fkey"
+            columns: ["assigned_to_stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1302,6 +1528,10 @@ export type Database = {
       is_project_manager_or_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      mark_overdue_maintenance_tasks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       user_can_access_project: {
         Args: { project_id: string }

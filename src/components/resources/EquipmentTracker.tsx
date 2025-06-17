@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { useEquipment, Equipment } from '@/hooks/useEquipment';
+import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
 import { CreateEquipmentDialog } from './CreateEquipmentDialog';
 import { EditEquipmentDialog } from './EditEquipmentDialog';
 import { ImportEquipmentDialog } from './ImportEquipmentDialog';
@@ -10,15 +11,19 @@ import { EquipmentStatusCard } from './equipment/EquipmentStatusCard';
 import { EquipmentEmptyState } from './equipment/EquipmentEmptyState';
 import { EquipmentFilters } from './equipment/EquipmentFilters';
 import { QuickAllocationDialog } from './equipment/QuickAllocationDialog';
+import { MaintenanceScheduler } from './MaintenanceScheduler';
 import { useEquipmentActions } from './equipment/useEquipmentActions';
+import { KeyboardShortcuts } from '@/components/common/KeyboardShortcuts';
 
 export const EquipmentTracker = () => {
   const { equipment, loading, refetch } = useEquipment();
+  const { tasks: maintenanceTasks } = useMaintenanceTasks();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
   const [showQuickAllocationDialog, setShowQuickAllocationDialog] = useState(false);
+  const [showMaintenanceScheduler, setShowMaintenanceScheduler] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [selectedForQuickAllocation, setSelectedForQuickAllocation] = useState<Equipment | null>(null);
   
@@ -52,6 +57,14 @@ export const EquipmentTracker = () => {
     });
   }, [equipment, searchTerm, statusFilter, typeFilter]);
 
+  // Keyboard shortcuts for the equipment tracker
+  const shortcuts = [
+    { keys: ['Ctrl', 'N'], description: 'Add Equipment', category: 'Equipment' },
+    { keys: ['Ctrl', 'F'], description: 'Search', category: 'Navigation' },
+    { keys: ['Ctrl', 'Q'], description: 'Quick Allocate', category: 'Equipment' },
+    { keys: ['Ctrl', 'M'], description: 'Maintenance Scheduler', category: 'Maintenance' },
+  ];
+
   const handleEdit = (equipmentItem: Equipment) => {
     setSelectedEquipment(equipmentItem);
     setShowEditDialog(true);
@@ -70,12 +83,19 @@ export const EquipmentTracker = () => {
   };
 
   const handleQuickAllocation = () => {
-    // Find the first available equipment for quick allocation
-    const availableEquipment = filteredEquipment.find(eq => eq.status === 'available');
-    if (availableEquipment) {
-      setSelectedForQuickAllocation(availableEquipment);
+    // Find the first selected equipment or first available equipment for quick allocation
+    const selectedEquipment = selectedItems.length > 0 
+      ? filteredEquipment.find(eq => selectedItems.includes(eq.id))
+      : filteredEquipment.find(eq => eq.status === 'available');
+    
+    if (selectedEquipment) {
+      setSelectedForQuickAllocation(selectedEquipment);
       setShowQuickAllocationDialog(true);
     }
+  };
+
+  const handleMaintenanceScheduler = () => {
+    setShowMaintenanceScheduler(true);
   };
 
   const handleDeleteEquipment = (id: string) => {
@@ -101,6 +121,10 @@ export const EquipmentTracker = () => {
         case 'q':
           e.preventDefault();
           handleQuickAllocation();
+          break;
+        case 'm':
+          e.preventDefault();
+          handleMaintenanceScheduler();
           break;
       }
     }
@@ -169,19 +193,22 @@ export const EquipmentTracker = () => {
                 onDelete={handleDeleteEquipment}
                 onStatusUpdate={handleStatusUpdate}
                 deletingId={deletingId}
+                maintenanceTasks={maintenanceTasks.filter(task => task.equipment_id === item.id)}
               />
             ))
           )}
         </div>
 
-        {/* Keyboard Shortcuts Help */}
+        {/* Enhanced Keyboard Shortcuts Help */}
         {filteredEquipment.length > 0 && (
-          <div className="p-4 border-t bg-slate-50 text-xs text-slate-500">
-            <div className="flex flex-wrap gap-4 justify-center">
+          <div className="p-4 border-t bg-slate-50 flex items-center justify-between">
+            <div className="flex flex-wrap gap-4 text-xs text-slate-500">
               <span><kbd className="px-1 bg-white border rounded">Ctrl+N</kbd> Add Equipment</span>
               <span><kbd className="px-1 bg-white border rounded">Ctrl+F</kbd> Search</span>
               <span><kbd className="px-1 bg-white border rounded">Ctrl+Q</kbd> Quick Allocate</span>
+              <span><kbd className="px-1 bg-white border rounded">Ctrl+M</kbd> Maintenance</span>
             </div>
+            <KeyboardShortcuts shortcuts={shortcuts} />
           </div>
         )}
       </div>
@@ -217,6 +244,13 @@ export const EquipmentTracker = () => {
         onOpenChange={setShowQuickAllocationDialog}
         equipment={selectedForQuickAllocation}
         onSuccess={refetch}
+      />
+
+      <MaintenanceScheduler
+        open={showMaintenanceScheduler}
+        onOpenChange={setShowMaintenanceScheduler}
+        equipment={equipment}
+        maintenanceTasks={maintenanceTasks}
       />
     </div>
   );
