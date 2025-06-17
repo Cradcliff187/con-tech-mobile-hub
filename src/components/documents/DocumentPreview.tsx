@@ -67,7 +67,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
       // For public bucket, we can construct the URL directly or use signed URL
       // Let's try the public URL first, then fall back to signed URL
-      const publicUrl = `${supabase.supabaseUrl}/storage/v1/object/public/documents/${document.file_path}`;
+      const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${document.file_path}`;
       console.log('Trying public URL:', publicUrl);
 
       // Test if public URL works

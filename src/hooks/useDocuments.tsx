@@ -239,7 +239,7 @@ export const useDocuments = (projectId?: string) => {
     console.log('Downloading document:', doc.name, 'Path:', doc.file_path);
     try {
       // Try public URL first
-      const publicUrl = `${supabase.supabaseUrl}/storage/v1/object/public/documents/${doc.file_path}`;
+      const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${doc.file_path}`;
       
       // Test if public URL works
       const testResponse = await fetch(publicUrl, { method: 'HEAD' });
