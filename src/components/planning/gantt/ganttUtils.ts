@@ -4,3 +4,4 @@ export * from './utils/dateUtils';
 export * from './utils/taskUtils';
 export * from './utils/colorUtils';
 export * from './utils/dragUtils';
+export * from './utils/gridUtils';
