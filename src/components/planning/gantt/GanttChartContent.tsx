@@ -6,7 +6,7 @@ import { GanttTimelineBar } from './GanttTimelineBar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { VirtualScrollGantt } from './navigation/VirtualScrollGantt';
 import { GanttOverlayManager } from './overlays/GanttOverlayManager';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 
 interface GanttChartContentProps {
   displayTasks: Task[];
@@ -55,6 +55,57 @@ export const GanttChartContent = ({
 }: GanttChartContentProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
+
+  // Generate timeline units based on view mode (same logic as GanttTimelineHeader)
+  const timelineUnits = useMemo(() => {
+    const units = [];
+    const current = new Date(timelineStart);
+    
+    while (current <= timelineEnd) {
+      switch (viewMode) {
+        case 'days':
+          units.push({
+            key: current.getTime(),
+            label: current.toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric'
+            }),
+            isWeekend: current.getDay() === 0 || current.getDay() === 6
+          });
+          current.setDate(current.getDate() + 1);
+          break;
+          
+        case 'weeks':
+          // Start of week (Sunday)
+          const weekStart = new Date(current);
+          weekStart.setDate(current.getDate() - current.getDay());
+          units.push({
+            key: weekStart.getTime(),
+            label: weekStart.toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric'
+            }),
+            isWeekend: false
+          });
+          current.setDate(current.getDate() + 7);
+          break;
+          
+        case 'months':
+          units.push({
+            key: current.getTime(),
+            label: current.toLocaleDateString('en-US', { 
+              month: 'short',
+              year: 'numeric'
+            }),
+            isWeekend: false
+          });
+          current.setMonth(current.getMonth() + 1);
+          break;
+      }
+    }
+    
+    return units;
+  }, [timelineStart, timelineEnd, viewMode]);
 
   // Use virtual scrolling for large task lists (>50 tasks)
   useEffect(() => {
@@ -183,9 +234,27 @@ export const GanttChartContent = ({
 
             {/* Timeline Area */}
             <div className="flex-1 relative">
+              {/* Timeline Grid Background */}
+              <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                  <div className="min-w-max flex h-full">
+                    {timelineUnits.map((unit, unitIndex) => (
+                      <div
+                        key={unit.key}
+                        className={`flex-shrink-0 border-r border-slate-100 h-full ${
+                          viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
+                        } ${
+                          unit.isWeekend ? 'bg-slate-50/50' : ''
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div 
                 ref={index === 0 ? scrollContainerRef : undefined}
-                className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+                className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 relative z-10"
               >
                 <div className="min-w-max relative">
                   <GanttTimelineBar
