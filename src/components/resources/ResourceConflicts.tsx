@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +7,9 @@ import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { PersonnelConflictResolutionDialog } from './conflicts/PersonnelConflictResolutionDialog';
+import { EquipmentConflictResolutionDialog } from './conflicts/EquipmentConflictResolutionDialog';
+import { MaintenanceConflictResolutionDialog } from './conflicts/MaintenanceConflictResolutionDialog';
 
 interface ResourceConflict {
   id: string;
@@ -24,7 +26,8 @@ interface ResourceConflict {
 export const ResourceConflicts = () => {
   const [conflicts, setConflicts] = useState<ResourceConflict[]>([]);
   const [loading, setLoading] = useState(true);
-  const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set());
+  const [selectedConflict, setSelectedConflict] = useState<ResourceConflict | null>(null);
+  const [resolutionDialogType, setResolutionDialogType] = useState<'personnel' | 'equipment' | 'maintenance' | null>(null);
   const { allocations } = useResourceAllocations();
   const { equipment } = useEquipment();
   const { user } = useAuth();
@@ -150,28 +153,27 @@ export const ResourceConflicts = () => {
     return conflicts;
   };
 
-  const handleResolveConflict = async (conflictId: string) => {
-    setResolvingIds(prev => new Set(prev).add(conflictId));
+  const handleResolveConflict = (conflict: ResourceConflict) => {
+    setSelectedConflict(conflict);
     
-    // Simulate conflict resolution (in real implementation, this would update the database)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setConflicts(prev => prev.map(conflict => 
-      conflict.id === conflictId 
-        ? { ...conflict, resolved: true }
-        : conflict
-    ));
-    
-    setResolvingIds(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(conflictId);
-      return newSet;
-    });
+    if (conflict.type === 'personnel') {
+      setResolutionDialogType('personnel');
+    } else if (conflict.type === 'equipment') {
+      setResolutionDialogType('equipment');
+    } else if (conflict.type === 'schedule') {
+      setResolutionDialogType('maintenance');
+    }
+  };
 
-    toast({
-      title: "Conflict Resolved",
-      description: "The resource conflict has been marked as resolved"
-    });
+  const handleConflictResolved = () => {
+    if (selectedConflict) {
+      setConflicts(prev => prev.filter(conflict => conflict.id !== selectedConflict.id));
+      setSelectedConflict(null);
+      setResolutionDialogType(null);
+      
+      // Refresh data to reflect changes
+      generateConflicts();
+    }
   };
 
   const handleDismissConflict = (conflictId: string) => {
@@ -220,131 +222,169 @@ export const ResourceConflicts = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Total Conflicts</p>
-                <p className="text-2xl font-bold text-slate-800">{activeConflicts.length}</p>
+    <>
+      <div className="space-y-6">
+        {/* Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">Total Conflicts</p>
+                  <p className="text-2xl font-bold text-slate-800">{activeConflicts.length}</p>
+                </div>
+                <AlertTriangle className="text-orange-600" size={24} />
               </div>
-              <AlertTriangle className="text-orange-600" size={24} />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Critical</p>
-                <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">Critical</p>
+                  <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
+                </div>
+                <AlertTriangle className="text-red-600" size={24} />
               </div>
-              <AlertTriangle className="text-red-600" size={24} />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">High Priority</p>
-                <p className="text-2xl font-bold text-orange-600">{highCount}</p>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600">High Priority</p>
+                  <p className="text-2xl font-bold text-orange-600">{highCount}</p>
+                </div>
+                <AlertTriangle className="text-orange-600" size={24} />
               </div>
-              <AlertTriangle className="text-orange-600" size={24} />
-            </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Conflicts List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Resource Conflicts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activeConflicts.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
+                <h3 className="text-lg font-medium text-slate-600 mb-2">No Active Conflicts</h3>
+                <p className="text-slate-500">All resources are properly allocated with no conflicts detected.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activeConflicts.map((conflict) => (
+                  <div key={conflict.id} className={`border rounded-lg p-4 ${getSeverityColor(conflict.severity)} border-l-4`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          {getTypeIcon(conflict.type)}
+                          <h4 className="font-medium text-slate-800">{conflict.title}</h4>
+                          <Badge variant="outline" className="capitalize">
+                            {conflict.type}
+                          </Badge>
+                          <Badge className={getSeverityColor(conflict.severity)}>
+                            {conflict.severity}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-700 mb-3">{conflict.description}</p>
+                        
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs font-medium text-slate-600 mb-1">Affected Projects:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {conflict.affectedProjects.map((project, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {project}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <p className="text-xs font-medium text-slate-600 mb-1">Suggested Action:</p>
+                            <p className="text-sm text-slate-700">{conflict.suggestedAction}</p>
+                          </div>
+                          
+                          {conflict.dueDate && (
+                            <div className="text-xs text-slate-500">
+                              Deadline: {new Date(conflict.dueDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 ml-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleResolveConflict(conflict)}
+                        >
+                          <CheckCircle size={14} className="mr-2" />
+                          Resolve
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDismissConflict(conflict.id)}
+                        >
+                          <X size={14} className="mr-2" />
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Conflicts List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Resource Conflicts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activeConflicts.length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
-              <h3 className="text-lg font-medium text-slate-600 mb-2">No Active Conflicts</h3>
-              <p className="text-slate-500">All resources are properly allocated with no conflicts detected.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {activeConflicts.map((conflict) => (
-                <div key={conflict.id} className={`border rounded-lg p-4 ${getSeverityColor(conflict.severity)} border-l-4`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        {getTypeIcon(conflict.type)}
-                        <h4 className="font-medium text-slate-800">{conflict.title}</h4>
-                        <Badge variant="outline" className="capitalize">
-                          {conflict.type}
-                        </Badge>
-                        <Badge className={getSeverityColor(conflict.severity)}>
-                          {conflict.severity}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-700 mb-3">{conflict.description}</p>
-                      
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-xs font-medium text-slate-600 mb-1">Affected Projects:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {conflict.affectedProjects.map((project, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {project}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <p className="text-xs font-medium text-slate-600 mb-1">Suggested Action:</p>
-                          <p className="text-sm text-slate-700">{conflict.suggestedAction}</p>
-                        </div>
-                        
-                        {conflict.dueDate && (
-                          <div className="text-xs text-slate-500">
-                            Deadline: {new Date(conflict.dueDate).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 ml-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleResolveConflict(conflict.id)}
-                        disabled={resolvingIds.has(conflict.id)}
-                      >
-                        {resolvingIds.has(conflict.id) ? (
-                          <div className="animate-spin rounded-full h-3 w-3 border-b border-green-600 mr-2"></div>
-                        ) : (
-                          <CheckCircle size={14} className="mr-2" />
-                        )}
-                        Resolve
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDismissConflict(conflict.id)}
-                      >
-                        <X size={14} className="mr-2" />
-                        Dismiss
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      {/* Resolution Dialogs */}
+      {selectedConflict && (
+        <>
+          <PersonnelConflictResolutionDialog
+            open={resolutionDialogType === 'personnel'}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedConflict(null);
+                setResolutionDialogType(null);
+              }
+            }}
+            conflict={selectedConflict}
+            onResolved={handleConflictResolved}
+          />
+
+          <EquipmentConflictResolutionDialog
+            open={resolutionDialogType === 'equipment'}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedConflict(null);
+                setResolutionDialogType(null);
+              }
+            }}
+            conflict={selectedConflict}
+            onResolved={handleConflictResolved}
+          />
+
+          <MaintenanceConflictResolutionDialog
+            open={resolutionDialogType === 'maintenance'}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedConflict(null);
+                setResolutionDialogType(null);
+              }
+            }}
+            conflict={selectedConflict}
+            onResolved={handleConflictResolved}
+          />
+        </>
+      )}
+    </>
   );
 };
