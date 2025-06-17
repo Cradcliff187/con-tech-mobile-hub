@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { useStakeholderAssignments } from '@/hooks/useStakeholders';
+import { useStakeholderAssignments } from '@/hooks/useStakeholderAssignments';
 import { useProjects } from '@/hooks/useProjects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

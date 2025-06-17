@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
-import { useStakeholderAssignments, Stakeholder } from '@/hooks/useStakeholderAssignments';
+import { useStakeholderAssignments } from '@/hooks/useStakeholderAssignments';
+import { Stakeholder } from '@/hooks/useStakeholders';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
