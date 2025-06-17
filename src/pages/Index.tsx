@@ -16,7 +16,7 @@ import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { MobileSidebarOverlay } from '@/components/navigation/MobileSidebarOverlay';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { NavigationItem } from '@/types/navigation';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { 
@@ -92,7 +92,7 @@ const Index = () => {
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={false}>
         <DesktopSidebar
           profile={profile}
           navigation={navigation}
@@ -126,7 +126,10 @@ const Index = () => {
         <main className="flex-1 overflow-auto">
           <div className="lg:hidden h-16"></div>
           <div className="p-6">
-            <Breadcrumbs />
+            <div className="flex items-center gap-3 mb-6">
+              <SidebarTrigger className="hidden lg:flex" />
+              <Breadcrumbs />
+            </div>
             <ErrorBoundary>
               {renderContent()}
             </ErrorBoundary>
