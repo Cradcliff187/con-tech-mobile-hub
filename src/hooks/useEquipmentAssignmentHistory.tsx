@@ -122,9 +122,10 @@ export const useEquipmentAssignmentHistory = (equipmentId?: string) => {
           title: "Success",
           description: "Assignment history recorded"
         });
+        return { data: processedData[0], error };
       }
 
-      return { data: processedData?.[0] || data, error };
+      return { data: null, error };
     } catch (error) {
       console.error('Error creating history record:', error);
       return { error };
