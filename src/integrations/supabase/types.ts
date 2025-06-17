@@ -1169,6 +1169,55 @@ export type Database = {
           },
         ]
       }
+      task_documents: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          document_id: string
+          id: string
+          relationship_type: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          document_id: string
+          id?: string
+          relationship_type?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          relationship_type?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_documents_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_updates: {
         Row: {
           author_id: string | null
