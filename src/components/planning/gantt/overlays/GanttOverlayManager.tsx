@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Task } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,12 @@ import { GanttWeatherMarkers } from './GanttWeatherMarkers';
 import { GanttResourceConflictMarkers } from './GanttResourceConflictMarkers';
 import { GanttCriticalPathOverlay } from './GanttCriticalPathOverlay';
 import { DragDropZoneIndicator, DropZoneGrid } from '../components/DragDropZoneIndicator';
+import { MobileOptimizedMarker } from '../markers/MobileOptimizedMarker';
+import { MarkerErrorBoundary, MarkerFallback } from '../markers/MarkerErrorBoundary';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import { useMarkerVirtualization } from '@/hooks/useMarkerVirtualization';
+import { useDebouncedCalculations } from '@/hooks/useDebouncedCalculations';
+import { useMobileDetection, getMobileOptimizedConfig } from '@/utils/mobileDetection';
 
 interface GanttOverlayManagerProps {
   tasks: Task[];
@@ -43,6 +48,7 @@ interface OverlayControls {
   criticalPath: boolean;
   smartCollisions: boolean;
   dropZones: boolean;
+  performance: boolean;
 }
 
 export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
@@ -70,68 +76,82 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
     conflicts: true,
     criticalPath: true,
     smartCollisions: true,
-    dropZones: true
+    dropZones: true,
+    performance: process.env.NODE_ENV === 'development'
   });
   const [showControls, setShowControls] = useState(false);
 
-  // Detect mobile viewport
-  const isMobile = useMemo(() => {
-    return typeof window !== 'undefined' && window.innerWidth < 768;
-  }, []);
+  // Mobile detection and optimization
+  const mobileCapabilities = useMobileDetection();
+  const mobileConfig = getMobileOptimizedConfig(mobileCapabilities);
 
-  // Collect all markers from different sources for collision detection
+  // Performance monitoring
+  const { metrics, startRenderMeasurement, endRenderMeasurement } = usePerformanceMonitor(
+    overlayControls.performance
+  );
+
+  // Collect all markers from different sources
   const allMarkers = useMemo(() => {
+    startRenderMeasurement();
     const markers: MarkerData[] = [];
     
-    // This is a simplified collection - in practice, each overlay component
-    // would expose its markers for collision detection
-    // For now, we'll use the individual components and apply collision detection
-    // to any additional markers that might be added in the future
+    // This would be populated by individual overlay components
+    // For now, we'll use placeholder logic
     
+    endRenderMeasurement(markers.length);
     return markers;
-  }, [tasks, timelineStart, timelineEnd, overlayControls, projectId]);
+  }, [tasks, timelineStart, timelineEnd, overlayControls, projectId, startRenderMeasurement, endRenderMeasurement]);
 
-  // Enhanced marker processing with drag awareness
-  const processedMarkers = useMemo(() => {
-    if (!overlayControls.smartCollisions) return allMarkers;
-    
-    let markers = batchMarkerUpdates(allMarkers, timelineStart, timelineEnd, viewMode);
-    
-    // Apply drag-aware transformations
-    if (isDragging && affectedMarkerIds.length > 0) {
-      markers = markers.map(marker => {
-        const isAffected = affectedMarkerIds.some(id => marker.id.includes(id));
-        const isDraggedMarker = draggedTaskId && marker.id.includes(draggedTaskId);
-        
-        // Fade non-essential markers during drag
-        if (!isAffected && !isDraggedMarker) {
-          return {
-            ...marker,
-            color: marker.color.replace('bg-', 'bg-opacity-30 bg-')
-          };
-        }
-        
-        // Highlight affected markers
-        if (isAffected && !isDraggedMarker) {
-          return {
-            ...marker,
-            color: 'bg-yellow-400 animate-pulse'
-          };
-        }
-        
-        return marker;
-      });
+  // Viewport-based virtualization
+  const { visibleMarkers, culledCount, getMarkerLOD } = useMarkerVirtualization(
+    allMarkers,
+    0, // viewportStart - would be calculated from scroll position
+    100, // viewportEnd - would be calculated from scroll position
+    {
+      viewportBuffer: mobileConfig.virtualBufferSize,
+      maxVisibleMarkers: mobileConfig.maxVisibleMarkers,
+      isMobile: mobileCapabilities.isMobile
     }
-    
-    return markers;
-  }, [allMarkers, timelineStart, timelineEnd, viewMode, overlayControls.smartCollisions, isDragging, affectedMarkerIds, draggedTaskId]);
+  );
 
-  // Filter visible markers for performance
-  const visibleMarkers = useMemo(() => {
-    return processedMarkers.filter(marker => 
-      isMarkerVisible(marker.position.x, 0, 100)
-    );
-  }, [processedMarkers]);
+  // Debounced marker processing for performance
+  const { result: processedMarkers } = useDebouncedCalculations(
+    () => {
+      if (!overlayControls.smartCollisions) return visibleMarkers;
+      
+      let markers = batchMarkerUpdates(visibleMarkers, timelineStart, timelineEnd, viewMode);
+      
+      // Apply drag-aware transformations
+      if (isDragging && affectedMarkerIds.length > 0) {
+        markers = markers.map(marker => {
+          const isAffected = affectedMarkerIds.some(id => marker.id.includes(id));
+          const isDraggedMarker = draggedTaskId && marker.id.includes(draggedTaskId);
+          
+          if (!isAffected && !isDraggedMarker) {
+            return {
+              ...marker,
+              color: marker.color.replace('bg-', 'bg-opacity-30 bg-')
+            };
+          }
+          
+          if (isAffected && !isDraggedMarker) {
+            return {
+              ...marker,
+              color: 'bg-yellow-400 animate-pulse'
+            };
+          }
+          
+          return marker;
+        });
+      }
+      
+      return markers;
+    },
+    [visibleMarkers, timelineStart, timelineEnd, viewMode, overlayControls.smartCollisions, isDragging, affectedMarkerIds, draggedTaskId],
+    mobileConfig.debounceDelay
+  );
+
+  const finalMarkers = processedMarkers || [];
 
   const toggleOverlay = (type: keyof OverlayControls) => {
     setOverlayControls(prev => ({
@@ -151,13 +171,16 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
     return { x: xPercent, y: dragPosition.y };
   }, [dropPreviewDate, dragPosition, timelineStart, timelineEnd]);
 
+  // Get appropriate LOD for current zoom
+  const currentLOD = getMarkerLOD(1); // Would calculate actual zoom level
+
   return (
     <div className={`absolute inset-0 pointer-events-none ${className}`}>
       {/* Enhanced Overlay Controls */}
       <div className="absolute top-2 right-2 pointer-events-auto z-50">
         <div className="flex items-center gap-2">
           {showControls && (
-            <div className="bg-white rounded-lg shadow-md border p-2 flex items-center gap-2 flex-wrap">
+            <div className="bg-white rounded-lg shadow-md border p-2 flex items-center gap-2 flex-wrap max-w-4xl">
               <Button
                 variant={overlayControls.milestones ? "default" : "outline"}
                 size="sm"
@@ -214,6 +237,16 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
                 {overlayControls.dropZones ? <Eye size={12} /> : <EyeOff size={12} />}
                 Drop Zones
               </Button>
+              <Button
+                variant={overlayControls.performance ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleOverlay('performance')}
+                className="text-xs"
+                title="Performance monitoring and optimization"
+              >
+                {overlayControls.performance ? <Eye size={12} /> : <EyeOff size={12} />}
+                Performance
+              </Button>
             </div>
           )}
           <Button
@@ -227,7 +260,7 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
         </div>
       </div>
 
-      {/* Enhanced Overlay Layers with drag awareness */}
+      {/* Enhanced Overlay Layers with performance optimizations */}
       <div className="absolute inset-0">
         {/* Layer 0: Drop Zone Grid (z-5) */}
         {overlayControls.dropZones && showDropZones && validDropZones.length > 0 && (
@@ -244,88 +277,35 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
 
         {/* Layer 1: Critical Path Background (z-10) */}
         {overlayControls.criticalPath && (
-          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.BACKGROUND.zIndex }}>
-            <GanttCriticalPathOverlay
-              tasks={tasks}
-              timelineStart={timelineStart}
-              timelineEnd={timelineEnd}
-              viewMode={viewMode}
-            />
-          </div>
-        )}
-
-        {/* Layer 2: Weather Overlays with collision detection (z-20) */}
-        {overlayControls.weather && (
-          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.TERTIARY.zIndex }}>
-            {overlayControls.smartCollisions ? (
-              <CollisionResolver
-                markers={visibleMarkers.filter(m => m.type === 'weather')}
-                viewMode={viewMode}
-                isMobile={isMobile}
-                showDebugInfo={process.env.NODE_ENV === 'development'}
-              />
-            ) : (
-              <GanttWeatherMarkers
-                timelineStart={timelineStart}
-                timelineEnd={timelineEnd}
-                viewMode={viewMode}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Layer 3: Resource Conflicts with collision detection (z-30) */}
-        {overlayControls.conflicts && (
-          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.SECONDARY.zIndex }}>
-            {overlayControls.smartCollisions ? (
-              <CollisionResolver
-                markers={visibleMarkers.filter(m => m.type === 'conflict')}
-                viewMode={viewMode}
-                isMobile={isMobile}
-              />
-            ) : (
-              <GanttResourceConflictMarkers
+          <MarkerErrorBoundary>
+            <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.BACKGROUND.zIndex }}>
+              <GanttCriticalPathOverlay
                 tasks={tasks}
                 timelineStart={timelineStart}
                 timelineEnd={timelineEnd}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Layer 4: Milestones with collision detection (z-40) - Highest Priority */}
-        {overlayControls.milestones && projectId && (
-          <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.PRIMARY.zIndex }}>
-            {overlayControls.smartCollisions ? (
-              <CollisionResolver
-                markers={visibleMarkers.filter(m => m.type === 'milestone')}
-                viewMode={viewMode}
-                isMobile={isMobile}
-              />
-            ) : (
-              <GanttMilestoneMarkers
-                projectId={projectId}
-                timelineStart={timelineStart}
-                timelineEnd={timelineEnd}
                 viewMode={viewMode}
               />
-            )}
-          </div>
+            </div>
+          </MarkerErrorBoundary>
         )}
 
-        {/* Universal Collision Resolver for all markers when smart collisions enabled */}
-        {overlayControls.smartCollisions && visibleMarkers.length > 0 && (
-          <div className="absolute inset-0" style={{ zIndex: 50 }}>
-            <CollisionResolver
-              markers={visibleMarkers}
-              viewMode={viewMode}
-              isMobile={isMobile}
-              showDebugInfo={process.env.NODE_ENV === 'development'}
+        {/* Optimized Individual Markers */}
+        {finalMarkers.map(marker => (
+          <MarkerErrorBoundary 
+            key={marker.id}
+            fallback={<MarkerFallback position={marker.position} />}
+          >
+            <MobileOptimizedMarker
+              marker={marker}
+              isMobile={mobileCapabilities.isMobile}
+              lod={currentLOD}
+              onPress={(marker) => console.log('Marker pressed:', marker.id)}
+              onLongPress={(marker) => console.log('Marker long pressed:', marker.id)}
             />
-          </div>
-        )}
+          </MarkerErrorBoundary>
+        ))}
 
-        {/* Layer 5: Drag Drop Indicator (z-60) - Highest Priority */}
+        {/* Layer 5: Drag Drop Indicator (z-60) */}
         {isDragging && dropPreviewDate && dragPosition && overlayControls.dropZones && (
           <div className="absolute inset-0" style={{ zIndex: 60 }}>
             <DragDropZoneIndicator
@@ -339,24 +319,33 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
         )}
       </div>
 
-      {/* Enhanced Performance Stats with drag info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs p-2 rounded pointer-events-auto">
-          <div>Markers: {visibleMarkers.length}/{processedMarkers.length}</div>
-          <div>Timeline: {timelineStart.toLocaleDateString()} - {timelineEnd.toLocaleDateString()}</div>
-          <div>View Mode: {viewMode}</div>
-          <div>Mobile: {isMobile ? 'Yes' : 'No'}</div>
-          <div>Smart Collisions: {overlayControls.smartCollisions ? 'On' : 'Off'}</div>
-          {isDragging && (
-            <>
-              <div className="border-t border-white/30 mt-1 pt-1">
+      {/* Enhanced Performance Stats */}
+      {overlayControls.performance && (
+        <div className="absolute bottom-2 left-2 bg-black/90 text-white text-xs p-3 rounded pointer-events-auto max-w-xs">
+          <div className="space-y-1">
+            <div className="font-semibold border-b border-white/20 pb-1">Performance Metrics</div>
+            <div>FPS: <span className={metrics.fps < 30 ? 'text-red-400' : 'text-green-400'}>{metrics.fps}</span></div>
+            <div>Render: {metrics.renderTime.toFixed(1)}ms</div>
+            <div>Markers: {finalMarkers.length}/{allMarkers.length}</div>
+            <div>Culled: {culledCount}</div>
+            <div>Memory: {(metrics.memoryUsage / 1024 / 1024).toFixed(1)}MB</div>
+            <div>Mobile: {mobileCapabilities.isMobile ? 'Yes' : 'No'}</div>
+            <div>Touch: {mobileCapabilities.hasTouch ? 'Yes' : 'No'}</div>
+            <div>Screen: {mobileCapabilities.screenSize}</div>
+            {metrics.isLowPerformance && (
+              <div className="text-red-400 font-semibold animate-pulse">
+                Low Performance
+              </div>
+            )}
+            {isDragging && (
+              <div className="border-t border-white/20 pt-1 mt-1">
                 <div>Dragging: {draggedTaskId?.slice(0, 8)}...</div>
                 <div>Validity: {currentValidity}</div>
                 <div>Affected: {affectedMarkerIds.length}</div>
                 <div>Drop Zones: {validDropZones.length}</div>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
