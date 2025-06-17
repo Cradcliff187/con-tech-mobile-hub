@@ -19,7 +19,7 @@ export const ProjectLink = ({
   
   return (
     <Link 
-      to={`/planning?project=${projectId}`}
+      to={`/?section=planning&project=${projectId}`}
       className={`inline-flex items-center gap-1 ${className}`}
     >
       {displayText}
