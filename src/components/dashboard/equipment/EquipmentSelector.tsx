@@ -51,13 +51,13 @@ export const EquipmentSelector = ({
             const isSelected = selectedEquipment.includes(eq.id);
             const availabilityValue = availabilityCheck[eq.id];
             const isAvailable = availabilityValue !== undefined ? Boolean(availabilityValue) : undefined;
-            const showAvailabilityCheck = isSelected && startDate && endDate;
+            const showAvailabilityCheck = Boolean(isSelected && !!startDate && !!endDate);
 
             return (
               <EquipmentCard
                 key={eq.id}
                 equipment={eq}
-                isSelected={isSelected}
+                isSelected={Boolean(isSelected)}
                 isAvailable={isAvailable}
                 showAvailabilityCheck={showAvailabilityCheck}
                 operatorId={operatorAssignments[eq.id]}
