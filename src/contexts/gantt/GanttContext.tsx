@@ -47,9 +47,8 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({ children, projectI
 
   // Update loading and error states
   useEffect(() => {
-    // Convert Error object to string message for consistent error handling
-    const errorMessage = tasksError instanceof Error ? tasksError.message : tasksError;
-    dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    // tasksError is already a string | null from useTasks hook
+    dispatch({ type: 'SET_ERROR', payload: tasksError });
   }, [tasksError]);
 
   // Get display task with optimistic updates applied

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
@@ -162,7 +161,7 @@ const TaskManagerContent = memo(() => {
   if (error) {
     return (
       <ErrorFallback
-        error={error}
+        error={new Error(error)}
         title="Task Loading Error"
         description="There was a problem loading tasks. Please try refreshing the page."
         resetError={() => window.location.reload()}
