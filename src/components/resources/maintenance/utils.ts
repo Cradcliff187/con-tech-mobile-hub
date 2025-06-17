@@ -5,18 +5,7 @@ import type { Equipment } from '@/hooks/useEquipment';
 // Updated to work with real MaintenanceTask data from the database
 export const generateMaintenanceTasks = (equipment: Equipment[], tasks: MaintenanceTask[]): MaintenanceTask[] => {
   // Return real tasks from the database, already sorted by scheduled_date
-  return tasks.map(task => ({
-    ...task,
-    equipmentId: task.equipment_id,
-    equipmentName: task.equipment?.name || 'Unknown Equipment',
-    type: task.task_type as 'routine' | 'repair' | 'inspection',
-    priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
-    scheduledDate: task.scheduled_date,
-    estimatedHours: task.estimated_hours || 4,
-    assignedTo: task.assigned_stakeholder?.contact_person || task.assigned_user?.full_name,
-    status: task.status as 'scheduled' | 'in-progress' | 'completed' | 'overdue',
-    description: task.description || ''
-  }));
+  return tasks;
 };
 
 export const getStatusColor = (status: string): string => {

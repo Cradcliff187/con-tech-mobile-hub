@@ -70,7 +70,14 @@ export const useMaintenanceTasks = () => {
           variant: "destructive"
         });
       } else {
-        setTasks(data || []);
+        // Type cast and normalize the data
+        const normalizedTasks = (data || []).map(task => ({
+          ...task,
+          task_type: task.task_type as MaintenanceTask['task_type'],
+          priority: task.priority as MaintenanceTask['priority'],
+          status: task.status as MaintenanceTask['status'],
+        }));
+        setTasks(normalizedTasks);
       }
     } catch (error) {
       console.error('Error fetching maintenance tasks:', error);

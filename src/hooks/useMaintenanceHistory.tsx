@@ -56,7 +56,12 @@ export const useMaintenanceHistory = (equipmentId?: string) => {
       if (error) {
         console.error('Error fetching maintenance history:', error);
       } else {
-        setHistory(data || []);
+        // Type cast the action_type to match our interface
+        const normalizedHistory = (data || []).map(entry => ({
+          ...entry,
+          action_type: entry.action_type as MaintenanceHistoryEntry['action_type']
+        }));
+        setHistory(normalizedHistory);
       }
     } catch (error) {
       console.error('Error fetching maintenance history:', error);

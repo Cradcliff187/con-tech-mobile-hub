@@ -9,7 +9,6 @@ import { Equipment } from '@/hooks/useEquipment';
 import { MaintenanceTask, useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
 import { useMaintenanceSchedules } from '@/hooks/useMaintenanceSchedules';
 import { useMaintenanceHistory } from '@/hooks/useMaintenanceHistory';
-import { MaintenanceSummaryCards } from './maintenance/MaintenanceSummaryCards';
 import { MaintenanceTaskCard } from './maintenance/MaintenanceTaskCard';
 import { getStatusColor, getPriorityColor } from './maintenance/utils';
 import { format, isAfter, isBefore, addDays } from 'date-fns';
@@ -20,6 +19,59 @@ interface MaintenanceSchedulerProps {
   equipment: Equipment[];
   maintenanceTasks: MaintenanceTask[];
 }
+
+interface MaintenanceSummaryCardProps {
+  totalTasks: number;
+  overdueTasks: number;
+  dueSoonTasks: number;
+  inProgressTasks: number;
+}
+
+const MaintenanceSummaryCards = ({ totalTasks, overdueTasks, dueSoonTasks, inProgressTasks }: MaintenanceSummaryCardProps) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="p-4 bg-blue-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Wrench size={20} className="text-blue-600" />
+          <div>
+            <p className="text-sm text-blue-600">Total Tasks</p>
+            <p className="text-2xl font-bold text-blue-700">{totalTasks}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4 bg-red-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={20} className="text-red-600" />
+          <div>
+            <p className="text-sm text-red-600">Overdue</p>
+            <p className="text-2xl font-bold text-red-700">{overdueTasks}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4 bg-orange-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Clock size={20} className="text-orange-600" />
+          <div>
+            <p className="text-sm text-orange-600">Due Soon</p>
+            <p className="text-2xl font-bold text-orange-700">{dueSoonTasks}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4 bg-green-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Clock size={20} className="text-green-600" />
+          <div>
+            <p className="text-sm text-green-600">In Progress</p>
+            <p className="text-2xl font-bold text-green-700">{inProgressTasks}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const MaintenanceScheduler = ({ 
   open, 

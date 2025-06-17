@@ -61,7 +61,12 @@ export const useMaintenanceSchedules = () => {
           variant: "destructive"
         });
       } else {
-        setSchedules(data || []);
+        // Type cast frequency_type to match our interface
+        const normalizedSchedules = (data || []).map(schedule => ({
+          ...schedule,
+          frequency_type: schedule.frequency_type as MaintenanceSchedule['frequency_type']
+        }));
+        setSchedules(normalizedSchedules);
       }
     } catch (error) {
       console.error('Error fetching maintenance schedules:', error);
