@@ -13,6 +13,7 @@ interface EquipmentFormFieldsProps {
   maintenanceDue: string;
   setMaintenanceDue: (value: string) => void;
   disabled?: boolean;
+  errors?: Record<string, string>;
 }
 
 export const EquipmentFormFields = ({
@@ -24,8 +25,13 @@ export const EquipmentFormFields = ({
   setStatus,
   maintenanceDue,
   setMaintenanceDue,
-  disabled = false
+  disabled = false,
+  errors = {}
 }: EquipmentFormFieldsProps) => {
+  const getFieldErrorClass = (fieldName: string) => {
+    return errors[fieldName] ? 'border-red-500 focus:border-red-500' : '';
+  };
+
   return (
     <>
       <div className="space-y-2">
@@ -37,7 +43,11 @@ export const EquipmentFormFields = ({
           placeholder="e.g., Excavator CAT 320"
           required
           disabled={disabled}
+          className={getFieldErrorClass('name')}
         />
+        {errors.name && (
+          <p className="text-sm text-red-600">{errors.name}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -49,7 +59,11 @@ export const EquipmentFormFields = ({
           placeholder="e.g., Heavy Machinery"
           required
           disabled={disabled}
+          className={getFieldErrorClass('type')}
         />
+        {errors.type && (
+          <p className="text-sm text-red-600">{errors.type}</p>
+        )}
       </div>
 
       <div className="space-y-2">

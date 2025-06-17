@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { prepareSelectDataForDB } from '@/utils/selectHelpers';
+import { prepareOptionalSelectField } from '@/utils/selectHelpers';
 
 export interface EquipmentAllocation {
   id: string;
@@ -110,11 +110,18 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   }) => {
     if (!user) return { error: 'User not authenticated' };
 
-    // Prepare data for database using standardized helper
-    const dbData = prepareSelectDataForDB({
-      ...allocationData,
+    // Prepare data for database with proper field handling
+    const dbData = {
+      equipment_id: allocationData.equipment_id,
+      project_id: allocationData.project_id,
+      task_id: prepareOptionalSelectField(allocationData.task_id),
+      operator_type: allocationData.operator_type || null,
+      operator_id: prepareOptionalSelectField(allocationData.operator_id),
+      start_date: allocationData.start_date,
+      end_date: allocationData.end_date,
+      notes: allocationData.notes || null,
       allocated_by: user.id
-    });
+    };
 
     const { data, error } = await supabase
       .from('equipment_allocations')
@@ -136,8 +143,17 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   };
 
   const updateAllocation = async (id: string, updates: Partial<EquipmentAllocation>) => {
-    // Prepare updates for database using standardized helper
-    const dbUpdates = prepareSelectDataForDB(updates);
+    // Prepare updates for database with proper field handling
+    const dbUpdates: any = {};
+    
+    Object.keys(updates).forEach(key => {
+      const value = updates[key as keyof EquipmentAllocation];
+      if (key === 'task_id' || key === 'operator_id') {
+        dbUpdates[key] = prepareOptionalSelectField(value as string);
+      } else {
+        dbUpdates[key] = value;
+      }
+    });
 
     const { data, error } = await supabase
       .from('equipment_allocations')

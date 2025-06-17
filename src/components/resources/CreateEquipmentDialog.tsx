@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { EquipmentFormFields } from './equipment/EquipmentFormFields';
 import { AllocationSection } from './equipment/AllocationSection';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { validateEquipmentForm, validateAllocationForm, type AllocationFormData, type EquipmentFormData } from '@/utils/formValidation';
-import { prepareSelectDataForDB } from '@/utils/selectHelpers';
+import { prepareOptionalSelectField } from '@/utils/selectHelpers';
 
 interface CreateEquipmentDialogProps {
   open: boolean;
@@ -108,13 +107,13 @@ export const CreateEquipmentDialog = ({
     setValidationErrors({});
 
     try {
-      // Prepare equipment data for database
-      const equipmentDbData = prepareSelectDataForDB({
+      // Prepare equipment data for database with proper field handling
+      const equipmentDbData = {
         name: formData.name.trim(),
         type: formData.type.trim(),
         status: allocateToProject ? 'in-use' : formData.status,
         maintenance_due: formData.maintenance_due || null
-      });
+      };
 
       // Create equipment
       const { data: equipment, error: equipmentError } = await supabase
@@ -127,18 +126,18 @@ export const CreateEquipmentDialog = ({
 
       // Create allocation if requested
       if (allocateToProject && equipment) {
-        const allocationDbData = prepareSelectDataForDB({
+        const allocationCreateData = {
           equipment_id: equipment.id,
           project_id: allocationData.projectId,
-          task_id: allocationData.taskId,
+          task_id: prepareOptionalSelectField(allocationData.taskId),
           operator_type: allocationData.operatorType,
-          operator_id: allocationData.operatorId,
+          operator_id: prepareOptionalSelectField(allocationData.operatorId),
           start_date: allocationData.startDate,
           end_date: allocationData.endDate,
-          notes: allocationData.notes
-        });
+          notes: allocationData.notes || undefined
+        };
 
-        const allocationResult = await createAllocation(allocationDbData);
+        const allocationResult = await createAllocation(allocationCreateData);
 
         if (allocationResult.error) {
           throw new Error(typeof allocationResult.error === 'string' ? allocationResult.error : allocationResult.error.message || 'Failed to create allocation');

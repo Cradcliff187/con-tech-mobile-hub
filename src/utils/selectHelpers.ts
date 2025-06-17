@@ -78,16 +78,18 @@ export const validateOperatorSelection = (
   return null;
 };
 
-// Helper to prepare data for database operations
-export const prepareSelectDataForDB = (data: Record<string, any>): Record<string, any> => {
-  const prepared = { ...data };
-  
-  // Convert 'none' values to null for database
-  Object.keys(prepared).forEach(key => {
-    if (prepared[key] === 'none' || prepared[key] === '') {
-      prepared[key] = null;
-    }
-  });
-  
-  return prepared;
+// Helper to prepare optional fields for database operations
+export const prepareOptionalSelectField = (value: string): string | null => {
+  if (value === 'none' || value === '' || !value) {
+    return null;
+  }
+  return value;
+};
+
+// Helper to prepare required fields for database operations  
+export const prepareRequiredSelectField = (value: string): string => {
+  if (value === 'none' || value === '' || !value) {
+    throw new Error('Required field cannot be empty');
+  }
+  return value;
 };

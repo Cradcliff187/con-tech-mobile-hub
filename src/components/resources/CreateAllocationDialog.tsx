@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { normalizeSelectValue, prepareSelectDataForDB } from '@/utils/selectHelpers';
+import { normalizeSelectValue, prepareOptionalSelectField } from '@/utils/selectHelpers';
 
 interface CreateAllocationDialogProps {
   open: boolean;
@@ -48,14 +48,14 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
 
     setLoading(true);
     
-    // Prepare data for database using helper function
-    const dbData = prepareSelectDataForDB({
+    // Prepare data for database with proper field handling
+    const dbData = {
       team_name: teamName,
-      project_id: projectId,
+      project_id: prepareOptionalSelectField(projectId),
       week_start_date: weekStartDate,
       total_budget: totalBudget ? parseFloat(totalBudget) : 0,
       allocation_type: allocationType
-    });
+    };
 
     const { error } = await supabase
       .from('resource_allocations')
