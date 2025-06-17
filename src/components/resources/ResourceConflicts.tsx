@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Calendar, Users, Wrench, CheckCircle, X } from 'lucide-react';
+import { AlertTriangle, Calendar, Users, Wrench, CheckCircle, X, RefreshCw } from 'lucide-react';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PersonnelConflictResolutionDialog } from './conflicts/PersonnelConflictResolutionDialog';
 import { EquipmentConflictResolutionDialog } from './conflicts/EquipmentConflictResolutionDialog';
 import { MaintenanceConflictResolutionDialog } from './conflicts/MaintenanceConflictResolutionDialog';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 
 interface ResourceConflict {
   id: string;
@@ -184,6 +186,11 @@ export const ResourceConflicts = () => {
     });
   };
 
+  const handleRefreshConflicts = () => {
+    setLoading(true);
+    generateConflicts();
+  };
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -266,7 +273,18 @@ export const ResourceConflicts = () => {
         {/* Conflicts List */}
         <Card>
           <CardHeader>
-            <CardTitle>Resource Conflicts</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Resource Conflicts</CardTitle>
+              <TouchFriendlyButton
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshConflicts}
+                disabled={loading}
+              >
+                <RefreshCw size={16} className="mr-2" />
+                Refresh
+              </TouchFriendlyButton>
+            </div>
           </CardHeader>
           <CardContent>
             {activeConflicts.length === 0 ? (
@@ -319,22 +337,22 @@ export const ResourceConflicts = () => {
                       </div>
                       
                       <div className="flex flex-col gap-2 ml-4">
-                        <Button 
+                        <TouchFriendlyButton 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleResolveConflict(conflict)}
                         >
                           <CheckCircle size={14} className="mr-2" />
                           Resolve
-                        </Button>
-                        <Button 
+                        </TouchFriendlyButton>
+                        <TouchFriendlyButton 
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleDismissConflict(conflict.id)}
                         >
                           <X size={14} className="mr-2" />
                           Dismiss
-                        </Button>
+                        </TouchFriendlyButton>
                       </div>
                     </div>
                   </div>

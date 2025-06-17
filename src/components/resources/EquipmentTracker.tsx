@@ -4,6 +4,7 @@ import { useEquipment, Equipment } from '@/hooks/useEquipment';
 import { CreateEquipmentDialog } from './CreateEquipmentDialog';
 import { EditEquipmentDialog } from './EditEquipmentDialog';
 import { ImportEquipmentDialog } from './ImportEquipmentDialog';
+import { BulkEquipmentActions } from './BulkEquipmentActions';
 import { EquipmentHeader } from './equipment/EquipmentHeader';
 import { EquipmentStatusCard } from './equipment/EquipmentStatusCard';
 import { EquipmentEmptyState } from './equipment/EquipmentEmptyState';
@@ -14,6 +15,7 @@ export const EquipmentTracker = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   
   const { deletingId, handleDelete, handleStatusUpdate } = useEquipmentActions(refetch);
@@ -31,7 +33,10 @@ export const EquipmentTracker = () => {
     setShowImportDialog(true);
   };
 
-  // Fixed: Updated to pass both equipment ID and name
+  const handleBulkActions = () => {
+    setShowBulkActionsDialog(true);
+  };
+
   const handleDeleteEquipment = (id: string) => {
     const equipmentItem = equipment.find(eq => eq.id === id);
     const equipmentName = equipmentItem?.name || 'Unknown Equipment';
@@ -55,6 +60,7 @@ export const EquipmentTracker = () => {
         <EquipmentHeader 
           onAddEquipment={handleAddEquipment}
           onImportEquipment={handleImportEquipment}
+          onBulkActions={handleBulkActions}
         />
         
         <div className="divide-y divide-slate-100">
@@ -91,6 +97,13 @@ export const EquipmentTracker = () => {
       <ImportEquipmentDialog
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
+        onSuccess={refetch}
+      />
+
+      <BulkEquipmentActions
+        open={showBulkActionsDialog}
+        onOpenChange={setShowBulkActionsDialog}
+        equipment={equipment}
         onSuccess={refetch}
       />
     </div>

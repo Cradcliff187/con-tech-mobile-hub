@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ResourceConflict {
   conflict_type: string;
@@ -13,15 +14,13 @@ interface ResourceConflict {
 export const useResourceConflicts = (userId?: string, date?: string, hours?: number) => {
   const [conflicts, setConflicts] = useState<ResourceConflict[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (userId && date && hours) {
-      checkResourceConflicts();
-    }
-  }, [userId, date, hours]);
+  const { toast } = useToast();
 
   const checkResourceConflicts = async () => {
-    if (!userId || !date || !hours) return;
+    if (!userId || !date || !hours) {
+      setConflicts([]);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -31,19 +30,42 @@ export const useResourceConflicts = (userId?: string, date?: string, hours?: num
         p_hours: hours
       });
 
-      if (error) throw error;
-      setConflicts(data || []);
+      if (error) {
+        console.error('Error checking resource conflicts:', error);
+        toast({
+          title: "Error",
+          description: "Failed to check resource conflicts",
+          variant: "destructive"
+        });
+        setConflicts([]);
+      } else {
+        setConflicts(data || []);
+      }
     } catch (error) {
       console.error('Error checking resource conflicts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check resource conflicts",
+        variant: "destructive"
+      });
       setConflicts([]);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (userId && date && hours) {
+      checkResourceConflicts();
+    } else {
+      setConflicts([]);
+    }
+  }, [userId, date, hours]);
+
   return {
     conflicts,
     loading,
-    checkConflicts: checkResourceConflicts
+    checkConflicts: checkResourceConflicts,
+    hasConflicts: conflicts.length > 0
   };
 };
