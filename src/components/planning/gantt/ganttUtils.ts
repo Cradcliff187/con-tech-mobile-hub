@@ -1,5 +1,4 @@
 
-import { AlertTriangle, CheckCircle, User, Play, PauseCircle } from 'lucide-react';
 import { Task } from '@/types/database';
 
 export const getDaysBetween = (start: Date, end: Date) => {
@@ -43,24 +42,6 @@ export const getConstructionPhaseColor = (task: Task) => {
   if (category.includes('finish') || category.includes('paint')) return 'bg-green-600';
   
   return getStatusColor(task.status);
-};
-
-export const getPriorityIcon = (priority: string) => {
-  switch (priority) {
-    case 'critical': return <AlertTriangle size={14} className="text-red-600 flex-shrink-0" />;
-    case 'high': return <AlertTriangle size={14} className="text-orange-600 flex-shrink-0" />;
-    default: return null;
-  }
-};
-
-export const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'completed': return <CheckCircle size={12} className="text-white" />;
-    case 'in-progress': return <Play size={12} className="text-white" />;
-    case 'blocked': return <AlertTriangle size={12} className="text-white" />;
-    case 'on-hold': return <PauseCircle size={12} className="text-white" />;
-    default: return null;
-  }
 };
 
 export const getAssigneeName = (task: Task) => {

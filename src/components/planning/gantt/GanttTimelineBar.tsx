@@ -1,10 +1,10 @@
 
+import { CheckCircle, Play, AlertTriangle, PauseCircle } from 'lucide-react';
 import { Task } from '@/types/database';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   getTaskPosition, 
   getConstructionPhaseColor, 
-  getStatusIcon, 
   getAssigneeInitials 
 } from './ganttUtils';
 
@@ -13,6 +13,16 @@ interface GanttTimelineBarProps {
   timelineStart: Date;
   timelineEnd: Date;
 }
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'completed': return <CheckCircle size={12} className="text-white" />;
+    case 'in-progress': return <Play size={12} className="text-white" />;
+    case 'blocked': return <AlertTriangle size={12} className="text-white" />;
+    case 'on-hold': return <PauseCircle size={12} className="text-white" />;
+    default: return null;
+  }
+};
 
 export const GanttTimelineBar = ({ task, timelineStart, timelineEnd }: GanttTimelineBarProps) => {
   const position = getTaskPosition(task, timelineStart, timelineEnd);

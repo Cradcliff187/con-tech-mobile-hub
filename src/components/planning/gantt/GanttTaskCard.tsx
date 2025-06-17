@@ -1,11 +1,10 @@
 
-import { User } from 'lucide-react';
+import { User, AlertTriangle } from 'lucide-react';
 import { Task } from '@/types/database';
 import { CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  getPriorityIcon, 
   getAssigneeName, 
   formatDateRange, 
   getCategoryBadgeColor 
@@ -14,6 +13,14 @@ import {
 interface GanttTaskCardProps {
   task: Task;
 }
+
+const getPriorityIcon = (priority: string) => {
+  switch (priority) {
+    case 'critical': return <AlertTriangle size={14} className="text-red-600 flex-shrink-0" />;
+    case 'high': return <AlertTriangle size={14} className="text-orange-600 flex-shrink-0" />;
+    default: return null;
+  }
+};
 
 export const GanttTaskCard = ({ task }: GanttTaskCardProps) => {
   return (
