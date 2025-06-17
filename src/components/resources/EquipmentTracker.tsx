@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { useEquipment, Equipment } from '@/hooks/useEquipment';
 import { CreateEquipmentDialog } from './CreateEquipmentDialog';
 import { EditEquipmentDialog } from './EditEquipmentDialog';
+import { ImportEquipmentDialog } from './ImportEquipmentDialog';
 import { EquipmentHeader } from './equipment/EquipmentHeader';
 import { EquipmentStatusCard } from './equipment/EquipmentStatusCard';
 import { EquipmentEmptyState } from './equipment/EquipmentEmptyState';
@@ -11,6 +13,7 @@ export const EquipmentTracker = () => {
   const { equipment, loading, refetch } = useEquipment();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   
   const { deletingId, handleDelete, handleStatusUpdate } = useEquipmentActions(refetch);
@@ -22,6 +25,10 @@ export const EquipmentTracker = () => {
 
   const handleAddEquipment = () => {
     setShowCreateDialog(true);
+  };
+
+  const handleImportEquipment = () => {
+    setShowImportDialog(true);
   };
 
   // Fixed: Updated to pass both equipment ID and name
@@ -45,7 +52,10 @@ export const EquipmentTracker = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-        <EquipmentHeader onAddEquipment={handleAddEquipment} />
+        <EquipmentHeader 
+          onAddEquipment={handleAddEquipment}
+          onImportEquipment={handleImportEquipment}
+        />
         
         <div className="divide-y divide-slate-100">
           {equipment.length === 0 ? (
@@ -75,6 +85,12 @@ export const EquipmentTracker = () => {
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         equipment={selectedEquipment}
+        onSuccess={refetch}
+      />
+
+      <ImportEquipmentDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
         onSuccess={refetch}
       />
     </div>
