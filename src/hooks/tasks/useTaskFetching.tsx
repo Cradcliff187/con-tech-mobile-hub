@@ -6,7 +6,7 @@ import { mapTaskFromDb } from './taskMapping';
 
 export const useTaskFetching = (user: any) => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = async () => {
     if (!user) return;
@@ -27,9 +27,9 @@ export const useTaskFetching = (user: any) => {
         return mappedTasks;
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch tasks');
-      console.error('Error fetching tasks:', error);
-      setError(error);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch tasks';
+      console.error('Error fetching tasks:', errorMessage);
+      setError(errorMessage);
       return [];
     } finally {
       setLoading(false);

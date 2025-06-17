@@ -39,7 +39,7 @@ export const useTasks = () => {
   return {
     tasks,
     loading,
-    error,
+    error, // Now consistently a string | null
     createTask,
     updateTask,
     refetch

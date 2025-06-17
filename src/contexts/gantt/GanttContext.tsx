@@ -1,4 +1,3 @@
-
 import React, { createContext, useReducer, useMemo, useCallback, useEffect } from 'react';
 import { Task } from '@/types/database';
 import { useImprovedTaskSubscription } from '@/hooks/tasks/useImprovedTaskSubscription';
@@ -48,11 +47,9 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({ children, projectI
 
   // Update loading and error states
   useEffect(() => {
-    dispatch({ type: 'SET_LOADING', payload: tasksLoading });
-  }, [tasksLoading]);
-
-  useEffect(() => {
-    dispatch({ type: 'SET_ERROR', payload: tasksError });
+    // Convert Error object to string message for consistent error handling
+    const errorMessage = tasksError instanceof Error ? tasksError.message : tasksError;
+    dispatch({ type: 'SET_ERROR', payload: errorMessage });
   }, [tasksError]);
 
   // Get display task with optimistic updates applied
