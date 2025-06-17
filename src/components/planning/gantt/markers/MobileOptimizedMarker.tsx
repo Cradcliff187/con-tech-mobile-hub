@@ -110,7 +110,7 @@ export const MobileOptimizedMarker = memo<MobileOptimizedMarkerProps>(({
             )}
           </TouchFriendlyButton>
         </TooltipTrigger>
-        {marker.tooltip && lod !== 'low' && (
+        {marker.tooltip && (
           <TooltipContent side="bottom" className="max-w-xs">
             <div className="space-y-1">
               <div className="font-semibold text-slate-800">{marker.tooltip.title}</div>
