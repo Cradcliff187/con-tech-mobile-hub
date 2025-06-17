@@ -54,6 +54,15 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
   const daySpan = Math.ceil(totalTimespan / (1000 * 60 * 60 * 24));
   const completedTasks = tasks.filter(task => task.status === 'completed').length;
 
+  // Safely access memory information
+  const getMemoryUsage = () => {
+    if ('memory' in performance && (performance as any).memory) {
+      const memory = (performance as any).memory;
+      return (memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+    }
+    return 'N/A';
+  };
+
   return (
     <div className="p-3 border-b border-gray-800 space-y-2">
       <div className="text-xs font-medium text-green-400 mb-2">Performance Metrics</div>
@@ -91,7 +100,7 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
       </div>
 
       <div className="text-xs text-gray-500 pt-1 border-t border-gray-800">
-        Memory: {(performance.memory?.usedJSHeapSize / 1024 / 1024 || 0).toFixed(1)}MB
+        Memory: {getMemoryUsage()}MB
       </div>
     </div>
   );
