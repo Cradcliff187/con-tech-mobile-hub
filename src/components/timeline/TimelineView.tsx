@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ProjectTimeline } from './ProjectTimeline';
 import { TaskDetails } from './TaskDetails';
 import { useProjects } from '@/hooks/useProjects';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Filter, Download, Calendar } from 'lucide-react';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
+import { useSearchParams } from 'react-router-dom';
 
 interface TimelineFilters {
   status: string;
@@ -19,6 +20,9 @@ interface TimelineFilters {
 
 // CLEANED: Use Supabase hooks for live data now!
 export const TimelineView: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const projectFromUrl = searchParams.get('project');
+  
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -33,6 +37,23 @@ export const TimelineView: React.FC = () => {
   // Live projects and tasks from Supabase
   const { projects, loading: projectsLoading } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
+
+  // Sync URL project parameter with selected project state
+  useEffect(() => {
+    if (projectFromUrl && projects.length > 0) {
+      // Validate that the project ID from URL exists in projects list
+      const projectExists = projects.some(project => project.id === projectFromUrl);
+      if (projectExists) {
+        setSelectedProject(projectFromUrl);
+      } else {
+        // Fallback to 'all' if project ID is invalid or not found
+        setSelectedProject('all');
+      }
+    } else if (!projectFromUrl) {
+      // Set to 'all' if no project parameter in URL
+      setSelectedProject('all');
+    }
+  }, [projectFromUrl, projects]);
 
   // Filter handlers
   const handleFilterChange = (filterType: keyof TimelineFilters, value: string) => {
