@@ -1,6 +1,7 @@
 
 import { useMemo } from 'react';
 import { getColumnIndexForDate } from './ganttUtils';
+import { useTimelineUnits } from './hooks/useTimelineUnits';
 
 interface GanttTimelineGridProps {
   timelineStart: Date;
@@ -13,56 +14,8 @@ export const GanttTimelineGrid = ({
   timelineEnd,
   viewMode
 }: GanttTimelineGridProps) => {
-  // Generate timeline units based on view mode (same logic as GanttTimelineHeader)
-  const timelineUnits = useMemo(() => {
-    const units = [];
-    const current = new Date(timelineStart);
-    
-    while (current <= timelineEnd) {
-      switch (viewMode) {
-        case 'days':
-          units.push({
-            key: current.getTime(),
-            label: current.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric'
-            }),
-            isWeekend: current.getDay() === 0 || current.getDay() === 6
-          });
-          current.setDate(current.getDate() + 1);
-          break;
-          
-        case 'weeks':
-          // Start of week (Sunday)
-          const weekStart = new Date(current);
-          weekStart.setDate(current.getDate() - current.getDay());
-          units.push({
-            key: weekStart.getTime(),
-            label: weekStart.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric'
-            }),
-            isWeekend: false
-          });
-          current.setDate(current.getDate() + 7);
-          break;
-          
-        case 'months':
-          units.push({
-            key: current.getTime(),
-            label: current.toLocaleDateString('en-US', { 
-              month: 'short',
-              year: 'numeric'
-            }),
-            isWeekend: false
-          });
-          current.setMonth(current.getMonth() + 1);
-          break;
-      }
-    }
-    
-    return units;
-  }, [timelineStart, timelineEnd, viewMode]);
+  // Use the centralized timeline units hook
+  const timelineUnits = useTimelineUnits(timelineStart, timelineEnd, viewMode);
 
   // Calculate which column contains today's date
   const todayColumnIndex = useMemo(() => {
