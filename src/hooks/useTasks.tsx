@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/database';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -12,7 +13,7 @@ export const useTasks = () => {
   const { user } = useAuth();
   
   // Use ref to track subscription and prevent multiple subscriptions
-  const subscriptionRef = useRef<any>(null);
+  const subscriptionRef = useRef<RealtimeChannel | null>(null);
   const channelNameRef = useRef<string>('');
 
   // Helper function to map database response to Task interface
@@ -69,24 +70,31 @@ export const useTasks = () => {
     }
   };
 
-  // Helper function to cleanup existing subscription
-  const cleanupSubscription = async () => {
+  // Helper function to cleanup existing subscription (now synchronous)
+  const cleanupSubscription = () => {
     if (subscriptionRef.current) {
       try {
         console.log('Cleaning up existing subscription:', channelNameRef.current);
-        await supabase.removeChannel(subscriptionRef.current);
+        supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
         channelNameRef.current = '';
         setSubscriptionStatus('idle');
       } catch (error) {
         console.warn('Error during subscription cleanup:', error);
+        setSubscriptionStatus('error');
       }
     }
   };
 
   // Helper function to setup real-time subscription
-  const setupSubscription = async () => {
-    if (!user || subscriptionRef.current) return;
+  const setupSubscription = () => {
+    if (!user) return;
+    
+    // Guard against multiple subscriptions
+    if (subscriptionRef.current) {
+      console.log('Subscription already exists, skipping setup');
+      return;
+    }
 
     try {
       setSubscriptionStatus('connecting');
@@ -124,6 +132,9 @@ export const useTasks = () => {
           } else if (status === 'CHANNEL_ERROR') {
             setSubscriptionStatus('error');
             console.error('Channel subscription error');
+            // Reset subscription ref on error
+            subscriptionRef.current = null;
+            channelNameRef.current = '';
           }
         });
 
@@ -132,6 +143,8 @@ export const useTasks = () => {
     } catch (error) {
       console.error('Error setting up subscription:', error);
       setSubscriptionStatus('error');
+      subscriptionRef.current = null;
+      channelNameRef.current = '';
     }
   };
 
@@ -145,14 +158,11 @@ export const useTasks = () => {
     // Initial fetch
     fetchTasks();
 
-    // Setup subscription with delay to ensure component is stable
-    const setupTimer = setTimeout(() => {
-      setupSubscription();
-    }, 100);
+    // Setup subscription immediately (removed delay)
+    setupSubscription();
 
-    // Cleanup function
+    // Cleanup function - immediate cleanup
     return () => {
-      clearTimeout(setupTimer);
       cleanupSubscription();
     };
   }, [user?.id]); // Only depend on user.id to prevent unnecessary re-runs
