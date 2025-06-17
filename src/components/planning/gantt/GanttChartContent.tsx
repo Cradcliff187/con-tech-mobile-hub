@@ -53,7 +53,8 @@ export const GanttChartContent = ({
   projectId,
   dragState
 }: GanttChartContentProps) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
 
   // Use virtual scrolling for large task lists (>50 tasks)
@@ -61,29 +62,28 @@ export const GanttChartContent = ({
     setUseVirtualScroll(displayTasks.length > 50);
   }, [displayTasks.length]);
 
-  // Sync horizontal scroll between header and content
-  const handleScrollSync = (headerScrollRef: React.RefObject<HTMLDivElement>) => {
-    if (!headerScrollRef.current || !scrollContainerRef.current) return;
-
+  // Simplified scroll synchronization
+  useEffect(() => {
     const headerScroll = headerScrollRef.current;
-    const contentScroll = scrollContainerRef.current;
+    const contentScroll = contentScrollRef.current;
 
-    const handleHeaderScroll = () => {
-      contentScroll.scrollLeft = headerScroll.scrollLeft;
+    if (!headerScroll || !contentScroll) return;
+
+    const syncScrollLeft = (source: HTMLElement, target: HTMLElement) => {
+      target.scrollLeft = source.scrollLeft;
     };
 
-    const handleContentScroll = () => {
-      headerScroll.scrollLeft = contentScroll.scrollLeft;
-    };
+    const handleHeaderScroll = () => syncScrollLeft(headerScroll, contentScroll);
+    const handleContentScroll = () => syncScrollLeft(contentScroll, headerScroll);
 
-    headerScroll.addEventListener('scroll', handleHeaderScroll);
-    contentScroll.addEventListener('scroll', handleContentScroll);
+    headerScroll.addEventListener('scroll', handleHeaderScroll, { passive: true });
+    contentScroll.addEventListener('scroll', handleContentScroll, { passive: true });
 
     return () => {
       headerScroll.removeEventListener('scroll', handleHeaderScroll);
       contentScroll.removeEventListener('scroll', handleContentScroll);
     };
-  };
+  }, []);
 
   if (displayTasks.length === 0) {
     return (
@@ -92,6 +92,7 @@ export const GanttChartContent = ({
           timelineStart={timelineStart}
           timelineEnd={timelineEnd}
           viewMode={viewMode}
+          scrollRef={headerScrollRef}
         />
         <div className="p-8 text-center">
           <LoadingSpinner size="sm" text="Loading tasks..." />
@@ -110,10 +111,11 @@ export const GanttChartContent = ({
             timelineStart={timelineStart}
             timelineEnd={timelineEnd}
             viewMode={viewMode}
+            scrollRef={headerScrollRef}
           />
         </div>
 
-        {/* Virtual Scrolled Gantt */}
+        {/* Virtual Scrolled Gantt with master scroll container */}
         <div className="relative">
           <VirtualScrollGantt
             tasks={displayTasks}
@@ -126,6 +128,7 @@ export const GanttChartContent = ({
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             draggedTaskId={draggedTaskId}
+            headerScrollRef={headerScrollRef}
           />
 
           {/* Enhanced Overlay Manager for virtual scroll with drag integration */}
@@ -154,60 +157,69 @@ export const GanttChartContent = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-      {/* Timeline Header with Navigation */}
+      {/* Timeline Header */}
       <GanttTimelineHeader
         timelineStart={timelineStart}
         timelineEnd={timelineEnd}
         viewMode={viewMode}
-        onScrollUpdate={handleScrollSync}
+        scrollRef={headerScrollRef}
       />
 
-      {/* Gantt Chart Body */}
+      {/* Master Scroll Container - Single scrollbar for entire chart */}
       <div 
-        ref={timelineRef}
-        className="relative"
-        onDragOver={onDragOver}
-        onDrop={onDrop}
+        ref={contentScrollRef}
+        className="overflow-x-auto scrollbar-none md:scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 touch-pan-x"
+        style={{ 
+          WebkitOverflowScrolling: 'touch', // iOS momentum scrolling
+          scrollbarWidth: 'thin' // Firefox thin scrollbar
+        }}
       >
-        {displayTasks.map((task, index) => (
-          <GanttTaskRow
-            key={task.id}
-            task={task}
-            selectedTaskId={selectedTaskId}
-            onTaskSelect={onTaskSelect}
-            viewMode={viewMode}
+        {/* Gantt Chart Body */}
+        <div 
+          ref={timelineRef}
+          className="min-w-max relative"
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+        >
+          {displayTasks.map((task, index) => (
+            <GanttTaskRow
+              key={task.id}
+              task={task}
+              selectedTaskId={selectedTaskId}
+              onTaskSelect={onTaskSelect}
+              viewMode={viewMode}
+              timelineStart={timelineStart}
+              timelineEnd={timelineEnd}
+              isDragging={isDragging}
+              draggedTaskId={draggedTaskId}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              isFirstRow={index === 0}
+            />
+          ))}
+
+          {/* Construction Project Progress Indicator */}
+          <GanttProgressIndicator tasks={displayTasks} />
+
+          {/* Enhanced Overlay Manager with full drag integration */}
+          <GanttOverlayManager
+            tasks={displayTasks}
             timelineStart={timelineStart}
             timelineEnd={timelineEnd}
+            viewMode={viewMode}
+            projectId={projectId}
             isDragging={isDragging}
             draggedTaskId={draggedTaskId}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            isFirstRow={index === 0}
-            scrollContainerRef={scrollContainerRef}
+            affectedMarkerIds={dragState?.affectedMarkerIds || []}
+            dropPreviewDate={dragState?.dropPreviewDate}
+            dragPosition={dragState?.dragPosition}
+            currentValidity={dragState?.currentValidity || 'valid'}
+            validDropZones={dragState?.validDropZones || []}
+            showDropZones={dragState?.showDropZones || false}
+            violationMessages={dragState?.violationMessages || []}
+            suggestedDropDate={dragState?.suggestedDropDate}
           />
-        ))}
-
-        {/* Construction Project Progress Indicator */}
-        <GanttProgressIndicator tasks={displayTasks} />
-
-        {/* Enhanced Overlay Manager with full drag integration */}
-        <GanttOverlayManager
-          tasks={displayTasks}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-          projectId={projectId}
-          isDragging={isDragging}
-          draggedTaskId={draggedTaskId}
-          affectedMarkerIds={dragState?.affectedMarkerIds || []}
-          dropPreviewDate={dragState?.dropPreviewDate}
-          dragPosition={dragState?.dragPosition}
-          currentValidity={dragState?.currentValidity || 'valid'}
-          validDropZones={dragState?.validDropZones || []}
-          showDropZones={dragState?.showDropZones || false}
-          violationMessages={dragState?.violationMessages || []}
-          suggestedDropDate={dragState?.suggestedDropDate}
-        />
+        </div>
       </div>
     </div>
   );

@@ -9,16 +9,17 @@ interface GanttTimelineHeaderProps {
   timelineStart: Date;
   timelineEnd: Date;
   viewMode: 'days' | 'weeks' | 'months';
-  onScrollUpdate?: (scrollContainerRef: React.RefObject<HTMLDivElement>) => void;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const GanttTimelineHeader = ({
   timelineStart,
   timelineEnd,
   viewMode,
-  onScrollUpdate
+  scrollRef
 }: GanttTimelineHeaderProps) => {
-  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const internalScrollRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = scrollRef || internalScrollRef;
   
   const {
     scrollToToday,
@@ -31,7 +32,8 @@ export const GanttTimelineHeader = ({
   } = useTimelineNavigation({
     timelineStart,
     timelineEnd,
-    viewMode
+    viewMode,
+    scrollContainerRef: headerScrollRef
   });
 
   // Use the centralized timeline units hook
@@ -44,7 +46,7 @@ export const GanttTimelineHeader = ({
     };
 
     if (headerScrollRef.current) {
-      headerScrollRef.current.addEventListener('scroll', handleScroll);
+      headerScrollRef.current.addEventListener('scroll', handleScroll, { passive: true });
       updateScrollInfo(); // Initial update
     }
 
@@ -55,18 +57,11 @@ export const GanttTimelineHeader = ({
     };
   }, [updateScrollInfo]);
 
-  // Sync with content scroll
-  useEffect(() => {
-    if (onScrollUpdate && headerScrollRef.current) {
-      onScrollUpdate(headerScrollRef);
-    }
-  }, [onScrollUpdate]);
-
   return (
     <div className="border-b border-slate-200 bg-slate-50">
       <div className="flex">
         {/* Left side - Navigation controls */}
-        <div className="w-80 lg:w-96 border-r border-slate-200 bg-white">
+        <div className="w-80 lg:w-96 border-r border-slate-200 bg-white flex-shrink-0">
           <GanttTimelineNavigation
             onGoToToday={scrollToToday}
             onScrollLeft={scrollLeft}
@@ -79,11 +74,15 @@ export const GanttTimelineHeader = ({
           />
         </div>
 
-        {/* Right side - Timeline header */}
-        <div className="flex-1 relative">
+        {/* Right side - Timeline header with master scroll */}
+        <div className="flex-1 relative overflow-hidden">
           <div 
             ref={headerScrollRef}
-            className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+            className="overflow-x-auto scrollbar-none md:scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 touch-pan-x"
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'thin'
+            }}
           >
             <div className="min-w-max relative">
               {/* Timeline units */}

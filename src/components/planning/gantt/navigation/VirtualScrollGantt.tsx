@@ -16,6 +16,7 @@ interface VirtualScrollGanttProps {
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
   draggedTaskId?: string;
+  headerScrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 const ITEM_HEIGHT = 80; // Height of each task row
@@ -32,7 +33,8 @@ export const VirtualScrollGantt = ({
   itemHeight = ITEM_HEIGHT,
   onDragStart,
   onDragEnd,
-  draggedTaskId
+  draggedTaskId,
+  headerScrollRef
 }: VirtualScrollGanttProps) => {
   const [scrollTop, setScrollTop] = useState(0);
   const scrollElementRef = useRef<HTMLDivElement>(null);
@@ -53,12 +55,28 @@ export const VirtualScrollGantt = ({
     setScrollTop(scrollTop);
   };
 
-  // Sync horizontal scroll between task cards and timeline
-  const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (timelineScrollRef.current && scrollElementRef.current) {
-      // Sync any other timeline scroll containers here
-    }
-  };
+  // Sync horizontal scroll with header
+  useEffect(() => {
+    const timelineScroll = timelineScrollRef.current;
+    const headerScroll = headerScrollRef?.current;
+
+    if (!timelineScroll || !headerScroll) return;
+
+    const syncScrollLeft = (source: HTMLElement, target: HTMLElement) => {
+      target.scrollLeft = source.scrollLeft;
+    };
+
+    const handleTimelineScroll = () => syncScrollLeft(timelineScroll, headerScroll);
+    const handleHeaderScroll = () => syncScrollLeft(headerScroll, timelineScroll);
+
+    timelineScroll.addEventListener('scroll', handleTimelineScroll, { passive: true });
+    headerScroll.addEventListener('scroll', handleHeaderScroll, { passive: true });
+
+    return () => {
+      timelineScroll.removeEventListener('scroll', handleTimelineScroll);
+      headerScroll.removeEventListener('scroll', handleHeaderScroll);
+    };
+  }, [headerScrollRef]);
 
   useEffect(() => {
     // Auto-scroll to selected task
@@ -78,59 +96,65 @@ export const VirtualScrollGantt = ({
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
       <div 
         ref={scrollElementRef}
-        className="overflow-auto"
+        className="overflow-y-auto"
         style={{ height: containerHeight }}
         onScroll={handleScroll}
       >
         <div style={{ height: totalHeight, position: 'relative' }}>
-          {visibleTasks.map((task, index) => {
-            const taskIndex = startIndex + index;
-            const top = taskIndex * itemHeight;
-            
-            return (
-              <div
-                key={task.id}
-                className="absolute left-0 right-0 flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150"
-                style={{
-                  top,
-                  height: itemHeight
-                }}
-              >
-                {/* Task Card */}
-                <div className="w-80 lg:w-96 border-r border-slate-200">
-                  <GanttTaskCard
-                    task={task}
-                    isSelected={selectedTaskId === task.id}
-                    onSelect={onTaskSelect}
-                    viewMode={viewMode}
-                  />
-                </div>
-
-                {/* Timeline Area */}
-                <div className="flex-1 relative">
-                  <div 
-                    ref={index === 0 ? timelineScrollRef : undefined}
-                    className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
-                    onScroll={handleTimelineScroll}
+          {/* Master timeline scroll container for virtual scroll */}
+          <div 
+            ref={timelineScrollRef}
+            className="absolute top-0 left-0 right-0 overflow-x-auto scrollbar-none md:scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 touch-pan-x"
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'thin'
+            }}
+          >
+            <div className="min-w-max">
+              {visibleTasks.map((task, index) => {
+                const taskIndex = startIndex + index;
+                const top = taskIndex * itemHeight;
+                
+                return (
+                  <div
+                    key={task.id}
+                    className="absolute left-0 right-0 flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150"
+                    style={{
+                      top,
+                      height: itemHeight
+                    }}
                   >
-                    <div className="min-w-max relative">
-                      <GanttTimelineBar
+                    {/* Task Card */}
+                    <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0">
+                      <GanttTaskCard
                         task={task}
-                        timelineStart={timelineStart}
-                        timelineEnd={timelineEnd}
                         isSelected={selectedTaskId === task.id}
                         onSelect={onTaskSelect}
                         viewMode={viewMode}
-                        isDragging={draggedTaskId === task.id}
-                        onDragStart={onDragStart}
-                        onDragEnd={onDragEnd}
                       />
                     </div>
+
+                    {/* Timeline Area - No individual scrolling */}
+                    <div className="flex-1 relative overflow-hidden">
+                      <div className="min-w-max relative">
+                        <GanttTimelineBar
+                          task={task}
+                          timelineStart={timelineStart}
+                          timelineEnd={timelineEnd}
+                          isSelected={selectedTaskId === task.id}
+                          onSelect={onTaskSelect}
+                          viewMode={viewMode}
+                          isDragging={draggedTaskId === task.id}
+                          onDragStart={onDragStart}
+                          onDragEnd={onDragEnd}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
