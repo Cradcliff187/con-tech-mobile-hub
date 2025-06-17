@@ -65,9 +65,13 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      // For public bucket, we can construct the URL directly or use signed URL
-      // Let's try the public URL first, then fall back to signed URL
-      const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${document.file_path}`;
+      // Fix file path - remove "documents/" prefix if it exists since we'll add it in the URL
+      const cleanPath = document.file_path.startsWith('documents/') 
+        ? document.file_path.substring('documents/'.length)
+        : document.file_path;
+
+      // Construct the public URL correctly
+      const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${cleanPath}`;
       console.log('Trying public URL:', publicUrl);
 
       // Test if public URL works
@@ -77,7 +81,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       
       if (!testResponse.ok) {
         console.log('Public URL failed, trying signed URL');
-        // Fall back to signed URL
+        // Fall back to signed URL - use original file path for Supabase client
         const { data, error: urlError } = await supabase.storage
           .from('documents')
           .createSignedUrl(document.file_path, 3600);

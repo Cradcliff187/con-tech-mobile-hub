@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { DocumentPreview } from './DocumentPreview';
 
 interface DocumentRecord {
@@ -40,10 +40,7 @@ export const DocumentPreviewDialog: React.FC<DocumentPreviewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-full h-[80vh] p-0">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Document Preview</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl w-full h-[80vh] p-0" hideCloseButton>
         <div className="h-full overflow-hidden">
           <DocumentPreview
             document={document}

@@ -143,6 +143,8 @@ export const useDocuments = (projectId?: string) => {
       const sanitizedFileName = sanitizeFileName(file.name);
       const timestamp = Date.now();
       const projectPath = targetProjectId || projectId || 'general';
+      
+      // Store the file path WITHOUT the "documents/" prefix since it's added by the bucket
       const filePath = `${projectPath}/${timestamp}_${sanitizedFileName}`;
 
       console.log('Uploading to path:', filePath);
@@ -167,7 +169,7 @@ export const useDocuments = (projectId?: string) => {
         .from('documents')
         .insert({
           name: documentName,
-          file_path: uploadData.path,
+          file_path: uploadData.path, // This will be the clean path without "documents/" prefix
           file_size: file.size,
           file_type: file.type,
           category,
@@ -238,8 +240,13 @@ export const useDocuments = (projectId?: string) => {
   const downloadDocument = useCallback(async (doc: DocumentRecord) => {
     console.log('Downloading document:', doc.name, 'Path:', doc.file_path);
     try {
+      // Fix file path - remove "documents/" prefix if it exists
+      const cleanPath = doc.file_path.startsWith('documents/') 
+        ? doc.file_path.substring('documents/'.length)
+        : doc.file_path;
+
       // Try public URL first
-      const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${doc.file_path}`;
+      const publicUrl = `https://jjmedlilkxmrbacoitio.supabase.co/storage/v1/object/public/documents/${cleanPath}`;
       
       // Test if public URL works
       const testResponse = await fetch(publicUrl, { method: 'HEAD' });
