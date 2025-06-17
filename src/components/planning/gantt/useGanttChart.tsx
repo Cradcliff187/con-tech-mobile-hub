@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -13,7 +12,7 @@ interface UseGanttChartProps {
 
 export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   const { projects } = useProjects();
-  const { updateTask } = useTasks();
+  const { updateTask, refetch: refetchTasks } = useTasks();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [timelineRect, setTimelineRect] = useState<DOMRect | null>(null);
   
@@ -45,13 +44,14 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     handleFilterChange 
   } = useGanttFilters({ projectTasks });
 
-  // Drag and drop functionality with database persistence
+  // Drag and drop functionality with database persistence and refetch
   const dragAndDrop = useDragAndDrop({
     timelineStart,
     timelineEnd,
     viewMode,
     allTasks: projectTasks,
-    updateTask
+    updateTask,
+    refetchTasks
   });
 
   // Update timeline rect on resize or when timeline changes

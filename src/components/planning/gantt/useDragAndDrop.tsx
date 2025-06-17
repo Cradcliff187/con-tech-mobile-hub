@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { getDateFromPosition, getTaskDuration, createDragPreview } from './ganttUtils';
@@ -34,6 +33,7 @@ interface UseDragAndDropProps {
   viewMode: 'days' | 'weeks' | 'months';
   allTasks?: Task[];
   updateTask: (id: string, updates: Partial<Task>) => Promise<{ data?: any; error?: string }>;
+  refetchTasks: () => Promise<void>;
 }
 
 export const useDragAndDrop = ({
@@ -41,7 +41,8 @@ export const useDragAndDrop = ({
   timelineEnd,
   viewMode,
   allTasks = [],
-  updateTask
+  updateTask,
+  refetchTasks
 }: UseDragAndDropProps) => {
   const { toast } = useToast();
   
@@ -245,13 +246,11 @@ export const useDragAndDrop = ({
     
     const updates: Record<string, Partial<Task>> = {};
     
-    // Update the dragged task
     updates[taskId] = {
       start_date: newStartDate.toISOString(),
       due_date: newEndDate.toISOString()
     };
     
-    // Update affected dependent tasks
     impacts.forEach(impact => {
       if (impact.taskId !== taskId && impact.impact !== 'unchanged') {
         const affectedTask = allTasks.find(t => t.id === impact.taskId);
@@ -268,7 +267,6 @@ export const useDragAndDrop = ({
       }
     });
     
-    // Apply local updates immediately for UI responsiveness
     setState(prev => ({
       ...prev,
       localTaskUpdates: {
@@ -277,7 +275,6 @@ export const useDragAndDrop = ({
       }
     }));
     
-    // Persist to database
     try {
       const updatePromises = Object.entries(updates).map(async ([id, taskUpdates]) => {
         const { error } = await updateTask(id, taskUpdates);
@@ -287,22 +284,24 @@ export const useDragAndDrop = ({
       
       await Promise.all(updatePromises);
       
-      // Clear local updates after successful save
+      toast({
+        title: "Tasks Updated",
+        description: `Successfully moved ${Object.keys(updates).length} task(s)`,
+      });
+      
+      // Refresh the main task list with latest data from database
+      await refetchTasks();
+      
+      // Clear local updates after successful save and refresh
       setState(prev => ({ 
         ...prev, 
         localTaskUpdates: {},
         isSaving: false
       }));
       
-      toast({
-        title: "Tasks Updated",
-        description: `Successfully moved ${Object.keys(updates).length} task(s)`,
-      });
-      
     } catch (error) {
       console.error('Failed to save task updates:', error);
       
-      // Rollback local updates on failure
       setState(prev => ({ 
         ...prev, 
         localTaskUpdates: {},
@@ -315,7 +314,7 @@ export const useDragAndDrop = ({
         variant: "destructive"
       });
     }
-  }, [state.draggedTask, allTasks, updateTask, toast]);
+  }, [state.draggedTask, allTasks, updateTask, refetchTasks, toast]);
 
   const resetLocalUpdates = useCallback(() => {
     setState(prev => ({ ...prev, localTaskUpdates: {} }));
@@ -332,12 +331,10 @@ export const useDragAndDrop = ({
     
     const markerIds = new Set<string>();
     
-    // Add dragged task
     if (state.draggedTask) {
       markerIds.add(state.draggedTask.id);
     }
     
-    // Add affected tasks
     state.affectedTasks.forEach(id => markerIds.add(id));
     
     return Array.from(markerIds);
