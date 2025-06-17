@@ -49,7 +49,7 @@ export const EquipmentSelector = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
           {availableEquipment.map((eq) => {
             const isSelected = selectedEquipment.includes(eq.id);
-            const isAvailable = availabilityCheck[eq.id];
+            const isAvailable = Boolean(availabilityCheck[eq.id]);
             const showAvailabilityCheck = isSelected && startDate && endDate;
 
             return (
