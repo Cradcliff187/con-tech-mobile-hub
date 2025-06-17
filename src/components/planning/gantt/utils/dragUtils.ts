@@ -1,8 +1,9 @@
 
 import { Task } from '@/types/database';
 import { getDaysBetween } from './dateUtils';
+import { generateTimelineUnits, getColumnWidth } from './gridUtils';
 
-// New drag-and-drop utility functions
+// Updated drag-and-drop utility functions with grid-based positioning
 export const getDateFromPosition = (
   pixelX: number, 
   timelineWidth: number, 
@@ -10,6 +11,15 @@ export const getDateFromPosition = (
   timelineEnd: Date,
   viewMode: 'days' | 'weeks' | 'months' = 'weeks'
 ): Date => {
+  const columnWidth = getColumnWidth(viewMode);
+  const columnIndex = Math.floor(pixelX / columnWidth);
+  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
+  
+  if (columnIndex >= 0 && columnIndex < timelineUnits.length) {
+    return new Date(timelineUnits[columnIndex].key);
+  }
+  
+  // Fallback to original calculation for edge cases
   const totalDays = getDaysBetween(timelineStart, timelineEnd);
   const dayPosition = (pixelX / timelineWidth) * totalDays;
   const newDate = new Date(timelineStart);
