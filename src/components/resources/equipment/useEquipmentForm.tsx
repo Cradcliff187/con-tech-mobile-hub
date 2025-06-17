@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Equipment } from '@/hooks/useEquipment';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { normalizeSelectValue, prepareSelectDataForDB } from '@/utils/selectHelpers';
+import { normalizeSelectValue, prepareOptionalSelectField } from '@/utils/selectHelpers';
 
 interface UseEquipmentFormProps {
   equipment: Equipment | null;
@@ -72,18 +73,15 @@ export const useEquipmentForm = ({ equipment, open, onSuccess, onOpenChange }: U
         name: name.trim(),
         type: type.trim(),
         status,
-        project_id: projectId,
-        maintenance_due: maintenanceDue,
-        assigned_operator_id: operatorType === 'employee' ? assignedOperatorId : 'none',
-        operator_id: operatorType === 'user' ? operatorId : 'none',
+        project_id: prepareOptionalSelectField(projectId),
+        maintenance_due: maintenanceDue || null,
+        assigned_operator_id: operatorType === 'employee' ? prepareOptionalSelectField(assignedOperatorId) : null,
+        operator_id: operatorType === 'user' ? prepareOptionalSelectField(operatorId) : null,
       };
-
-      // Prepare data for database using standardized helper
-      const dbData = prepareSelectDataForDB(updateData);
 
       const { error } = await supabase
         .from('equipment')
-        .update(dbData)
+        .update(updateData)
         .eq('id', equipment.id);
 
       if (error) {
