@@ -18,6 +18,7 @@ interface StakeholderFormData {
   license_number: string;
   insurance_expiry: string;
   notes: string;
+  status: 'active' | 'inactive' | 'pending' | 'suspended';
 }
 
 interface UseStakeholderFormProps {
@@ -41,7 +42,8 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
     crew_size: '',
     license_number: '',
     insurance_expiry: '',
-    notes: ''
+    notes: '',
+    status: 'active'
   });
   const [loading, setLoading] = useState(false);
   
@@ -73,7 +75,8 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
       crew_size: '',
       license_number: '',
       insurance_expiry: '',
-      notes: ''
+      notes: '',
+      status: 'active'
     });
   };
 
@@ -94,8 +97,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
       address: legacyAddress || undefined, // Keep for backward compatibility
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
       insurance_expiry: formData.insurance_expiry || undefined,
-      specialties: formData.specialties.length > 0 ? formData.specialties : undefined,
-      status: 'active' as const
+      specialties: formData.specialties.length > 0 ? formData.specialties : undefined
     };
 
     const { error } = await createStakeholder(stakeholderData);

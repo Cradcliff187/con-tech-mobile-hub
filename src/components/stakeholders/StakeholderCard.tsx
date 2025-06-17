@@ -11,6 +11,7 @@ import { StakeholderDetail } from './StakeholderDetail';
 import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
 import { useToast } from '@/hooks/use-toast';
 import { useDialogState } from '@/hooks/useDialogState';
+import { StakeholderQuickStatusDropdown } from './StakeholderQuickStatusDropdown';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
@@ -171,9 +172,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
             <Badge className={getTypeColor(stakeholder.stakeholder_type)}>
               {stakeholder.stakeholder_type}
             </Badge>
-            <Badge className={getStatusColor(stakeholder.status)}>
-              {stakeholder.status}
-            </Badge>
+            <StakeholderQuickStatusDropdown stakeholder={stakeholder} />
           </div>
         </CardHeader>
         

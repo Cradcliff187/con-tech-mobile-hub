@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +21,7 @@ interface StakeholderFormData {
   license_number: string;
   insurance_expiry: string;
   notes: string;
+  status: 'active' | 'inactive' | 'pending' | 'suspended';
 }
 
 interface StakeholderFormFieldsProps {
@@ -58,6 +58,26 @@ export const StakeholderFormFields = ({
         </div>
         
         <div className="space-y-2">
+          <Label htmlFor="status">Status *</Label>
+          <Select 
+            value={formData.status} 
+            onValueChange={(value) => onInputChange('status', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
           <Label htmlFor="company_name">Company Name</Label>
           <Input
             id="company_name"
@@ -66,9 +86,7 @@ export const StakeholderFormFields = ({
             placeholder="Enter company name"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+        
         <div className="space-y-2">
           <Label htmlFor="contact_person">Contact Person *</Label>
           <Input
@@ -79,7 +97,9 @@ export const StakeholderFormFields = ({
             required
           />
         </div>
-        
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <EmailInput
@@ -87,9 +107,7 @@ export const StakeholderFormFields = ({
             onChange={(value) => onInputChange('email', value)}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+        
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
           <PhoneInput
@@ -98,19 +116,6 @@ export const StakeholderFormFields = ({
             placeholder="Phone number"
           />
         </div>
-        
-        {formData.stakeholder_type === 'subcontractor' && (
-          <div className="space-y-2">
-            <Label htmlFor="crew_size">Crew Size</Label>
-            <Input
-              id="crew_size"
-              type="number"
-              value={formData.crew_size}
-              onChange={(e) => onInputChange('crew_size', e.target.value)}
-              placeholder="Number of workers"
-            />
-          </div>
-        )}
       </div>
 
       <div className="space-y-2">
