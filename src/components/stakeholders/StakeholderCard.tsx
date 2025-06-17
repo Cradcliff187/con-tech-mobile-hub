@@ -1,4 +1,3 @@
-
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -223,7 +222,9 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
           
           <div className="flex items-center gap-2">
             <Star size={16} className="text-yellow-500" />
-            <span className="text-sm font-medium">{stakeholder.rating.toFixed(1)}</span>
+            <span className="text-sm font-medium">
+              {stakeholder.rating !== null ? stakeholder.rating.toFixed(1) : 'No rating'}
+            </span>
           </div>
           
           {stakeholder.specialties && stakeholder.specialties.length > 0 && (

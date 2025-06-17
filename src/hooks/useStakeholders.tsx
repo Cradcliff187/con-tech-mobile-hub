@@ -23,7 +23,7 @@ export interface Stakeholder {
   insurance_expiry?: string;
   license_number?: string;
   notes?: string;
-  rating: number;
+  rating: number | null;
   created_at: string;
   updated_at: string;
 }
