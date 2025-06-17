@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseAsyncOperationOptions {
@@ -14,6 +14,14 @@ export const useAsyncOperation = (options: UseAsyncOperationOptions = {}) => {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
+  // Memoize the options to prevent unnecessary recreations
+  const memoizedOptions = useMemo(() => options, [
+    options.successMessage,
+    options.errorMessage,
+    options.onSuccess,
+    options.onError
+  ]);
+
   const execute = useCallback(async (operation: () => Promise<any>) => {
     setLoading(true);
     setError(null);
@@ -21,14 +29,14 @@ export const useAsyncOperation = (options: UseAsyncOperationOptions = {}) => {
     try {
       const result = await operation();
       
-      if (options.successMessage) {
+      if (memoizedOptions.successMessage) {
         toast({
           title: "Success",
-          description: options.successMessage,
+          description: memoizedOptions.successMessage,
         });
       }
       
-      options.onSuccess?.();
+      memoizedOptions.onSuccess?.();
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An unexpected error occurred');
@@ -36,16 +44,16 @@ export const useAsyncOperation = (options: UseAsyncOperationOptions = {}) => {
       
       toast({
         title: "Error",
-        description: options.errorMessage || error.message,
+        description: memoizedOptions.errorMessage || error.message,
         variant: "destructive",
       });
       
-      options.onError?.(error);
+      memoizedOptions.onError?.(error);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [options, toast]);
+  }, [memoizedOptions, toast]);
 
   const retry = useCallback(() => {
     setError(null);

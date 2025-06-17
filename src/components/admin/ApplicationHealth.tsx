@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,23 +41,27 @@ export const ApplicationHealth = () => {
     checking: false
   });
 
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-  const { execute: runHealthCheck, loading: healthCheckLoading } = useAsyncOperation({
+
+  // Memoize the async operation options to prevent recreations
+  const healthCheckOptions = useMemo(() => ({
     successMessage: 'Health check completed successfully',
     errorMessage: 'Failed to complete health check'
-  });
+  }), []);
 
-  const { execute: exportReport, loading: exportLoading } = useAsyncOperation({
+  const exportOptions = useMemo(() => ({
     successMessage: 'Health report exported successfully',
     errorMessage: 'Failed to export health report'
-  });
+  }), []);
 
-  // Calculate uptime (simplified - in real app would come from server)
+  const { execute: runHealthCheck, loading: healthCheckLoading } = useAsyncOperation(healthCheckOptions);
+  const { execute: exportReport, loading: exportLoading } = useAsyncOperation(exportOptions);
+
+  // Calculate uptime without side effects
   const calculateUptime = useCallback(() => {
     const startTime = localStorage.getItem('app_start_time');
     if (!startTime) {
-      const now = Date.now();
-      localStorage.setItem('app_start_time', now.toString());
       return '0h 0m';
     }
 
@@ -67,58 +71,78 @@ export const ApplicationHealth = () => {
     return `${hours}h ${minutes}m`;
   }, []);
 
-  // Run health checks
+  // Initialize app start time only once
+  useEffect(() => {
+    const startTime = localStorage.getItem('app_start_time');
+    if (!startTime) {
+      localStorage.setItem('app_start_time', Date.now().toString());
+    }
+  }, []);
+
+  // Run health checks function
   const handleHealthCheck = useCallback(async () => {
+    if (systemStatus.checking) {
+      console.log('Health check already in progress, skipping...');
+      return;
+    }
+
+    console.log('Starting health check...');
     await runHealthCheck(async () => {
       setSystemStatus(prev => ({ ...prev, checking: true }));
       
-      const results = await performHealthChecks();
-      const hasErrors = results.some(r => r.status === 'error');
-      const hasWarnings = results.some(r => r.status === 'warning');
-      
-      let overall: 'healthy' | 'warning' | 'critical' = 'healthy';
-      if (hasErrors) overall = 'critical';
-      else if (hasWarnings) overall = 'warning';
+      try {
+        const results = await performHealthChecks();
+        const hasErrors = results.some(r => r.status === 'error');
+        const hasWarnings = results.some(r => r.status === 'warning');
+        
+        let overall: 'healthy' | 'warning' | 'critical' = 'healthy';
+        if (hasErrors) overall = 'critical';
+        else if (hasWarnings) overall = 'warning';
 
-      setSystemStatus({
-        overall,
-        lastCheck: new Date(),
-        uptime: calculateUptime(),
-        results,
-        checking: false
-      });
+        setSystemStatus({
+          overall,
+          lastCheck: new Date(),
+          uptime: calculateUptime(),
+          results,
+          checking: false
+        });
+        
+        console.log('Health check completed successfully');
+      } catch (error) {
+        console.error('Health check failed:', error);
+        setSystemStatus(prev => ({ ...prev, checking: false }));
+        throw error;
+      }
     });
-  }, [runHealthCheck, calculateUptime]);
-
-  // Auto health check every 5 minutes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      handleHealthCheck();
-    }, 5 * 60 * 1000); // 5 minutes
-
-    // Initial health check
-    handleHealthCheck();
-
-    return () => clearInterval(interval);
-  }, [handleHealthCheck]);
+  }, [runHealthCheck, calculateUptime, systemStatus.checking]);
 
   // Update uptime every minute
   useEffect(() => {
-    const interval = setInterval(() => {
+    const uptimeInterval = setInterval(() => {
       setSystemStatus(prev => ({
         ...prev,
         uptime: calculateUptime()
       }));
     }, 60000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(uptimeInterval);
   }, [calculateUptime]);
 
+  // Manual export handler
   const handleExportReport = useCallback(async () => {
     await exportReport(async () => {
       await exportHealthReport(systemStatus);
     });
   }, [exportReport, systemStatus]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
