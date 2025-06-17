@@ -21,6 +21,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { useDialogState } from '@/hooks/useDialogState';
+import { useSearchParams } from 'react-router-dom';
 
 const TaskManagerContent = memo(() => {
   const [filter, setFilter] = useState('all');
@@ -30,10 +31,12 @@ const TaskManagerContent = memo(() => {
   const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Task | null>(null);
+  const [selectedTaskFromUrl, setSelectedTaskFromUrl] = useState<string | null>(null);
   const { tasks, loading, updateTask, error } = useTasks();
   const { projects } = useProjects();
   const { toast } = useToast();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
+  const [searchParams] = useSearchParams();
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -41,6 +44,12 @@ const TaskManagerContent = memo(() => {
     successMessage: "",
     errorMessage: "Failed to convert tasks. Please try again."
   });
+
+  // Read task parameter from URL
+  useEffect(() => {
+    const taskFromUrl = searchParams.get('task');
+    setSelectedTaskFromUrl(taskFromUrl);
+  }, [searchParams]);
 
   const regularTasks = useMemo(() => 
     tasks.filter(task => (task.task_type || 'regular') !== 'punch_list'),
@@ -56,6 +65,16 @@ const TaskManagerContent = memo(() => {
     }),
     [regularTasks, filter, debouncedSearchTerm]
   );
+
+  // Clear URL task selection if task doesn't exist in current filtered tasks
+  useEffect(() => {
+    if (selectedTaskFromUrl && filteredTasks.length > 0) {
+      const taskExists = filteredTasks.some(task => task.id === selectedTaskFromUrl);
+      if (!taskExists) {
+        setSelectedTaskFromUrl(null);
+      }
+    }
+  }, [selectedTaskFromUrl, filteredTasks]);
 
   const selectedProjectId = useMemo(() => {
     if (filteredTasks.length > 0) {
@@ -236,6 +255,7 @@ const TaskManagerContent = memo(() => {
               tasks={filteredTasks} 
               onEdit={handleEditTask} 
               onViewDetails={handleViewDetails}
+              selectedTaskId={selectedTaskFromUrl}
             />
           </ErrorBoundary>
         </TabsContent>

@@ -7,9 +7,10 @@ interface TaskItemProps {
   task: Task;
   onEdit?: (task: Task) => void;
   onViewDetails?: (task: Task) => void;
+  isSelected?: boolean;
 }
 
-export const TaskItem = ({ task, onEdit, onViewDetails }: TaskItemProps) => {
+export const TaskItem = ({ task, onEdit, onViewDetails, isSelected = false }: TaskItemProps) => {
   const priorityColors = {
     low: 'bg-green-100 text-green-800',
     medium: 'bg-orange-100 text-orange-800',
@@ -41,10 +42,16 @@ export const TaskItem = ({ task, onEdit, onViewDetails }: TaskItemProps) => {
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
 
+  // Conditional styling based on selection and overdue status
+  const baseClasses = "bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow";
+  const selectedClasses = isSelected ? "border-orange-500 bg-orange-50 shadow-md ring-2 ring-orange-200" : "";
+  const overdueClasses = isOverdue && !isSelected ? "border-red-200 bg-red-50" : "";
+  const normalClasses = !isSelected && !isOverdue ? "border-slate-200" : "";
+
+  const containerClasses = `${baseClasses} ${selectedClasses} ${overdueClasses} ${normalClasses}`;
+
   return (
-    <div className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow ${
-      isOverdue ? 'border-red-200 bg-red-50' : 'border-slate-200'
-    }`}>
+    <div className={containerClasses}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="text-lg font-medium text-slate-800 mb-1">
