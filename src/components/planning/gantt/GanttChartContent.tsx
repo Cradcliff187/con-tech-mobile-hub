@@ -5,10 +5,7 @@ import { GanttTaskCard } from './GanttTaskCard';
 import { GanttTimelineBar } from './GanttTimelineBar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { VirtualScrollGantt } from './navigation/VirtualScrollGantt';
-import { GanttMilestoneMarkers } from './markers/GanttMilestoneMarkers';
-import { WeatherDelayMarkers } from './markers/WeatherDelayMarkers';
-import { CriticalPathHighlight } from './markers/CriticalPathHighlight';
-import { ResourceConflictIndicators } from './markers/ResourceConflictIndicators';
+import { GanttOverlayManager } from './overlays/GanttOverlayManager';
 import { useRef, useEffect, useState } from 'react';
 
 interface GanttChartContentProps {
@@ -119,30 +116,14 @@ export const GanttChartContent = ({
             draggedTaskId={draggedTaskId}
           />
 
-          {/* Overlay markers for virtual scroll */}
-          {projectId && (
-            <GanttMilestoneMarkers
-              projectId={projectId}
-              timelineStart={timelineStart}
-              timelineEnd={timelineEnd}
-              viewMode={viewMode}
-            />
-          )}
-          <WeatherDelayMarkers
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            viewMode={viewMode}
-          />
-          <CriticalPathHighlight
+          {/* Unified Overlay Manager for virtual scroll */}
+          <GanttOverlayManager
             tasks={displayTasks}
             timelineStart={timelineStart}
             timelineEnd={timelineEnd}
             viewMode={viewMode}
-          />
-          <ResourceConflictIndicators
-            tasks={displayTasks}
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
+            projectId={projectId}
+            className="pointer-events-none"
           />
         </div>
       </div>
@@ -212,33 +193,13 @@ export const GanttChartContent = ({
           />
         </div>
 
-        {/* Construction-specific overlay markers */}
-        {projectId && (
-          <GanttMilestoneMarkers
-            projectId={projectId}
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            viewMode={viewMode}
-          />
-        )}
-        
-        <WeatherDelayMarkers
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-        />
-        
-        <CriticalPathHighlight
+        {/* Unified Overlay Manager replaces all individual marker components */}
+        <GanttOverlayManager
           tasks={displayTasks}
           timelineStart={timelineStart}
           timelineEnd={timelineEnd}
           viewMode={viewMode}
-        />
-        
-        <ResourceConflictIndicators
-          tasks={displayTasks}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
+          projectId={projectId}
         />
       </div>
     </div>
