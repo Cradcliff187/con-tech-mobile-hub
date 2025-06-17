@@ -97,7 +97,6 @@ export const TimelineView: React.FC = () => {
         filters={filters}
         onTaskNavigate={handleTaskNavigation}
         onTaskModal={handleTaskModal}
-        loading={loading}
       />
 
       {/* Task Details Modal */}
