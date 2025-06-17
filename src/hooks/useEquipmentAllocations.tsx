@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -234,6 +235,74 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     return { conflicts: processedConflicts, error };
   };
 
+  // Bulk allocation creation for multiple equipment
+  const createBulkAllocations = async (allocationsData: Array<{
+    equipment_id: string;
+    project_id: string;
+    task_id?: string;
+    operator_type?: 'employee' | 'user';
+    operator_id?: string;
+    start_date: string;
+    end_date: string;
+    notes?: string;
+  }>) => {
+    if (!user) return { error: 'User not authenticated' };
+
+    const dbDataArray = allocationsData.map(allocationData => ({
+      equipment_id: allocationData.equipment_id,
+      project_id: allocationData.project_id,
+      task_id: prepareOptionalSelectField(allocationData.task_id),
+      operator_type: allocationData.operator_type || null,
+      operator_id: prepareOptionalSelectField(allocationData.operator_id),
+      start_date: allocationData.start_date,
+      end_date: allocationData.end_date,
+      notes: allocationData.notes || null,
+      allocated_by: user.id
+    }));
+
+    const { data, error } = await supabase
+      .from('equipment_allocations')
+      .insert(dbDataArray)
+      .select(`
+        *,
+        project:projects!inner(id, name),
+        equipment:equipment(id, name, type),
+        task:tasks(id, title)
+      `);
+
+    if (!error && data) {
+      const processedAllocations = await Promise.all(
+        data.map(allocation => processAllocationData(allocation))
+      );
+      setAllocations(prev => [...prev, ...processedAllocations]);
+    }
+
+    return { data, error };
+  };
+
+  // Get allocation history for equipment
+  const getAllocationHistory = async (equipmentId: string) => {
+    const { data, error } = await supabase
+      .from('equipment_allocations')
+      .select(`
+        *,
+        project:projects!inner(id, name),
+        equipment:equipment(id, name, type),
+        task:tasks(id, title)
+      `)
+      .eq('equipment_id', equipmentId)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      const processedHistory = await Promise.all(
+        data.map(allocation => processAllocationData(allocation))
+      );
+      return { history: processedHistory, error: null };
+    }
+
+    return { history: [], error };
+  };
+
   useEffect(() => {
     fetchAllocations();
   }, [user, equipmentId]);
@@ -242,10 +311,12 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     allocations,
     loading,
     createAllocation,
+    createBulkAllocations,
     updateAllocation,
     deleteAllocation,
     checkAvailability,
     getConflictingAllocations,
+    getAllocationHistory,
     refetch: fetchAllocations
   };
 };

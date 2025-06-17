@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { EquipmentFormFields } from './equipment/EquipmentFormFields';
 import { AllocationSection } from './equipment/AllocationSection';
+import { AllocationSummary } from './equipment/AllocationSummary';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
+import { useProjects } from '@/hooks/useProjects';
+import { useStakeholders } from '@/hooks/useStakeholders';
+import { useUsers } from '@/hooks/useUsers';
+import { useTasks } from '@/hooks/useTasks';
 import { validateEquipmentForm, validateAllocationForm, type AllocationFormData, type EquipmentFormData } from '@/utils/formValidation';
 import { prepareOptionalSelectField } from '@/utils/selectHelpers';
 
@@ -22,6 +28,10 @@ export const CreateEquipmentDialog = ({
 }: CreateEquipmentDialogProps) => {
   const { toast } = useToast();
   const { createAllocation, getConflictingAllocations } = useEquipmentAllocations();
+  const { projects } = useProjects();
+  const { stakeholders } = useStakeholders();
+  const { users } = useUsers();
+  const { tasks } = useTasks();
   
   const [formData, setFormData] = useState<EquipmentFormData>({
     name: '',
@@ -179,158 +189,200 @@ export const CreateEquipmentDialog = ({
     }
   };
 
+  // Get display names for summary
+  const getProjectName = () => {
+    if (allocationData.projectId === 'none') return undefined;
+    return projects.find(p => p.id === allocationData.projectId)?.name;
+  };
+
+  const getOperatorName = () => {
+    if (allocationData.operatorId === 'none') return undefined;
+    
+    if (allocationData.operatorType === 'employee') {
+      const stakeholder = stakeholders.find(s => s.id === allocationData.operatorId);
+      return stakeholder?.contact_person || stakeholder?.company_name;
+    } else {
+      const user = users.find(u => u.id === allocationData.operatorId);
+      return user?.full_name || user?.email;
+    }
+  };
+
+  const getTaskTitle = () => {
+    if (!allocationData.taskId || allocationData.taskId === 'none') return undefined;
+    return tasks.find(t => t.id === allocationData.taskId)?.title;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Equipment</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <EquipmentFormFields
-            name={formData.name}
-            setName={(name) => {
-              setFormData(prev => ({ ...prev, name }));
-              // Clear name error when user starts typing
-              if (validationErrors.name) {
-                setValidationErrors(prev => {
-                  const { name: nameError, ...rest } = prev;
-                  return rest;
-                });
-              }
-            }}
-            type={formData.type}
-            setType={(type) => {
-              setFormData(prev => ({ ...prev, type }));
-              // Clear type error when user starts typing
-              if (validationErrors.type) {
-                setValidationErrors(prev => {
-                  const { type: typeError, ...rest } = prev;
-                  return rest;
-                });
-              }
-            }}
-            status={formData.status}
-            setStatus={(status) => setFormData(prev => ({ ...prev, status }))}
-            maintenanceDue={formData.maintenance_due}
-            setMaintenanceDue={(maintenance_due) => setFormData(prev => ({ ...prev, maintenance_due }))}
-            errors={validationErrors}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Form Section */}
+          <div className="lg:col-span-2 space-y-6">
+            <EquipmentFormFields
+              name={formData.name}
+              setName={(name) => {
+                setFormData(prev => ({ ...prev, name }));
+                // Clear name error when user starts typing
+                if (validationErrors.name) {
+                  setValidationErrors(prev => {
+                    const { name: nameError, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
+              type={formData.type}
+              setType={(type) => {
+                setFormData(prev => ({ ...prev, type }));
+                // Clear type error when user starts typing
+                if (validationErrors.type) {
+                  setValidationErrors(prev => {
+                    const { type: typeError, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
+              status={formData.status}
+              setStatus={(status) => setFormData(prev => ({ ...prev, status }))}
+              maintenanceDue={formData.maintenance_due}
+              setMaintenanceDue={(maintenance_due) => setFormData(prev => ({ ...prev, maintenance_due }))}
+              errors={validationErrors}
+            />
 
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="allocate-to-project"
-                checked={allocateToProject}
-                onChange={(e) => {
-                  setAllocateToProject(e.target.checked);
-                  if (!e.target.checked) {
-                    // Clear allocation validation errors when unchecking
-                    setValidationErrors(prev => {
-                      const { project, operator, dates, conflicts, ...rest } = prev;
-                      return rest;
-                    });
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="allocate-to-project"
+                  checked={allocateToProject}
+                  onChange={(e) => {
+                    setAllocateToProject(e.target.checked);
+                    if (!e.target.checked) {
+                      // Clear allocation validation errors when unchecking
+                      setValidationErrors(prev => {
+                        const { project, operator, dates, conflicts, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="allocate-to-project" className="text-sm font-medium">
+                  Allocate to project immediately
+                </label>
+              </div>
+
+              {allocateToProject && (
+                <AllocationSection
+                  projectId={allocationData.projectId}
+                  operatorType={allocationData.operatorType}
+                  operatorId={allocationData.operatorId}
+                  taskId={allocationData.taskId}
+                  startDate={allocationData.startDate}
+                  endDate={allocationData.endDate}
+                  notes={allocationData.notes}
+                  onProjectChange={(projectId) => {
+                    setAllocationData(prev => ({ ...prev, projectId }));
+                    // Clear project error when selection changes
+                    if (validationErrors.project) {
+                      setValidationErrors(prev => {
+                        const { project, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  onOperatorTypeChange={handleOperatorTypeChange}
+                  onOperatorChange={(operatorId) => {
+                    setAllocationData(prev => ({ ...prev, operatorId }));
+                    // Clear operator error when selection changes
+                    if (validationErrors.operator) {
+                      setValidationErrors(prev => {
+                        const { operator, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  onTaskChange={(taskId) => 
+                    setAllocationData(prev => ({ ...prev, taskId: taskId || 'none' }))
                   }
-                }}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="allocate-to-project" className="text-sm font-medium">
-                Allocate to project immediately
-              </label>
-            </div>
+                  onStartDateChange={(startDate) => {
+                    setAllocationData(prev => ({ ...prev, startDate }));
+                    // Clear date error when selection changes
+                    if (validationErrors.dates) {
+                      setValidationErrors(prev => {
+                        const { dates, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  onEndDateChange={(endDate) => {
+                    setAllocationData(prev => ({ ...prev, endDate }));
+                    // Clear date error when selection changes
+                    if (validationErrors.dates) {
+                      setValidationErrors(prev => {
+                        const { dates, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  onNotesChange={(notes) => 
+                    setAllocationData(prev => ({ ...prev, notes }))
+                  }
+                  conflicts={conflicts}
+                  showConflicts={conflicts.length > 0}
+                  errors={validationErrors}
+                />
+              )}
 
-            {allocateToProject && (
-              <AllocationSection
-                projectId={allocationData.projectId}
+              {/* Display validation errors */}
+              {Object.keys(validationErrors).length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="text-red-800 font-medium mb-2">Please fix the following errors:</div>
+                  <div className="space-y-1 text-sm text-red-700">
+                    {Object.entries(validationErrors).map(([field, error]) => (
+                      <div key={field}>• {error}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Summary Sidebar */}
+          {allocateToProject && (
+            <div className="lg:col-span-1">
+              <AllocationSummary
+                equipmentName={formData.name || 'New Equipment'}
+                projectName={getProjectName()}
+                operatorName={getOperatorName()}
                 operatorType={allocationData.operatorType}
-                operatorId={allocationData.operatorId}
-                taskId={allocationData.taskId}
                 startDate={allocationData.startDate}
                 endDate={allocationData.endDate}
+                taskTitle={getTaskTitle()}
                 notes={allocationData.notes}
-                onProjectChange={(projectId) => {
-                  setAllocationData(prev => ({ ...prev, projectId }));
-                  // Clear project error when selection changes
-                  if (validationErrors.project) {
-                    setValidationErrors(prev => {
-                      const { project, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                onOperatorTypeChange={handleOperatorTypeChange}
-                onOperatorChange={(operatorId) => {
-                  setAllocationData(prev => ({ ...prev, operatorId }));
-                  // Clear operator error when selection changes
-                  if (validationErrors.operator) {
-                    setValidationErrors(prev => {
-                      const { operator, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                onTaskChange={(taskId) => 
-                  setAllocationData(prev => ({ ...prev, taskId: taskId || 'none' }))
-                }
-                onStartDateChange={(startDate) => {
-                  setAllocationData(prev => ({ ...prev, startDate }));
-                  // Clear date error when selection changes
-                  if (validationErrors.dates) {
-                    setValidationErrors(prev => {
-                      const { dates, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                onEndDateChange={(endDate) => {
-                  setAllocationData(prev => ({ ...prev, endDate }));
-                  // Clear date error when selection changes
-                  if (validationErrors.dates) {
-                    setValidationErrors(prev => {
-                      const { dates, ...rest } = prev;
-                      return rest;
-                    });
-                  }
-                }}
-                onNotesChange={(notes) => 
-                  setAllocationData(prev => ({ ...prev, notes }))
-                }
-                conflicts={conflicts}
-                showConflicts={conflicts.length > 0}
-                errors={validationErrors}
               />
-            )}
+            </div>
+          )}
+        </div>
 
-            {/* Display validation errors */}
-            {Object.keys(validationErrors).length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="text-red-800 font-medium mb-2">Please fix the following errors:</div>
-                <div className="space-y-1 text-sm text-red-700">
-                  {Object.entries(validationErrors).map(([field, error]) => (
-                    <div key={field}>• {error}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-orange-600 hover:bg-orange-700"
-            >
-              {isSubmitting ? 'Creating...' : 'Create Equipment'}
-            </Button>
-          </div>
+        <div className="flex justify-end space-x-3 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            {isSubmitting ? 'Creating...' : 'Create Equipment'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
