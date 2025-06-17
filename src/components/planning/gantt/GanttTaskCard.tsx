@@ -14,6 +14,7 @@ interface GanttTaskCardProps {
   task: Task;
   isSelected?: boolean;
   onSelect?: (taskId: string) => void;
+  viewMode: 'days' | 'weeks' | 'months';
 }
 
 const getPriorityIcon = (priority: string) => {
@@ -24,7 +25,7 @@ const getPriorityIcon = (priority: string) => {
   }
 };
 
-export const GanttTaskCard = ({ task, isSelected = false, onSelect }: GanttTaskCardProps) => {
+export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: GanttTaskCardProps) => {
   const handleClick = () => {
     if (onSelect) {
       onSelect(task.id);
