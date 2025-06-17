@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { useEquipment } from '@/hooks/useEquipment';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Calendar, CalendarDays, Wrench, User, AlertTriangle } from 'lucide-react';
 import type { Project } from '@/types/database';
 
@@ -114,7 +114,6 @@ export const AssignEquipmentToProjectDialog = ({
       return;
     }
 
-    // Check if any selected equipment is not available
     const hasUnavailableEquipment = selectedEquipment.some(id => availabilityCheck[id] === false);
     if (hasUnavailableEquipment) {
       toast({
@@ -129,7 +128,6 @@ export const AssignEquipmentToProjectDialog = ({
 
     try {
       const allocationPromises = selectedEquipment.map(async (equipmentId) => {
-        // Create allocation record
         const allocationResult = await createAllocation({
           equipment_id: equipmentId,
           project_id: project.id,
@@ -138,10 +136,9 @@ export const AssignEquipmentToProjectDialog = ({
         });
 
         if (allocationResult.error) {
-          throw new Error(`Failed to allocate equipment: ${allocationResult.error.message}`);
+          throw new Error(allocationResult.error.message || 'Failed to allocate equipment');
         }
 
-        // Update equipment status and operator if assigned
         const operatorId = operatorAssignments[equipmentId];
         const { error: equipmentError } = await supabase
           .from('equipment')
@@ -152,7 +149,7 @@ export const AssignEquipmentToProjectDialog = ({
           .eq('id', equipmentId);
 
         if (equipmentError) {
-          throw new Error(`Failed to update equipment: ${equipmentError.message}`);
+          throw new Error(equipmentError.message || 'Failed to update equipment');
         }
 
         return allocationResult;
@@ -171,7 +168,7 @@ export const AssignEquipmentToProjectDialog = ({
       console.error('Error allocating equipment:', error);
       toast({
         title: "Error",
-        description: "Failed to allocate equipment to project",
+        description: error instanceof Error ? error.message : "Failed to allocate equipment to project",
         variant: "destructive"
       });
     } finally {
