@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { Calendar, Clock, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
 import { Task } from '@/types/database';
@@ -12,6 +11,8 @@ import { GanttTimelineBar } from './gantt/GanttTimelineBar';
 import { GanttLegend } from './gantt/GanttLegend';
 import { GanttControls } from './gantt/GanttControls';
 import { GanttStats } from './gantt/GanttStats';
+import { GanttDropIndicator } from './gantt/GanttDropIndicator';
+import { useDragAndDrop } from './gantt/useDragAndDrop';
 import { getDaysBetween, getAssigneeName } from './gantt/ganttUtils';
 
 interface GanttChartProps {
@@ -23,6 +24,8 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
   const [timelineStart, setTimelineStart] = useState<Date>(new Date());
   const [timelineEnd, setTimelineEnd] = useState<Date>(new Date());
   const [projectTasks, setProjectTasks] = useState<Task[]>([]);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [timelineRect, setTimelineRect] = useState<DOMRect | null>(null);
   
   // Interactive state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -41,8 +44,11 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
   const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('weeks');
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
 
+  // Drag and drop functionality
+  const dragAndDrop = useDragAndDrop(timelineStart, timelineEnd, viewMode);
+
+  // Filter tasks for the selected project
   useEffect(() => {
-    // Filter tasks for the selected project
     const filtered = projectId && projectId !== 'all' 
       ? tasks.filter(task => task.project_id === projectId)
       : tasks;
@@ -115,6 +121,24 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     setFilteredTasks(filtered);
   }, [projectTasks, searchQuery, filters]);
 
+  // Update timeline rect on resize or when timeline changes
+  useEffect(() => {
+    const updateTimelineRect = () => {
+      if (timelineRef.current) {
+        setTimelineRect(timelineRef.current.getBoundingClientRect());
+      }
+    };
+
+    updateTimelineRect();
+    window.addEventListener('resize', updateTimelineRect);
+    return () => window.removeEventListener('resize', updateTimelineRect);
+  }, [timelineStart, timelineEnd, filteredTasks]);
+
+  // Get updated tasks with local changes
+  const getDisplayTasks = () => {
+    return filteredTasks.map(task => dragAndDrop.getUpdatedTask(task));
+  };
+
   // Handle task selection
   const handleTaskSelect = (taskId: string) => {
     setSelectedTaskId(selectedTaskId === taskId ? null : taskId);
@@ -163,7 +187,8 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     );
   }
 
-  const completedTasks = filteredTasks.filter(t => t.status === 'completed').length;
+  const displayTasks = getDisplayTasks();
+  const completedTasks = displayTasks.filter(t => t.status === 'completed').length;
   const totalDays = getDaysBetween(timelineStart, timelineEnd);
 
   return (
@@ -183,8 +208,21 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
             </div>
             <div className="flex items-center gap-2">
               <Wrench size={16} className="text-purple-600" />
-              <span>{filteredTasks.filter(t => t.task_type === 'punch_list').length} punch list</span>
+              <span>{displayTasks.filter(t => t.task_type === 'punch_list').length} punch list</span>
             </div>
+            {Object.keys(dragAndDrop.localTaskUpdates).length > 0 && (
+              <div className="flex items-center gap-2 text-orange-600">
+                <span className="text-xs bg-orange-100 px-2 py-1 rounded">
+                  {Object.keys(dragAndDrop.localTaskUpdates).length} task(s) rescheduled
+                </span>
+                <button
+                  onClick={dragAndDrop.resetLocalUpdates}
+                  className="text-xs underline hover:no-underline"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -199,22 +237,29 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
         />
 
         {/* Summary Statistics */}
-        <GanttStats tasks={filteredTasks} />
+        <GanttStats tasks={displayTasks} />
 
         {/* Gantt Chart */}
         <Card className="border-slate-200 overflow-hidden">
           <GanttTimelineHeader timelineStart={timelineStart} timelineEnd={timelineEnd} />
 
-          {/* Enhanced Tasks */}
-          <div className="max-h-[600px] overflow-y-auto">
-            {filteredTasks.length === 0 ? (
+          {/* Enhanced Tasks with Drag and Drop */}
+          <div 
+            ref={timelineRef}
+            className={`max-h-[600px] overflow-y-auto ${
+              dragAndDrop.isDragging ? 'timeline-drop-zone' : ''
+            }`}
+            onDragOver={dragAndDrop.handleDragOver}
+            onDrop={dragAndDrop.handleDrop}
+          >
+            {displayTasks.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
                 <Calendar size={32} className="mx-auto mb-2 text-slate-400" />
                 <p>No tasks match your search and filter criteria.</p>
                 <p className="text-sm">Try adjusting your filters or search terms.</p>
               </div>
             ) : (
-              filteredTasks.map((task, index) => (
+              displayTasks.map((task, index) => (
                 <div key={task.id} className={`flex border-b border-slate-200 hover:bg-slate-25 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
                   <GanttTaskCard 
                     task={task} 
@@ -228,6 +273,9 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
                     isSelected={selectedTaskId === task.id}
                     onSelect={handleTaskSelect}
                     viewMode={viewMode}
+                    isDragging={dragAndDrop.isDragging && dragAndDrop.draggedTask?.id === task.id}
+                    onDragStart={dragAndDrop.handleDragStart}
+                    onDragEnd={dragAndDrop.handleDragEnd}
                   />
                 </div>
               ))
@@ -236,6 +284,14 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
         </Card>
 
         <GanttLegend />
+
+        {/* Drop Indicator */}
+        <GanttDropIndicator
+          isVisible={dragAndDrop.isDragging}
+          position={dragAndDrop.dragPosition}
+          previewDate={dragAndDrop.dropPreviewDate}
+          timelineRect={timelineRect}
+        />
       </div>
     </TooltipProvider>
   );

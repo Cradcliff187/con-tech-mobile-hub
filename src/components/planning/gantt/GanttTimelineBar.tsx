@@ -15,6 +15,9 @@ interface GanttTimelineBarProps {
   isSelected?: boolean;
   onSelect?: (taskId: string) => void;
   viewMode?: 'days' | 'weeks' | 'months';
+  isDragging?: boolean;
+  onDragStart?: (e: React.DragEvent, task: Task) => void;
+  onDragEnd?: () => void;
 }
 
 const getStatusIcon = (status: string) => {
@@ -33,14 +36,31 @@ export const GanttTimelineBar = ({
   timelineEnd, 
   isSelected = false, 
   onSelect,
-  viewMode = 'weeks'
+  viewMode = 'weeks',
+  isDragging = false,
+  onDragStart,
+  onDragEnd
 }: GanttTimelineBarProps) => {
   const position = getTaskPosition(task, timelineStart, timelineEnd);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onSelect) {
+    if (onSelect && !isDragging) {
       onSelect(task.id);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.stopPropagation();
+    if (onDragStart) {
+      onDragStart(e, task);
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    if (onDragEnd) {
+      onDragEnd();
     }
   };
 
@@ -50,18 +70,23 @@ export const GanttTimelineBar = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div
+              draggable
               className={`absolute inset-y-0 rounded-lg shadow-sm transition-all group ${
                 onSelect ? 'cursor-pointer' : ''
               } ${
+                isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab hover:shadow-md'
+              } ${
                 isSelected 
                   ? 'ring-2 ring-blue-400 shadow-md' 
-                  : 'hover:shadow-md'
+                  : ''
               } ${getConstructionPhaseColor(task)}`}
               style={{
                 left: `${position.left}%`,
                 width: `${Math.max(3, position.width)}%`
               }}
               onClick={handleClick}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
             >
               {/* Progress overlay */}
               {task.progress && task.progress > 0 && (
@@ -105,6 +130,7 @@ export const GanttTimelineBar = ({
               <div>Status: {task.status}</div>
               <div>Category: {task.category || 'General'}</div>
               {isSelected && <div className="text-blue-400 font-medium">Selected</div>}
+              {isDragging && <div className="text-orange-400 font-medium">Dragging...</div>}
             </div>
           </TooltipContent>
         </Tooltip>

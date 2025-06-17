@@ -1,4 +1,3 @@
-
 import { Task } from '@/types/database';
 
 export const getDaysBetween = (start: Date, end: Date) => {
@@ -16,6 +15,57 @@ export const getTaskPosition = (task: Task, timelineStart: Date, timelineEnd: Da
     left: Math.max(0, (daysFromStart / totalDays) * 100),
     width: Math.min(100, (taskDuration / totalDays) * 100)
   };
+};
+
+// New drag-and-drop utility functions
+export const getDateFromPosition = (
+  pixelX: number, 
+  timelineWidth: number, 
+  timelineStart: Date, 
+  timelineEnd: Date,
+  viewMode: 'days' | 'weeks' | 'months' = 'weeks'
+): Date => {
+  const totalDays = getDaysBetween(timelineStart, timelineEnd);
+  const dayPosition = (pixelX / timelineWidth) * totalDays;
+  const newDate = new Date(timelineStart);
+  newDate.setDate(newDate.getDate() + dayPosition);
+  
+  // Apply snapping based on view mode
+  const snapInterval = getSnapInterval(viewMode);
+  if (snapInterval > 0) {
+    const daysSinceStart = getDaysBetween(timelineStart, newDate);
+    const snappedDays = Math.round(daysSinceStart / snapInterval) * snapInterval;
+    const snappedDate = new Date(timelineStart);
+    snappedDate.setDate(snappedDate.getDate() + snappedDays);
+    return snappedDate;
+  }
+  
+  return newDate;
+};
+
+export const getTaskDuration = (task: Task): number => {
+  const start = new Date(task.start_date || task.created_at);
+  const end = new Date(task.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  return getDaysBetween(start, end);
+};
+
+export const getSnapInterval = (viewMode: 'days' | 'weeks' | 'months'): number => {
+  switch (viewMode) {
+    case 'days': return 0.25; // 6-hour intervals
+    case 'weeks': return 1; // Daily intervals
+    case 'months': return 7; // Weekly intervals
+    default: return 1;
+  }
+};
+
+export const createDragPreview = (task: Task): HTMLElement => {
+  const preview = document.createElement('div');
+  preview.className = 'bg-blue-600 text-white px-3 py-2 rounded shadow-lg text-sm font-medium';
+  preview.style.position = 'absolute';
+  preview.style.top = '-1000px';
+  preview.textContent = task.title;
+  document.body.appendChild(preview);
+  return preview;
 };
 
 export const getStatusColor = (status: string) => {
