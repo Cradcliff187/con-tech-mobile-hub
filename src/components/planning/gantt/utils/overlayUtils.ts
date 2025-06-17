@@ -1,15 +1,13 @@
-
-import { Task } from '@/types/database';
+import { addDays, differenceInDays, format } from 'date-fns';
 
 export interface MarkerData {
   id: string;
-  date: Date;
-  type: 'milestone' | 'weather' | 'conflict' | 'critical';
-  priority: number;
-  content: React.ReactNode;
+  type: 'milestone' | 'weather' | 'conflict' | 'critical' | 'compound';
   position: { x: number; y: number };
+  priority: number;
   color: string;
   icon?: React.ReactNode;
+  content?: React.ReactNode;
   tooltip?: {
     title: string;
     description: string;
@@ -17,321 +15,96 @@ export interface MarkerData {
   };
 }
 
-export interface TimelineBounds {
-  start: Date;
-  end: Date;
-  totalDays: number;
-}
-
-export interface MarkerPosition {
-  left: number;
-  isVisible: boolean;
-  snapPosition?: number;
-  zone: keyof typeof MARKER_ZONES;
-}
-
-// Standardized marker layout zones with consistent positioning
 export const MARKER_ZONES = {
-  BACKGROUND: { zIndex: 10, top: 0, height: '100%' },
-  PRIMARY: { zIndex: 40, top: 0, height: 'auto' },
-  SECONDARY: { zIndex: 30, top: 8, height: 'auto' },
-  TERTIARY: { zIndex: 20, top: 16, height: 'auto' },
-  QUATERNARY: { zIndex: 15, top: 24, height: 'auto' }
-} as const;
-
-// Enhanced timeline bounds normalization
-export const normalizeTimelineBounds = (
-  timelineStart: Date,
-  timelineEnd: Date
-): TimelineBounds => {
-  // Normalize to start of day in UTC to avoid timezone issues
-  const start = new Date(timelineStart);
-  start.setUTCHours(0, 0, 0, 0);
-  
-  const end = new Date(timelineEnd);
-  end.setUTCHours(23, 59, 59, 999);
-  
-  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  
-  return { start, end, totalDays };
+  BACKGROUND: { zIndex: 10 },
+  TERTIARY: { zIndex: 20 },
+  SECONDARY: { zIndex: 30 },
+  PRIMARY: { zIndex: 40 }
 };
 
-// Validate marker dates and handle edge cases
-export const validateMarkerDate = (date: Date): { isValid: boolean; normalizedDate?: Date } => {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    console.warn('Invalid marker date provided:', date);
-    return { isValid: false };
-  }
-  
-  // Normalize to start of day in UTC
-  const normalizedDate = new Date(date);
-  normalizedDate.setUTCHours(12, 0, 0, 0); // Use noon to avoid timezone edge cases
-  
-  return { isValid: true, normalizedDate };
-};
-
-// View mode specific snapping and positioning
-export const getViewModeSnapping = (
-  position: number,
-  viewMode: 'days' | 'weeks' | 'months',
-  totalDays: number
-): number => {
-  switch (viewMode) {
-    case 'days':
-      // Precise daily positioning - no snapping needed
-      return position;
-    case 'weeks':
-      // Snap to week boundaries (7-day intervals)
-      const weekSize = (7 / totalDays) * 100;
-      return Math.round(position / weekSize) * weekSize;
-    case 'months':
-      // Snap to month boundaries (30-day intervals approximately)
-      const monthSize = (30 / totalDays) * 100;
-      return Math.round(position / monthSize) * monthSize;
-    default:
-      return position;
-  }
-};
-
-// **MAIN: Standardized position calculation - Single source of truth**
 export const getMarkerPosition = (
   date: Date,
   timelineStart: Date,
   timelineEnd: Date,
   viewMode: 'days' | 'weeks' | 'months' = 'days'
-): MarkerPosition => {
-  // Step 1: Validate input date
-  const validation = validateMarkerDate(date);
-  if (!validation.isValid || !validation.normalizedDate) {
-    console.warn('Invalid marker date, positioning at start:', date);
-    return {
-      left: 0,
-      isVisible: false,
-      zone: 'TERTIARY'
-    };
+): { left: number; isVisible: boolean } => {
+  const totalDays = differenceInDays(timelineEnd, timelineStart);
+  const dayWidth = 100 / totalDays;
+  const daysFromStart = differenceInDays(date, timelineStart);
+  let left = daysFromStart * dayWidth;
+
+  if (viewMode === 'weeks') {
+    const totalWeeks = totalDays / 7;
+    const weekWidth = 100 / totalWeeks;
+    const weeksFromStart = daysFromStart / 7;
+    left = weeksFromStart * weekWidth;
+  } else if (viewMode === 'months') {
+    const start = new Date(timelineStart.getFullYear(), timelineStart.getMonth(), 1);
+    const end = new Date(timelineEnd.getFullYear(), timelineEnd.getMonth() + 1, 0);
+    const totalMonths = end.getMonth() - start.getMonth() + (12 * (end.getFullYear() - start.getFullYear())) + 1;
+    const monthWidth = 100 / totalMonths;
+    let monthsFromStart = 0;
+    let currentDate = new Date(start);
+    while (currentDate < date) {
+      monthsFromStart++;
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    }
+    left = monthsFromStart * monthWidth;
   }
 
-  // Step 2: Normalize timeline bounds
-  const bounds = normalizeTimelineBounds(timelineStart, timelineEnd);
-  
-  // Step 3: Calculate raw position with mathematical precision
-  const markerTime = validation.normalizedDate.getTime();
-  const startTime = bounds.start.getTime();
-  const endTime = bounds.end.getTime();
-  
-  // Check if marker is within timeline bounds
-  const isVisible = markerTime >= startTime && markerTime <= endTime;
-  
-  // Calculate percentage position with boundary protection
-  let rawPosition: number;
-  if (markerTime < startTime) {
-    rawPosition = -5; // Slightly off-screen left
-  } else if (markerTime > endTime) {
-    rawPosition = 105; // Slightly off-screen right
-  } else {
-    const totalTimeSpan = endTime - startTime;
-    const markerOffset = markerTime - startTime;
-    rawPosition = (markerOffset / totalTimeSpan) * 100;
-  }
-  
-  // Step 4: Apply view mode snapping
-  const snapPosition = getViewModeSnapping(rawPosition, viewMode, bounds.totalDays);
-  
-  // Step 5: Ensure position is within reasonable bounds (0-100%)
-  const finalPosition = Math.max(0, Math.min(100, Math.round(snapPosition * 100) / 100));
-  
-  // Development mode logging
-  if (process.env.NODE_ENV === 'development') {
-    console.debug('Marker position calculation:', {
-      date: validation.normalizedDate.toISOString(),
-      rawPosition,
-      snapPosition,
-      finalPosition,
-      viewMode,
-      isVisible
-    });
-  }
-  
-  return {
-    left: finalPosition,
-    isVisible,
-    snapPosition: rawPosition !== snapPosition ? snapPosition : undefined,
-    zone: 'PRIMARY'
-  };
+  const isVisible = left >= 0 && left <= 100;
+  return { left, isVisible };
 };
 
-// **ENHANCED: Standardized timeline position calculation for backward compatibility**
-export const calculateTimelinePosition = (
-  markerDate: Date,
-  timelineBounds: TimelineBounds
-): number => {
-  const position = getMarkerPosition(
-    markerDate,
-    timelineBounds.start,
-    timelineBounds.end,
-    'days'
-  );
-  return position.left;
-};
-
-// Get marker vertical position based on type and zone
-export const getMarkerVerticalPosition = (
-  type: MarkerData['type'],
-  collisionIndex: number = 0
-): { top: number; zIndex: number; zone: keyof typeof MARKER_ZONES } => {
-  let zone: keyof typeof MARKER_ZONES;
-  
-  // Assign zones based on marker type priority
+export const getMarkerVerticalPosition = (type: string): { top: number; zIndex: number } => {
   switch (type) {
     case 'milestone':
-      zone = 'PRIMARY';
-      break;
+      return { top: 20, zIndex: MARKER_ZONES.PRIMARY.zIndex };
+    case 'weather':
+      return { top: 45, zIndex: MARKER_ZONES.TERTIARY.zIndex };
     case 'conflict':
-      zone = 'SECONDARY';
-      break;
-    case 'weather':
-      zone = 'TERTIARY';
-      break;
-    case 'critical':
-      zone = 'BACKGROUND';
-      break;
+      return { top: 70, zIndex: MARKER_ZONES.SECONDARY.zIndex };
     default:
-      zone = 'QUATERNARY';
-  }
-  
-  const zoneConfig = MARKER_ZONES[zone];
-  
-  return {
-    top: zoneConfig.top + (collisionIndex * 24), // 24px spacing for stacked markers
-    zIndex: zoneConfig.zIndex,
-    zone
-  };
-};
-
-// Collision detection for markers at same position with enhanced tolerance
-export const detectMarkerCollisions = (markers: MarkerData[]): MarkerData[][] => {
-  const positionGroups = new Map<number, MarkerData[]>();
-  const tolerance = 1.5; // 1.5% position tolerance for collision detection
-
-  markers.forEach(marker => {
-    const roundedPosition = Math.round(marker.position.x / tolerance) * tolerance;
-    if (!positionGroups.has(roundedPosition)) {
-      positionGroups.set(roundedPosition, []);
-    }
-    positionGroups.get(roundedPosition)!.push(marker);
-  });
-
-  return Array.from(positionGroups.values()).filter(group => group.length > 1);
-};
-
-// Smart spacing for overlapping markers with priority-based stacking
-export const resolveMarkerCollisions = (markers: MarkerData[]): MarkerData[] => {
-  const collisionGroups = detectMarkerCollisions(markers);
-  const resolvedMarkers = [...markers];
-
-  collisionGroups.forEach(group => {
-    // Sort by priority (higher priority gets better positioning)
-    group.sort((a, b) => b.priority - a.priority);
-    
-    group.forEach((marker, index) => {
-      const markerIndex = resolvedMarkers.findIndex(m => m.id === marker.id);
-      if (markerIndex !== -1) {
-        const verticalPos = getMarkerVerticalPosition(marker.type, index);
-        
-        resolvedMarkers[markerIndex] = {
-          ...marker,
-          position: {
-            ...marker.position,
-            y: verticalPos.top
-          }
-        };
-      }
-    });
-  });
-
-  return resolvedMarkers;
-};
-
-// Get marker priority based on type with enhanced priority system
-export const getMarkerPriority = (type: MarkerData['type']): number => {
-  switch (type) {
-    case 'milestone': return 100;
-    case 'conflict': return 80;
-    case 'weather': return 60;
-    case 'critical': return 40;
-    default: return 0;
+      return { top: 50, zIndex: 1 };
   }
 };
 
-// Get consistent marker colors with enhanced color system
-export const getMarkerColor = (type: MarkerData['type'], severity?: string): string => {
+export const getMarkerColor = (type: string, severity: string = 'medium'): string => {
   switch (type) {
-    case 'milestone': return 'bg-blue-500 border-blue-600';
-    case 'conflict': 
-      return severity === 'high' ? 'bg-red-500 border-red-600' :
-             severity === 'medium' ? 'bg-orange-500 border-orange-600' :
-             'bg-yellow-500 border-yellow-600';
+    case 'milestone':
+      return 'bg-blue-500';
     case 'weather':
-      return severity === 'high' ? 'bg-red-500 border-red-600' :
-             severity === 'moderate' ? 'bg-orange-500 border-orange-600' :
-             'bg-yellow-500 border-yellow-600';
-    case 'critical': return 'bg-red-200 border-red-400';
-    default: return 'bg-gray-500 border-gray-600';
+      if (severity === 'high') return 'bg-red-500';
+      if (severity === 'moderate') return 'bg-orange-500';
+      return 'bg-blue-500';
+    case 'conflict':
+      if (severity === 'high') return 'bg-red-600';
+      if (severity === 'medium') return 'bg-orange-600';
+      return 'bg-yellow-600';
+    default:
+      return 'bg-gray-500';
   }
 };
 
-// Check if marker is visible in current viewport with enhanced visibility logic
-export const isMarkerVisible = (
-  markerPosition: number,
-  viewportStart: number = 0,
-  viewportEnd: number = 100,
-  buffer: number = 5
-): boolean => {
-  return markerPosition >= (viewportStart - buffer) && markerPosition <= (viewportEnd + buffer);
+export const isMarkerVisible = (positionX: number, minVisible: number = 0, maxVisible: number = 100): boolean => {
+  return positionX >= minVisible && positionX <= maxVisible;
 };
 
-// Performance optimization: batch marker updates with enhanced positioning
 export const batchMarkerUpdates = (
   markers: MarkerData[],
   timelineStart: Date,
   timelineEnd: Date,
-  viewMode: 'days' | 'weeks' | 'months' = 'days'
+  viewMode: 'days' | 'weeks' | 'months'
 ): MarkerData[] => {
   return markers.map(marker => {
-    const position = getMarkerPosition(marker.date, timelineStart, timelineEnd, viewMode);
-    const verticalPos = getMarkerVerticalPosition(marker.type);
-    
+    const { left, isVisible } = getMarkerPosition(new Date(), timelineStart, timelineEnd, viewMode);
     return {
       ...marker,
       position: {
-        x: position.left,
-        y: verticalPos.top
+        x: left,
+        y: getMarkerVerticalPosition(marker.type).top
       },
-      priority: getMarkerPriority(marker.type)
+      isVisible
     };
   });
-};
-
-// Development helper: Create position debugging info
-export const createPositionDebugInfo = (
-  date: Date,
-  timelineStart: Date,
-  timelineEnd: Date,
-  viewMode: 'days' | 'weeks' | 'months'
-) => {
-  if (process.env.NODE_ENV !== 'development') return null;
-  
-  const position = getMarkerPosition(date, timelineStart, timelineEnd, viewMode);
-  const bounds = normalizeTimelineBounds(timelineStart, timelineEnd);
-  
-  return {
-    inputDate: date.toISOString(),
-    normalizedBounds: {
-      start: bounds.start.toISOString(),
-      end: bounds.end.toISOString(),
-      totalDays: bounds.totalDays
-    },
-    calculatedPosition: position,
-    viewMode
-  };
 };

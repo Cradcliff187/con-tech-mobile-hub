@@ -189,7 +189,7 @@ const createCompoundMarker = (group: CollisionGroup): MarkerData => {
   return {
     ...primaryMarker,
     id: `compound-${group.id}`,
-    type: 'compound' as any,
+    type: 'compound',
     content: null,
     tooltip: {
       title: `${group.markers.length} items`,

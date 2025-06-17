@@ -59,22 +59,22 @@ export const CollisionResolver: React.FC<CollisionResolverProps> = ({
     <div className="absolute inset-0 pointer-events-none">
       {/* Resolved individual markers */}
       {resolvedMarkers.map(marker => {
-        if (marker.type === 'compound') {
-          // Find original markers for this compound marker
-          const compoundGroup = collisionGroups.find(group => 
-            group.strategy === 'compound' && group.markers.length > 1
+        // Check if this is a compound marker by finding the collision group
+        const compoundGroup = collisionGroups.find(group => 
+          group.strategy === 'compound' && 
+          group.markers.length > 1 &&
+          group.markers.some(m => m.id === marker.id)
+        );
+        
+        if (compoundGroup && marker.type === 'compound') {
+          return (
+            <CompoundMarker
+              key={marker.id}
+              markers={compoundGroup.markers}
+              position={marker.position}
+              isMobile={isMobile}
+            />
           );
-          
-          if (compoundGroup) {
-            return (
-              <CompoundMarker
-                key={marker.id}
-                markers={compoundGroup.markers}
-                position={marker.position}
-                isMobile={isMobile}
-              />
-            );
-          }
         }
 
         return (
