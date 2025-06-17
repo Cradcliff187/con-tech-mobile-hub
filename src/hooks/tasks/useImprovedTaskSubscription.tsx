@@ -67,7 +67,7 @@ export const useImprovedTaskSubscription = ({
           task.id === updatedTask.id ? updatedTask : task
         ));
       } else if (payload.eventType === 'DELETE' && payload.old) {
-        onTasksUpdate(prev => prev.filter(task => task.id !== payload.old.id));
+        onTasksUpdate(prev => prev.filter(task => task.id !== (payload.old as any).id));
       }
     };
 
