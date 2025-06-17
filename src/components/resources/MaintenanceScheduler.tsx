@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, AlertTriangle, CheckCircle, Clock, Wrench } from 'lucide-react';
 import { useEquipment } from '@/hooks/useEquipment';
+import { useDialogState } from '@/hooks/useDialogState';
+import { MaintenanceTaskDetailsDialog } from './MaintenanceTaskDetailsDialog';
 
 interface MaintenanceTask {
   id: string;
@@ -22,7 +23,9 @@ interface MaintenanceTask {
 export const MaintenanceScheduler = () => {
   const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<MaintenanceTask | null>(null);
   const { equipment, loading: equipmentLoading } = useEquipment();
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
 
   useEffect(() => {
     if (!equipmentLoading) {
@@ -98,6 +101,18 @@ export const MaintenanceScheduler = () => {
 
     setMaintenanceTasks(tasks);
     setLoading(false);
+  };
+
+  const handleViewDetails = (task: MaintenanceTask) => {
+    setSelectedTask(task);
+    openDialog('details');
+  };
+
+  const handleDetailsClose = (open: boolean) => {
+    if (!open) {
+      closeDialog();
+      setSelectedTask(null);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -244,7 +259,11 @@ export const MaintenanceScheduler = () => {
                       <Badge className={getStatusColor(task.status)}>
                         {task.status.replace('-', ' ')}
                       </Badge>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(task)}
+                      >
                         View Details
                       </Button>
                     </div>
@@ -255,6 +274,12 @@ export const MaintenanceScheduler = () => {
           )}
         </CardContent>
       </Card>
+
+      <MaintenanceTaskDetailsDialog
+        open={isDialogOpen('details')}
+        onOpenChange={handleDetailsClose}
+        task={selectedTask}
+      />
     </div>
   );
 };
