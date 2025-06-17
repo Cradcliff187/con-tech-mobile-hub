@@ -209,6 +209,13 @@ export const GanttTimelineBar = ({
           </div>
         </TooltipContent>
       </Tooltip>
+
+      {/* Debug info - remove after verification */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute -top-6 left-0 text-xs bg-yellow-200 px-1 rounded">
+          Col: {gridPosition.startColumnIndex} | Span: {gridPosition.columnSpan}
+        </div>
+      )}
     </div>
   );
 };
