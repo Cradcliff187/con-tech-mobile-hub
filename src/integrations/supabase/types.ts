@@ -175,6 +175,54 @@ export type Database = {
           },
         ]
       }
+      equipment_allocations: {
+        Row: {
+          allocated_by: string | null
+          created_at: string
+          end_date: string
+          equipment_id: string
+          id: string
+          project_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          allocated_by?: string | null
+          created_at?: string
+          end_date: string
+          equipment_id: string
+          id?: string
+          project_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          allocated_by?: string | null
+          created_at?: string
+          end_date?: string
+          equipment_id?: string
+          id?: string
+          project_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_allocations_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1112,6 +1160,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_equipment_availability: {
+        Args: {
+          p_equipment_id: string
+          p_start_date: string
+          p_end_date: string
+          p_exclude_allocation_id?: string
+        }
+        Returns: boolean
+      }
       check_resource_conflicts: {
         Args: { p_user_id: string; p_date: string; p_hours?: number }
         Returns: {

@@ -1,160 +1,234 @@
 
-import { AlertTriangle, CheckCircle, Clock, Wrench, Edit, Trash } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EquipmentAllocationTimeline } from './EquipmentAllocationTimeline';
+import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { Equipment } from '@/hooks/useEquipment';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Calendar, 
+  Edit, 
+  MapPin, 
+  MoreVertical, 
+  Settings, 
+  Trash2, 
+  User, 
+  Wrench,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
 interface EquipmentStatusCardProps {
   equipment: Equipment;
   onEdit: (equipment: Equipment) => void;
-  onDelete: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
   onStatusUpdate: (id: string, status: string) => void;
   deletingId: string | null;
 }
 
-export const EquipmentStatusCard = ({ 
-  equipment, 
-  onEdit, 
-  onDelete, 
-  onStatusUpdate, 
-  deletingId 
+export const EquipmentStatusCard = ({
+  equipment,
+  onEdit,
+  onDelete,
+  onStatusUpdate,
+  deletingId
 }: EquipmentStatusCardProps) => {
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'in-use':
-        return <CheckCircle size={16} className="text-green-500" />;
-      case 'maintenance':
-        return <Wrench size={16} className="text-orange-500" />;
-      case 'available':
-        return <Clock size={16} className="text-blue-500" />;
-      default:
-        return <AlertTriangle size={16} className="text-slate-500" />;
-    }
-  };
+  const [showActions, setShowActions] = useState(false);
+  const [showAllocations, setShowAllocations] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { toast } = useToast();
+  
+  const { allocations, loading: allocationsLoading, deleteAllocation } = useEquipmentAllocations(equipment.id);
+
+  const isDeleting = deletingId === equipment.id;
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'in-use':
-        return 'bg-green-100 text-green-800';
-      case 'maintenance':
-        return 'bg-orange-100 text-orange-800';
-      case 'available':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-slate-100 text-slate-800';
+      case 'available': return 'bg-green-100 text-green-700';
+      case 'in-use': return 'bg-blue-100 text-blue-700';
+      case 'maintenance': return 'bg-orange-100 text-orange-700';
+      case 'out-of-service': return 'bg-red-100 text-red-700';
+      default: return 'bg-slate-100 text-slate-600';
     }
   };
 
-  const getOperatorDisplay = (item: Equipment) => {
-    if (item.assigned_operator) {
-      return {
-        name: item.assigned_operator.contact_person || item.assigned_operator.company_name || 'Unknown Employee',
-        type: 'Employee'
-      };
-    } else if (item.operator) {
-      return {
-        name: item.operator.full_name || 'Unknown User',
-        type: 'Internal User'
-      };
+  const handleStatusChange = async (newStatus: string) => {
+    setUpdatingStatus(true);
+    try {
+      await onStatusUpdate(equipment.id, newStatus);
+    } finally {
+      setUpdatingStatus(false);
     }
-    return null;
   };
 
-  const operatorInfo = getOperatorDisplay(equipment);
+  const handleRemoveAllocation = async (allocationId: string) => {
+    try {
+      const { error } = await deleteAllocation(allocationId);
+      if (error) throw error;
+
+      // If this was the only allocation, update equipment status to available
+      const remainingAllocations = allocations.filter(a => a.id !== allocationId);
+      if (remainingAllocations.length === 0 && equipment.status === 'in-use') {
+        await handleStatusChange('available');
+      }
+
+      toast({
+        title: "Success",
+        description: "Equipment allocation removed"
+      });
+    } catch (error) {
+      console.error('Error removing allocation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove allocation",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h4 className="text-lg font-medium text-slate-800 mb-1">
-            {equipment.name}
-          </h4>
-          <p className="text-sm text-slate-600 mb-2">
-            Type: {equipment.type || 'Unknown'}
-          </p>
-          <p className="text-sm text-slate-600 mb-2">
-            Project: {equipment.project?.name || 'Unassigned'}
-          </p>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <span>Operator:</span>
-            {operatorInfo ? (
-              <div className="flex items-center gap-2">
-                <span>{operatorInfo.name}</span>
-                <Badge variant="outline" className="text-xs">
-                  {operatorInfo.type}
-                </Badge>
+    <Card className="p-6 hover:shadow-md transition-shadow">
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <h3 className="font-semibold text-lg">{equipment.name}</h3>
+              <Badge className={getStatusColor(equipment.status)}>
+                {equipment.status}
+              </Badge>
+            </div>
+            <p className="text-slate-600">{equipment.type}</p>
+          </div>
+
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowActions(!showActions)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <MoreVertical size={16} />
+              )}
+            </Button>
+
+            {showActions && (
+              <div className="absolute right-0 top-8 bg-white border rounded-lg shadow-lg p-1 z-10 min-w-[120px]">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onEdit(equipment);
+                    setShowActions(false);
+                  }}
+                >
+                  <Edit size={14} className="mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-red-600 hover:text-red-700"
+                  onClick={() => {
+                    onDelete(equipment.id);
+                    setShowActions(false);
+                  }}
+                >
+                  <Trash2 size={14} className="mr-2" />
+                  Delete
+                </Button>
               </div>
-            ) : (
-              <span>Unassigned</span>
             )}
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {getStatusIcon(equipment.status)}
-          <select
+
+        {/* Details Grid */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          {equipment.project && (
+            <div className="flex items-center gap-2">
+              <MapPin size={14} className="text-slate-400" />
+              <span>Project: {equipment.project.name}</span>
+            </div>
+          )}
+
+          {(equipment.operator || equipment.assigned_operator) && (
+            <div className="flex items-center gap-2">
+              <User size={14} className="text-slate-400" />
+              <span>
+                Operator: {equipment.operator?.full_name || equipment.assigned_operator?.contact_person || 'Assigned'}
+              </span>
+            </div>
+          )}
+
+          {equipment.maintenance_due && (
+            <div className="flex items-center gap-2">
+              <Settings size={14} className="text-slate-400" />
+              <span>
+                Maintenance Due: {new Date(equipment.maintenance_due).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Wrench size={14} className="text-slate-400" />
+            <span>Utilization: {equipment.utilization_rate}%</span>
+          </div>
+        </div>
+
+        {/* Status Update */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Status:</span>
+          <Select
             value={equipment.status}
-            onChange={(e) => onStatusUpdate(equipment.id, e.target.value)}
-            className={`px-2 py-1 rounded-full text-xs font-medium border-0 ${getStatusColor(equipment.status)}`}
+            onValueChange={handleStatusChange}
+            disabled={updatingStatus}
           >
-            <option value="available">Available</option>
-            <option value="in-use">In Use</option>
-            <option value="maintenance">Maintenance</option>
-            <option value="out-of-service">Out of Service</option>
-          </select>
-          
-          <div className="flex gap-1 ml-2">
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="in-use">In Use</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
+              <SelectItem value="out-of-service">Out of Service</SelectItem>
+            </SelectContent>
+          </Select>
+          {updatingStatus && <LoadingSpinner size="sm" />}
+        </div>
+
+        {/* Allocations Timeline */}
+        {allocations.length > 0 && (
+          <div className="border-t pt-4">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => onEdit(equipment)}
-              title="Edit equipment"
+              onClick={() => setShowAllocations(!showAllocations)}
+              className="flex items-center gap-2 mb-3"
             >
-              <Edit size={14} />
+              <Calendar size={14} />
+              <span>Allocations ({allocations.length})</span>
+              {showAllocations ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-              onClick={() => onDelete(equipment.id, equipment.name)}
-              disabled={deletingId === equipment.id}
-              title="Delete equipment"
-            >
-              {deletingId === equipment.id ? (
-                <div className="animate-spin rounded-full h-3 w-3 border-b border-red-600"></div>
-              ) : (
-                <Trash size={14} />
-              )}
-            </Button>
+
+            {showAllocations && (
+              <EquipmentAllocationTimeline
+                allocations={allocations}
+                onRemoveAllocation={handleRemoveAllocation}
+                isLoading={allocationsLoading}
+              />
+            )}
           </div>
-        </div>
+        )}
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-600">Utilization</span>
-            <span className="font-medium text-slate-800">{equipment.utilization_rate || 0}%</span>
-          </div>
-          <div className="w-full bg-slate-200 rounded-full h-2">
-            <div 
-              className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-              style={{ width: `${Math.min(equipment.utilization_rate || 0, 100)}%` }}
-            />
-          </div>
-        </div>
-        
-        <div>
-          <p className="text-sm text-slate-600 mb-1">Next Maintenance</p>
-          <p className="text-sm font-medium text-slate-800">
-            {equipment.maintenance_due 
-              ? new Date(equipment.maintenance_due).toLocaleDateString()
-              : 'Not scheduled'
-            }
-          </p>
-        </div>
-      </div>
-    </div>
+    </Card>
   );
 };

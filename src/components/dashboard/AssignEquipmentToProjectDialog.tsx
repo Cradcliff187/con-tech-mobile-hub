@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useEquipment } from '@/hooks/useEquipment';
+import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Calendar, CalendarDays, Wrench, User } from 'lucide-react';
+import { Calendar, CalendarDays, Wrench, User, AlertTriangle } from 'lucide-react';
 import type { Project } from '@/types/database';
 
 interface AssignEquipmentToProjectDialogProps {
@@ -29,6 +29,7 @@ export const AssignEquipmentToProjectDialog = ({
   onSuccess
 }: AssignEquipmentToProjectDialogProps) => {
   const { equipment, loading: equipmentLoading } = useEquipment();
+  const { createAllocation, checkAvailability } = useEquipmentAllocations();
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
   
@@ -36,6 +37,7 @@ export const AssignEquipmentToProjectDialog = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [operatorAssignments, setOperatorAssignments] = useState<Record<string, string>>({});
+  const [availabilityCheck, setAvailabilityCheck] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableEquipment = equipment.filter(eq => eq.status === 'available');
@@ -49,8 +51,29 @@ export const AssignEquipmentToProjectDialog = ({
       setStartDate('');
       setEndDate('');
       setOperatorAssignments({});
+      setAvailabilityCheck({});
     }
   }, [open]);
+
+  useEffect(() => {
+    const checkEquipmentAvailability = async () => {
+      if (!startDate || !endDate || selectedEquipment.length === 0) {
+        setAvailabilityCheck({});
+        return;
+      }
+
+      const checks: Record<string, boolean> = {};
+      
+      for (const equipmentId of selectedEquipment) {
+        const { isAvailable } = await checkAvailability(equipmentId, startDate, endDate);
+        checks[equipmentId] = isAvailable || false;
+      }
+      
+      setAvailabilityCheck(checks);
+    };
+
+    checkEquipmentAvailability();
+  }, [selectedEquipment, startDate, endDate, checkAvailability]);
 
   const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
     if (checked) {
@@ -82,40 +105,73 @@ export const AssignEquipmentToProjectDialog = ({
       return;
     }
 
+    if (!startDate || !endDate) {
+      toast({
+        title: "Error",
+        description: "Please select start and end dates",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if any selected equipment is not available
+    const hasUnavailableEquipment = selectedEquipment.some(id => availabilityCheck[id] === false);
+    if (hasUnavailableEquipment) {
+      toast({
+        title: "Error",
+        description: "Some selected equipment is not available for the selected dates",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const updates = selectedEquipment.map(equipmentId => {
+      const allocationPromises = selectedEquipment.map(async (equipmentId) => {
+        // Create allocation record
+        const allocationResult = await createAllocation({
+          equipment_id: equipmentId,
+          project_id: project.id,
+          start_date: startDate,
+          end_date: endDate
+        });
+
+        if (allocationResult.error) {
+          throw new Error(`Failed to allocate equipment: ${allocationResult.error.message}`);
+        }
+
+        // Update equipment status and operator if assigned
         const operatorId = operatorAssignments[equipmentId];
-        return supabase
+        const { error: equipmentError } = await supabase
           .from('equipment')
           .update({
-            project_id: project.id,
             status: 'in-use',
             assigned_operator_id: operatorId || null
           })
           .eq('id', equipmentId);
+
+        if (equipmentError) {
+          throw new Error(`Failed to update equipment: ${equipmentError.message}`);
+        }
+
+        return allocationResult;
       });
 
-      const results = await Promise.all(updates);
-      
-      const hasErrors = results.some(result => result.error);
-      if (hasErrors) {
-        throw new Error('Failed to assign some equipment');
-      }
+      await Promise.all(allocationPromises);
 
       toast({
         title: "Success",
-        description: `Successfully assigned ${selectedEquipment.length} equipment item(s) to ${project.name}`
+        description: `Successfully allocated ${selectedEquipment.length} equipment item(s) to ${project.name}`
       });
 
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error assigning equipment:', error);
+      console.error('Error allocating equipment:', error);
       toast({
         title: "Error",
-        description: "Failed to assign equipment to project",
+        description: "Failed to allocate equipment to project",
         variant: "destructive"
       });
     } finally {
@@ -127,7 +183,7 @@ export const AssignEquipmentToProjectDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Assign Equipment to {project.name}</DialogTitle>
+          <DialogTitle>Allocate Equipment to {project.name}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -136,25 +192,29 @@ export const AssignEquipmentToProjectDialog = ({
             <div className="space-y-2">
               <Label htmlFor="start-date" className="flex items-center gap-2">
                 <Calendar size={16} />
-                Start Date
+                Allocation Start Date *
               </Label>
               <Input
                 id="start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                required
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="end-date" className="flex items-center gap-2">
                 <CalendarDays size={16} />
-                End Date
+                Allocation End Date *
               </Label>
               <Input
                 id="end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || new Date().toISOString().split('T')[0]}
+                required
               />
             </div>
           </div>
@@ -167,55 +227,77 @@ export const AssignEquipmentToProjectDialog = ({
             ) : availableEquipment.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
                 <Wrench size={48} className="mx-auto mb-4 text-slate-300" />
-                <p>No available equipment to assign</p>
+                <p>No available equipment to allocate</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                {availableEquipment.map((eq) => (
-                  <Card key={eq.id} className="p-4">
-                    <CardContent className="p-0 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Checkbox
-                            checked={selectedEquipment.includes(eq.id)}
-                            onCheckedChange={(checked) => 
-                              handleEquipmentToggle(eq.id, checked as boolean)
-                            }
-                          />
-                          <div>
-                            <h3 className="font-medium">{eq.name}</h3>
-                            <p className="text-sm text-slate-600">{eq.type}</p>
+                {availableEquipment.map((eq) => {
+                  const isSelected = selectedEquipment.includes(eq.id);
+                  const isAvailable = availabilityCheck[eq.id];
+                  const showAvailabilityCheck = isSelected && startDate && endDate;
+
+                  return (
+                    <Card key={eq.id} className="p-4">
+                      <CardContent className="p-0 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => 
+                                handleEquipmentToggle(eq.id, checked as boolean)
+                              }
+                            />
+                            <div>
+                              <h3 className="font-medium">{eq.name}</h3>
+                              <p className="text-sm text-slate-600">{eq.type}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant="secondary">{eq.status}</Badge>
+                            {showAvailabilityCheck && (
+                              <div className="flex items-center gap-1">
+                                {isAvailable === false ? (
+                                  <>
+                                    <AlertTriangle size={14} className="text-red-500" />
+                                    <span className="text-xs text-red-600">Not Available</span>
+                                  </>
+                                ) : isAvailable === true ? (
+                                  <span className="text-xs text-green-600">Available</span>
+                                ) : (
+                                  <span className="text-xs text-slate-500">Checking...</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <Badge variant="secondary">{eq.status}</Badge>
-                      </div>
 
-                      {selectedEquipment.includes(eq.id) && (
-                        <div className="space-y-2 pl-6">
-                          <Label className="text-sm flex items-center gap-2">
-                            <User size={14} />
-                            Assign Operator (Optional)
-                          </Label>
-                          <Select
-                            value={operatorAssignments[eq.id] || ''}
-                            onValueChange={(value) => handleOperatorAssignment(eq.id, value)}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select operator..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableOperators.map((operator) => (
-                                <SelectItem key={operator.id} value={operator.id}>
-                                  {operator.contact_person || operator.company_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                        {isSelected && (
+                          <div className="space-y-2 pl-6">
+                            <Label className="text-sm flex items-center gap-2">
+                              <User size={14} />
+                              Assign Operator (Optional)
+                            </Label>
+                            <Select
+                              value={operatorAssignments[eq.id] || ''}
+                              onValueChange={(value) => handleOperatorAssignment(eq.id, value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select operator..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableOperators.map((operator) => (
+                                  <SelectItem key={operator.id} value={operator.id}>
+                                    {operator.contact_person || operator.company_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -231,10 +313,16 @@ export const AssignEquipmentToProjectDialog = ({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || selectedEquipment.length === 0}
+              disabled={
+                isSubmitting || 
+                selectedEquipment.length === 0 || 
+                !startDate || 
+                !endDate ||
+                selectedEquipment.some(id => availabilityCheck[id] === false)
+              }
               className="bg-orange-600 hover:bg-orange-700"
             >
-              {isSubmitting ? 'Assigning...' : `Assign ${selectedEquipment.length} Equipment`}
+              {isSubmitting ? 'Allocating...' : `Allocate ${selectedEquipment.length} Equipment`}
             </Button>
           </div>
         </div>
