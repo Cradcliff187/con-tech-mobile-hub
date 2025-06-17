@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Loader2, Download, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,15 +9,21 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface DocumentRecord {
   id: string;
+  project_id?: string;
   name: string;
   file_path: string;
   file_size?: number;
   file_type?: string;
   category?: string;
+  uploaded_by?: string;
   created_at: string;
+  updated_at: string;
   uploader?: {
     full_name?: string;
     email: string;
+  };
+  project?: {
+    name: string;
   };
 }
 
@@ -205,7 +212,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         </div>
         
         <div className="flex items-center gap-2 ml-4">
-          {fileTypeInfo.category === 'image' && fileTypeInfo.canPreview && (
+          {fileTypeInfo.category === private && fileTypeInfo.canPreview && (
             <>
               <Button
                 variant="ghost"

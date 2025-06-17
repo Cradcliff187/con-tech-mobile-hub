@@ -5,15 +5,21 @@ import { DocumentPreview } from './DocumentPreview';
 
 interface DocumentRecord {
   id: string;
+  project_id?: string;
   name: string;
   file_path: string;
   file_size?: number;
   file_type?: string;
   category?: string;
+  uploaded_by?: string;
   created_at: string;
+  updated_at: string;
   uploader?: {
     full_name?: string;
     email: string;
+  };
+  project?: {
+    name: string;
   };
 }
 
