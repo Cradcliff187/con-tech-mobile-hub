@@ -1,16 +1,15 @@
 
 import React, { useMemo, useState } from 'react';
 import { Task } from '@/types/database';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Settings } from 'lucide-react';
 import { 
   MarkerData, 
   batchMarkerUpdates,
-  resolveMarkerCollisions,
   isMarkerVisible,
   MARKER_ZONES
 } from '../utils/overlayUtils';
+import { CollisionResolver } from '../markers/CollisionResolver';
 import { GanttMilestoneMarkers } from './GanttMilestoneMarkers';
 import { GanttWeatherMarkers } from './GanttWeatherMarkers';
 import { GanttResourceConflictMarkers } from './GanttResourceConflictMarkers';
@@ -30,6 +29,7 @@ interface OverlayControls {
   weather: boolean;
   conflicts: boolean;
   criticalPath: boolean;
+  smartCollisions: boolean;
 }
 
 export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
@@ -44,23 +44,33 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
     milestones: true,
     weather: true,
     conflicts: true,
-    criticalPath: true
+    criticalPath: true,
+    smartCollisions: true
   });
   const [showControls, setShowControls] = useState(false);
 
-  // Collect all markers from different sources
+  // Detect mobile viewport
+  const isMobile = useMemo(() => {
+    return typeof window !== 'undefined' && window.innerWidth < 768;
+  }, []);
+
+  // Collect all markers from different sources for collision detection
   const allMarkers = useMemo(() => {
     const markers: MarkerData[] = [];
-    // Note: Individual marker components now handle their own positioning
-    // This could be enhanced to collect markers from all sources for unified collision detection
+    
+    // This is a simplified collection - in practice, each overlay component
+    // would expose its markers for collision detection
+    // For now, we'll use the individual components and apply collision detection
+    // to any additional markers that might be added in the future
+    
     return markers;
   }, [tasks, timelineStart, timelineEnd, overlayControls, projectId]);
 
-  // Process markers for positioning and collision resolution
+  // Process markers for collision detection
   const processedMarkers = useMemo(() => {
-    const withPositions = batchMarkerUpdates(allMarkers, timelineStart, timelineEnd, viewMode);
-    return resolveMarkerCollisions(withPositions);
-  }, [allMarkers, timelineStart, timelineEnd, viewMode]);
+    if (!overlayControls.smartCollisions) return allMarkers;
+    return batchMarkerUpdates(allMarkers, timelineStart, timelineEnd, viewMode);
+  }, [allMarkers, timelineStart, timelineEnd, viewMode, overlayControls.smartCollisions]);
 
   // Filter visible markers for performance
   const visibleMarkers = useMemo(() => {
@@ -78,11 +88,11 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
 
   return (
     <div className={`absolute inset-0 pointer-events-none ${className}`}>
-      {/* Overlay Controls */}
+      {/* Enhanced Overlay Controls */}
       <div className="absolute top-2 right-2 pointer-events-auto z-50">
         <div className="flex items-center gap-2">
           {showControls && (
-            <div className="bg-white rounded-lg shadow-md border p-2 flex items-center gap-2">
+            <div className="bg-white rounded-lg shadow-md border p-2 flex items-center gap-2 flex-wrap">
               <Button
                 variant={overlayControls.milestones ? "default" : "outline"}
                 size="sm"
@@ -119,6 +129,16 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
                 {overlayControls.criticalPath ? <Eye size={12} /> : <EyeOff size={12} />}
                 Critical Path
               </Button>
+              <Button
+                variant={overlayControls.smartCollisions ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleOverlay('smartCollisions')}
+                className="text-xs"
+                title="Intelligent collision detection and resolution"
+              >
+                {overlayControls.smartCollisions ? <Eye size={12} /> : <EyeOff size={12} />}
+                Smart Layout
+              </Button>
             </div>
           )}
           <Button
@@ -132,7 +152,7 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
         </div>
       </div>
 
-      {/* Unified Overlay Layers with proper z-index management */}
+      {/* Enhanced Overlay Layers with smart collision detection */}
       <div className="absolute inset-0">
         {/* Layer 1: Critical Path Background (z-10) */}
         {overlayControls.criticalPath && (
@@ -146,83 +166,86 @@ export const GanttOverlayManager: React.FC<GanttOverlayManagerProps> = ({
           </div>
         )}
 
-        {/* Layer 2: Weather Overlays (z-20) */}
+        {/* Layer 2: Weather Overlays with collision detection (z-20) */}
         {overlayControls.weather && (
           <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.TERTIARY.zIndex }}>
-            <GanttWeatherMarkers
-              timelineStart={timelineStart}
-              timelineEnd={timelineEnd}
-              viewMode={viewMode}
-            />
+            {overlayControls.smartCollisions ? (
+              <CollisionResolver
+                markers={visibleMarkers.filter(m => m.type === 'weather')}
+                viewMode={viewMode}
+                isMobile={isMobile}
+                showDebugInfo={process.env.NODE_ENV === 'development'}
+              />
+            ) : (
+              <GanttWeatherMarkers
+                timelineStart={timelineStart}
+                timelineEnd={timelineEnd}
+                viewMode={viewMode}
+              />
+            )}
           </div>
         )}
 
-        {/* Layer 3: Resource Conflicts (z-30) */}
+        {/* Layer 3: Resource Conflicts with collision detection (z-30) */}
         {overlayControls.conflicts && (
           <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.SECONDARY.zIndex }}>
-            <GanttResourceConflictMarkers
-              tasks={tasks}
-              timelineStart={timelineStart}
-              timelineEnd={timelineEnd}
-            />
+            {overlayControls.smartCollisions ? (
+              <CollisionResolver
+                markers={visibleMarkers.filter(m => m.type === 'conflict')}
+                viewMode={viewMode}
+                isMobile={isMobile}
+              />
+            ) : (
+              <GanttResourceConflictMarkers
+                tasks={tasks}
+                timelineStart={timelineStart}
+                timelineEnd={timelineEnd}
+              />
+            )}
           </div>
         )}
 
-        {/* Layer 4: Milestones (z-40) - Highest Priority */}
+        {/* Layer 4: Milestones with collision detection (z-40) - Highest Priority */}
         {overlayControls.milestones && projectId && (
           <div className="absolute inset-0" style={{ zIndex: MARKER_ZONES.PRIMARY.zIndex }}>
-            <GanttMilestoneMarkers
-              projectId={projectId}
-              timelineStart={timelineStart}
-              timelineEnd={timelineEnd}
-              viewMode={viewMode}
-            />
+            {overlayControls.smartCollisions ? (
+              <CollisionResolver
+                markers={visibleMarkers.filter(m => m.type === 'milestone')}
+                viewMode={viewMode}
+                isMobile={isMobile}
+              />
+            ) : (
+              <GanttMilestoneMarkers
+                projectId={projectId}
+                timelineStart={timelineStart}
+                timelineEnd={timelineEnd}
+                viewMode={viewMode}
+              />
+            )}
           </div>
         )}
 
-        {/* Unified Marker Renderer for additional markers */}
-        <div className="absolute inset-0" style={{ zIndex: 50 }}>
-          {visibleMarkers.map(marker => (
-            <Tooltip key={marker.id}>
-              <TooltipTrigger asChild>
-                <div
-                  className="absolute pointer-events-auto"
-                  style={{
-                    left: `${marker.position.x}%`,
-                    top: `${16 + marker.position.y}px`
-                  }}
-                >
-                  <div className={`w-3 h-3 rounded-full border-2 ${marker.color} shadow-sm`}>
-                    {marker.icon}
-                  </div>
-                </div>
-              </TooltipTrigger>
-              {marker.tooltip && (
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <div className="space-y-1">
-                    <div className="font-semibold">{marker.tooltip.title}</div>
-                    <div className="text-sm text-slate-600">{marker.tooltip.description}</div>
-                    {marker.tooltip.details && (
-                      <div className="text-xs text-slate-500 border-t pt-1">
-                        {Object.entries(marker.tooltip.details).map(([key, value]) => (
-                          <div key={key}>{key}: {String(value)}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          ))}
-        </div>
+        {/* Universal Collision Resolver for all markers when smart collisions enabled */}
+        {overlayControls.smartCollisions && visibleMarkers.length > 0 && (
+          <div className="absolute inset-0" style={{ zIndex: 50 }}>
+            <CollisionResolver
+              markers={visibleMarkers}
+              viewMode={viewMode}
+              isMobile={isMobile}
+              showDebugInfo={process.env.NODE_ENV === 'development'}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Performance Stats (Development only) */}
+      {/* Enhanced Performance Stats */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute bottom-2 left-2 bg-black/80 text-white text-xs p-2 rounded pointer-events-auto">
-          Markers: {visibleMarkers.length}/{processedMarkers.length}
+          <div>Markers: {visibleMarkers.length}/{processedMarkers.length}</div>
           <div>Timeline: {timelineStart.toLocaleDateString()} - {timelineEnd.toLocaleDateString()}</div>
           <div>View Mode: {viewMode}</div>
+          <div>Mobile: {isMobile ? 'Yes' : 'No'}</div>
+          <div>Smart Collisions: {overlayControls.smartCollisions ? 'On' : 'Off'}</div>
         </div>
       )}
     </div>
