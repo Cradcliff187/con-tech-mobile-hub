@@ -12,5 +12,5 @@ export interface QuickAction {
   variant?: 'default' | 'secondary' | 'destructive';
 }
 
-export type ActionContext = 'dashboard' | 'planning' | 'tasks';
+export type ActionContext = 'dashboard' | 'planning' | 'tasks' | 'documents';
 export type ActionVariant = 'floating' | 'inline' | 'compact';
