@@ -11,7 +11,7 @@ import { GanttChartContent } from './gantt/GanttChartContent';
 import { GanttEmptyState } from './gantt/GanttEmptyState';
 import { TimelineMiniMap } from './gantt/navigation/TimelineMiniMap';
 import { useGanttChart } from './gantt/useGanttChart';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface GanttChartProps {
   projectId: string;
@@ -40,10 +40,22 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
     dragAndDrop
   } = useGanttChart({ projectId });
 
-  // Mini-map state for timeline navigation
-  const [currentViewStart, setCurrentViewStart] = useState(timelineStart);
-  const [currentViewEnd, setCurrentViewEnd] = useState(timelineEnd);
+  // Safe initialization with fallback dates, then sync with timeline calculation
+  const [currentViewStart, setCurrentViewStart] = useState(new Date());
+  const [currentViewEnd, setCurrentViewEnd] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 days from now
   const [showMiniMap, setShowMiniMap] = useState(false);
+  const [timelineReady, setTimelineReady] = useState(false);
+
+  // Sync mini-map viewport with calculated timeline values once they're ready
+  useEffect(() => {
+    // Validate that we have proper Date objects before using them
+    if (timelineStart instanceof Date && !isNaN(timelineStart.getTime()) && 
+        timelineEnd instanceof Date && !isNaN(timelineEnd.getTime())) {
+      setCurrentViewStart(timelineStart);
+      setCurrentViewEnd(timelineEnd);
+      setTimelineReady(true);
+    }
+  }, [timelineStart, timelineEnd]);
 
   // Handle loading state
   if (loading) {
@@ -64,6 +76,11 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
   // Handle empty state
   if (projectTasks.length === 0) {
     return <GanttEmptyState projectId={projectId} />;
+  }
+
+  // Don't render timeline-dependent components until timeline is ready
+  if (!timelineReady) {
+    return <GanttLoadingState />;
   }
 
   const punchListTasks = displayTasks.filter(t => t.task_type === 'punch_list').length;
