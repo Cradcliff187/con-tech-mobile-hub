@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
@@ -11,6 +10,7 @@ import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
 import { AssignStakeholderDialog } from './AssignStakeholderDialog';
 import { StakeholderDetail } from './StakeholderDetail';
+import { StakeholderQuickStatusDropdown } from './StakeholderQuickStatusDropdown';
 import { useToast } from '@/hooks/use-toast';
 
 interface StakeholderListViewProps {
@@ -80,16 +80,6 @@ export const StakeholderListView = ({ stakeholders }: StakeholderListViewProps) 
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-slate-100 text-slate-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'suspended': return 'bg-red-100 text-red-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
-  };
-
   const columns = [
     {
       key: 'name',
@@ -155,9 +145,7 @@ export const StakeholderListView = ({ stakeholders }: StakeholderListViewProps) 
           <Badge className={getTypeColor(stakeholder.stakeholder_type)}>
             {stakeholder.stakeholder_type}
           </Badge>
-          <Badge className={getStatusColor(stakeholder.status)}>
-            {stakeholder.status}
-          </Badge>
+          <StakeholderQuickStatusDropdown stakeholder={stakeholder} />
         </div>
       )
     },
