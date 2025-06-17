@@ -11,6 +11,8 @@ import { Calendar, Users, Target, BarChart3 } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useSearchParams } from 'react-router-dom';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
+import { ExportOptionsDialog } from '@/components/reports/ExportOptionsDialog';
+import { useDialogState } from '@/hooks/useDialogState';
 
 export const ProjectPlanning = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +22,7 @@ export const ProjectPlanning = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
   const { projects, loading } = useProjects();
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
 
   useEffect(() => {
     if (projectFromUrl && projects.length > 0) {
@@ -48,6 +51,13 @@ export const ProjectPlanning = () => {
   // Validate project data to prevent SelectItem errors
   const validatedProjects = validateSelectData(filteredProjects);
 
+  const handleExportClick = () => {
+    if (!selectedProjectId) {
+      return;
+    }
+    openDialog('export');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -57,7 +67,12 @@ export const ProjectPlanning = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExportClick}
+            disabled={!selectedProjectId}
+          >
             Export Plan
           </Button>
           <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
@@ -148,6 +163,14 @@ export const ProjectPlanning = () => {
           )}
         </div>
       </div>
+
+      <ExportOptionsDialog
+        open={isDialogOpen('export')}
+        onOpenChange={(open) => !open && closeDialog()}
+        selectedProjectId={selectedProjectId}
+        context="planning"
+        activeView={activeView}
+      />
     </div>
   );
 };
