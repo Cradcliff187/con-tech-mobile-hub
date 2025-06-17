@@ -46,7 +46,6 @@ export const DesktopSidebar = ({
 
   return (
     <Sidebar 
-      className="hidden lg:flex" 
       collapsible="offcanvas"
     >
       <SidebarHeader className="p-6 border-b border-slate-200">

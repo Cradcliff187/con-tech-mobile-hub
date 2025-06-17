@@ -14,7 +14,6 @@ import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
-import { MobileSidebarOverlay } from '@/components/navigation/MobileSidebarOverlay';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { NavigationItem } from '@/types/navigation';
@@ -34,14 +33,12 @@ import {
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = searchParams.get('section') || 'dashboard';
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { signOut, profile } = useAuth();
   const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
 
   const handleSectionChange = (searchParamsString: string) => {
     setSearchParams(searchParamsString);
-    setSidebarOpen(false); // Close sidebar on mobile
   };
 
   const handleMobileBottomNavigation = (section: string) => {
@@ -103,24 +100,7 @@ const Index = () => {
           isAdmin={isAdmin}
         />
 
-        <MobileHeader
-          profile={profile}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        />
-
-        {sidebarOpen && (
-          <MobileSidebarOverlay
-            profile={profile}
-            navigation={navigation}
-            activeSection={activeSection}
-            onSectionChange={handleSectionChange}
-            onAdminClick={() => navigate('/admin')}
-            onSignOut={signOut}
-            onClose={() => setSidebarOpen(false)}
-            isAdmin={isAdmin}
-          />
-        )}
+        <MobileHeader profile={profile} />
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
