@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
+import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface DocumentRecord {
   id: string;
@@ -39,7 +41,7 @@ interface DocumentListProps {
 const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
   const { deleteDocument, downloadDocument, shareDocument } = useDocuments();
   const { toast } = useToast();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
 
   const downloadOperation = useAsyncOperation({
     successMessage: "Download started successfully",
@@ -114,11 +116,11 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
   const handleDeleteConfirm = useCallback(async () => {
     try {
       await deleteOperation.execute(() => deleteDocument(doc.id, doc.file_path));
-      setShowDeleteDialog(false);
+      closeDialog();
     } catch (error) {
       console.error('Delete failed:', error);
     }
-  }, [doc.id, doc.file_path, deleteDocument, deleteOperation]);
+  }, [doc.id, doc.file_path, deleteDocument, deleteOperation, closeDialog]);
 
   const isLoading = downloadOperation.loading || shareOperation.loading || deleteOperation.loading;
 
@@ -177,7 +179,7 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
               variant="ghost"
               size="sm"
               className="p-1 text-slate-500 hover:text-red-600 transition-colors duration-200 focus:ring-2 focus:ring-red-300"
-              onClick={() => setShowDeleteDialog(true)}
+              onClick={() => openDialog('delete')}
               disabled={isLoading}
               title="Delete document"
             >
@@ -191,15 +193,35 @@ const DocumentItem = memo(({ doc }: { doc: DocumentRecord }) => {
         </div>
       </div>
 
-      <ConfirmationDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
+      <ResponsiveDialog
+        open={isDialogOpen('delete')}
+        onOpenChange={(open) => !open && closeDialog()}
         title="Delete Document"
-        description={`Are you sure you want to delete "${doc.name}"? This action cannot be undone.`}
-        confirmText="Delete"
-        variant="destructive"
-        onConfirm={handleDeleteConfirm}
-      />
+        className="max-w-md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete "{doc.name}"? This action cannot be undone.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
+            <TouchFriendlyButton
+              variant="outline"
+              onClick={() => closeDialog()}
+              disabled={deleteOperation.loading}
+              className="order-2 sm:order-1"
+            >
+              Cancel
+            </TouchFriendlyButton>
+            <TouchFriendlyButton
+              onClick={handleDeleteConfirm}
+              disabled={deleteOperation.loading}
+              className="order-1 sm:order-2 bg-red-600 hover:bg-red-700"
+            >
+              {deleteOperation.loading ? 'Deleting...' : 'Delete'}
+            </TouchFriendlyButton>
+          </div>
+        </div>
+      </ResponsiveDialog>
     </>
   );
 });

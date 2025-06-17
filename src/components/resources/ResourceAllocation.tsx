@@ -7,11 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { CreateAllocationDialog } from './CreateAllocationDialog';
+import { useDialogState } from '@/hooks/useDialogState';
 
 export const ResourceAllocation = () => {
   const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const { allocations, loading } = useResourceAllocations(selectedProjectId);
 
   if (loading) {
@@ -60,7 +61,7 @@ export const ResourceAllocation = () => {
               ))}
             </select>
             
-            <Button onClick={() => setShowCreateDialog(true)} size="sm">
+            <Button onClick={() => openDialog('edit')} size="sm">
               <Plus size={16} className="mr-2" />
               Create Allocation
             </Button>
@@ -77,7 +78,7 @@ export const ResourceAllocation = () => {
               </div>
               <h3 className="text-lg font-medium text-slate-600 mb-2">No Resource Allocations</h3>
               <p className="text-slate-500 mb-4">Start by creating resource allocations for your projects.</p>
-              <Button onClick={() => setShowCreateDialog(true)}>
+              <Button onClick={() => openDialog('edit')}>
                 <Plus size={16} className="mr-2" />
                 Create First Allocation
               </Button>
@@ -141,8 +142,8 @@ export const ResourceAllocation = () => {
       </div>
 
       <CreateAllocationDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
+        open={isDialogOpen('edit')}
+        onOpenChange={(open) => !open && closeDialog()}
       />
     </div>
   );

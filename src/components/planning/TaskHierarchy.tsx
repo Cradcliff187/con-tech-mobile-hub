@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AddCategoryDialog } from './AddCategoryDialog';
 import { AddTaskDialog } from './AddTaskDialog';
+import { useDialogState } from '@/hooks/useDialogState';
 
 interface TaskHierarchyProps {
   projectId: string;
@@ -25,8 +27,7 @@ interface HierarchyTask {
 export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   const { tasks } = useTasks();
   const [hierarchyTasks, setHierarchyTasks] = useState<HierarchyTask[]>([]);
-  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
-  const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
 
   useEffect(() => {
@@ -83,7 +84,11 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
 
   const handleAddTask = (category?: string) => {
     setSelectedCategory(category);
-    setShowAddTaskDialog(true);
+    openDialog('details');
+  };
+
+  const handleAddCategory = () => {
+    openDialog('edit');
   };
 
   const getStatusColor = (status: string) => {
@@ -194,7 +199,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         <h3 className="text-lg font-medium text-slate-600 mb-2">No Tasks Found</h3>
         <p className="text-slate-500 mb-4">Add tasks to this project to see the hierarchy view.</p>
         <Button 
-          onClick={() => setShowAddCategoryDialog(true)}
+          onClick={handleAddCategory}
           className="bg-orange-600 hover:bg-orange-700"
         >
           <Plus size={16} className="mr-2" />
@@ -202,8 +207,8 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         </Button>
         
         <AddCategoryDialog
-          open={showAddCategoryDialog}
-          onOpenChange={setShowAddCategoryDialog}
+          open={isDialogOpen('edit')}
+          onOpenChange={(open) => !open && closeDialog()}
           projectId={projectId}
         />
       </div>
@@ -217,7 +222,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         <Button 
           size="sm" 
           className="bg-orange-600 hover:bg-orange-700"
-          onClick={() => setShowAddCategoryDialog(true)}
+          onClick={handleAddCategory}
         >
           <Plus size={16} className="mr-2" />
           Add Category
@@ -274,14 +279,14 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
 
       {/* Dialogs */}
       <AddCategoryDialog
-        open={showAddCategoryDialog}
-        onOpenChange={setShowAddCategoryDialog}
+        open={isDialogOpen('edit')}
+        onOpenChange={(open) => !open && closeDialog()}
         projectId={projectId}
       />
       
       <AddTaskDialog
-        open={showAddTaskDialog}
-        onOpenChange={setShowAddTaskDialog}
+        open={isDialogOpen('details')}
+        onOpenChange={(open) => !open && closeDialog()}
         projectId={projectId}
         category={selectedCategory}
       />

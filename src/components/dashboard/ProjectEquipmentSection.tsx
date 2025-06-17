@@ -10,6 +10,7 @@ import { AssignEquipmentToProjectDialog } from './AssignEquipmentToProjectDialog
 import { Plus, Wrench, User, Calendar, AlertTriangle } from 'lucide-react';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
+import { useDialogState } from '@/hooks/useDialogState';
 import type { Project } from '@/types/database';
 
 interface ProjectEquipmentSectionProps {
@@ -19,7 +20,7 @@ interface ProjectEquipmentSectionProps {
 export const ProjectEquipmentSection = ({ project }: ProjectEquipmentSectionProps) => {
   const { equipment, loading, refetch } = useEquipment();
   const { toast } = useToast();
-  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [releasingId, setReleasingId] = useState<string | null>(null);
 
   const projectEquipment = equipment.filter(eq => eq.project_id === project.id);
@@ -181,7 +182,7 @@ export const ProjectEquipmentSection = ({ project }: ProjectEquipmentSectionProp
               </p>
             </div>
             <TouchFriendlyButton
-              onClick={() => setIsAssignDialogOpen(true)}
+              onClick={() => openDialog('assign')}
               className="bg-orange-600 hover:bg-orange-700"
             >
               <Plus size={16} className="mr-2" />
@@ -198,7 +199,7 @@ export const ProjectEquipmentSection = ({ project }: ProjectEquipmentSectionProp
                 This project doesn't have any equipment assigned yet.
               </p>
               <TouchFriendlyButton
-                onClick={() => setIsAssignDialogOpen(true)}
+                onClick={() => openDialog('assign')}
                 className="bg-orange-600 hover:bg-orange-700"
               >
                 <Plus size={16} className="mr-2" />
@@ -217,8 +218,8 @@ export const ProjectEquipmentSection = ({ project }: ProjectEquipmentSectionProp
 
       <AssignEquipmentToProjectDialog
         project={project}
-        open={isAssignDialogOpen}
-        onOpenChange={setIsAssignDialogOpen}
+        open={isDialogOpen('assign')}
+        onOpenChange={(open) => !open && closeDialog()}
         onSuccess={refetch}
       />
     </>

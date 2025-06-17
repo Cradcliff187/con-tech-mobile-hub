@@ -2,14 +2,14 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Wrench, Calendar, MoreVertical, Edit, Trash2, User, History } from 'lucide-react';
 import { AllocationStatus } from './AllocationStatus';
 import { EquipmentAssignmentHistoryComponent } from './EquipmentAssignmentHistory';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
+import { useDialogState } from '@/hooks/useDialogState';
 import type { Equipment } from '@/hooks/useEquipment';
 
 interface EquipmentStatusCardProps {
@@ -28,8 +28,7 @@ export const EquipmentStatusCard = ({
   deletingId
 }: EquipmentStatusCardProps) => {
   const { allocations } = useEquipmentAllocations(equipment.id);
-  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-  const isMobile = useIsMobile();
+  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   
   const currentAllocation = allocations.find(a => 
     new Date(a.start_date) <= new Date() && new Date() <= new Date(a.end_date)
@@ -52,6 +51,27 @@ export const EquipmentStatusCard = ({
 
   const isMaintenanceDue = equipment.maintenance_due && 
     new Date(equipment.maintenance_due) <= new Date();
+
+  const handleMenuAction = (action: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    switch (action) {
+      case 'edit':
+        onEdit(equipment);
+        break;
+      case 'delete':
+        onDelete(equipment.id);
+        break;
+      case 'maintenance':
+        onStatusUpdate(equipment.id, 'maintenance');
+        break;
+      case 'available':
+        onStatusUpdate(equipment.id, 'available');
+        break;
+      case 'history':
+        openDialog('details');
+        break;
+    }
+  };
 
   return (
     <>
@@ -98,7 +118,7 @@ export const EquipmentStatusCard = ({
                   <TouchFriendlyButton
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowHistoryDialog(true)}
+                    onClick={(e) => handleMenuAction('history', e)}
                     className="text-xs w-full sm:w-auto"
                   >
                     <History className="h-3 w-3 mr-1" />
@@ -114,25 +134,29 @@ export const EquipmentStatusCard = ({
                   <MoreVertical className="h-4 w-4" />
                 </TouchFriendlyButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="z-50">
-                <DropdownMenuItem onClick={() => onEdit(equipment)}>
+              <DropdownMenuContent align="end" className="z-50 bg-white">
+                <DropdownMenuItem onClick={(e) => handleMenuAction('edit', e)}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Equipment
                 </DropdownMenuItem>
                 {equipment.status === 'available' && (
-                  <DropdownMenuItem onClick={() => onStatusUpdate(equipment.id, 'maintenance')}>
+                  <DropdownMenuItem onClick={(e) => handleMenuAction('maintenance', e)}>
                     <Wrench className="h-4 w-4 mr-2" />
                     Mark for Maintenance
                   </DropdownMenuItem>
                 )}
                 {equipment.status === 'maintenance' && (
-                  <DropdownMenuItem onClick={() => onStatusUpdate(equipment.id, 'available')}>
+                  <DropdownMenuItem onClick={(e) => handleMenuAction('available', e)}>
                     <Wrench className="h-4 w-4 mr-2" />
                     Mark Available
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={(e) => handleMenuAction('history', e)}>
+                  <History className="h-4 w-4 mr-2" />
+                  View History
+                </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={() => onDelete(equipment.id)}
+                  onClick={(e) => handleMenuAction('delete', e)}
                   className="text-red-600"
                   disabled={deletingId === equipment.id}
                 >
@@ -146,14 +170,14 @@ export const EquipmentStatusCard = ({
       </Card>
 
       {/* Assignment History Dialog */}
-      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-        <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-3xl max-h-[80vh]'} overflow-y-auto`}>
-          <DialogHeader>
-            <DialogTitle>Assignment History - {equipment.name}</DialogTitle>
-          </DialogHeader>
-          <EquipmentAssignmentHistoryComponent equipmentId={equipment.id} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog
+        open={isDialogOpen('details')}
+        onOpenChange={(open) => !open && closeDialog()}
+        title={`Assignment History - ${equipment.name}`}
+        className="max-w-3xl"
+      >
+        <EquipmentAssignmentHistoryComponent equipmentId={equipment.id} />
+      </ResponsiveDialog>
     </>
   );
 };
