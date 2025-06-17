@@ -5,10 +5,13 @@ import { TaskHierarchy } from './TaskHierarchy';
 import { ResourcePlanning } from './ResourcePlanning';
 import { MilestonePlanning } from './MilestonePlanning';
 import { ClientFilter } from '@/components/projects/ClientFilter';
+import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Users, Target, BarChart3 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Users, Target, BarChart3, Shield, Lock } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
+import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'react-router-dom';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 import { ExportOptionsDialog } from '@/components/reports/ExportOptionsDialog';
@@ -22,7 +25,13 @@ export const ProjectPlanning = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
   const { projects, loading } = useProjects();
+  const { profile } = useAuth();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
+
+  // Role-based access control
+  const isCompanyUser = profile?.is_company_user && profile?.account_status === 'approved';
+  const canEditPlanning = isCompanyUser && ['admin', 'project_manager', 'site_supervisor'].includes(profile?.role || '');
+  const canViewPlanning = isCompanyUser || ['stakeholder', 'client', 'vendor'].includes(profile?.role || '');
 
   useEffect(() => {
     if (projectFromUrl && projects.length > 0) {
@@ -43,13 +52,15 @@ export const ProjectPlanning = () => {
     { id: 'milestones', label: 'Milestones', icon: Calendar }
   ];
 
-  // Filter projects by selected client
+  // Filter projects by selected client and user access
   const filteredProjects = selectedClientId 
     ? projects.filter(p => p.client_id === selectedClientId)
     : projects;
 
   // Validate project data to prevent SelectItem errors
   const validatedProjects = validateSelectData(filteredProjects);
+
+  const selectedProject = selectedProjectId ? projects.find(p => p.id === selectedProjectId) : null;
 
   const handleExportClick = () => {
     if (!selectedProjectId) {
@@ -58,15 +69,43 @@ export const ProjectPlanning = () => {
     openDialog('export');
   };
 
+  // Show access denied for unauthorized users
+  if (!canViewPlanning) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Lock size={48} className="text-slate-400 mb-4" />
+        <h3 className="text-lg font-medium text-slate-600 mb-2">Access Restricted</h3>
+        <p className="text-slate-500 text-center">
+          Project planning access is limited to approved company users and assigned stakeholders.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Project Planning</h2>
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-2xl font-bold text-slate-800">Project Planning</h2>
+            {!canEditPlanning && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Shield size={12} />
+                Read Only
+              </Badge>
+            )}
+          </div>
           <p className="text-slate-600">Plan and visualize your construction project timeline</p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {selectedProject && (
+            <ProjectQuickActions
+              project={selectedProject}
+              context="planning"
+              variant="compact"
+            />
+          )}
           <Button 
             variant="outline" 
             size="sm"
@@ -75,9 +114,11 @@ export const ProjectPlanning = () => {
           >
             Export Plan
           </Button>
-          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-            Save Changes
-          </Button>
+          {canEditPlanning && (
+            <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+              Save Changes
+            </Button>
+          )}
         </div>
       </div>
 
@@ -95,7 +136,11 @@ export const ProjectPlanning = () => {
           
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Select Project:</label>
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <Select 
+              value={selectedProjectId} 
+              onValueChange={setSelectedProjectId}
+              disabled={!canEditPlanning && !selectedProjectId}
+            >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Choose a project..." />
               </SelectTrigger>

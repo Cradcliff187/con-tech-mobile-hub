@@ -12,7 +12,6 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
-import Planning from "./pages/Planning";
 import NotFound from "./pages/NotFound";
 
 // Create QueryClient outside of component to avoid recreation on re-renders
@@ -51,14 +50,6 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <Admin />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/planning" 
-                    element={
-                      <ProtectedRoute>
-                        <Planning />
                       </ProtectedRoute>
                     } 
                   />

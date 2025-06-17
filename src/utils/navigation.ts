@@ -1,6 +1,7 @@
 
 export const navigateToProjectContext = (projectId: string, view: string = 'planning') => {
-  return `/${view}?project=${projectId}`;
+  // Use consistent searchParams pattern for all navigation
+  return `/?section=${view}&project=${projectId}`;
 };
 
 export const navigateToStakeholder = (stakeholderId: string, modal: boolean = true) => {
@@ -12,4 +13,34 @@ export const navigateToStakeholder = (stakeholderId: string, modal: boolean = tr
     return { modal: 'stakeholder', id: stakeholderId };
   }
   return `/stakeholders/${stakeholderId}`;
+};
+
+export const preserveProjectContext = (currentParams: URLSearchParams, newSection: string) => {
+  const newParams = new URLSearchParams();
+  newParams.set('section', newSection);
+  
+  // Preserve project context when switching sections
+  const projectId = currentParams.get('project');
+  if (projectId) {
+    newParams.set('project', projectId);
+  }
+  
+  return newParams.toString();
+};
+
+export const buildNavigationUrl = (section: string, projectId?: string, additionalParams?: Record<string, string>) => {
+  const params = new URLSearchParams();
+  params.set('section', section);
+  
+  if (projectId) {
+    params.set('project', projectId);
+  }
+  
+  if (additionalParams) {
+    Object.entries(additionalParams).forEach(([key, value]) => {
+      params.set(key, value);
+    });
+  }
+  
+  return `/?${params.toString()}`;
 };

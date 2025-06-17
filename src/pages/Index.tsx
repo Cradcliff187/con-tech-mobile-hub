@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -65,6 +66,15 @@ const Index = () => {
     { id: 'reports', label: 'Reports', icon: BarChart3 }
   ];
 
+  // Core mobile navigation items - include planning as primary feature
+  const mobileNavItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+    { id: 'planning', label: 'Planning', icon: Calendar },
+    { id: 'resources', label: 'Resources', icon: Wrench },
+    { id: 'reports', label: 'Reports', icon: BarChart3 }
+  ];
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return <ProjectDashboard />;
@@ -123,18 +133,18 @@ const Index = () => {
           </div>
         </main>
 
-        {/* Mobile Bottom Navigation */}
+        {/* Mobile Bottom Navigation - Enhanced with Planning */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2">
           <div className="flex justify-around">
-            {navigation.slice(0, 5).map((item) => {
+            {mobileNavItems.map((item) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleMobileBottomNavigation(item.id)}
-                  className={`flex flex-col items-center p-2 rounded-lg ${
+                  className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
                     activeSection === item.id
-                      ? 'text-orange-600'
+                      ? 'text-orange-600 bg-orange-50'
                       : 'text-slate-600'
                   }`}
                 >

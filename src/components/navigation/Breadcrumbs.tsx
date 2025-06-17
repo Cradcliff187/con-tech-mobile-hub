@@ -27,6 +27,7 @@ const Breadcrumbs = () => {
 
   const capitalize = (s: string | null) => s && s.charAt(0).toUpperCase() + s.slice(1).replace('_', ' ');
 
+  // Don't show breadcrumbs on admin pages
   if (location.pathname === '/admin') return null;
 
   return (
@@ -39,22 +40,34 @@ const Breadcrumbs = () => {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-            {project ? (
-                <BreadcrumbLink asChild>
-                    <Link to={`/?section=dashboard`}>Dashboard</Link>
-                </BreadcrumbLink>
-            ) : (
-                <BreadcrumbPage>{capitalize(section)}</BreadcrumbPage>
-            )}
+          {project ? (
+            <BreadcrumbLink asChild>
+              <Link to={`/?section=dashboard`}>Dashboard</Link>
+            </BreadcrumbLink>
+          ) : (
+            <BreadcrumbPage>{capitalize(section)}</BreadcrumbPage>
+          )}
         </BreadcrumbItem>
         {project && (
           <>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`/planning?project=${project.id}`}>{project.name}</Link>
-              </BreadcrumbLink>
+              {section === 'planning' ? (
+                <BreadcrumbPage>{project.name} - Planning</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink asChild>
+                  <Link to={`/?section=${section}&project=${project.id}`}>{project.name}</Link>
+                </BreadcrumbLink>
+              )}
             </BreadcrumbItem>
+            {section && section !== 'dashboard' && section !== 'planning' && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{capitalize(section)}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            )}
           </>
         )}
       </BreadcrumbList>
