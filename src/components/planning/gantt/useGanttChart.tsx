@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -44,14 +45,14 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     handleFilterChange 
   } = useGanttFilters({ projectTasks });
 
-  // Drag and drop functionality with database persistence and refetch
+  // Drag and drop functionality - real-time updates handle synchronization
   const dragAndDrop = useDragAndDrop({
     timelineStart,
     timelineEnd,
     viewMode,
     allTasks: projectTasks,
     updateTask,
-    refetchTasks
+    refetchTasks // Keep for manual refresh scenarios
   });
 
   // Update timeline rect on resize or when timeline changes

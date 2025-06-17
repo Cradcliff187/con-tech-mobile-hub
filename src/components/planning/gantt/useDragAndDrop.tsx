@@ -41,8 +41,7 @@ export const useDragAndDrop = ({
   timelineEnd,
   viewMode,
   allTasks = [],
-  updateTask,
-  refetchTasks
+  updateTask
 }: UseDragAndDropProps) => {
   const { toast } = useToast();
   
@@ -289,10 +288,8 @@ export const useDragAndDrop = ({
         description: `Successfully moved ${Object.keys(updates).length} task(s)`,
       });
       
-      // Refresh the main task list with latest data from database
-      await refetchTasks();
-      
-      // Clear local updates after successful save and refresh
+      // Real-time subscription will handle updating the task list
+      // Clear local updates after successful save
       setState(prev => ({ 
         ...prev, 
         localTaskUpdates: {},
@@ -314,7 +311,7 @@ export const useDragAndDrop = ({
         variant: "destructive"
       });
     }
-  }, [state.draggedTask, allTasks, updateTask, refetchTasks, toast]);
+  }, [state.draggedTask, allTasks, updateTask, toast]);
 
   const resetLocalUpdates = useCallback(() => {
     setState(prev => ({ ...prev, localTaskUpdates: {} }));

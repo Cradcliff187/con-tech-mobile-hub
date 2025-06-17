@@ -10,6 +10,33 @@ export const useTasks = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
+  // Helper function to map database response to Task interface
+  const mapTaskFromDb = (dbTask: any): Task => ({
+    id: dbTask.id,
+    title: dbTask.title,
+    description: dbTask.description,
+    status: dbTask.status as Task['status'],
+    priority: dbTask.priority as Task['priority'],
+    due_date: dbTask.due_date,
+    start_date: dbTask.start_date,
+    created_at: dbTask.created_at,
+    updated_at: dbTask.updated_at,
+    project_id: dbTask.project_id,
+    assignee_id: dbTask.assignee_id,
+    assigned_stakeholder_id: dbTask.assigned_stakeholder_id,
+    task_type: dbTask.task_type as Task['task_type'],
+    required_skills: dbTask.required_skills,
+    punch_list_category: dbTask.punch_list_category as Task['punch_list_category'],
+    category: dbTask.category,
+    estimated_hours: dbTask.estimated_hours,
+    actual_hours: dbTask.actual_hours,
+    progress: dbTask.progress || 0,
+    created_by: dbTask.created_by,
+    matches_skills: dbTask.matches_skills,
+    converted_from_task_id: dbTask.converted_from_task_id,
+    inspection_status: dbTask.inspection_status as Task['inspection_status'],
+  });
+
   const fetchTasks = async () => {
     if (!user) return;
 
@@ -25,32 +52,7 @@ export const useTasks = () => {
       if (error) {
         throw new Error(`Failed to fetch tasks: ${error.message}`);
       } else {
-        // Map the database response to our Task interface
-        const mappedTasks: Task[] = (data || []).map(task => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          status: task.status as Task['status'],
-          priority: task.priority as Task['priority'],
-          due_date: task.due_date,
-          start_date: task.start_date,
-          created_at: task.created_at,
-          updated_at: task.updated_at,
-          project_id: task.project_id,
-          assignee_id: task.assignee_id,
-          assigned_stakeholder_id: task.assigned_stakeholder_id,
-          task_type: task.task_type as Task['task_type'],
-          required_skills: task.required_skills,
-          punch_list_category: task.punch_list_category as Task['punch_list_category'],
-          category: task.category,
-          estimated_hours: task.estimated_hours,
-          actual_hours: task.actual_hours,
-          progress: task.progress || 0,
-          created_by: task.created_by,
-          matches_skills: task.matches_skills,
-          converted_from_task_id: task.converted_from_task_id,
-          inspection_status: task.inspection_status as Task['inspection_status'],
-        }));
+        const mappedTasks: Task[] = (data || []).map(mapTaskFromDb);
         setTasks(mappedTasks);
       }
     } catch (err) {
@@ -63,7 +65,38 @@ export const useTasks = () => {
   };
 
   useEffect(() => {
+    if (!user) return;
+
+    // Initial fetch
     fetchTasks();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('tasks-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'tasks' },
+        (payload) => {
+          console.log('Real-time task update:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newTask = mapTaskFromDb(payload.new);
+            setTasks(prev => [newTask, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedTask = mapTaskFromDb(payload.new);
+            setTasks(prev => prev.map(task => 
+              task.id === updatedTask.id ? updatedTask : task
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setTasks(prev => prev.filter(task => task.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [user]);
 
   const createTask = async (taskData: Partial<Task>) => {
@@ -104,35 +137,7 @@ export const useTasks = () => {
         throw new Error(`Failed to create task: ${error.message}`);
       }
 
-      if (data) {
-        const mappedTask: Task = {
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          status: data.status as Task['status'],
-          priority: data.priority as Task['priority'],
-          due_date: data.due_date,
-          start_date: data.start_date,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          project_id: data.project_id,
-          assignee_id: data.assignee_id,
-          assigned_stakeholder_id: data.assigned_stakeholder_id,
-          task_type: data.task_type as Task['task_type'],
-          required_skills: data.required_skills,
-          punch_list_category: data.punch_list_category as Task['punch_list_category'],
-          category: data.category,
-          estimated_hours: data.estimated_hours,
-          actual_hours: data.actual_hours,
-          progress: data.progress || 0,
-          created_by: data.created_by,
-          matches_skills: data.matches_skills,
-          converted_from_task_id: data.converted_from_task_id,
-          inspection_status: data.inspection_status as Task['inspection_status'],
-        };
-        setTasks(prev => [mappedTask, ...prev]);
-      }
-
+      // Real-time subscription will handle adding the task to state
       return { data, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create task';
@@ -154,35 +159,7 @@ export const useTasks = () => {
         throw new Error(`Failed to update task: ${error.message}`);
       }
 
-      if (data) {
-        const mappedTask: Task = {
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          status: data.status as Task['status'],
-          priority: data.priority as Task['priority'],
-          due_date: data.due_date,
-          start_date: data.start_date,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          project_id: data.project_id,
-          assignee_id: data.assignee_id,
-          assigned_stakeholder_id: data.assigned_stakeholder_id,
-          task_type: data.task_type as Task['task_type'],
-          required_skills: data.required_skills,
-          punch_list_category: data.punch_list_category as Task['punch_list_category'],
-          category: data.category,
-          estimated_hours: data.estimated_hours,
-          actual_hours: data.actual_hours,
-          progress: data.progress || 0,
-          created_by: data.created_by,
-          matches_skills: data.matches_skills,
-          converted_from_task_id: data.converted_from_task_id,
-          inspection_status: data.inspection_status as Task['inspection_status'],
-        };
-        setTasks(prev => prev.map(task => task.id === id ? mappedTask : task));
-      }
-
+      // Real-time subscription will handle updating the task in state
       return { data, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update task';
