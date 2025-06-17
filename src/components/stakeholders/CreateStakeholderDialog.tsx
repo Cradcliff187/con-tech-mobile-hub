@@ -1,8 +1,8 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { StakeholderFormFields } from './forms/StakeholderFormFields';
 import { useStakeholderForm } from './hooks/useStakeholderForm';
+import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 
 interface CreateStakeholderDialogProps {
   open: boolean;
@@ -29,31 +29,37 @@ export const CreateStakeholderDialog = ({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            Add New {formData.stakeholder_type === 'client' ? 'Client' : 'Stakeholder'}
-          </DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Add New ${formData.stakeholder_type === 'client' ? 'Client' : 'Stakeholder'}`}
+      className="max-w-2xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <StakeholderFormFields 
+          formData={formData}
+          onInputChange={handleInputChange}
+          defaultType={defaultType}
+        />
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <StakeholderFormFields 
-            formData={formData}
-            onInputChange={handleInputChange}
-            defaultType={defaultType}
-          />
-          
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Stakeholder'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+          <TouchFriendlyButton 
+            type="button" 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="order-2 sm:order-1"
+          >
+            Cancel
+          </TouchFriendlyButton>
+          <TouchFriendlyButton 
+            type="submit" 
+            disabled={loading}
+            className="order-1 sm:order-2"
+          >
+            {loading ? 'Creating...' : 'Create Stakeholder'}
+          </TouchFriendlyButton>
+        </div>
+      </form>
+    </ResponsiveDialog>
   );
 };

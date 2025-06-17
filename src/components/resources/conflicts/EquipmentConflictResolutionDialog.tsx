@@ -1,7 +1,5 @@
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ResolutionOptionsSelector } from './ResolutionOptionsSelector';
 import { RescheduleForm } from './RescheduleForm';
@@ -9,6 +7,8 @@ import { AlternativeEquipmentForm } from './AlternativeEquipmentForm';
 import { ReassignProjectForm } from './ReassignProjectForm';
 import { useEquipmentConflictResolution } from './useEquipmentConflictResolution';
 import { Wrench } from 'lucide-react';
+import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 
 interface EquipmentConflictResolutionDialogProps {
   open: boolean;
@@ -68,55 +68,58 @@ export const EquipmentConflictResolutionDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wrench size={20} />
-            Resolve Equipment Conflict
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div>
-            <span className="text-sm font-medium">Conflict Details</span>
-            <p className="text-sm text-slate-600 mt-1">{conflict.description}</p>
-          </div>
-
-          <ResolutionOptionsSelector
-            selectedOption={selectedOption}
-            onSelectionChange={setSelectedOption}
-          />
-
-          {selectedOption === 'reschedule' && (
-            <RescheduleForm onSubmit={handleResolve} isSubmitting={isSubmitting} />
-          )}
-
-          {selectedOption === 'alternative' && (
-            <AlternativeEquipmentForm onSubmit={handleResolve} isSubmitting={isSubmitting} />
-          )}
-
-          {selectedOption === 'reassign' && (
-            <ReassignProjectForm onSubmit={handleResolve} isSubmitting={isSubmitting} />
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => handleResolve({})}
-              disabled={isSubmitting || !selectedOption}
-            >
-              {isSubmitting ? 'Resolving...' : 'Resolve Conflict'}
-            </Button>
-          </div>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Resolve Equipment Conflict"
+      className="max-w-md"
+    >
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Wrench size={20} />
+          <span className="font-medium">Resolve Equipment Conflict</span>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div>
+          <span className="text-sm font-medium">Conflict Details</span>
+          <p className="text-sm text-slate-600 mt-1">{conflict.description}</p>
+        </div>
+
+        <ResolutionOptionsSelector
+          selectedOption={selectedOption}
+          onSelectionChange={setSelectedOption}
+        />
+
+        {selectedOption === 'reschedule' && (
+          <RescheduleForm onSubmit={handleResolve} isSubmitting={isSubmitting} />
+        )}
+
+        {selectedOption === 'alternative' && (
+          <AlternativeEquipmentForm onSubmit={handleResolve} isSubmitting={isSubmitting} />
+        )}
+
+        {selectedOption === 'reassign' && (
+          <ReassignProjectForm onSubmit={handleResolve} isSubmitting={isSubmitting} />
+        )}
+
+        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
+          <TouchFriendlyButton
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+            className="order-2 sm:order-1"
+          >
+            Cancel
+          </TouchFriendlyButton>
+          <TouchFriendlyButton
+            onClick={() => handleResolve({})}
+            disabled={isSubmitting || !selectedOption}
+            className="order-1 sm:order-2"
+          >
+            {isSubmitting ? 'Resolving...' : 'Resolve Conflict'}
+          </TouchFriendlyButton>
+        </div>
+      </div>
+    </ResponsiveDialog>
   );
 };

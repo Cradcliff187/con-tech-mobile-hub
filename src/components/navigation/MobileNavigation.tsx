@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { NavigationItem } from '@/types/navigation';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 
 interface MobileNavigationProps {
   isOpen: boolean;
@@ -32,19 +32,19 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
       <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
       
       {/* Navigation Panel */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
+      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-800">Navigation</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <TouchFriendlyButton variant="ghost" size="sm" onClick={onClose}>
             <X size={20} />
-          </Button>
+          </TouchFriendlyButton>
         </div>
         
         <nav className="p-4 space-y-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Button
+              <TouchFriendlyButton
                 key={item.id}
                 variant={activeView === item.id ? "secondary" : "ghost"}
                 className="w-full justify-start"
@@ -52,7 +52,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
               >
                 <Icon className="w-4 h-4 mr-3" />
                 {item.label}
-              </Button>
+              </TouchFriendlyButton>
             );
           })}
         </nav>

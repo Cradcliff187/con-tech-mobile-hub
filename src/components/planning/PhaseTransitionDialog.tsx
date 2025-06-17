@@ -1,13 +1,24 @@
 
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from '@/components/ui/drawer';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PhaseTransitionDialogProps {
   open: boolean;
@@ -26,33 +37,59 @@ export const PhaseTransitionDialog = ({
   isUpdating,
   onConfirm
 }: PhaseTransitionDialogProps) => {
+  const isMobile = useIsMobile();
+
+  const title = "Confirm Phase Transition";
+  const description = `Are you sure you want to advance the project from ${currentPhase.replace('_', ' ')} to ${targetPhase.replace('_', ' ')} phase?`;
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{title}</DrawerTitle>
+            <DrawerDescription>{description}</DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter className="pt-2">
+            <TouchFriendlyButton
+              onClick={onConfirm}
+              disabled={isUpdating}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Confirm Transition
+            </TouchFriendlyButton>
+            <TouchFriendlyButton
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </TouchFriendlyButton>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Confirm Phase Transition</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to advance the project from{' '}
-            <span className="font-medium">{currentPhase.replace('_', ' ')}</span> to{' '}
-            <span className="font-medium">{targetPhase.replace('_', ' ')}</span> phase?
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => onOpenChange(false)}>
             Cancel
-          </Button>
-          <Button
+          </AlertDialogCancel>
+          <AlertDialogAction
             onClick={onConfirm}
             disabled={isUpdating}
             className="bg-green-600 hover:bg-green-700"
           >
             Confirm Transition
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

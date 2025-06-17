@@ -1,7 +1,4 @@
-
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useEquipment } from '@/hooks/useEquipment';
 import { Calendar, Wrench, Clock } from 'lucide-react';
+import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
+import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 
 interface MaintenanceConflictResolutionDialogProps {
   open: boolean;
@@ -141,126 +140,132 @@ export const MaintenanceConflictResolutionDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wrench size={20} />
-            Resolve Maintenance Conflict
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div>
-            <Label className="text-sm font-medium">Conflict Details</Label>
-            <p className="text-sm text-slate-600 mt-1">{conflict.description}</p>
-            {conflict.dueDate && (
-              <p className="text-sm text-orange-600 mt-1">
-                Due: {new Date(conflict.dueDate).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Resolution Options</Label>
-            <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="reschedule" id="reschedule" />
-                <Label htmlFor="reschedule" className="flex items-center gap-2">
-                  <Calendar size={16} />
-                  Reschedule maintenance
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="backup" id="backup" />
-                <Label htmlFor="backup" className="flex items-center gap-2">
-                  <Wrench size={16} />
-                  Assign backup equipment
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="window" id="window" />
-                <Label htmlFor="window" className="flex items-center gap-2">
-                  <Clock size={16} />
-                  Schedule maintenance window
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {selectedOption === 'reschedule' && (
-            <div className="space-y-2">
-              <Label htmlFor="maintenance-date">New Maintenance Date</Label>
-              <Input
-                id="maintenance-date"
-                type="date"
-                value={newMaintenanceDate}
-                onChange={(e) => setNewMaintenanceDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-
-          {selectedOption === 'backup' && (
-            <div className="space-y-2">
-              <Label htmlFor="backup-equipment">Backup Equipment</Label>
-              <Select value={backupEquipmentId} onValueChange={setBackupEquipmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select backup equipment..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableEquipment.map((eq) => (
-                    <SelectItem key={eq.id} value={eq.id}>
-                      {eq.name} - {eq.type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {selectedOption === 'window' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="start-time">Start Time</Label>
-                  <Input
-                    id="start-time"
-                    type="time"
-                    value={maintenanceStartTime}
-                    onChange={(e) => setMaintenanceStartTime(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end-time">End Time</Label>
-                  <Input
-                    id="end-time"
-                    type="time"
-                    value={maintenanceEndTime}
-                    onChange={(e) => setMaintenanceEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleResolve}
-              disabled={isSubmitting || !selectedOption}
-            >
-              {isSubmitting ? 'Resolving...' : 'Resolve Conflict'}
-            </Button>
-          </div>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Resolve Maintenance Conflict"
+      className="max-w-md"
+    >
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Wrench size={20} />
+          <span className="font-medium">Resolve Maintenance Conflict</span>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div>
+          <Label className="text-sm font-medium">Conflict Details</Label>
+          <p className="text-sm text-slate-600 mt-1">{conflict.description}</p>
+          {conflict.dueDate && (
+            <p className="text-sm text-orange-600 mt-1">
+              Due: {new Date(conflict.dueDate).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Resolution Options</Label>
+          <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
+            <div className="flex items-center space-x-2 p-2">
+              <RadioGroupItem value="reschedule" id="reschedule" />
+              <Label htmlFor="reschedule" className="flex items-center gap-2 cursor-pointer">
+                <Calendar size={16} />
+                Reschedule maintenance
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2 p-2">
+              <RadioGroupItem value="backup" id="backup" />
+              <Label htmlFor="backup" className="flex items-center gap-2 cursor-pointer">
+                <Wrench size={16} />
+                Assign backup equipment
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2 p-2">
+              <RadioGroupItem value="window" id="window" />
+              <Label htmlFor="window" className="flex items-center gap-2 cursor-pointer">
+                <Clock size={16} />
+                Schedule maintenance window
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {selectedOption === 'reschedule' && (
+          <div className="space-y-2">
+            <Label htmlFor="maintenance-date">New Maintenance Date</Label>
+            <Input
+              id="maintenance-date"
+              type="date"
+              value={newMaintenanceDate}
+              onChange={(e) => setNewMaintenanceDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="min-h-[44px]"
+            />
+          </div>
+        )}
+
+        {selectedOption === 'backup' && (
+          <div className="space-y-2">
+            <Label htmlFor="backup-equipment">Backup Equipment</Label>
+            <Select value={backupEquipmentId} onValueChange={setBackupEquipmentId}>
+              <SelectTrigger className="min-h-[44px]">
+                <SelectValue placeholder="Select backup equipment..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableEquipment.map((eq) => (
+                  <SelectItem key={eq.id} value={eq.id}>
+                    {eq.name} - {eq.type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {selectedOption === 'window' && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="start-time">Start Time</Label>
+                <Input
+                  id="start-time"
+                  type="time"
+                  value={maintenanceStartTime}
+                  onChange={(e) => setMaintenanceStartTime(e.target.value)}
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div>
+                <Label htmlFor="end-time">End Time</Label>
+                <Input
+                  id="end-time"
+                  type="time"
+                  value={maintenanceEndTime}
+                  onChange={(e) => setMaintenanceEndTime(e.target.value)}
+                  className="min-h-[44px]"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
+          <TouchFriendlyButton
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+            className="order-2 sm:order-1"
+          >
+            Cancel
+          </TouchFriendlyButton>
+          <TouchFriendlyButton
+            onClick={handleResolve}
+            disabled={isSubmitting || !selectedOption}
+            className="order-1 sm:order-2"
+          >
+            {isSubmitting ? 'Resolving...' : 'Resolve Conflict'}
+          </TouchFriendlyButton>
+        </div>
+      </div>
+    </ResponsiveDialog>
   );
 };
