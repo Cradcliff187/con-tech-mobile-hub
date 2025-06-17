@@ -1,22 +1,35 @@
-
 import { useState, useMemo, memo, useCallback } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useDebounce } from '@/hooks/useDebounce';
 import { OptimizedStakeholderCard } from './OptimizedStakeholderCard';
 import { StakeholderFilters } from './StakeholderFilters';
+import { EditStakeholderDialog } from './EditStakeholderDialog';
+import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, SortAsc, SortDesc } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Stakeholder } from '@/hooks/useStakeholders';
 
 const MemoizedFilters = memo(StakeholderFilters);
 
 export const OptimizedStakeholderDirectory = () => {
-  const { stakeholders, loading } = useStakeholders();
+  const { stakeholders, loading, deleteStakeholder } = useStakeholders();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'rating' | 'type' | 'created'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Edit dialog state
+  const [selectedStakeholder, setSelectedStakeholder] = useState<Stakeholder | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  
+  // Delete confirmation state
+  const [stakeholderToDelete, setStakeholderToDelete] = useState<Stakeholder | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   // Debounce search term to reduce unnecessary filtering
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -80,15 +93,69 @@ export const OptimizedStakeholderDirectory = () => {
     }
   }, [sortBy]);
 
-  const handleEdit = useCallback((stakeholder: any) => {
-    console.log('Edit stakeholder:', stakeholder.id);
-    // TODO: Implement edit functionality
+  const handleEdit = useCallback((stakeholder: Stakeholder) => {
+    setSelectedStakeholder(stakeholder);
+    setShowEditDialog(true);
   }, []);
 
-  const handleDelete = useCallback((stakeholder: any) => {
-    console.log('Delete stakeholder:', stakeholder.id);
-    // TODO: Implement delete functionality
+  const handleDelete = useCallback((stakeholder: Stakeholder) => {
+    setStakeholderToDelete(stakeholder);
+    setShowDeleteConfirmation(true);
   }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!stakeholderToDelete) return;
+
+    try {
+      // Check if stakeholder has assignments
+      const { data: assignments, error: assignmentError } = await supabase
+        .from('stakeholder_assignments')
+        .select('id')
+        .eq('stakeholder_id', stakeholderToDelete.id);
+
+      if (assignmentError) {
+        throw new Error('Failed to check stakeholder assignments');
+      }
+
+      if (assignments && assignments.length > 0) {
+        toast({
+          title: "Cannot Delete Stakeholder",
+          description: "This stakeholder has active assignments. Please remove all assignments before deleting.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if stakeholder is assigned to tasks
+      const { data: tasks, error: taskError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('assigned_stakeholder_id', stakeholderToDelete.id);
+
+      if (taskError) {
+        throw new Error('Failed to check stakeholder task assignments');
+      }
+
+      if (tasks && tasks.length > 0) {
+        toast({
+          title: "Cannot Delete Stakeholder",
+          description: "This stakeholder is assigned to tasks. Please reassign tasks before deleting.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Proceed with deletion
+      await deleteStakeholder(stakeholderToDelete.id);
+    } catch (error: any) {
+      console.error('Error deleting stakeholder:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete stakeholder",
+        variant: "destructive"
+      });
+    }
+  }, [stakeholderToDelete, deleteStakeholder, toast]);
 
   if (loading) {
     return (
@@ -191,6 +258,25 @@ export const OptimizedStakeholderDirectory = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <EditStakeholderDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        stakeholder={selectedStakeholder}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showDeleteConfirmation}
+        onOpenChange={setShowDeleteConfirmation}
+        title="Delete Stakeholder"
+        description={`Are you sure you want to delete ${stakeholderToDelete?.company_name || 'this stakeholder'}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };
