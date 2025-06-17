@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,58 +15,62 @@ import Admin from "./pages/Admin";
 import Planning from "./pages/Planning";
 import NotFound from "./pages/NotFound";
 
+// Create QueryClient outside of component to avoid recreation on re-renders
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
     },
   },
 });
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <AdminAuthProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <ProtectedRoute>
-                      <Admin />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/planning" 
-                  element={
-                    <ProtectedRoute>
-                      <Planning />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AdminAuthProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <AdminAuthProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <Index />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute>
+                        <Admin />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/planning" 
+                    element={
+                      <ProtectedRoute>
+                        <Planning />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </AdminAuthProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
