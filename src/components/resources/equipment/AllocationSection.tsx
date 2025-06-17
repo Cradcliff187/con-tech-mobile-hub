@@ -11,6 +11,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useTasks } from '@/hooks/useTasks';
 import { useUsers } from '@/hooks/useUsers';
+import { normalizeSelectValue } from '@/utils/selectHelpers';
 
 interface AllocationSectionProps {
   projectId: string;
@@ -29,6 +30,7 @@ interface AllocationSectionProps {
   onNotesChange: (notes: string) => void;
   conflicts?: any[];
   showConflicts?: boolean;
+  errors?: Record<string, string>;
 }
 
 export const AllocationSection = ({
@@ -47,7 +49,8 @@ export const AllocationSection = ({
   onEndDateChange,
   onNotesChange,
   conflicts = [],
-  showConflicts = false
+  showConflicts = false,
+  errors = {}
 }: AllocationSectionProps) => {
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
@@ -59,6 +62,17 @@ export const AllocationSection = ({
     : users.filter(u => u.account_status === 'approved');
 
   const availableTasks = tasks.filter(t => t.project_id === projectId);
+
+  const handleOperatorTypeChange = (checked: boolean) => {
+    const newType = checked ? 'user' : 'employee';
+    onOperatorTypeChange(newType);
+    // Reset operator selection when type changes
+    onOperatorChange('none');
+  };
+
+  const getFieldErrorClass = (fieldName: string) => {
+    return errors[fieldName] ? 'border-red-500 focus:border-red-500' : '';
+  };
 
   return (
     <Card>
@@ -75,11 +89,12 @@ export const AllocationSection = ({
             <Briefcase size={14} />
             Project *
           </Label>
-          <Select value={projectId} onValueChange={onProjectChange}>
-            <SelectTrigger>
+          <Select value={normalizeSelectValue(projectId)} onValueChange={onProjectChange}>
+            <SelectTrigger className={getFieldErrorClass('project')}>
               <SelectValue placeholder="Select project..." />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">No Project</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}
@@ -87,6 +102,9 @@ export const AllocationSection = ({
               ))}
             </SelectContent>
           </Select>
+          {errors.project && (
+            <p className="text-sm text-red-600">{errors.project}</p>
+          )}
         </div>
 
         {/* Operator Type Toggle */}
@@ -100,10 +118,7 @@ export const AllocationSection = ({
             <Switch
               id="operator-type"
               checked={operatorType === 'user'}
-              onCheckedChange={(checked) => {
-                onOperatorTypeChange(checked ? 'user' : 'employee');
-                onOperatorChange(''); // Reset operator selection
-              }}
+              onCheckedChange={handleOperatorTypeChange}
             />
             <Label htmlFor="operator-type">Internal User</Label>
           </div>
@@ -114,11 +129,12 @@ export const AllocationSection = ({
           <Label htmlFor="operator">
             {operatorType === 'employee' ? 'Employee' : 'Internal User'} *
           </Label>
-          <Select value={operatorId} onValueChange={onOperatorChange}>
-            <SelectTrigger>
+          <Select value={normalizeSelectValue(operatorId)} onValueChange={onOperatorChange}>
+            <SelectTrigger className={getFieldErrorClass('operator')}>
               <SelectValue placeholder={`Select ${operatorType}...`} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">No {operatorType === 'employee' ? 'Employee' : 'User'}</SelectItem>
               {availableOperators.map((operator) => (
                 <SelectItem key={operator.id} value={operator.id}>
                   {operatorType === 'employee' 
@@ -129,6 +145,9 @@ export const AllocationSection = ({
               ))}
             </SelectContent>
           </Select>
+          {errors.operator && (
+            <p className="text-sm text-red-600">{errors.operator}</p>
+          )}
         </div>
 
         {/* Date Range */}
@@ -144,6 +163,7 @@ export const AllocationSection = ({
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
+              className={getFieldErrorClass('dates')}
             />
           </div>
           <div className="space-y-2">
@@ -157,15 +177,19 @@ export const AllocationSection = ({
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
               min={startDate || new Date().toISOString().split('T')[0]}
+              className={getFieldErrorClass('dates')}
             />
           </div>
         </div>
+        {errors.dates && (
+          <p className="text-sm text-red-600">{errors.dates}</p>
+        )}
 
         {/* Task Assignment (Optional) */}
-        {projectId && (
+        {projectId && projectId !== 'none' && (
           <div className="space-y-2">
             <Label htmlFor="task">Task Assignment (Optional)</Label>
-            <Select value={taskId || 'none'} onValueChange={(value) => onTaskChange(value === 'none' ? undefined : value)}>
+            <Select value={normalizeSelectValue(taskId)} onValueChange={(value) => onTaskChange(value === 'none' ? undefined : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select task..." />
               </SelectTrigger>
@@ -207,6 +231,13 @@ export const AllocationSection = ({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Display conflicts error */}
+        {errors.conflicts && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{errors.conflicts}</p>
           </div>
         )}
       </CardContent>

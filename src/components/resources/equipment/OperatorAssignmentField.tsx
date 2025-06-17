@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeSelectValue } from '@/utils/selectHelpers';
 
 interface User {
   id: string;
@@ -19,6 +21,7 @@ interface OperatorAssignmentFieldProps {
   operatorId: string;
   setOperatorId: (value: string) => void;
   disabled?: boolean;
+  errors?: Record<string, string>;
 }
 
 export const OperatorAssignmentField = ({
@@ -28,7 +31,8 @@ export const OperatorAssignmentField = ({
   setAssignedOperatorId,
   operatorId,
   setOperatorId,
-  disabled = false
+  disabled = false,
+  errors = {}
 }: OperatorAssignmentFieldProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const { stakeholders } = useStakeholders();
@@ -54,18 +58,33 @@ export const OperatorAssignmentField = ({
 
   const employeeStakeholders = stakeholders.filter(s => s.stakeholder_type === 'employee');
 
+  const handleOperatorTypeChange = (value: 'employee' | 'user') => {
+    setOperatorType(value);
+    // Reset operator selections when type changes
+    setAssignedOperatorId('none');
+    setOperatorId('none');
+  };
+
+  const getFieldErrorClass = (fieldName: string) => {
+    return errors[fieldName] ? 'border-red-500 focus:border-red-500' : '';
+  };
+
   return (
     <div className="space-y-2">
       <Label>Operator Assignment</Label>
-      <Tabs value={operatorType} onValueChange={(value) => setOperatorType(value as 'employee' | 'user')}>
+      <Tabs value={operatorType} onValueChange={handleOperatorTypeChange}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="employee" disabled={disabled}>Employee</TabsTrigger>
           <TabsTrigger value="user" disabled={disabled}>Internal User</TabsTrigger>
         </TabsList>
         
         <TabsContent value="employee" className="space-y-2">
-          <Select value={assignedOperatorId} onValueChange={setAssignedOperatorId} disabled={disabled}>
-            <SelectTrigger>
+          <Select 
+            value={normalizeSelectValue(assignedOperatorId)} 
+            onValueChange={setAssignedOperatorId} 
+            disabled={disabled}
+          >
+            <SelectTrigger className={getFieldErrorClass('assignedOperator')}>
               <SelectValue placeholder="Select an employee (optional)" />
             </SelectTrigger>
             <SelectContent>
@@ -77,11 +96,18 @@ export const OperatorAssignmentField = ({
               ))}
             </SelectContent>
           </Select>
+          {errors.assignedOperator && (
+            <p className="text-sm text-red-600">{errors.assignedOperator}</p>
+          )}
         </TabsContent>
         
         <TabsContent value="user" className="space-y-2">
-          <Select value={operatorId} onValueChange={setOperatorId} disabled={disabled}>
-            <SelectTrigger>
+          <Select 
+            value={normalizeSelectValue(operatorId)} 
+            onValueChange={setOperatorId} 
+            disabled={disabled}
+          >
+            <SelectTrigger className={getFieldErrorClass('operator')}>
               <SelectValue placeholder="Select an internal user (optional)" />
             </SelectTrigger>
             <SelectContent>
@@ -93,6 +119,9 @@ export const OperatorAssignmentField = ({
               ))}
             </SelectContent>
           </Select>
+          {errors.operator && (
+            <p className="text-sm text-red-600">{errors.operator}</p>
+          )}
         </TabsContent>
       </Tabs>
     </div>

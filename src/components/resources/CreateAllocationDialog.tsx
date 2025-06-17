@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeSelectValue, prepareSelectDataForDB } from '@/utils/selectHelpers';
 
 interface CreateAllocationDialogProps {
   open: boolean;
@@ -26,6 +27,14 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
   const { projects } = useProjects();
   const { toast } = useToast();
 
+  const resetForm = () => {
+    setTeamName('');
+    setProjectId('none');
+    setWeekStartDate('');
+    setTotalBudget('');
+    setAllocationType('weekly');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName || !weekStartDate) {
@@ -38,15 +47,19 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
     }
 
     setLoading(true);
+    
+    // Prepare data for database using helper function
+    const dbData = prepareSelectDataForDB({
+      team_name: teamName,
+      project_id: projectId,
+      week_start_date: weekStartDate,
+      total_budget: totalBudget ? parseFloat(totalBudget) : 0,
+      allocation_type: allocationType
+    });
+
     const { error } = await supabase
       .from('resource_allocations')
-      .insert({
-        team_name: teamName,
-        project_id: projectId === 'none' ? null : projectId,
-        week_start_date: weekStartDate,
-        total_budget: totalBudget ? parseFloat(totalBudget) : 0,
-        allocation_type: allocationType
-      });
+      .insert(dbData);
 
     if (error) {
       toast({
@@ -59,12 +72,7 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
         title: "Success",
         description: "Resource allocation created successfully"
       });
-      // Reset form
-      setTeamName('');
-      setProjectId('none');
-      setWeekStartDate('');
-      setTotalBudget('');
-      setAllocationType('weekly');
+      resetForm();
       onOpenChange(false);
       if (onSuccess) onSuccess();
     }
@@ -92,7 +100,7 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
 
           <div className="space-y-2">
             <Label htmlFor="project">Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
+            <Select value={normalizeSelectValue(projectId)} onValueChange={setProjectId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a project (optional)" />
               </SelectTrigger>

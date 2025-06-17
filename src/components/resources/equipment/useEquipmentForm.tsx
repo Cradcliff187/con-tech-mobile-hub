@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Equipment } from '@/hooks/useEquipment';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { normalizeSelectValue, prepareSelectDataForDB } from '@/utils/selectHelpers';
 
 interface UseEquipmentFormProps {
   equipment: Equipment | null;
@@ -16,10 +16,10 @@ export const useEquipmentForm = ({ equipment, open, onSuccess, onOpenChange }: U
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('available');
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState('none');
   const [operatorType, setOperatorType] = useState<'employee' | 'user'>('employee');
-  const [assignedOperatorId, setAssignedOperatorId] = useState('');
-  const [operatorId, setOperatorId] = useState('');
+  const [assignedOperatorId, setAssignedOperatorId] = useState('none');
+  const [operatorId, setOperatorId] = useState('none');
   const [maintenanceDue, setMaintenanceDue] = useState('');
 
   const { toast } = useToast();
@@ -39,9 +39,9 @@ export const useEquipmentForm = ({ equipment, open, onSuccess, onOpenChange }: U
       setName(equipment.name);
       setType(equipment.type || '');
       setStatus(equipment.status);
-      setProjectId(equipment.project_id || '');
-      setAssignedOperatorId(equipment.assigned_operator_id || '');
-      setOperatorId(equipment.operator_id || '');
+      setProjectId(normalizeSelectValue(equipment.project_id));
+      setAssignedOperatorId(normalizeSelectValue(equipment.assigned_operator_id));
+      setOperatorId(normalizeSelectValue(equipment.operator_id));
       setMaintenanceDue(equipment.maintenance_due || '');
       
       // Set operator type based on which field has a value
@@ -72,15 +72,18 @@ export const useEquipmentForm = ({ equipment, open, onSuccess, onOpenChange }: U
         name: name.trim(),
         type: type.trim(),
         status,
-        project_id: projectId || null,
-        maintenance_due: maintenanceDue || null,
-        assigned_operator_id: operatorType === 'employee' ? (assignedOperatorId || null) : null,
-        operator_id: operatorType === 'user' ? (operatorId || null) : null,
+        project_id: projectId,
+        maintenance_due: maintenanceDue,
+        assigned_operator_id: operatorType === 'employee' ? assignedOperatorId : 'none',
+        operator_id: operatorType === 'user' ? operatorId : 'none',
       };
+
+      // Prepare data for database using standardized helper
+      const dbData = prepareSelectDataForDB(updateData);
 
       const { error } = await supabase
         .from('equipment')
-        .update(updateData)
+        .update(dbData)
         .eq('id', equipment.id);
 
       if (error) {
@@ -93,10 +96,10 @@ export const useEquipmentForm = ({ equipment, open, onSuccess, onOpenChange }: U
     setName('');
     setType('');
     setStatus('available');
-    setProjectId('');
+    setProjectId('none');
     setOperatorType('employee');
-    setAssignedOperatorId('');
-    setOperatorId('');
+    setAssignedOperatorId('none');
+    setOperatorId('none');
     setMaintenanceDue('');
   };
 

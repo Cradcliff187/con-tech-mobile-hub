@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { prepareSelectDataForDB } from '@/utils/selectHelpers';
 
 export interface EquipmentAllocation {
   id: string;
@@ -110,12 +110,15 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   }) => {
     if (!user) return { error: 'User not authenticated' };
 
+    // Prepare data for database using standardized helper
+    const dbData = prepareSelectDataForDB({
+      ...allocationData,
+      allocated_by: user.id
+    });
+
     const { data, error } = await supabase
       .from('equipment_allocations')
-      .insert({
-        ...allocationData,
-        allocated_by: user.id
-      })
+      .insert(dbData)
       .select(`
         *,
         project:projects!inner(id, name),
@@ -133,9 +136,12 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   };
 
   const updateAllocation = async (id: string, updates: Partial<EquipmentAllocation>) => {
+    // Prepare updates for database using standardized helper
+    const dbUpdates = prepareSelectDataForDB(updates);
+
     const { data, error } = await supabase
       .from('equipment_allocations')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
       .select(`
         *,
