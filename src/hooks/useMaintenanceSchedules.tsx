@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,10 +60,11 @@ export const useMaintenanceSchedules = () => {
           variant: "destructive"
         });
       } else {
-        // Type cast frequency_type to match our interface
+        // Type cast frequency_type and handle JSON properly
         const normalizedSchedules = (data || []).map(schedule => ({
           ...schedule,
-          frequency_type: schedule.frequency_type as MaintenanceSchedule['frequency_type']
+          frequency_type: schedule.frequency_type as MaintenanceSchedule['frequency_type'],
+          checklist_template: Array.isArray(schedule.checklist_template) ? schedule.checklist_template : []
         }));
         setSchedules(normalizedSchedules);
       }

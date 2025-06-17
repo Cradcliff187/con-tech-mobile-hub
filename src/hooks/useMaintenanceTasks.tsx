@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,12 +69,13 @@ export const useMaintenanceTasks = () => {
           variant: "destructive"
         });
       } else {
-        // Type cast and normalize the data
+        // Type cast and normalize the data with proper JSON handling
         const normalizedTasks = (data || []).map(task => ({
           ...task,
           task_type: task.task_type as MaintenanceTask['task_type'],
           priority: task.priority as MaintenanceTask['priority'],
           status: task.status as MaintenanceTask['status'],
+          checklist_items: Array.isArray(task.checklist_items) ? task.checklist_items : []
         }));
         setTasks(normalizedTasks);
       }

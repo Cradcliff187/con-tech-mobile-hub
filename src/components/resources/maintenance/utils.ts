@@ -29,19 +29,3 @@ export const getPriorityColor = (priority: string): string => {
     default: return 'bg-gray-100 text-gray-800';
   }
 };
-
-// Helper function to format maintenance task data for the existing components
-export const formatMaintenanceTaskForCard = (task: MaintenanceTask) => {
-  return {
-    id: task.id,
-    equipmentId: task.equipment_id,
-    equipmentName: task.equipment?.name || 'Unknown Equipment',
-    type: task.task_type,
-    priority: task.priority,
-    scheduledDate: task.scheduled_date,
-    estimatedHours: task.estimated_hours || 4,
-    assignedTo: task.assigned_stakeholder?.contact_person || task.assigned_user?.full_name,
-    status: task.status,
-    description: task.description || ''
-  };
-};
