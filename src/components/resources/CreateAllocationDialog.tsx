@@ -17,7 +17,7 @@ interface CreateAllocationDialogProps {
 
 export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: CreateAllocationDialogProps) => {
   const [teamName, setTeamName] = useState('');
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState('none');
   const [weekStartDate, setWeekStartDate] = useState('');
   const [totalBudget, setTotalBudget] = useState('');
   const [allocationType, setAllocationType] = useState('weekly');
@@ -42,7 +42,7 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
       .from('resource_allocations')
       .insert({
         team_name: teamName,
-        project_id: projectId || null,
+        project_id: projectId === 'none' ? null : projectId,
         week_start_date: weekStartDate,
         total_budget: totalBudget ? parseFloat(totalBudget) : 0,
         allocation_type: allocationType
@@ -61,7 +61,7 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
       });
       // Reset form
       setTeamName('');
-      setProjectId('');
+      setProjectId('none');
       setWeekStartDate('');
       setTotalBudget('');
       setAllocationType('weekly');
@@ -97,7 +97,7 @@ export const CreateAllocationDialog = ({ open, onOpenChange, onSuccess }: Create
                 <SelectValue placeholder="Select a project (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Project</SelectItem>
+                <SelectItem value="none">No Project</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}

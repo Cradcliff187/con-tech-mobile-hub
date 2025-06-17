@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,7 +69,7 @@ export const OperatorAssignmentField = ({
               <SelectValue placeholder="Select an employee (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Employee</SelectItem>
+              <SelectItem value="none">No Employee</SelectItem>
               {employeeStakeholders.map((stakeholder) => (
                 <SelectItem key={stakeholder.id} value={stakeholder.id}>
                   {stakeholder.contact_person || stakeholder.company_name || 'Unknown Employee'}
@@ -86,7 +85,7 @@ export const OperatorAssignmentField = ({
               <SelectValue placeholder="Select an internal user (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No User</SelectItem>
+              <SelectItem value="none">No User</SelectItem>
               {users.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {user.full_name || user.email}

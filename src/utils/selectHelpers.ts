@@ -7,7 +7,9 @@ export const validateSelectData = <T extends { id: string; name?: string }>(
     item.id && 
     item.id.trim() !== '' && 
     item.id !== 'undefined' && 
-    item.id !== 'null'
+    item.id !== 'null' &&
+    item.id !== 'none' &&
+    item.id !== 'all'
   );
 };
 
@@ -22,4 +24,18 @@ export const getSelectDisplayName = (
     }
   }
   return fallback;
+};
+
+export const normalizeSelectValue = (value: string | null | undefined): string => {
+  if (!value || value === 'null' || value === 'undefined') {
+    return 'none';
+  }
+  return value;
+};
+
+export const denormalizeSelectValue = (value: string): string | null => {
+  if (value === 'none' || value === 'all') {
+    return null;
+  }
+  return value;
 };

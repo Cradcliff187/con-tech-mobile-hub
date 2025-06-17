@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
@@ -47,7 +46,7 @@ export const DragDropResourceView = () => {
   const { allocations, loading, refetch } = useResourceAllocations();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [filterMember, setFilterMember] = useState('');
-  const [filterProject, setFilterProject] = useState('');
+  const [filterProject, setFilterProject] = useState('all');
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const { toast } = useToast();
 
@@ -110,7 +109,7 @@ export const DragDropResourceView = () => {
   // Filter team members based on search criteria
   const filteredMembers = teamMemberAllocations.filter(member => {
     const matchesName = !filterMember || member.memberName.toLowerCase().includes(filterMember.toLowerCase());
-    const matchesProject = !filterProject || member.projects.some(p => p.projectId === filterProject);
+    const matchesProject = filterProject === 'all' || member.projects.some(p => p.projectId === filterProject);
     return matchesName && matchesProject;
   });
 
@@ -397,7 +396,7 @@ export const DragDropResourceView = () => {
                   <SelectValue placeholder="All projects" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Projects</SelectItem>
+                  <SelectItem value="all">All Projects</SelectItem>
                   {activeProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}

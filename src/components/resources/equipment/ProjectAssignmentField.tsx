@@ -24,7 +24,7 @@ export const ProjectAssignmentField = ({
           <SelectValue placeholder="Select a project (optional)" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">No Project</SelectItem>
+          <SelectItem value="none">No Project</SelectItem>
           {projects.map((project) => (
             <SelectItem key={project.id} value={project.id}>
               {project.name}

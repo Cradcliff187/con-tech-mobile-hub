@@ -165,12 +165,12 @@ export const AllocationSection = ({
         {projectId && (
           <div className="space-y-2">
             <Label htmlFor="task">Task Assignment (Optional)</Label>
-            <Select value={taskId || ''} onValueChange={(value) => onTaskChange(value || undefined)}>
+            <Select value={taskId || 'none'} onValueChange={(value) => onTaskChange(value === 'none' ? undefined : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select task..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific task</SelectItem>
+                <SelectItem value="none">No specific task</SelectItem>
                 {availableTasks.map((task) => (
                   <SelectItem key={task.id} value={task.id}>
                     {task.title}
