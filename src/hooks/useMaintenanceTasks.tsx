@@ -55,9 +55,9 @@ export const useMaintenanceTasks = () => {
         .from('maintenance_tasks')
         .select(`
           *,
-          equipment:equipment(id, name, type),
-          assigned_stakeholder:stakeholders(id, contact_person, company_name),
-          assigned_user:profiles(id, full_name)
+          equipment_data:equipment(id, name, type),
+          assigned_stakeholder_data:stakeholders(id, contact_person, company_name),
+          assigned_user_data:profiles(id, full_name)
         `)
         .order('scheduled_date', { ascending: true });
 
@@ -69,13 +69,16 @@ export const useMaintenanceTasks = () => {
           variant: "destructive"
         });
       } else {
-        // Type cast and normalize the data with proper JSON handling
+        // Type cast and normalize the data with proper JSON handling and relationship mapping
         const normalizedTasks = (data || []).map(task => ({
           ...task,
           task_type: task.task_type as MaintenanceTask['task_type'],
           priority: task.priority as MaintenanceTask['priority'],
           status: task.status as MaintenanceTask['status'],
-          checklist_items: Array.isArray(task.checklist_items) ? task.checklist_items : []
+          checklist_items: Array.isArray(task.checklist_items) ? task.checklist_items : [],
+          equipment: task.equipment_data,
+          assigned_stakeholder: task.assigned_stakeholder_data,
+          assigned_user: task.assigned_user_data
         }));
         setTasks(normalizedTasks);
       }

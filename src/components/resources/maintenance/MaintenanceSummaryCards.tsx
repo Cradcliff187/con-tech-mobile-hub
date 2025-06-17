@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Wrench, AlertTriangle, CalendarDays } from 'lucide-react';
-import { MaintenanceTask } from './types';
+import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
 
 interface MaintenanceSummaryCardsProps {
   tasks: MaintenanceTask[];
@@ -11,7 +11,7 @@ export const MaintenanceSummaryCards = ({ tasks }: MaintenanceSummaryCardsProps)
   const overdueTasks = tasks.filter(task => task.status === 'overdue').length;
   const criticalTasks = tasks.filter(task => task.priority === 'critical').length;
   const thisWeekTasks = tasks.filter(task => {
-    const taskDate = new Date(task.scheduledDate);
+    const taskDate = new Date(task.scheduled_date);
     const today = new Date();
     const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
     return taskDate >= today && taskDate <= weekFromNow;

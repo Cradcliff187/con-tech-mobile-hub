@@ -3,7 +3,7 @@ import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Clock, User, Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
-import { MaintenanceTask } from './maintenance/types';
+import { MaintenanceTask } from '@/hooks/useMaintenanceTasks';
 
 interface MaintenanceTaskDetailsDialogProps {
   open: boolean;
@@ -21,7 +21,7 @@ export const MaintenanceTaskDetailsDialog = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'overdue': return 'bg-red-100 text-red-800';
       default: return 'bg-yellow-100 text-yellow-800';
     }
@@ -39,7 +39,7 @@ export const MaintenanceTaskDetailsDialog = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle size={20} className="text-green-600" />;
-      case 'in-progress': return <Clock size={20} className="text-blue-600" />;
+      case 'in_progress': return <Clock size={20} className="text-blue-600" />;
       case 'overdue': return <AlertTriangle size={20} className="text-red-600" />;
       default: return <CalendarDays size={20} className="text-yellow-600" />;
     }
@@ -58,7 +58,7 @@ export const MaintenanceTaskDetailsDialog = ({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Maintenance Details: ${task.equipmentName}`}
+      title={`Maintenance Details: ${task.equipment?.name || 'Unknown Equipment'}`}
       className="max-w-2xl"
     >
       <div className="space-y-6">
@@ -67,7 +67,7 @@ export const MaintenanceTaskDetailsDialog = ({
           {getStatusIcon(task.status)}
           <div className="flex-1">
             <Badge className={getStatusColor(task.status)}>
-              {task.status.replace('-', ' ').toUpperCase()}
+              {task.status.replace('_', ' ').toUpperCase()}
             </Badge>
             <Badge className={`ml-2 ${getPriorityColor(task.priority)}`}>
               {task.priority.toUpperCase()} PRIORITY
@@ -87,11 +87,11 @@ export const MaintenanceTaskDetailsDialog = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-600">Equipment Name</label>
-                <p className="text-slate-800 font-medium">{task.equipmentName}</p>
+                <p className="text-slate-800 font-medium">{task.equipment?.name || 'Unknown Equipment'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-600">Equipment ID</label>
-                <p className="text-slate-800 font-mono text-sm">{task.equipmentId}</p>
+                <p className="text-slate-800 font-mono text-sm">{task.equipment_id}</p>
               </div>
             </div>
           </CardContent>
@@ -109,12 +109,12 @@ export const MaintenanceTaskDetailsDialog = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-600">Maintenance Type</label>
-                <p className="text-slate-800 font-medium">{getTypeLabel(task.type)}</p>
+                <p className="text-slate-800 font-medium">{getTypeLabel(task.task_type)}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-600">Scheduled Date</label>
                 <p className="text-slate-800 font-medium">
-                  {new Date(task.scheduledDate).toLocaleDateString('en-US', {
+                  {new Date(task.scheduled_date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -126,24 +126,26 @@ export const MaintenanceTaskDetailsDialog = ({
                 <label className="text-sm font-medium text-slate-600">Estimated Duration</label>
                 <p className="text-slate-800 font-medium flex items-center gap-1">
                   <Clock size={16} />
-                  {task.estimatedHours} hours
+                  {task.estimated_hours || 4} hours
                 </p>
               </div>
-              {task.assignedTo && (
+              {(task.assigned_stakeholder?.contact_person || task.assigned_user?.full_name) && (
                 <div>
                   <label className="text-sm font-medium text-slate-600">Assigned To</label>
                   <p className="text-slate-800 font-medium flex items-center gap-1">
                     <User size={16} />
-                    {task.assignedTo}
+                    {task.assigned_stakeholder?.contact_person || task.assigned_user?.full_name}
                   </p>
                 </div>
               )}
             </div>
             
-            <div>
-              <label className="text-sm font-medium text-slate-600">Description</label>
-              <p className="text-slate-800 mt-1">{task.description}</p>
-            </div>
+            {task.description && (
+              <div>
+                <label className="text-sm font-medium text-slate-600">Description</label>
+                <p className="text-slate-800 mt-1">{task.description}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -157,7 +159,7 @@ export const MaintenanceTaskDetailsDialog = ({
               <p>• Ensure all safety protocols are followed during maintenance</p>
               <p>• Document any issues or concerns discovered during the work</p>
               <p>• Update equipment status upon completion</p>
-              {task.type === 'inspection' && (
+              {task.task_type === 'inspection' && (
                 <p>• Complete inspection checklist and certification requirements</p>
               )}
               {task.priority === 'critical' && (
