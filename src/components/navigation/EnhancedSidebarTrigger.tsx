@@ -36,9 +36,7 @@ export const EnhancedSidebarTrigger = forwardRef<HTMLButtonElement, EnhancedSide
       "bg-white border border-slate-200 shadow-md rounded-lg",
       "w-10 h-10 md:w-10 md:h-10",
       "hover:shadow-lg hover:-translate-y-0.5",
-      "active:translate-y-0 active:shadow-md",
-      // Hide when sidebar is open on desktop
-      "lg:data-[state=expanded]:opacity-0 lg:data-[state=expanded]:pointer-events-none"
+      "active:translate-y-0 active:shadow-md"
     ],
     
     // Non-floating styles
