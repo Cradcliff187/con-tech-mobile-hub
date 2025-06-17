@@ -1,4 +1,3 @@
-
 import { Task } from '@/types/database';
 import { GanttTimelineHeader } from './GanttTimelineHeader';
 import { GanttTaskCard } from './GanttTaskCard';
@@ -7,6 +6,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { VirtualScrollGantt } from './navigation/VirtualScrollGantt';
 import { GanttOverlayManager } from './overlays/GanttOverlayManager';
 import { useRef, useEffect, useState, useMemo } from 'react';
+import { getColumnIndexForDate } from './ganttUtils';
 
 interface GanttChartContentProps {
   displayTasks: Task[];
@@ -106,6 +106,12 @@ export const GanttChartContent = ({
     
     return units;
   }, [timelineStart, timelineEnd, viewMode]);
+
+  // Calculate which column contains today's date
+  const todayColumnIndex = useMemo(() => {
+    const today = new Date();
+    return getColumnIndexForDate(today, timelineUnits, viewMode);
+  }, [timelineUnits, viewMode]);
 
   // Use virtual scrolling for large task lists (>50 tasks)
   useEffect(() => {
@@ -238,16 +244,23 @@ export const GanttChartContent = ({
               <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
                   <div className="min-w-max flex h-full">
-                    {timelineUnits.map((unit, unitIndex) => (
-                      <div
-                        key={unit.key}
-                        className={`flex-shrink-0 border-r border-slate-100 h-full ${
-                          viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
-                        } ${
-                          unit.isWeekend ? 'bg-slate-50/50' : ''
-                        }`}
-                      />
-                    ))}
+                    {timelineUnits.map((unit, unitIndex) => {
+                      const isCurrentColumn = unitIndex === todayColumnIndex;
+                      const isWeekendColumn = viewMode === 'days' && unit.isWeekend;
+                      
+                      return (
+                        <div
+                          key={unit.key}
+                          className={`flex-shrink-0 border-r border-slate-100 h-full ${
+                            viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
+                          } ${
+                            isCurrentColumn ? 'bg-blue-50 bg-opacity-50' : ''
+                          } ${
+                            isWeekendColumn ? 'bg-slate-50' : ''
+                          }`}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </div>
