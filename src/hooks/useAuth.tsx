@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { authApi } from '@/services/authApi';
 import { getAuthNotification, getSignupNotification } from '@/utils/authNotifications';
 import { AuthContextType, ProfileData } from '@/types/auth';
-import { subscriptionManager } from '@/services/subscriptionManager';
+import { subscriptionManager } from '@/services/subscription';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

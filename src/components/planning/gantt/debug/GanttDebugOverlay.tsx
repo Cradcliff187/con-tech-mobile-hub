@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Task } from '@/types/database';
 import { Settings, X, Eye, EyeOff, Wifi, WifiOff, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { subscriptionManager } from '@/services/subscriptionManager';
+import { subscriptionManager } from '@/services/subscription';
 import { useAuth } from '@/hooks/useAuth';
 import { ColumnDebugInfo } from './ColumnDebugInfo';
 import { GridDebugLines } from './GridDebugLines';
