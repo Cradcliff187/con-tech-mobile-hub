@@ -6,6 +6,7 @@ import { TaskBarTooltip } from './components/TaskBarTooltip';
 import { TaskBarIndicators } from './components/TaskBarIndicators';
 import { TaskBarContent } from './components/TaskBarContent';
 import { getViewModeConfig, getBarHeight } from './utils/viewModeUtils';
+import { generateTimelineUnits } from './utils/gridUtils';
 
 interface GanttTimelineBarProps {
   task: Task;
@@ -35,6 +36,7 @@ export const GanttTimelineBar = ({
   const columnWidth = getColumnWidth(viewMode);
   const phaseColor = getConstructionPhaseColor(task);
   const config = getViewModeConfig(viewMode);
+  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   
   const handleClick = () => {
     onSelect(task.id);
@@ -51,7 +53,7 @@ export const GanttTimelineBar = ({
   const actualWidth = gridPosition.columnSpan * columnWidth;
 
   return (
-    <div className={`relative ${getBarHeight(viewMode)} flex-1 border-r border-slate-200`}>
+    <div className={`relative ${getBarHeight(viewMode)}`} style={{ width: `${timelineUnits.length * columnWidth}px` }}>
       <TaskBarTooltip task={task} viewMode={viewMode}>
         <div
           className={`absolute ${config.topOffset} ${config.height} rounded-md cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md ${
