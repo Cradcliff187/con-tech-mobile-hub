@@ -6,6 +6,20 @@ import { useImprovedTaskSubscription } from './tasks/useImprovedTaskSubscription
 import { useTaskOperations } from './tasks/useTaskOperations';
 import { useTaskFetching } from './tasks/useTaskFetching';
 
+/**
+ * Main tasks hook that provides complete task management functionality
+ * 
+ * This hook combines:
+ * - Initial task fetching
+ * - Real-time updates via improved subscription system
+ * - Task creation and updates
+ * - Manual refetch capability
+ * 
+ * @example
+ * ```typescript
+ * const { tasks, loading, error, createTask, updateTask, refetch } = useTasks();
+ * ```
+ */
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const { user } = useAuth();
@@ -13,6 +27,7 @@ export const useTasks = () => {
   const { loading, error, fetchTasks } = useTaskFetching(user);
   const { createTask, updateTask } = useTaskOperations(user);
   
+  // Set up real-time subscription for all tasks
   useImprovedTaskSubscription({ 
     user, 
     onTasksUpdate: setTasks 

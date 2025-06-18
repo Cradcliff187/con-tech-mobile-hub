@@ -10,6 +10,25 @@ interface UseImprovedTaskSubscriptionProps {
   projectId?: string;
 }
 
+/**
+ * Enhanced task subscription hook using the centralized subscription manager
+ * 
+ * This hook provides real-time task updates with the following features:
+ * - Automatic deduplication of subscriptions
+ * - Project-specific filtering
+ * - Proper cleanup on user logout
+ * - Status monitoring for debug overlay
+ * - Optimistic update handling
+ * 
+ * @example
+ * ```typescript
+ * const { subscriptionStatus, reconnect } = useImprovedTaskSubscription({
+ *   user,
+ *   onTasksUpdate: setTasks,
+ *   projectId: 'project-123' // Optional: filter by project
+ * });
+ * ```
+ */
 export const useImprovedTaskSubscription = ({ 
   user, 
   onTasksUpdate, 
@@ -20,8 +39,8 @@ export const useImprovedTaskSubscription = ({
   const lastConfigRef = useRef<string>('');
 
   useEffect(() => {
+    // Clean up subscription if user logs out
     if (!user) {
-      // Clean up subscription if user logs out
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
@@ -41,12 +60,11 @@ export const useImprovedTaskSubscription = ({
 
     // Clean up existing subscription before creating new one
     if (unsubscribeRef.current) {
-      console.log('Cleaning up existing subscription before creating new one');
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
 
-    // Configure subscription
+    // Configure subscription with optional project filtering
     const subscriptionConfig: SubscriptionConfig = {
       table: 'tasks',
       event: '*',
@@ -54,17 +72,11 @@ export const useImprovedTaskSubscription = ({
       ...(projectId && { filter: { project_id: projectId } })
     };
 
-    console.log('Setting up improved task subscription', { 
-      userId: user.id, 
-      projectId, 
-      hasFilter: !!projectId,
-      configKey
-    });
-
-    // Create subscription callback
+    /**
+     * Handle real-time task updates with optimistic UI updates
+     * Supports INSERT, UPDATE, and DELETE operations
+     */
     const handleTaskUpdate: SubscriptionCallback = (payload) => {
-      console.log('Task real-time update:', payload.eventType, payload.new?.id || (payload.old as any)?.id);
-
       if (payload.eventType === 'INSERT' && payload.new) {
         const newTask = mapTaskFromDb(payload.new);
         onTasksUpdate(prev => {
@@ -83,12 +95,12 @@ export const useImprovedTaskSubscription = ({
       }
     };
 
-    // Subscribe using the subscription manager
+    // Subscribe using the centralized subscription manager
     const unsubscribe = subscriptionManager.subscribe(subscriptionConfig, handleTaskUpdate);
     unsubscribeRef.current = unsubscribe;
     lastConfigRef.current = configKey;
 
-    // Update status based on subscription manager
+    // Monitor subscription status for debug overlay
     const checkStatus = () => {
       const status = subscriptionManager.getChannelStatus(subscriptionConfig);
       setSubscriptionStatus(status);
@@ -107,9 +119,12 @@ export const useImprovedTaskSubscription = ({
       }
       lastConfigRef.current = '';
     };
-  }, [user?.id, projectId]); // Re-run when user or project changes
+  }, [user?.id, projectId]);
 
-  // Reconnect function for error recovery
+  /**
+   * Manually reconnect the subscription (useful for error recovery)
+   * This can be called from the debug overlay or error handlers
+   */
   const reconnect = async () => {
     if (!user) return;
 
@@ -122,7 +137,6 @@ export const useImprovedTaskSubscription = ({
 
     try {
       await subscriptionManager.reconnectChannel(subscriptionConfig);
-      console.log('Task subscription reconnected successfully');
     } catch (error) {
       console.error('Failed to reconnect task subscription:', error);
     }

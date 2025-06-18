@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +26,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   const handleAuthStateChange = async (session: Session | null) => {
-    console.log('Auth state changed:', session?.user?.email || 'no user');
     setSession(session);
     setUser(session?.user ?? null);
     
@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setTimeout(async () => {
         try {
           const profileData = await authApi.fetchProfile(session.user.id);
-          console.log('Profile data loaded:', profileData);
           setProfile(profileData);
           
           if (profileData) {
@@ -47,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             // Handle account status - only sign out for suspended/inactive
             if (profileData.account_status === 'suspended' || profileData.account_status === 'inactive') {
-              console.log('Account suspended/inactive, signing out');
               await supabase.auth.signOut();
             }
           }
@@ -63,7 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       // User logged out - cleanup subscriptions
       try {
-        console.log('User logged out, cleaning up subscriptions');
         subscriptionManager.unsubscribeAll();
       } catch (error) {
         console.warn('Error cleaning up subscriptions:', error);
@@ -74,7 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
-      console.log('Attempting signup for:', email);
       const { error } = await authApi.signUp(email, password, fullName);
 
       if (error) {
@@ -85,7 +81,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "destructive"
         });
       } else {
-        console.log('Signup successful');
         const notification = getSignupNotification(email);
         toast(notification);
       }
@@ -104,7 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('Attempting signin for:', email);
       const { error } = await authApi.signIn(email, password);
 
       if (error) {
@@ -114,8 +108,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           description: error.message,
           variant: "destructive"
         });
-      } else {
-        console.log('Signin successful');
       }
 
       return { error };
@@ -132,11 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      console.log('Signing out user');
-      
       // Clean up subscriptions before signing out
       try {
-        console.log('Cleaning up subscriptions before logout');
         subscriptionManager.unsubscribeAll();
       } catch (cleanupError) {
         console.warn('Error cleaning up subscriptions during logout:', cleanupError);
@@ -151,7 +140,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "destructive"
         });
       } else {
-        console.log('Signout successful');
         setProfile(null);
         setUser(null);
         setSession(null);
@@ -167,12 +155,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log('Setting up auth state listener');
-    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth event:', event);
         await handleAuthStateChange(session);
         setLoading(false);
       }
@@ -180,13 +165,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email || 'no user');
       handleAuthStateChange(session);
       setLoading(false);
     });
 
     return () => {
-      console.log('Cleaning up auth subscription');
       subscription.unsubscribe();
     };
   }, []);

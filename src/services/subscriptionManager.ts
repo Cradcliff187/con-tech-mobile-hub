@@ -21,6 +21,45 @@ interface ChannelManager {
   status: string;
 }
 
+/**
+ * Centralized Subscription Manager for Supabase Real-time Updates
+ * 
+ * This singleton class manages all real-time subscriptions in the application,
+ * providing the following features:
+ * 
+ * - **Automatic Deduplication**: Multiple components subscribing to the same table
+ *   will share a single channel, reducing overhead
+ * - **Proper Cleanup**: Channels are automatically cleaned up when no longer needed
+ * - **Error Recovery**: Built-in reconnection capabilities for failed channels
+ * - **Debug Support**: Status monitoring and channel information for debugging
+ * 
+ * @example Basic Usage
+ * ```typescript
+ * import { subscriptionManager } from '@/services/subscriptionManager';
+ * 
+ * // Subscribe to all task updates
+ * const unsubscribe = subscriptionManager.subscribe(
+ *   { table: 'tasks', event: '*' },
+ *   (payload) => console.log('Task updated:', payload)
+ * );
+ * 
+ * // Clean up when component unmounts
+ * useEffect(() => unsubscribe, []);
+ * ```
+ * 
+ * @example Project-Specific Filtering
+ * ```typescript
+ * // Subscribe to tasks for a specific project
+ * const unsubscribe = subscriptionManager.subscribe(
+ *   { 
+ *     table: 'tasks', 
+ *     event: '*', 
+ *     filter: { project_id: 'project-123' } 
+ *   },
+ *   handleTaskUpdate
+ * );
+ * ```
+ */
 class SubscriptionManager {
   private static instance: SubscriptionManager;
   private channels: Map<string, ChannelManager> = new Map();
@@ -39,6 +78,7 @@ class SubscriptionManager {
 
   /**
    * Generate a unique channel key based on table and filter configuration
+   * This enables automatic deduplication of subscriptions
    */
   private generateChannelKey(config: SubscriptionConfig): string {
     const { table, event = '*', schema = 'public', filter } = config;
@@ -48,6 +88,7 @@ class SubscriptionManager {
 
   /**
    * Generate a unique channel name to prevent conflicts
+   * Each channel gets a timestamp to ensure uniqueness
    */
   private generateChannelName(config: SubscriptionConfig): string {
     const key = this.generateChannelKey(config);
@@ -57,6 +98,10 @@ class SubscriptionManager {
 
   /**
    * Subscribe to a table with automatic deduplication
+   * 
+   * @param config - Subscription configuration (table, event, filters)
+   * @param callback - Function to call when data changes
+   * @returns Unsubscribe function to clean up the subscription
    */
   public subscribe<T = any>(
     config: SubscriptionConfig,
@@ -96,6 +141,7 @@ class SubscriptionManager {
         postgresChangesConfig = { ...postgresChangesConfig, filter };
       }
 
+      // Set up real-time listener
       channel.on('postgres_changes', postgresChangesConfig, (payload) => {
         // Call all registered callbacks for this channel
         channelManager!.callbacks.forEach(cb => {
@@ -109,15 +155,11 @@ class SubscriptionManager {
 
       // Handle subscription status changes
       channel.subscribe((status) => {
-        console.log(`Subscription status for ${channelKey}:`, status);
-        
         if (channelManager) {
           channelManager.status = status;
         }
 
-        if (status === 'SUBSCRIBED') {
-          console.log(`Successfully subscribed to ${channelKey}`);
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error(`Channel error for ${channelKey}, cleaning up...`);
           this.cleanupChannel(channelKey);
         }
@@ -144,13 +186,12 @@ class SubscriptionManager {
   }
 
   /**
-   * Clean up a specific channel
+   * Clean up a specific channel and remove it from the manager
    */
   private cleanupChannel(channelKey: string): void {
     const channelManager = this.channels.get(channelKey);
     if (channelManager) {
       try {
-        console.log(`Cleaning up channel: ${channelKey}`);
         supabase.removeChannel(channelManager.channel);
         this.channels.delete(channelKey);
       } catch (error) {
@@ -163,6 +204,7 @@ class SubscriptionManager {
 
   /**
    * Get the status of a specific channel
+   * Used by debug overlay and monitoring tools
    */
   public getChannelStatus(config: SubscriptionConfig): string | null {
     const channelKey = this.generateChannelKey(config);
@@ -172,6 +214,7 @@ class SubscriptionManager {
 
   /**
    * Reconnect a specific channel (useful for error recovery)
+   * This will preserve all existing callbacks and re-establish the connection
    */
   public async reconnectChannel(config: SubscriptionConfig): Promise<void> {
     const channelKey = this.generateChannelKey(config);
@@ -191,12 +234,11 @@ class SubscriptionManager {
   }
 
   /**
-   * Clean up all subscriptions (useful for logout)
+   * Clean up all subscriptions (called during logout)
+   * This ensures no memory leaks and proper cleanup
    */
   public unsubscribeAll(): void {
     this.isCleaningUp = true;
-    
-    console.log(`Cleaning up ${this.channels.size} subscription channels...`);
     
     // Create a copy of channel keys to avoid mutation during iteration
     const channelKeys = Array.from(this.channels.keys());
@@ -209,7 +251,6 @@ class SubscriptionManager {
     this.channels.clear();
     
     this.isCleaningUp = false;
-    console.log('All subscription channels cleaned up');
   }
 
   /**
@@ -220,7 +261,8 @@ class SubscriptionManager {
   }
 
   /**
-   * Get channel information (useful for debugging)
+   * Get detailed channel information (useful for debugging)
+   * Returns an array of channel info including config and status
    */
   public getChannelInfo(): Array<{ key: string; callbackCount: number; status: string; config: SubscriptionConfig }> {
     return Array.from(this.channels.entries()).map(([key, manager]) => ({
