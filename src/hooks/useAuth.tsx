@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { authApi } from '@/services/authApi';
 import { getAuthNotification, getSignupNotification } from '@/utils/authNotifications';
 import { AuthContextType, ProfileData } from '@/types/auth';
+import { subscriptionManager } from '@/services/subscriptionManager';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -61,6 +61,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }, 0);
     } else {
+      // User logged out - cleanup subscriptions
+      try {
+        console.log('User logged out, cleaning up subscriptions');
+        subscriptionManager.unsubscribeAll();
+      } catch (error) {
+        console.warn('Error cleaning up subscriptions:', error);
+      }
       setProfile(null);
     }
   };
@@ -126,6 +133,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Signing out user');
+      
+      // Clean up subscriptions before signing out
+      try {
+        console.log('Cleaning up subscriptions before logout');
+        subscriptionManager.unsubscribeAll();
+      } catch (cleanupError) {
+        console.warn('Error cleaning up subscriptions during logout:', cleanupError);
+      }
+      
       const { error } = await authApi.signOut();
       if (error) {
         console.error('Signout error:', error);
