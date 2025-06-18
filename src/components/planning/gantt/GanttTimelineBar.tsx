@@ -8,6 +8,7 @@ import { TaskBarContent } from './components/TaskBarContent';
 import { getViewModeConfig, getBarHeight } from './utils/viewModeUtils';
 import { generateTimelineUnits } from './utils/gridUtils';
 import { format } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface GanttTimelineBarProps {
   task: Task;
@@ -39,6 +40,10 @@ export const GanttTimelineBar = ({
   const config = getViewModeConfig(viewMode);
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   
+  // Timeline boundary variables for off-timeline indicators
+  const timelineRangeStart = new Date(timelineUnits[0].key);
+  const timelineRangeEnd = new Date(timelineUnits[timelineUnits.length - 1].key);
+  
   const handleClick = () => {
     onSelect(task.id);
   };
@@ -55,6 +60,27 @@ export const GanttTimelineBar = ({
 
   return (
     <div className={`relative ${getBarHeight(viewMode)}`} style={{ width: `${timelineUnits.length * columnWidth}px` }}>
+      {/* Off-timeline indicator for past tasks */}
+      {gridPosition.startColumnIndex === 0 && calculatedStartDate < timelineRangeStart && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2">
+          <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-l flex items-center gap-1">
+            <ChevronLeft size={12} />
+            {format(calculatedStartDate, 'MMM d, yyyy')}
+          </div>
+        </div>
+      )}
+
+      {/* Off-timeline indicator for future tasks */}
+      {gridPosition.startColumnIndex + gridPosition.columnSpan >= timelineUnits.length - 1 && 
+       calculatedEndDate > timelineRangeEnd && (
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2">
+          <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-r flex items-center gap-1">
+            {format(calculatedEndDate, 'MMM d, yyyy')}
+            <ChevronRight size={12} />
+          </div>
+        </div>
+      )}
+
       <TaskBarTooltip task={task} viewMode={viewMode}>
         <div
           className={`absolute ${config.topOffset} ${config.height} rounded-md cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md ${
