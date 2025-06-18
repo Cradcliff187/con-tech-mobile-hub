@@ -2,8 +2,9 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
-import { applyTaskFilters, calculateTimelineBounds } from './utils';
+import { applyTaskFilters } from './utils';
 import { GanttState, GanttAction } from './types';
+import { subDays, addDays, subWeeks, addWeeks, subMonths, addMonths } from 'date-fns';
 
 interface UseGanttDataManagerProps {
   projectId?: string;
@@ -36,13 +37,35 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
     dispatch({ type: 'SET_ERROR', payload: error || null });
   }, [fetchedTasks, loading, error, dispatch]);
 
-  // Calculate and update timeline bounds when filtered tasks change
+  // Calculate timeline bounds centered on today's date based on view mode
   useEffect(() => {
-    if (filteredTasks.length > 0) {
-      const { start, end } = calculateTimelineBounds(filteredTasks);
-      dispatch({ type: 'SET_TIMELINE_BOUNDS', payload: { start, end } });
+    const today = new Date(2025, 5, 18); // June 18, 2025 (month is 0-indexed)
+    let start: Date;
+    let end: Date;
+
+    switch (state.viewMode) {
+      case 'days':
+        // 14 days total (7 before/after today)
+        start = subDays(today, 7);
+        end = addDays(today, 7);
+        break;
+      case 'weeks':
+        // 4 weeks total (2 before/after today)
+        start = subWeeks(today, 2);
+        end = addWeeks(today, 2);
+        break;
+      case 'months':
+        // 2 months total (1 before/after today)
+        start = subMonths(today, 1);
+        end = addMonths(today, 1);
+        break;
+      default:
+        start = subWeeks(today, 2);
+        end = addWeeks(today, 2);
     }
-  }, [filteredTasks, dispatch]);
+
+    dispatch({ type: 'SET_TIMELINE_BOUNDS', payload: { start, end } });
+  }, [state.viewMode, dispatch]);
 
   return {
     filteredTasks
