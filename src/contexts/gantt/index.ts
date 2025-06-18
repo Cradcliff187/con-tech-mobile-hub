@@ -1,5 +1,6 @@
 
-export { GanttProvider, GanttContext } from './GanttContext';
+export { GanttProvider } from './GanttProvider';
+export { GanttContext } from './GanttContext';
 export { useGanttContext } from './useGanttContext';
 export { useGanttActions, useGanttState } from './hooks';
 export { createGanttActions } from './actions';
