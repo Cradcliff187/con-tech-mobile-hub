@@ -21,7 +21,7 @@ interface GanttChartProps {
   projectId: string;
 }
 
-const GanttChartContent = ({ projectId }: GanttChartProps) => {
+const GanttChartInner = ({ projectId }: GanttChartProps) => {
   const { projects } = useProjects();
   const {
     projectTasks,
@@ -211,7 +211,7 @@ const GanttChartContent = ({ projectId }: GanttChartProps) => {
 export const GanttChart = ({ projectId }: GanttChartProps) => {
   return (
     <GanttProvider projectId={projectId}>
-      <GanttChartContent projectId={projectId} />
+      <GanttChartInner projectId={projectId} />
     </GanttProvider>
   );
 };
