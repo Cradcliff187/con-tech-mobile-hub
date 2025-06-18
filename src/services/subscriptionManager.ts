@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
@@ -22,7 +21,7 @@ interface ChannelManager {
 }
 
 /**
- * Centralized Subscription Manager for Supabase Real-time Updates
+ * Enhanced Centralized Subscription Manager with improved error handling and retry logic
  * 
  * This singleton class manages all real-time subscriptions in the application,
  * providing the following features:
@@ -64,6 +63,8 @@ class SubscriptionManager {
   private static instance: SubscriptionManager;
   private channels: Map<string, ChannelManager> = new Map();
   private isCleaningUp: boolean = false;
+  private reconnectAttempts: Map<string, number> = new Map();
+  private reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
   private constructor() {
     // Private constructor to enforce singleton pattern
@@ -141,7 +142,7 @@ class SubscriptionManager {
         postgresChangesConfig = { ...postgresChangesConfig, filter };
       }
 
-      // Set up real-time listener
+      // Set up real-time listener with enhanced error handling
       channel.on('postgres_changes', postgresChangesConfig, (payload) => {
         // Call all registered callbacks for this channel
         channelManager!.callbacks.forEach(cb => {
@@ -153,15 +154,23 @@ class SubscriptionManager {
         });
       });
 
-      // Handle subscription status changes
+      // Enhanced subscription status handling with retry logic
       channel.subscribe((status) => {
         if (channelManager) {
           channelManager.status = status;
         }
 
         if (status === 'CHANNEL_ERROR') {
-          console.error(`Channel error for ${channelKey}, cleaning up...`);
-          this.cleanupChannel(channelKey);
+          console.error(`Channel error for ${channelKey}, initiating retry...`);
+          this.handleChannelError(channelKey, config);
+        } else if (status === 'SUBSCRIBED') {
+          // Reset reconnect attempts on successful connection
+          this.reconnectAttempts.delete(channelKey);
+          const timeout = this.reconnectTimeouts.get(channelKey);
+          if (timeout) {
+            clearTimeout(timeout);
+            this.reconnectTimeouts.delete(channelKey);
+          }
         }
       });
 
@@ -177,12 +186,61 @@ class SubscriptionManager {
       if (manager) {
         manager.callbacks.delete(callback);
         
-        // If no more callbacks, cleanup the channel
+        // If no more callbacks, cleanup the channel with debouncing
         if (manager.callbacks.size === 0) {
-          this.cleanupChannel(channelKey);
+          // Debounce cleanup to prevent rapid create/destroy cycles
+          setTimeout(() => {
+            const currentManager = this.channels.get(channelKey);
+            if (currentManager && currentManager.callbacks.size === 0) {
+              this.cleanupChannel(channelKey);
+            }
+          }, 1000); // 1 second debounce
         }
       }
     };
+  }
+
+  /**
+   * Enhanced error handling with exponential backoff retry
+   */
+  private handleChannelError(channelKey: string, config: SubscriptionConfig): void {
+    const currentAttempts = this.reconnectAttempts.get(channelKey) || 0;
+    const maxAttempts = 5;
+    const baseDelay = 1000; // 1 second
+
+    if (currentAttempts >= maxAttempts) {
+      console.error(`Max reconnection attempts reached for ${channelKey}`);
+      this.cleanupChannel(channelKey);
+      return;
+    }
+
+    const delay = baseDelay * Math.pow(2, currentAttempts); // Exponential backoff
+    this.reconnectAttempts.set(channelKey, currentAttempts + 1);
+
+    const timeout = setTimeout(() => {
+      this.reconnectChannelInternal(channelKey, config);
+      this.reconnectTimeouts.delete(channelKey);
+    }, delay);
+
+    this.reconnectTimeouts.set(channelKey, timeout);
+  }
+
+  /**
+   * Internal reconnection logic
+   */
+  private reconnectChannelInternal(channelKey: string, config: SubscriptionConfig): void {
+    const channelManager = this.channels.get(channelKey);
+    if (channelManager) {
+      const callbacks = Array.from(channelManager.callbacks);
+      
+      // Clean up the existing channel
+      this.cleanupChannel(channelKey);
+      
+      // Re-subscribe all callbacks
+      callbacks.forEach(callback => {
+        this.subscribe(config, callback);
+      });
+    }
   }
 
   /**
@@ -193,12 +251,19 @@ class SubscriptionManager {
     if (channelManager) {
       try {
         supabase.removeChannel(channelManager.channel);
-        this.channels.delete(channelKey);
       } catch (error) {
         console.warn(`Error cleaning up channel ${channelKey}:`, error);
-        // Force remove from map even if cleanup fails
-        this.channels.delete(channelKey);
       }
+      
+      // Clean up retry state
+      this.reconnectAttempts.delete(channelKey);
+      const timeout = this.reconnectTimeouts.get(channelKey);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.reconnectTimeouts.delete(channelKey);
+      }
+      
+      this.channels.delete(channelKey);
     }
   }
 
@@ -218,19 +283,7 @@ class SubscriptionManager {
    */
   public async reconnectChannel(config: SubscriptionConfig): Promise<void> {
     const channelKey = this.generateChannelKey(config);
-    const channelManager = this.channels.get(channelKey);
-    
-    if (channelManager) {
-      const callbacks = Array.from(channelManager.callbacks);
-      
-      // Clean up the existing channel
-      this.cleanupChannel(channelKey);
-      
-      // Re-subscribe all callbacks
-      callbacks.forEach(callback => {
-        this.subscribe(config, callback);
-      });
-    }
+    this.reconnectChannelInternal(channelKey, config);
   }
 
   /**
@@ -240,16 +293,17 @@ class SubscriptionManager {
   public unsubscribeAll(): void {
     this.isCleaningUp = true;
     
-    // Create a copy of channel keys to avoid mutation during iteration
-    const channelKeys = Array.from(this.channels.keys());
+    // Clear all timeouts
+    this.reconnectTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.reconnectTimeouts.clear();
+    this.reconnectAttempts.clear();
     
+    const channelKeys = Array.from(this.channels.keys());
     channelKeys.forEach(channelKey => {
       this.cleanupChannel(channelKey);
     });
     
-    // Clear the channels map
     this.channels.clear();
-    
     this.isCleaningUp = false;
   }
 

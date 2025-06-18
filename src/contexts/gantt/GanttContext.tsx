@@ -1,6 +1,5 @@
 import React, { createContext, useReducer, useMemo, useCallback, useEffect } from 'react';
 import { Task } from '@/types/database';
-import { useImprovedTaskSubscription } from '@/hooks/tasks/useImprovedTaskSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttState, GanttContextValue } from './types';
@@ -20,34 +19,19 @@ interface GanttProviderProps {
 export const GanttProvider: React.FC<GanttProviderProps> = ({ children, projectId }) => {
   const [state, dispatch] = useReducer(ganttReducer, createInitialState());
   const { user } = useAuth();
-  const { tasks: allTasks, updateTask, loading: tasksLoading, error: tasksError } = useTasks();
-
-  // Filter tasks by project if projectId is provided
-  const projectTasks = useMemo(() => {
-    if (!projectId || projectId === 'all') return allTasks;
-    return allTasks.filter(task => task.project_id === projectId);
-  }, [allTasks, projectId]);
-
-  // Set up real-time subscription for project tasks
-  const handleTasksUpdate = useCallback((updateFn: (prevTasks: Task[]) => Task[]) => {
-    const updatedTasks = updateFn(projectTasks);
-    dispatch({ type: 'SET_TASKS', payload: updatedTasks });
-  }, [projectTasks]);
-
-  useImprovedTaskSubscription({
-    user,
-    onTasksUpdate: handleTasksUpdate,
-    projectId
+  
+  // Use single source of truth for tasks with project filtering
+  const { tasks: projectTasks, updateTask, loading: tasksLoading, error: tasksError } = useTasks({ 
+    projectId 
   });
 
-  // Update tasks when project tasks change
+  // Update tasks when project tasks change (no additional subscription needed)
   useEffect(() => {
     dispatch({ type: 'SET_TASKS', payload: projectTasks });
   }, [projectTasks]);
 
   // Update loading and error states
   useEffect(() => {
-    // tasksError is already a string | null from useTasks hook
     dispatch({ type: 'SET_ERROR', payload: tasksError });
   }, [tasksError]);
 

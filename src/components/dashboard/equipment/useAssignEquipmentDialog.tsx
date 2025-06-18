@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,21 +20,26 @@ export const useAssignEquipmentDialog = (
   const [availabilityCheck, setAvailabilityCheck] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSelectedEquipment([]);
     setStartDate('');
     setEndDate('');
     setOperatorAssignments({});
     setAvailabilityCheck({});
-  };
+  }, []);
 
-  // Stabilize the checkAvailability function to prevent infinite re-renders
-  const stableCheckAvailability = useCallback((equipmentId: string, start: string, end: string) => {
-    return checkAvailability(equipmentId, start, end);
-  }, [checkAvailability]);
+  // Memoize the availability check parameters to prevent infinite loops
+  const availabilityParams = useMemo(() => ({
+    selectedEquipment,
+    startDate,
+    endDate
+  }), [selectedEquipment, startDate, endDate]);
 
+  // Stabilized availability checking with proper memoization
   useEffect(() => {
     const checkEquipmentAvailability = async () => {
+      const { selectedEquipment, startDate, endDate } = availabilityParams;
+      
       if (!startDate || !endDate || selectedEquipment.length === 0) {
         setAvailabilityCheck({});
         return;
@@ -44,7 +49,7 @@ export const useAssignEquipmentDialog = (
       
       for (const equipmentId of selectedEquipment) {
         try {
-          const { isAvailable } = await stableCheckAvailability(equipmentId, startDate, endDate);
+          const { isAvailable } = await checkAvailability(equipmentId, startDate, endDate);
           checks[equipmentId] = isAvailable || false;
         } catch (error) {
           console.error('Error checking availability for equipment:', equipmentId, error);
@@ -56,9 +61,9 @@ export const useAssignEquipmentDialog = (
     };
 
     checkEquipmentAvailability();
-  }, [selectedEquipment, startDate, endDate, stableCheckAvailability]);
+  }, [availabilityParams, checkAvailability]);
 
-  const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
+  const handleEquipmentToggle = useCallback((equipmentId: string, checked: boolean) => {
     if (checked) {
       setSelectedEquipment(prev => [...prev, equipmentId]);
     } else {
@@ -69,16 +74,16 @@ export const useAssignEquipmentDialog = (
         return newAssignments;
       });
     }
-  };
+  }, []);
 
-  const handleOperatorAssignment = (equipmentId: string, operatorId: string) => {
+  const handleOperatorAssignment = useCallback((equipmentId: string, operatorId: string) => {
     setOperatorAssignments(prev => ({
       ...prev,
       [equipmentId]: operatorId
     }));
-  };
+  }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (selectedEquipment.length === 0) {
       toast({
         title: "Error",
@@ -160,7 +165,7 @@ export const useAssignEquipmentDialog = (
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [selectedEquipment, startDate, endDate, availabilityCheck, operatorAssignments, project, createAllocation, toast, onSuccess, onClose]);
 
   return {
     selectedEquipment,
@@ -173,7 +178,7 @@ export const useAssignEquipmentDialog = (
     handleEquipmentToggle,
     handleOperatorAssignment,
     handleSubmit,
-    setStartDate,
-    setEndDate
+    setStartDate: useCallback((date: string) => setStartDate(date), []),
+    setEndDate: useCallback((date: string) => setEndDate(date), [])
   };
 };

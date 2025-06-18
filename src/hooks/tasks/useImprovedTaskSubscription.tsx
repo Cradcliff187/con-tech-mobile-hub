@@ -1,33 +1,17 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
 import { subscriptionManager, SubscriptionConfig, SubscriptionCallback } from '@/services/subscriptionManager';
 import { mapTaskFromDb } from './taskMapping';
 
 interface UseImprovedTaskSubscriptionProps {
   user: any;
-  onTasksUpdate: (updateFn: (prevTasks: Task[]) => Task[]) => void;
+  onTasksUpdate: (tasks: Task[]) => void;
   projectId?: string;
 }
 
 /**
- * Enhanced task subscription hook using the centralized subscription manager
- * 
- * This hook provides real-time task updates with the following features:
- * - Automatic deduplication of subscriptions
- * - Project-specific filtering
- * - Proper cleanup on user logout
- * - Status monitoring for debug overlay
- * - Optimistic update handling
- * 
- * @example
- * ```typescript
- * const { subscriptionStatus, reconnect } = useImprovedTaskSubscription({
- *   user,
- *   onTasksUpdate: setTasks,
- *   projectId: 'project-123' // Optional: filter by project
- * });
- * ```
+ * Enhanced task subscription hook with improved stability and error handling
  */
 export const useImprovedTaskSubscription = ({ 
   user, 
@@ -37,6 +21,31 @@ export const useImprovedTaskSubscription = ({
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>('idle');
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastConfigRef = useRef<string>('');
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Stabilized callback to prevent unnecessary re-subscriptions
+  const stableOnTasksUpdate = useCallback((tasks: Task[]) => {
+    onTasksUpdate(tasks);
+  }, [onTasksUpdate]);
+
+  // Stabilized task update handler
+  const handleTaskUpdate: SubscriptionCallback = useCallback((payload) => {
+    if (payload.eventType === 'INSERT' && payload.new) {
+      const newTask = mapTaskFromDb(payload.new);
+      stableOnTasksUpdate(prev => {
+        const exists = prev.some(task => task.id === newTask.id);
+        if (exists) return prev;
+        return [newTask, ...prev];
+      });
+    } else if (payload.eventType === 'UPDATE' && payload.new) {
+      const updatedTask = mapTaskFromDb(payload.new);
+      stableOnTasksUpdate(prev => prev.map(task => 
+        task.id === updatedTask.id ? updatedTask : task
+      ));
+    } else if (payload.eventType === 'DELETE' && payload.old) {
+      stableOnTasksUpdate(prev => prev.filter(task => task.id !== (payload.old as any).id));
+    }
+  }, [stableOnTasksUpdate]);
 
   useEffect(() => {
     // Clean up subscription if user logs out
@@ -45,12 +54,16 @@ export const useImprovedTaskSubscription = ({
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       setSubscriptionStatus('idle');
       lastConfigRef.current = '';
       return;
     }
 
-    // Create a stable config identifier to prevent duplicate subscriptions
+    // Create stable config identifier
     const configKey = `${user.id}-${projectId || 'all'}`;
     
     // Skip if we already have this exact subscription
@@ -58,89 +71,76 @@ export const useImprovedTaskSubscription = ({
       return;
     }
 
-    // Clean up existing subscription before creating new one
+    // Clean up existing subscription
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
 
-    // Configure subscription with optional project filtering
+    // Clear any pending reconnect attempts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    // Configure subscription
     const subscriptionConfig: SubscriptionConfig = {
       table: 'tasks',
       event: '*',
       schema: 'public',
-      ...(projectId && { filter: { project_id: projectId } })
+      ...(projectId && projectId !== 'all' && { filter: { project_id: projectId } })
     };
 
-    /**
-     * Handle real-time task updates with optimistic UI updates
-     * Supports INSERT, UPDATE, and DELETE operations
-     */
-    const handleTaskUpdate: SubscriptionCallback = (payload) => {
-      if (payload.eventType === 'INSERT' && payload.new) {
-        const newTask = mapTaskFromDb(payload.new);
-        onTasksUpdate(prev => {
-          // Prevent duplicates
-          const exists = prev.some(task => task.id === newTask.id);
-          if (exists) return prev;
-          return [newTask, ...prev];
-        });
-      } else if (payload.eventType === 'UPDATE' && payload.new) {
-        const updatedTask = mapTaskFromDb(payload.new);
-        onTasksUpdate(prev => prev.map(task => 
-          task.id === updatedTask.id ? updatedTask : task
-        ));
-      } else if (payload.eventType === 'DELETE' && payload.old) {
-        onTasksUpdate(prev => prev.filter(task => task.id !== (payload.old as any).id));
-      }
-    };
-
-    // Subscribe using the centralized subscription manager
+    // Subscribe with enhanced error handling
     const unsubscribe = subscriptionManager.subscribe(subscriptionConfig, handleTaskUpdate);
     unsubscribeRef.current = unsubscribe;
     lastConfigRef.current = configKey;
 
-    // Monitor subscription status for debug overlay
-    const checkStatus = () => {
+    // Monitor subscription status
+    const statusInterval = setInterval(() => {
       const status = subscriptionManager.getChannelStatus(subscriptionConfig);
       setSubscriptionStatus(status);
-    };
+      
+      // Auto-reconnect on error with exponential backoff
+      if (status === 'CHANNEL_ERROR' && !reconnectTimeoutRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnect();
+          reconnectTimeoutRef.current = null;
+        }, 2000); // 2 second delay for reconnect
+      }
+    }, 1000);
 
-    // Check status immediately and then periodically
-    checkStatus();
-    const statusInterval = setInterval(checkStatus, 1000);
-
-    // Cleanup function
     return () => {
       clearInterval(statusInterval);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
       lastConfigRef.current = '';
     };
-  }, [user?.id, projectId]);
+  }, [user?.id, projectId, handleTaskUpdate]);
 
-  /**
-   * Manually reconnect the subscription (useful for error recovery)
-   * This can be called from the debug overlay or error handlers
-   */
-  const reconnect = async () => {
+  const reconnect = useCallback(async () => {
     if (!user) return;
 
     const subscriptionConfig: SubscriptionConfig = {
       table: 'tasks',
       event: '*',
       schema: 'public',
-      ...(projectId && { filter: { project_id: projectId } })
+      ...(projectId && projectId !== 'all' && { filter: { project_id: projectId } })
     };
 
     try {
       await subscriptionManager.reconnectChannel(subscriptionConfig);
+      setSubscriptionStatus('reconnecting');
     } catch (error) {
       console.error('Failed to reconnect task subscription:', error);
     }
-  };
+  }, [user, projectId]);
 
   return {
     subscriptionStatus,
