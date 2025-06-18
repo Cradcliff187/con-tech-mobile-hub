@@ -1,6 +1,6 @@
-
 import { Task } from '@/types/database';
 import { calculateTaskDatesFromEstimate } from './dateUtils';
+import { startOfDay, isSameDay, startOfWeek, isSameWeek, startOfMonth, isSameMonth, addWeeks, addMonths } from 'date-fns';
 
 export interface TaskGridPosition {
   startColumnIndex: number;
@@ -74,41 +74,58 @@ export const getColumnIndexForDate = (
   timelineUnits: TimelineUnit[],
   viewMode: 'days' | 'weeks' | 'months'
 ): number => {
+  // Normalize the target date to start of day for consistent comparison
+  const normalizedDate = startOfDay(date);
+  
+  // Handle edge case: date before timeline start
+  if (timelineUnits.length === 0) return 0;
+  
+  const firstUnitDate = startOfDay(new Date(timelineUnits[0].key));
+  if (normalizedDate < firstUnitDate) return 0;
+  
+  // Handle edge case: date after timeline end
+  const lastUnitDate = startOfDay(new Date(timelineUnits[timelineUnits.length - 1].key));
+  if (viewMode === 'days' && normalizedDate > lastUnitDate) {
+    return timelineUnits.length - 1;
+  }
+  if (viewMode === 'weeks' && normalizedDate > addWeeks(lastUnitDate, 1)) {
+    return timelineUnits.length - 1;
+  }
+  if (viewMode === 'months' && normalizedDate > addMonths(lastUnitDate, 1)) {
+    return timelineUnits.length - 1;
+  }
+
+  // Find the correct column index
   for (let i = 0; i < timelineUnits.length; i++) {
-    const unitDate = new Date(timelineUnits[i].key);
+    const unitDate = startOfDay(new Date(timelineUnits[i].key));
     
     switch (viewMode) {
       case 'days':
-        if (date.toDateString() === unitDate.toDateString()) {
+        if (isSameDay(normalizedDate, unitDate)) {
           return i;
         }
         break;
         
       case 'weeks':
-        // Get the start of the week for this column
-        const columnWeekStart = new Date(unitDate);
+        // Get the start of the week for this column (Sunday-based)
+        const columnWeekStart = startOfWeek(unitDate, { weekStartsOn: 0 });
         
-        // Get the start of the week for the target date
-        const targetWeekStart = new Date(date);
-        targetWeekStart.setDate(date.getDate() - date.getDay());
-        
-        // Check if they're the same week
-        if (columnWeekStart.getTime() === targetWeekStart.getTime()) {
+        // Check if the target date falls within this week
+        if (isSameWeek(normalizedDate, columnWeekStart, { weekStartsOn: 0 })) {
           return i;
         }
         break;
         
       case 'months':
-        if (date.getMonth() === unitDate.getMonth() && date.getFullYear() === unitDate.getFullYear()) {
+        if (isSameMonth(normalizedDate, unitDate)) {
           return i;
         }
         break;
     }
   }
   
-  // If not found, return closest index
-  if (date < new Date(timelineUnits[0].key)) return 0;
-  return timelineUnits.length - 1;
+  // Fallback: return closest valid index
+  return Math.min(timelineUnits.length - 1, Math.max(0, timelineUnits.length - 1));
 };
 
 // Calculate duration in timeline units
