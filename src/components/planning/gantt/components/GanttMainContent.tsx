@@ -1,3 +1,4 @@
+
 import { Task } from '@/types/database';
 import { TimelineMiniMap } from '../navigation/TimelineMiniMap';
 import { GanttStats } from '../GanttStats';
@@ -78,8 +79,13 @@ export const GanttMainContent = ({
         />
       )}
 
-      {/* Summary Statistics */}
-      <GanttStats tasks={displayTasks} />
+      {/* Summary Statistics with Timeline Navigation */}
+      <GanttStats 
+        tasks={displayTasks} 
+        timelineStart={timelineStart}
+        timelineEnd={timelineEnd}
+        onNavigateToDate={onNavigateToDate}
+      />
 
       {/* Project Overview Timeline */}
       <GanttProjectOverview
