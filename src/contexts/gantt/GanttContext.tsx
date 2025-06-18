@@ -1,9 +1,8 @@
-
-import React, { createContext, useReducer, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useReducer, ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { GanttContextValue, GanttState } from './types';
 import { ganttReducer, initialGanttState } from './reducer';
 import { createGanttActions } from './actions';
-import { applyTaskFilters } from './utils';
+import { applyTaskFilters, calculateTimelineBounds } from './utils';
 import { useTasks } from '@/hooks/useTasks';
 import { Task } from '@/types/database';
 
@@ -30,6 +29,16 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({
     projectId: projectId && projectId !== 'all' ? projectId : undefined 
   });
 
+  // Memoize filtered tasks calculation for performance
+  const filteredTasks = useMemo(() => {
+    return applyTaskFilters(
+      state.tasks,
+      state.optimisticUpdates,
+      state.searchQuery,
+      state.filters
+    );
+  }, [state.tasks, state.optimisticUpdates, state.searchQuery, state.filters]);
+
   // Update tasks in state when fetched tasks change
   useEffect(() => {
     if (fetchedTasks && fetchedTasks.length > 0) {
@@ -38,6 +47,14 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({
     dispatch({ type: 'SET_LOADING', payload: loading });
     dispatch({ type: 'SET_ERROR', payload: error || null });
   }, [fetchedTasks, loading, error]);
+
+  // Calculate and update timeline bounds when filtered tasks change
+  useEffect(() => {
+    if (filteredTasks.length > 0) {
+      const { start, end } = calculateTimelineBounds(filteredTasks);
+      dispatch({ type: 'SET_TIMELINE_BOUNDS', payload: { start, end } });
+    }
+  }, [filteredTasks]);
 
   // Helper method to get a task with optimistic updates applied
   const getDisplayTask = useCallback((taskId: string): Task | undefined => {
@@ -50,13 +67,8 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({
 
   // Core filtering method using the utility function
   const getFilteredTasks = useCallback((): Task[] => {
-    return applyTaskFilters(
-      state.tasks,
-      state.optimisticUpdates,
-      state.searchQuery,
-      state.filters
-    );
-  }, [state.tasks, state.optimisticUpdates, state.searchQuery, state.filters]);
+    return filteredTasks;
+  }, [filteredTasks]);
 
   // Optimistic update methods
   const updateTaskOptimistic = useCallback((id: string, updates: Partial<Task>) => {
