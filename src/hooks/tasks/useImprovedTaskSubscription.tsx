@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
-import { subscriptionManager, SubscriptionConfig, SubscriptionCallback } from '@/services/subscriptionManager';
+import { subscriptionManager, SubscriptionConfig, SubscriptionCallback } from '@/services/subscription';
 import { mapTaskFromDb } from './taskMapping';
 
 interface UseImprovedTaskSubscriptionProps {
