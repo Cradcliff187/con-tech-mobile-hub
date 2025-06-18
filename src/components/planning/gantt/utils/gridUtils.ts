@@ -167,9 +167,14 @@ export const getTaskGridPosition = (
   // Calculate how many columns it spans
   const columnSpan = Math.max(1, calculateDurationInUnits(calculatedStartDate, calculatedEndDate, viewMode));
   
+  // Clamp column indices to valid range
+  const clampedStartIndex = Math.max(0, startColumnIndex);
+  const clampedEndIndex = Math.min(timelineUnits.length - 1, startColumnIndex + columnSpan);
+  const clampedSpan = Math.max(1, clampedEndIndex - clampedStartIndex);
+
   return {
-    startColumnIndex,
-    columnSpan
+    startColumnIndex: clampedStartIndex,
+    columnSpan: clampedSpan
   };
 };
 
