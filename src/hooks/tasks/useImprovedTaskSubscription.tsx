@@ -17,6 +17,7 @@ export const useImprovedTaskSubscription = ({
 }: UseImprovedTaskSubscriptionProps) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>('idle');
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const lastConfigRef = useRef<string>('');
 
   useEffect(() => {
     if (!user) {
@@ -26,11 +27,21 @@ export const useImprovedTaskSubscription = ({
         unsubscribeRef.current = null;
       }
       setSubscriptionStatus('idle');
+      lastConfigRef.current = '';
+      return;
+    }
+
+    // Create a stable config identifier to prevent duplicate subscriptions
+    const configKey = `${user.id}-${projectId || 'all'}`;
+    
+    // Skip if we already have this exact subscription
+    if (lastConfigRef.current === configKey) {
       return;
     }
 
     // Clean up existing subscription before creating new one
     if (unsubscribeRef.current) {
+      console.log('Cleaning up existing subscription before creating new one');
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
@@ -46,7 +57,8 @@ export const useImprovedTaskSubscription = ({
     console.log('Setting up improved task subscription', { 
       userId: user.id, 
       projectId, 
-      hasFilter: !!projectId 
+      hasFilter: !!projectId,
+      configKey
     });
 
     // Create subscription callback
@@ -74,6 +86,7 @@ export const useImprovedTaskSubscription = ({
     // Subscribe using the subscription manager
     const unsubscribe = subscriptionManager.subscribe(subscriptionConfig, handleTaskUpdate);
     unsubscribeRef.current = unsubscribe;
+    lastConfigRef.current = configKey;
 
     // Update status based on subscription manager
     const checkStatus = () => {
@@ -92,6 +105,7 @@ export const useImprovedTaskSubscription = ({
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
+      lastConfigRef.current = '';
     };
   }, [user?.id, projectId]); // Re-run when user or project changes
 

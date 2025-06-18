@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +28,11 @@ export const useAssignEquipmentDialog = (
     setAvailabilityCheck({});
   };
 
+  // Stabilize the checkAvailability function to prevent infinite re-renders
+  const stableCheckAvailability = useCallback((equipmentId: string, start: string, end: string) => {
+    return checkAvailability(equipmentId, start, end);
+  }, [checkAvailability]);
+
   useEffect(() => {
     const checkEquipmentAvailability = async () => {
       if (!startDate || !endDate || selectedEquipment.length === 0) {
@@ -38,15 +43,20 @@ export const useAssignEquipmentDialog = (
       const checks: Record<string, boolean> = {};
       
       for (const equipmentId of selectedEquipment) {
-        const { isAvailable } = await checkAvailability(equipmentId, startDate, endDate);
-        checks[equipmentId] = isAvailable || false;
+        try {
+          const { isAvailable } = await stableCheckAvailability(equipmentId, startDate, endDate);
+          checks[equipmentId] = isAvailable || false;
+        } catch (error) {
+          console.error('Error checking availability for equipment:', equipmentId, error);
+          checks[equipmentId] = false;
+        }
       }
       
       setAvailabilityCheck(checks);
     };
 
     checkEquipmentAvailability();
-  }, [selectedEquipment, startDate, endDate, checkAvailability]);
+  }, [selectedEquipment, startDate, endDate, stableCheckAvailability]);
 
   const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
     if (checked) {
