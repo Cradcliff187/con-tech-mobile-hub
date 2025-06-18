@@ -19,33 +19,42 @@ export const useImprovedTaskSubscription = ({
   projectId 
 }: UseImprovedTaskSubscriptionProps) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>('idle');
+  const [currentTasks, setCurrentTasks] = useState<Task[]>([]);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastConfigRef = useRef<string>('');
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Stabilized callback to prevent unnecessary re-subscriptions
   const stableOnTasksUpdate = useCallback((tasks: Task[]) => {
+    setCurrentTasks(tasks);
     onTasksUpdate(tasks);
   }, [onTasksUpdate]);
 
   // Stabilized task update handler
   const handleTaskUpdate: SubscriptionCallback = useCallback((payload) => {
-    if (payload.eventType === 'INSERT' && payload.new) {
-      const newTask = mapTaskFromDb(payload.new);
-      stableOnTasksUpdate(prev => {
-        const exists = prev.some(task => task.id === newTask.id);
-        if (exists) return prev;
-        return [newTask, ...prev];
-      });
-    } else if (payload.eventType === 'UPDATE' && payload.new) {
-      const updatedTask = mapTaskFromDb(payload.new);
-      stableOnTasksUpdate(prev => prev.map(task => 
-        task.id === updatedTask.id ? updatedTask : task
-      ));
-    } else if (payload.eventType === 'DELETE' && payload.old) {
-      stableOnTasksUpdate(prev => prev.filter(task => task.id !== (payload.old as any).id));
-    }
-  }, [stableOnTasksUpdate]);
+    setCurrentTasks(prevTasks => {
+      let updatedTasks = [...prevTasks];
+      
+      if (payload.eventType === 'INSERT' && payload.new) {
+        const newTask = mapTaskFromDb(payload.new);
+        const exists = updatedTasks.some(task => task.id === newTask.id);
+        if (!exists) {
+          updatedTasks = [newTask, ...updatedTasks];
+        }
+      } else if (payload.eventType === 'UPDATE' && payload.new) {
+        const updatedTask = mapTaskFromDb(payload.new);
+        updatedTasks = updatedTasks.map(task => 
+          task.id === updatedTask.id ? updatedTask : task
+        );
+      } else if (payload.eventType === 'DELETE' && payload.old) {
+        updatedTasks = updatedTasks.filter(task => task.id !== (payload.old as any).id);
+      }
+      
+      // Call parent callback with updated tasks
+      onTasksUpdate(updatedTasks);
+      return updatedTasks;
+    });
+  }, [onTasksUpdate]);
 
   useEffect(() => {
     // Clean up subscription if user logs out
@@ -59,6 +68,7 @@ export const useImprovedTaskSubscription = ({
         reconnectTimeoutRef.current = null;
       }
       setSubscriptionStatus('idle');
+      setCurrentTasks([]);
       lastConfigRef.current = '';
       return;
     }
@@ -144,6 +154,7 @@ export const useImprovedTaskSubscription = ({
 
   return {
     subscriptionStatus,
-    reconnect
+    reconnect,
+    currentTasks
   };
 };
