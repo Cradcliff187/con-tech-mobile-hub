@@ -10,7 +10,7 @@ export const useAssignEquipmentDialog = (
   onSuccess: () => void,
   onClose: () => void
 ) => {
-  const { createAllocation, checkAvailability } = useEquipmentAllocations();
+  const { createAllocation } = useEquipmentAllocations();
   const { toast } = useToast();
   
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
@@ -35,7 +35,7 @@ export const useAssignEquipmentDialog = (
     endDate
   }), [selectedEquipment, startDate, endDate]);
 
-  // Stabilized availability checking with proper memoization
+  // Fixed availability checking without checkAvailability dependency
   useEffect(() => {
     const checkEquipmentAvailability = async () => {
       const { selectedEquipment, startDate, endDate } = availabilityParams;
@@ -49,7 +49,15 @@ export const useAssignEquipmentDialog = (
       
       for (const equipmentId of selectedEquipment) {
         try {
-          const { isAvailable } = await checkAvailability(equipmentId, startDate, endDate);
+          // Call Supabase RPC directly instead of using the hook function
+          const { data, error } = await supabase.rpc('check_equipment_availability', {
+            p_equipment_id: equipmentId,
+            p_start_date: startDate,
+            p_end_date: endDate,
+            p_exclude_allocation_id: null
+          });
+
+          const isAvailable = data && !error;
           checks[equipmentId] = isAvailable || false;
         } catch (error) {
           console.error('Error checking availability for equipment:', equipmentId, error);
@@ -61,7 +69,7 @@ export const useAssignEquipmentDialog = (
     };
 
     checkEquipmentAvailability();
-  }, [availabilityParams, checkAvailability]);
+  }, [availabilityParams]); // Removed checkAvailability from dependencies
 
   const handleEquipmentToggle = useCallback((equipmentId: string, checked: boolean) => {
     if (checked) {
