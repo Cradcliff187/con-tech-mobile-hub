@@ -7,6 +7,7 @@ import { TaskBarIndicators } from './components/TaskBarIndicators';
 import { TaskBarContent } from './components/TaskBarContent';
 import { getViewModeConfig, getBarHeight } from './utils/viewModeUtils';
 import { generateTimelineUnits } from './utils/gridUtils';
+import { format } from 'date-fns';
 
 interface GanttTimelineBarProps {
   task: Task;
@@ -86,6 +87,21 @@ export const GanttTimelineBar = ({
           />
         </div>
       </TaskBarTooltip>
+
+      {/* Debug overlay - development only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div 
+          className="absolute top-0 h-full border-2 border-red-500 bg-red-100 opacity-30 pointer-events-none"
+          style={{
+            left: `${gridPosition.startColumnIndex * columnWidth}px`,
+            width: `${gridPosition.columnSpan * columnWidth}px`,
+          }}
+        >
+          <div className="text-xs bg-white p-1 rounded shadow-sm">
+            {format(calculatedStartDate, 'MMM d')} | Col: {gridPosition.startColumnIndex}
+          </div>
+        </div>
+      )}
 
       {/* Debug info - remove after verification */}
       {process.env.NODE_ENV === 'development' && (
