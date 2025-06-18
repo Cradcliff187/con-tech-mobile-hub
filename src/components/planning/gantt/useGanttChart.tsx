@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useGanttContext } from '@/contexts/gantt';
@@ -34,7 +33,8 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     filters,
     viewMode,
     timelineStart,
-    timelineEnd
+    timelineEnd,
+    optimisticUpdates
   } = state;
 
   // Debug mode functionality
@@ -136,6 +136,9 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   const displayTasks = getDisplayTasks();
   const completedTasks = displayTasks.filter(t => t.status === 'completed').length;
 
+  // Calculate optimistic updates count for debug overlay
+  const optimisticUpdatesCount = optimisticUpdates ? optimisticUpdates.size : 0;
+
   return {
     // Data
     projectTasks,
@@ -170,11 +173,13 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     // Drag and Drop
     dragAndDrop,
 
-    // Debug Mode
+    // Debug Mode with enhanced data
     isDebugMode,
     debugPreferences,
     toggleDebugMode,
     updateDebugPreference,
-    isDevelopment
+    isDevelopment,
+    optimisticUpdatesCount,
+    isDragging: dragAndDrop.isDragging
   };
 };

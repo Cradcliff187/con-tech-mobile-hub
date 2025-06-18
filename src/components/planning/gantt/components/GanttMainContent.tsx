@@ -1,4 +1,3 @@
-
 import { Task } from '@/types/database';
 import { TimelineMiniMap } from '../navigation/TimelineMiniMap';
 import { GanttStats } from '../GanttStats';
@@ -33,6 +32,7 @@ interface GanttMainContentProps {
   isDebugMode: boolean;
   debugPreferences: any;
   onUpdateDebugPreference: (key: string, value: boolean) => void;
+  optimisticUpdatesCount?: number;
 }
 
 export const GanttMainContent = ({
@@ -61,7 +61,8 @@ export const GanttMainContent = ({
   dragState,
   isDebugMode,
   debugPreferences,
-  onUpdateDebugPreference
+  onUpdateDebugPreference,
+  optimisticUpdatesCount = 0
 }: GanttMainContentProps) => {
   return (
     <>
@@ -113,7 +114,7 @@ export const GanttMainContent = ({
           dragState={dragState}
         />
 
-        {/* Debug Overlay - Development Only */}
+        {/* Enhanced Debug Overlay with Subscription Monitoring */}
         <GanttDebugOverlay
           isVisible={isDebugMode}
           tasks={displayTasks}
@@ -122,6 +123,8 @@ export const GanttMainContent = ({
           viewMode={viewMode}
           debugPreferences={debugPreferences}
           onUpdatePreference={onUpdateDebugPreference}
+          optimisticUpdatesCount={optimisticUpdatesCount}
+          isDragging={isDragging}
         />
       </div>
     </>

@@ -1,4 +1,3 @@
-
 import { GanttLoadingState } from './GanttLoadingState';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GanttControls } from './gantt/GanttControls';
@@ -16,6 +15,7 @@ import { useGanttState } from './gantt/hooks/useGanttState';
 import { GanttProjectOverview } from './gantt/GanttProjectOverview';
 import { useProjects } from '@/hooks/useProjects';
 import { GanttProvider } from '@/contexts/gantt';
+import { GanttMainContent } from './gantt/components/GanttMainContent';
 
 interface GanttChartProps {
   projectId: string;
@@ -42,7 +42,13 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
     completedTasks,
     handleTaskSelect,
     handleFilterChange,
-    dragAndDrop
+    dragAndDrop,
+    isDebugMode,
+    debugPreferences,
+    toggleDebugMode,
+    updateDebugPreference,
+    optimisticUpdatesCount,
+    isDragging
   } = useGanttChart({ projectId });
 
   const {
@@ -147,43 +153,23 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
           onViewModeChange={setViewMode}
         />
 
-        {/* Timeline Mini-map for navigation */}
-        {showMiniMap && (
-          <TimelineMiniMap
-            tasks={displayTasks}
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            currentViewStart={currentViewStart}
-            currentViewEnd={currentViewEnd}
-            onViewportChange={handleMiniMapViewportChange}
-          />
-        )}
-
-        {/* Summary Statistics */}
-        <GanttStats tasks={displayTasks} />
-
-        {/* Project Overview Timeline */}
-        <GanttProjectOverview
-          project={selectedProject}
+        {/* Main Gantt Content with Enhanced Debug Overlay */}
+        <GanttMainContent
+          showMiniMap={showMiniMap}
+          displayTasks={displayTasks}
           timelineStart={timelineStart}
           timelineEnd={timelineEnd}
           currentViewStart={currentViewStart}
           currentViewEnd={currentViewEnd}
+          onViewportChange={handleMiniMapViewportChange}
+          selectedProject={selectedProject}
           completedTasks={completedTasks}
           totalTasks={displayTasks.length}
           onNavigateToDate={handleNavigateToDate}
           viewMode={viewMode}
-        />
-
-        {/* Enhanced Gantt Chart with Construction Features and Drag Integration */}
-        <GanttChartContent
-          displayTasks={displayTasks}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
           selectedTaskId={selectedTaskId}
           onTaskSelect={handleTaskSelect}
-          viewMode={viewMode}
-          isDragging={dragAndDrop.isDragging}
+          isDragging={isDragging}
           timelineRef={timelineRef}
           onDragOver={dragAndDrop.handleDragOver}
           onDrop={dragAndDrop.handleDrop}
@@ -192,6 +178,10 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
           draggedTaskId={dragAndDrop.draggedTask?.id}
           projectId={projectId}
           dragState={enhancedDragState}
+          isDebugMode={isDebugMode}
+          debugPreferences={debugPreferences}
+          onUpdateDebugPreference={updateDebugPreference}
+          optimisticUpdatesCount={optimisticUpdatesCount}
         />
 
         <GanttLegend />
