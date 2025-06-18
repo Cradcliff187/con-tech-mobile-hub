@@ -63,36 +63,37 @@ export type GanttAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_SAVING'; payload: boolean };
 
-// Context Value Interface
+// Context Value Interface - simplified with dispatch
 export interface GanttContextValue {
   state: GanttState;
+  dispatch: React.Dispatch<GanttAction>;
   
-  // Task Operations
-  getDisplayTask: (taskId: string) => Task | undefined;
-  getFilteredTasks: () => Task[];
-  updateTaskOptimistic: (id: string, updates: Partial<Task>) => void;
-  clearOptimisticUpdate: (id: string) => void;
-  clearAllOptimisticUpdates: () => void;
+  // Helper methods (optional - can be implemented later)
+  getDisplayTask?: (taskId: string) => Task | undefined;
+  getFilteredTasks?: () => Task[];
+  updateTaskOptimistic?: (id: string, updates: Partial<Task>) => void;
+  clearOptimisticUpdate?: (id: string) => void;
+  clearAllOptimisticUpdates?: () => void;
   
-  // UI Actions
-  setSearchQuery: (query: string) => void;
-  setFilters: (filters: Partial<GanttState['filters']>) => void;
-  setViewMode: (mode: 'days' | 'weeks' | 'months') => void;
-  selectTask: (taskId: string | null) => void;
+  // UI Actions (optional - can be implemented later)
+  setSearchQuery?: (query: string) => void;
+  setFilters?: (filters: Partial<GanttState['filters']>) => void;
+  setViewMode?: (mode: 'days' | 'weeks' | 'months') => void;
+  selectTask?: (taskId: string | null) => void;
   
-  // Timeline Actions
-  setViewport: (start: Date, end: Date) => void;
-  setShowMiniMap: (show: boolean) => void;
-  navigateToDate: (date: Date) => void;
+  // Timeline Actions (optional - can be implemented later)
+  setViewport?: (start: Date, end: Date) => void;
+  setShowMiniMap?: (show: boolean) => void;
+  navigateToDate?: (date: Date) => void;
   
-  // Drag Operations
-  startDrag: (task: Task) => void;
-  updateDragPreview: (date: Date, validity: 'valid' | 'warning' | 'invalid', messages?: string[]) => void;
-  completeDrag: (updates: Partial<Task>) => Promise<void>;
-  cancelDrag: () => void;
+  // Drag Operations (optional - can be implemented later)
+  startDrag?: (task: Task) => void;
+  updateDragPreview?: (date: Date, validity: 'valid' | 'warning' | 'invalid', messages?: string[]) => void;
+  completeDrag?: (updates: Partial<Task>) => Promise<void>;
+  cancelDrag?: () => void;
   
-  // State Management
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  setSaving: (saving: boolean) => void;
+  // State Management (optional - can be implemented later)
+  setLoading?: (loading: boolean) => void;
+  setError?: (error: string | null) => void;
+  setSaving?: (saving: boolean) => void;
 }

@@ -2,8 +2,8 @@
 import { GanttState, GanttAction } from './types';
 import { startOfMonth, endOfMonth, addMonths } from 'date-fns';
 
-// Initial State
-export const createInitialState = (): GanttState => {
+// Initial State - renamed from createInitialState to initialGanttState
+export const initialGanttState = (): GanttState => {
   const now = new Date();
   const defaultStart = startOfMonth(now);
   const defaultEnd = endOfMonth(addMonths(now, 2));

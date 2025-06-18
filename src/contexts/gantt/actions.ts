@@ -9,9 +9,9 @@ export const createGanttActions = {
     payload: tasks,
   }),
 
-  updateTask: (task: Task): GanttAction => ({
+  updateTask: (id: string, updates: Partial<Task>): GanttAction => ({
     type: 'UPDATE_TASK',
-    payload: task,
+    payload: { id, updates },
   }),
 
   addTask: (task: Task): GanttAction => ({
@@ -20,7 +20,7 @@ export const createGanttActions = {
   }),
 
   removeTask: (taskId: string): GanttAction => ({
-    type: 'REMOVE_TASK',
+    type: 'DELETE_TASK',
     payload: taskId,
   }),
 
@@ -29,9 +29,9 @@ export const createGanttActions = {
     payload: viewMode,
   }),
 
-  setTimelineRange: (startDate: Date, endDate: Date): GanttAction => ({
-    type: 'SET_TIMELINE_RANGE',
-    payload: { startDate, endDate },
+  setTimelineRange: (start: Date, end: Date): GanttAction => ({
+    type: 'SET_TIMELINE_BOUNDS',
+    payload: { start, end },
   }),
 
   setSelectedTask: (taskId: string | null): GanttAction => ({
@@ -39,14 +39,9 @@ export const createGanttActions = {
     payload: taskId,
   }),
 
-  setDraggedTask: (taskId: string | null): GanttAction => ({
-    type: 'SET_DRAGGED_TASK',
-    payload: taskId,
-  }),
-
-  setScrollPosition: (scrollLeft: number): GanttAction => ({
-    type: 'SET_SCROLL_POSITION',
-    payload: scrollLeft,
+  setDragState: (dragState: Partial<any>): GanttAction => ({
+    type: 'SET_DRAG_STATE',
+    payload: dragState,
   }),
 
   setFilters: (filters: any): GanttAction => ({

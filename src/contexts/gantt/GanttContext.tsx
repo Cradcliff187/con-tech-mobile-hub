@@ -8,15 +8,17 @@ export const GanttContext = createContext<GanttContextValue | undefined>(undefin
 interface GanttProviderProps {
   children: ReactNode;
   initialState?: Partial<GanttState>;
+  projectId?: string;
 }
 
 export const GanttProvider: React.FC<GanttProviderProps> = ({ 
   children, 
-  initialState 
+  initialState,
+  projectId
 }) => {
   const [state, dispatch] = useReducer(
     ganttReducer, 
-    { ...initialGanttState, ...initialState }
+    { ...initialGanttState(), ...initialState }
   );
 
   const value: GanttContextValue = {
