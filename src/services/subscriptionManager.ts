@@ -80,10 +80,18 @@ class SubscriptionManager {
   /**
    * Generate a unique channel key based on table and filter configuration
    * This enables automatic deduplication of subscriptions
+   * Fixed to handle filters consistently for proper channel deduplication
    */
   private generateChannelKey(config: SubscriptionConfig): string {
     const { table, event = '*', schema = 'public', filter } = config;
-    const filterKey = filter ? JSON.stringify(filter) : '';
+    
+    // Create consistent filter key by sorting and formatting
+    const filterKey = filter && Object.keys(filter).length > 0 ? 
+      Object.entries(filter)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('&') : '';
+        
     return `${schema}.${table}.${event}.${filterKey}`;
   }
 
@@ -95,6 +103,21 @@ class SubscriptionManager {
     const key = this.generateChannelKey(config);
     const timestamp = Date.now();
     return `subscription-${key.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}`;
+  }
+
+  /**
+   * Convert filter object to Supabase's expected string format
+   * Supabase expects filters in the format: "key1=eq.value1,key2=eq.value2"
+   */
+  private formatFilterForSupabase(filter: Record<string, any>): string {
+    if (!filter || Object.keys(filter).length === 0) {
+      return '';
+    }
+
+    return Object.entries(filter)
+      .filter(([_, value]) => value !== null && value !== undefined)
+      .map(([key, value]) => `${key}=eq.${value}`)
+      .join(',');
   }
 
   /**
@@ -128,7 +151,7 @@ class SubscriptionManager {
         status: 'idle'
       };
 
-      // Configure the channel
+      // Configure the channel with proper filter format
       const { table, event = '*', schema = 'public', filter } = config;
       
       let postgresChangesConfig: any = {
@@ -137,9 +160,12 @@ class SubscriptionManager {
         table
       };
 
-      // Add filter if provided
-      if (filter) {
-        postgresChangesConfig = { ...postgresChangesConfig, filter };
+      // Add filter if provided - convert to Supabase's expected string format
+      if (filter && Object.keys(filter).length > 0) {
+        const filterString = this.formatFilterForSupabase(filter);
+        if (filterString) {
+          postgresChangesConfig.filter = filterString;
+        }
       }
 
       // Set up real-time listener with enhanced error handling
