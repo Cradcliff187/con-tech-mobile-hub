@@ -15,12 +15,13 @@ import { GanttErrorState } from './gantt/components/GanttErrorState';
 import { useGanttState } from './gantt/hooks/useGanttState';
 import { GanttProjectOverview } from './gantt/GanttProjectOverview';
 import { useProjects } from '@/hooks/useProjects';
+import { GanttProvider } from '@/contexts/gantt';
 
 interface GanttChartProps {
   projectId: string;
 }
 
-export const GanttChart = ({ projectId }: GanttChartProps) => {
+const GanttChartContent = ({ projectId }: GanttChartProps) => {
   const { projects } = useProjects();
   const {
     projectTasks,
@@ -204,5 +205,13 @@ export const GanttChart = ({ projectId }: GanttChartProps) => {
         />
       </div>
     </TooltipProvider>
+  );
+};
+
+export const GanttChart = ({ projectId }: GanttChartProps) => {
+  return (
+    <GanttProvider projectId={projectId}>
+      <GanttChartContent projectId={projectId} />
+    </GanttProvider>
   );
 };

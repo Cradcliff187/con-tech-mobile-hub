@@ -1,11 +1,10 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
-import { useTasks } from '@/hooks/useTasks';
-import { useDragAndDrop } from './useDragAndDrop';
+import { useGanttContext } from '@/contexts/gantt';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
-import { useGanttFilters } from './hooks/useGanttFilters';
-import { useTaskProcessing } from './hooks/useTaskProcessing';
 import { useDebugMode } from './hooks/useDebugMode';
+import { useGanttDragBridge } from './hooks/useGanttDragBridge';
 
 interface UseGanttChartProps {
   projectId: string;
@@ -13,13 +12,30 @@ interface UseGanttChartProps {
 
 export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   const { projects } = useProjects();
-  const { updateTask, refetch: refetchTasks } = useTasks();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [timelineRect, setTimelineRect] = useState<DOMRect | null>(null);
   
-  // Interactive state
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('weeks');
+  // Get unified state from context
+  const {
+    state,
+    getFilteredTasks,
+    setSearchQuery,
+    setFilters,
+    setViewMode,
+    selectTask
+  } = useGanttContext();
+
+  const {
+    tasks: projectTasks,
+    loading,
+    error,
+    selectedTaskId,
+    searchQuery,
+    filters,
+    viewMode,
+    timelineStart,
+    timelineEnd
+  } = state;
 
   // Debug mode functionality
   const {
@@ -35,34 +51,57 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     ? projects.find(p => p.id === projectId) 
     : null;
 
-  // Task processing
-  const { projectTasks, loading, error, completedTasks } = useTaskProcessing({ projectId });
+  // Get filtered tasks from context
+  const filteredTasks = getFilteredTasks();
 
   // Timeline calculation
-  const { timelineStart, timelineEnd, totalDays } = useTimelineCalculation({
-    projectTasks,
+  const { totalDays } = useTimelineCalculation({
+    projectTasks: filteredTasks,
     viewMode,
     selectedProject
   });
 
-  // Filtering
-  const { 
-    searchQuery, 
-    setSearchQuery, 
-    filters, 
-    filteredTasks, 
-    handleFilterChange 
-  } = useGanttFilters({ projectTasks });
-
-  // Drag and drop functionality - real-time updates handle synchronization
-  const dragAndDrop = useDragAndDrop({
+  // Enhanced drag and drop with context integration
+  const dragBridge = useGanttDragBridge({
     timelineStart,
     timelineEnd,
-    viewMode,
-    allTasks: projectTasks,
-    updateTask,
-    refetchTasks // Keep for manual refresh scenarios
+    viewMode
   });
+
+  // Create drag and drop interface compatible with existing components
+  const dragAndDrop = {
+    isDragging: dragBridge.isDragging,
+    draggedTask: dragBridge.draggedTask,
+    dropPreviewDate: dragBridge.dropPreviewDate,
+    currentValidity: dragBridge.currentValidity,
+    violationMessages: dragBridge.violationMessages,
+    
+    // Position and visual state
+    dragPosition: dragBridge.dragPosition,
+    validDropZones: [],
+    showDropZones: dragBridge.isDragging,
+    suggestedDropDate: dragBridge.dropPreviewDate,
+    affectedMarkerIds: [],
+    
+    // Local updates tracking (handled by context now)
+    localTaskUpdates: {},
+    
+    // Handlers
+    handleDragStart: dragBridge.handleDragStart,
+    handleDragEnd: dragBridge.handleDragEnd,
+    handleDragOver: dragBridge.handleDragOver,
+    handleDrop: dragBridge.handleDrop,
+    
+    // Utility methods
+    getUpdatedTask: (task: any) => {
+      return dragBridge.getOptimisticTask(task.id) || task;
+    },
+    
+    resetLocalUpdates: () => {
+      // Context manages optimistic updates, no local reset needed
+      console.log('Reset local updates (handled by context)');
+    }
+  };
 
   // Update timeline rect on resize or when timeline changes
   useEffect(() => {
@@ -79,17 +118,23 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     return () => window.removeEventListener('resize', updateTimelineRect);
   }, [timelineStart, timelineEnd, filteredTasks]);
 
-  // Get updated tasks with local changes
+  // Get updated tasks with optimistic changes
   const getDisplayTasks = () => {
     return filteredTasks.map(task => dragAndDrop.getUpdatedTask(task));
   };
 
   // Handle task selection
   const handleTaskSelect = (taskId: string) => {
-    setSelectedTaskId(selectedTaskId === taskId ? null : taskId);
+    selectTask(selectedTaskId === taskId ? null : taskId);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filterType: string, values: string[]) => {
+    setFilters({ [filterType]: values });
   };
 
   const displayTasks = getDisplayTasks();
+  const completedTasks = displayTasks.filter(t => t.status === 'completed').length;
 
   return {
     // Data
