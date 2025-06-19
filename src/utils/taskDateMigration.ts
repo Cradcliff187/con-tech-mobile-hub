@@ -17,13 +17,13 @@ export const migrateTaskDatesToCurrentYear = async (tasks: Task[]) => {
       if (task.start_date) {
         const date = new Date(task.start_date);
         date.setFullYear(currentYear);
-        updateData.start_date = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        updateData.start_date = date.toISOString().split('T')[0];
       }
       
       if (task.due_date) {
         const date = new Date(task.due_date);
         date.setFullYear(currentYear);
-        updateData.due_date = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        updateData.due_date = date.toISOString().split('T')[0];
       }
       
       updates.push(
@@ -44,7 +44,6 @@ export const migrateTaskDatesToCurrentYear = async (tasks: Task[]) => {
   return updates.length;
 };
 
-// Add this temporary button to your UI for testing
 export const MigrationButton = ({ tasks }: { tasks: Task[] }) => (
   <button
     onClick={() => migrateTaskDatesToCurrentYear(tasks)}
