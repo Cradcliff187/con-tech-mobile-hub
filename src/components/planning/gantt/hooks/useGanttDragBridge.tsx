@@ -90,6 +90,14 @@ export const useGanttDragBridge = ({
     }
   }, [enhancedDragDrop, dragState.isDragging, cancelDrag]);
 
+  // Create optimistic tasks map from context state
+  const optimisticTasksMap = new Map<string, Partial<Task>>();
+  if (state.optimisticUpdates) {
+    for (const [taskId, updates] of state.optimisticUpdates.entries()) {
+      optimisticTasksMap.set(taskId, updates);
+    }
+  }
+
   return {
     // Drag state from context
     isDragging: dragState.isDragging,
@@ -97,7 +105,7 @@ export const useGanttDragBridge = ({
     dropPreviewDate: dragState.dropPreviewDate,
     currentValidity: dragState.currentValidity,
     violationMessages: dragState.violationMessages,
-    suggestedDropDate: dragState.dropPreviewDate, // Add suggested drop date
+    suggestedDropDate: dragState.dropPreviewDate,
     
     // Enhanced features from useEnhancedDragDrop
     dragPosition: enhancedDragDrop.dragPreview.position,
@@ -112,7 +120,7 @@ export const useGanttDragBridge = ({
     
     // Task utilities
     getOptimisticTask: enhancedDragDrop.getOptimisticTask,
-    // Fixed: Return the correct Map type instead of Task[]
-    optimisticTasks: enhancedDragDrop.optimisticTasks
+    // Return the correct Map type from context state
+    optimisticTasks: optimisticTasksMap
   };
 };
