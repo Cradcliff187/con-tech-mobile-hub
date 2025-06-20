@@ -47,7 +47,7 @@ export const migrateTaskDatesToCurrentYear = async (tasks: Task[]) => {
 export const MigrationButton = ({ tasks }: { tasks: Task[] }) => (
   <button
     onClick={() => migrateTaskDatesToCurrentYear(tasks)}
-    className="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 transition-colors"
+    className="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 transition-colors sm:px-3 sm:py-2 sm:text-sm"
   >
     Fix 2024 Task Dates
   </button>
