@@ -12,6 +12,27 @@ interface DebugPreferences {
 }
 
 export const useDebugMode = () => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Return disabled state immediately in production
+  if (!isDevelopment) {
+    return {
+      isDebugMode: false,
+      debugPreferences: {
+        showColumnInfo: false,
+        showTaskDetails: false,
+        showGridLines: false,
+        showPerformanceMetrics: false,
+        showScrollInfo: false,
+        showSubscriptions: false,
+        showAuthState: false
+      } as DebugPreferences,
+      toggleDebugMode: () => {},
+      updateDebugPreference: () => {},
+      isDevelopment: false
+    };
+  }
+
   // Only initialize debug state in development
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [debugPreferences, setDebugPreferences] = useState<DebugPreferences>({
@@ -24,12 +45,8 @@ export const useDebugMode = () => {
     showAuthState: true // Default to true for auth state monitoring
   });
 
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
   // Load debug preferences from localStorage only in development
   useEffect(() => {
-    if (!isDevelopment) return;
-    
     const saved = localStorage.getItem('gantt-debug-preferences');
     if (saved) {
       try {
@@ -42,40 +59,25 @@ export const useDebugMode = () => {
     
     const debugMode = localStorage.getItem('gantt-debug-mode') === 'true';
     setIsDebugMode(debugMode);
-  }, [isDevelopment]);
+  }, []);
 
   const toggleDebugMode = () => {
-    if (!isDevelopment) return;
-    
     const newMode = !isDebugMode;
     setIsDebugMode(newMode);
     localStorage.setItem('gantt-debug-mode', newMode.toString());
   };
 
   const updateDebugPreference = (key: keyof DebugPreferences, value: boolean) => {
-    if (!isDevelopment) return;
-    
     const newPreferences = { ...debugPreferences, [key]: value };
     setDebugPreferences(newPreferences);
     localStorage.setItem('gantt-debug-preferences', JSON.stringify(newPreferences));
   };
-
-  // Return empty/disabled state in production
-  if (!isDevelopment) {
-    return {
-      isDebugMode: false,
-      debugPreferences: {} as DebugPreferences,
-      toggleDebugMode: () => {},
-      updateDebugPreference: () => {},
-      isDevelopment: false
-    };
-  }
 
   return {
     isDebugMode,
     debugPreferences,
     toggleDebugMode,
     updateDebugPreference,
-    isDevelopment
+    isDevelopment: true
   };
 };
