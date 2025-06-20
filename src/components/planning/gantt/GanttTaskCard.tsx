@@ -4,11 +4,9 @@ import { Task } from '@/types/database';
 import { CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  getAssigneeName, 
-  getCategoryBadgeColor,
-  calculateTaskDatesFromEstimate 
-} from './ganttUtils';
+import { getAssigneeName } from './utils/taskUtils';
+import { getCategoryBadgeColor } from './utils/colorUtils';
+import { calculateTaskDatesFromEstimate } from './utils/dateUtils';
 
 interface GanttTaskCardProps {
   task: Task;

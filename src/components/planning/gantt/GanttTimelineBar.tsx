@@ -1,7 +1,8 @@
 
 import { Task } from '@/types/database';
-import { getTaskGridPosition, getColumnWidth, calculateTaskDatesFromEstimate } from './ganttUtils';
-import { getConstructionPhaseColor } from './ganttUtils';
+import { getTaskGridPosition, getColumnWidth } from './utils/gridUtils';
+import { calculateTaskDatesFromEstimate } from './utils/dateUtils';
+import { getConstructionPhaseColor } from './utils/colorUtils';
 import { TaskBarTooltip } from './components/TaskBarTooltip';
 import { TaskBarIndicators } from './components/TaskBarIndicators';
 import { TaskBarContent } from './components/TaskBarContent';

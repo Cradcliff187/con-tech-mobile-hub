@@ -1,6 +1,6 @@
 
 import { Task } from '@/types/database';
-import { getAssigneeName } from '@/components/planning/gantt/ganttUtils';
+import { getAssigneeName } from '@/components/planning/gantt/utils/taskUtils';
 import { startOfMonth, endOfMonth, addMonths, subDays, addDays, min, max } from 'date-fns';
 
 // Helper function to check if task matches search query

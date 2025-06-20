@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { getColumnIndexForDate } from './ganttUtils';
+import { getColumnIndexForDate } from './utils/gridUtils';
 import { useTimelineUnits } from './hooks/useTimelineUnits';
 
 interface GanttTimelineGridProps {

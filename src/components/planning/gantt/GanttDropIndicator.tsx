@@ -1,5 +1,5 @@
 
-import { formatDateRange } from './ganttUtils';
+import { formatDateRange } from './utils/dateUtils';
 
 interface GanttDropIndicatorProps {
   isVisible: boolean;

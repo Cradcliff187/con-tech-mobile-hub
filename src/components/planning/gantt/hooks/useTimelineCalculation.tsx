@@ -1,182 +1,60 @@
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Task } from '@/types/database';
-import { getDaysBetween, calculateTaskDatesFromEstimate } from '../ganttUtils';
+import { getDaysBetween, calculateTaskDatesFromEstimate } from '../utils/dateUtils';
+import type { ProjectData } from '../types/ganttTypes';
 
 interface UseTimelineCalculationProps {
   projectTasks: Task[];
   viewMode: 'days' | 'weeks' | 'months';
-  selectedProject: any;
+  selectedProject: ProjectData | null;
 }
 
-const calculateTimelineRange = (
-  tasks: Task[], 
-  viewMode: 'days' | 'weeks' | 'months',
-  selectedProject: any = null
-) => {
-  // **ENHANCED: More pronounced view mode differences**
-  const getViewModeConfig = (mode: 'days' | 'weeks' | 'months') => {
-    switch (mode) {
-      case 'days':
-        return {
-          paddingDays: 14,           // 2 weeks padding
-          minimumDays: 45,           // 1.5 months minimum
-          bufferMultiplier: 0.1      // 10% of project duration
-        };
-      case 'weeks':
-        return {
-          paddingDays: 21,           // 3 weeks padding  
-          minimumDays: 90,           // 3 months minimum
-          bufferMultiplier: 0.15     // 15% of project duration
-        };
-      case 'months':
-        return {
-          paddingDays: 45,           // 6+ weeks padding
-          minimumDays: 180,          // 6 months minimum
-          bufferMultiplier: 0.25     // 25% of project duration
-        };
-      default:
-        return {
-          paddingDays: 21,
-          minimumDays: 90,
-          bufferMultiplier: 0.15
-        };
-    }
-  };
-
-  const config = getViewModeConfig(viewMode);
-
-  // **PHASE 1: PRIMARY - Use project start/end dates with enhanced calculation**
-  if (selectedProject?.start_date && selectedProject?.end_date) {
-    const projectStart = new Date(selectedProject.start_date);
-    const projectEnd = new Date(selectedProject.end_date);
+export const useTimelineCalculation = ({
+  projectTasks,
+  viewMode,
+  selectedProject
+}: UseTimelineCalculationProps) => {
+  
+  const totalDays = useMemo(() => {
+    if (projectTasks.length === 0) return 30; // Default fallback
     
-    // Check task boundaries
-    let earliestTaskDate = projectStart;
-    let latestTaskDate = projectEnd;
-    
-    tasks.forEach(task => {
+    const dates = projectTasks.flatMap(task => {
       const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-      
-      if (calculatedStartDate < earliestTaskDate) {
-        earliestTaskDate = calculatedStartDate;
-      }
-      if (calculatedEndDate > latestTaskDate) {
-        latestTaskDate = calculatedEndDate;
-      }
+      return [calculatedStartDate, calculatedEndDate];
     });
     
-    // Use broader range with view-mode specific padding
-    const timelineStart = earliestTaskDate < projectStart ? earliestTaskDate : projectStart;
-    const timelineEnd = latestTaskDate > projectEnd ? latestTaskDate : projectEnd;
+    if (dates.length === 0) return 30;
     
-    const start = new Date(timelineStart);
-    start.setDate(start.getDate() - config.paddingDays);
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
     
-    const end = new Date(timelineEnd);
-    end.setDate(end.getDate() + config.paddingDays);
+    return getDaysBetween(minDate, maxDate);
+  }, [projectTasks]);
+
+  const projectProgress = useMemo(() => {
+    if (projectTasks.length === 0) return 0;
     
-    // Ensure minimum span
-    const totalDays = getDaysBetween(start, end);
-    if (totalDays < config.minimumDays) {
-      const additionalDays = config.minimumDays - totalDays;
-      start.setDate(start.getDate() - Math.floor(additionalDays / 2));
-      end.setDate(end.getDate() + Math.ceil(additionalDays / 2));
-    }
-    
-    return { start, end };
-  }
-  
-  // **FALLBACK: Enhanced task-based calculation**
-  if (tasks.length === 0) {
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(start.getDate() - config.paddingDays);
-    const end = new Date(now);
-    end.setDate(end.getDate() + config.minimumDays);
-    return { start, end };
-  }
+    const totalProgress = projectTasks.reduce((sum, task) => sum + (task.progress || 0), 0);
+    return Math.round(totalProgress / projectTasks.length);
+  }, [projectTasks]);
 
-  let minDate: Date | null = null;
-  let maxDate: Date | null = null;
+  const completedTasks = useMemo(() => {
+    return projectTasks.filter(task => task.status === 'completed').length;
+  }, [projectTasks]);
 
-  // Process all tasks to find actual date ranges
-  tasks.forEach(task => {
-    const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-    
-    if (!minDate || calculatedStartDate < minDate) minDate = calculatedStartDate;
-    if (!maxDate || calculatedEndDate > maxDate) maxDate = calculatedEndDate;
-  });
-
-  if (!minDate || !maxDate) {
-    const now = new Date();
-    minDate = new Date(now);
-    minDate.setDate(minDate.getDate() - config.paddingDays);
-    maxDate = new Date(now);
-    maxDate.setDate(maxDate.getDate() + config.minimumDays);
-  }
-
-  // Calculate intelligent padding based on project duration
-  const projectDurationDays = getDaysBetween(minDate, maxDate);
-  const dynamicPadding = Math.max(
-    config.paddingDays, 
-    Math.min(config.paddingDays * 3, projectDurationDays * config.bufferMultiplier)
-  );
-
-  const start = new Date(minDate);
-  start.setDate(start.getDate() - dynamicPadding);
-  
-  const end = new Date(maxDate);
-  end.setDate(end.getDate() + dynamicPadding);
-
-  // Ensure minimum timeline span
-  const totalDays = getDaysBetween(start, end);
-  if (totalDays < config.minimumDays) {
-    const additionalDays = config.minimumDays - totalDays;
-    start.setDate(start.getDate() - Math.floor(additionalDays / 2));
-    end.setDate(end.getDate() + Math.ceil(additionalDays / 2));
-  }
-
-  // **ENHANCED: View mode specific boundary adjustments**
-  if (viewMode === 'weeks') {
-    // Align to week boundaries (Sunday start)
-    const startDay = start.getDay();
-    if (startDay !== 0) {
-      start.setDate(start.getDate() - startDay);
-    }
-    const endDay = end.getDay();
-    if (endDay !== 6) {
-      end.setDate(end.getDate() + (6 - endDay));
-    }
-  } else if (viewMode === 'months') {
-    // Align to month boundaries
-    start.setDate(1); // First day of month
-    end.setMonth(end.getMonth() + 1, 0); // Last day of month
-  }
-
-  return { start, end };
-};
-
-export const useTimelineCalculation = ({ 
-  projectTasks, 
-  viewMode, 
-  selectedProject 
-}: UseTimelineCalculationProps) => {
-  const [timelineStart, setTimelineStart] = useState<Date>(new Date());
-  const [timelineEnd, setTimelineEnd] = useState<Date>(new Date());
-
-  // **ENHANCED: Recalculate timeline when view mode changes**
-  useEffect(() => {
-    const { start, end } = calculateTimelineRange(projectTasks, viewMode, selectedProject);
-    setTimelineStart(start);
-    setTimelineEnd(end);
-  }, [projectTasks, viewMode, selectedProject]);
-
-  const totalDays = getDaysBetween(timelineStart, timelineEnd);
+  const overdueTasks = useMemo(() => {
+    const today = new Date();
+    return projectTasks.filter(task => {
+      const { calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+      return calculatedEndDate < today && task.status !== 'completed';
+    }).length;
+  }, [projectTasks]);
 
   return {
-    timelineStart,
-    timelineEnd,
-    totalDays
+    totalDays,
+    projectProgress,
+    completedTasks,
+    overdueTasks
   };
 };
