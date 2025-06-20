@@ -20,16 +20,13 @@ interface GanttChartContentProps {
   onDragEnd: () => void;
   draggedTaskId?: string;
   projectId?: string;
-  // Simplified drag state props
+  // Simplified drag state props - only essential properties
   dragState?: {
     dropPreviewDate: Date | null;
     dragPosition: { x: number; y: number } | null;
     currentValidity: 'valid' | 'warning' | 'invalid';
     violationMessages: string[];
     suggestedDropDate: Date | null;
-    validDropZones?: { start: Date; end: Date; validity: 'valid' | 'warning' | 'invalid' }[];
-    showDropZones?: boolean;
-    affectedMarkerIds?: string[];
   };
 }
 
@@ -57,21 +54,22 @@ export const GanttChartContent = ({
     setUseVirtualScroll(displayTasks.length > 50);
   }, [displayTasks.length]);
 
-  // Handle empty state - use GanttEmptyState directly
+  // Handle empty state
   if (displayTasks.length === 0) {
     return <GanttEmptyState projectId={projectId || 'all'} />;
   }
 
-  // Create complete drag state with defaults for missing properties
+  // Create complete drag state with defaults for compatibility
   const completeDragState = dragState ? {
     dropPreviewDate: dragState.dropPreviewDate,
     dragPosition: dragState.dragPosition,
     currentValidity: dragState.currentValidity,
     violationMessages: dragState.violationMessages,
     suggestedDropDate: dragState.suggestedDropDate,
-    validDropZones: dragState.validDropZones || [],
-    showDropZones: dragState.showDropZones || false,
-    affectedMarkerIds: dragState.affectedMarkerIds || []
+    // Add compatibility properties with defaults
+    validDropZones: [],
+    showDropZones: false,
+    affectedMarkerIds: []
   } : undefined;
 
   // Use virtual scrolling for performance with large task lists

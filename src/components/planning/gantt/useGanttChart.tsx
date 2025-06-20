@@ -38,14 +38,22 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     optimisticUpdates
   } = state;
 
-  // Debug mode functionality - proper ES6 import
-  const {
-    isDebugMode,
-    debugPreferences,
-    toggleDebugMode,
-    updateDebugPreference,
-    isDevelopment
-  } = useDebugMode();
+  // Debug mode functionality - only in development
+  const debugMode = process.env.NODE_ENV === 'development' ? useDebugMode() : {
+    isDebugMode: false,
+    debugPreferences: {
+      showColumnInfo: false,
+      showTaskDetails: false,
+      showGridLines: false,
+      showPerformanceMetrics: false,
+      showScrollInfo: false,
+      showSubscriptions: false,
+      showAuthState: false
+    },
+    toggleDebugMode: () => {},
+    updateDebugPreference: () => {},
+    isDevelopment: false
+  };
 
   // Get selected project data
   const selectedProject = projectId && projectId !== 'all' 
@@ -69,19 +77,15 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     viewMode
   });
 
-  // Fixed drag and drop interface - include all required properties
+  // Simplified drag and drop interface
   const dragAndDrop = {
     isDragging: dragBridge.isDragging,
     draggedTask: dragBridge.draggedTask,
     dropPreviewDate: dragBridge.dropPreviewDate,
     currentValidity: dragBridge.currentValidity,
     violationMessages: dragBridge.violationMessages,
-    suggestedDropDate: dragBridge.suggestedDropDate, // Now properly included
-    
-    // Position and visual state
+    suggestedDropDate: dragBridge.suggestedDropDate,
     dragPosition: dragBridge.dragPosition,
-    
-    // Local updates tracking (handled by context now)
     localTaskUpdates: {},
     
     // Handlers
@@ -96,7 +100,6 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     },
     
     resetLocalUpdates: () => {
-      // Context manages optimistic updates, no local reset needed
       console.log('Reset local updates (handled by context)');
     }
   };
@@ -106,7 +109,6 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     const updateTimelineRect = () => {
       if (timelineRef.current) {
         setTimelineRect(timelineRef.current.getBoundingClientRect());
-        // Add data attribute for debug overlay (only in development)
         if (process.env.NODE_ENV === 'development') {
           timelineRef.current.setAttribute('data-timeline-container', 'true');
         }
@@ -173,13 +175,13 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     // Drag and Drop
     dragAndDrop,
 
-    // Debug Mode - only exposed in development
-    isDebugMode: process.env.NODE_ENV === 'development' ? isDebugMode : false,
-    debugPreferences: process.env.NODE_ENV === 'development' ? debugPreferences : {},
-    toggleDebugMode: process.env.NODE_ENV === 'development' ? toggleDebugMode : () => {},
-    updateDebugPreference: process.env.NODE_ENV === 'development' ? updateDebugPreference : () => {},
-    isDevelopment: process.env.NODE_ENV === 'development' ? isDevelopment : false,
-    optimisticUpdatesCount: process.env.NODE_ENV === 'development' ? optimisticUpdatesCount : 0,
+    // Debug Mode - properly typed and conditionally available
+    isDebugMode: debugMode.isDebugMode,
+    debugPreferences: debugMode.debugPreferences,
+    toggleDebugMode: debugMode.toggleDebugMode,
+    updateDebugPreference: debugMode.updateDebugPreference,
+    isDevelopment: debugMode.isDevelopment,
+    optimisticUpdatesCount,
     isDragging: dragAndDrop.isDragging
   };
 };

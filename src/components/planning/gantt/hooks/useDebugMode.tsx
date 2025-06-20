@@ -14,7 +14,7 @@ interface DebugPreferences {
 export const useDebugMode = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
-  // Return disabled state immediately in production
+  // Return proper structure immediately in production
   if (!isDevelopment) {
     return {
       isDebugMode: false,
@@ -26,7 +26,7 @@ export const useDebugMode = () => {
         showScrollInfo: false,
         showSubscriptions: false,
         showAuthState: false
-      } as DebugPreferences,
+      } satisfies DebugPreferences,
       toggleDebugMode: () => {},
       updateDebugPreference: () => {},
       isDevelopment: false
@@ -41,8 +41,8 @@ export const useDebugMode = () => {
     showGridLines: false,
     showPerformanceMetrics: true,
     showScrollInfo: false,
-    showSubscriptions: true, // Default to true for subscription monitoring
-    showAuthState: true // Default to true for auth state monitoring
+    showSubscriptions: true,
+    showAuthState: true
   });
 
   // Load debug preferences from localStorage only in development

@@ -18,7 +18,7 @@ import { GanttProjectOverview } from './gantt/GanttProjectOverview';
 import { useProjects } from '@/hooks/useProjects';
 import { GanttProvider } from '@/contexts/gantt';
 
-// Lazy load debug overlay only in development
+// Conditionally import debug overlay only in development
 const GanttDebugOverlay = process.env.NODE_ENV === 'development' 
   ? React.lazy(() => import('./gantt/debug/GanttDebugOverlay').then(module => ({ 
       default: module.GanttDebugOverlay 
@@ -29,7 +29,7 @@ interface GanttChartProps {
   projectId: string;
 }
 
-const GanttChartInner = ({ projectId }: GanttChartProps) => {
+const GanttChart = ({ projectId }: GanttChartProps) => {
   const { projects } = useProjects();
   const {
     projectTasks,
@@ -97,21 +97,17 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
   const localUpdatesCount = Object.keys(dragAndDrop.localTaskUpdates).length;
   const criticalTasks = displayTasks.filter(t => t.priority === 'critical').length;
 
-  // Create complete drag state with all required properties
-  const completeDragState = {
+  // Simplified drag state - only essential properties
+  const dragState = {
     dropPreviewDate: dragAndDrop.dropPreviewDate,
     dragPosition: dragAndDrop.dragPosition,
     currentValidity: dragAndDrop.currentValidity,
     violationMessages: dragAndDrop.violationMessages,
-    suggestedDropDate: dragAndDrop.suggestedDropDate || dragAndDrop.dropPreviewDate,
-    validDropZones: [],
-    showDropZones: false,
-    affectedMarkerIds: []
+    suggestedDropDate: dragAndDrop.suggestedDropDate || dragAndDrop.dropPreviewDate
   };
 
   // Navigation handler for project overview
   const handleNavigateToDate = (date: Date) => {
-    // Use existing timeline navigation functionality
     if (timelineRef.current) {
       const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
       const daysFromStart = Math.ceil((date.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
@@ -120,7 +116,6 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
       const scrollableWidth = container.scrollWidth - container.clientWidth;
       const targetPosition = (daysFromStart / totalDays) * scrollableWidth;
       
-      // Center the target date in the viewport
       const centeredPosition = Math.max(0, targetPosition - container.clientWidth / 2);
       
       container.scrollTo({
@@ -128,17 +123,6 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
         behavior: 'smooth'
       });
     }
-  };
-
-  // Ensure debugPreferences always has the correct structure
-  const safeDebugPreferences = debugPreferences || {
-    showColumnInfo: false,
-    showTaskDetails: false,
-    showGridLines: false,
-    showPerformanceMetrics: false,
-    showScrollInfo: false,
-    showSubscriptions: false,
-    showAuthState: false
   };
 
   return (
@@ -223,11 +207,11 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
             onDragEnd={dragAndDrop.handleDragEnd}
             draggedTaskId={dragAndDrop.draggedTask?.id}
             projectId={projectId}
-            dragState={completeDragState}
+            dragState={dragState}
           />
 
-          {/* Enhanced Debug Overlay - only in development */}
-          {process.env.NODE_ENV === 'development' && GanttDebugOverlay && (
+          {/* Debug Overlay - only in development */}
+          {process.env.NODE_ENV === 'development' && isDebugMode && GanttDebugOverlay && (
             <React.Suspense fallback={null}>
               <GanttDebugOverlay
                 isVisible={isDebugMode}
@@ -235,7 +219,7 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
                 timelineStart={timelineStart}
                 timelineEnd={timelineEnd}
                 viewMode={viewMode}
-                debugPreferences={safeDebugPreferences}
+                debugPreferences={debugPreferences}
                 onUpdatePreference={updateDebugPreference}
                 optimisticUpdatesCount={optimisticUpdatesCount}
                 isDragging={isDragging}
@@ -258,10 +242,13 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
   );
 };
 
-export const GanttChart = ({ projectId }: GanttChartProps) => {
+export const GanttChartWithProvider = ({ projectId }: GanttChartProps) => {
   return (
     <GanttProvider projectId={projectId}>
-      <GanttChartInner projectId={projectId} />
+      <GanttChart projectId={projectId} />
     </GanttProvider>
   );
 };
+
+// Export the component with provider as default
+export { GanttChartWithProvider as GanttChart };
