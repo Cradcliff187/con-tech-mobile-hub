@@ -31,7 +31,7 @@ interface GanttChartProps {
   projectId: string;
 }
 
-const GanttChart = ({ projectId }: GanttChartProps): JSX.Element => {
+const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
   const { projects } = useProjects();
   const {
     projectTasks,
@@ -254,13 +254,10 @@ const GanttChart = ({ projectId }: GanttChartProps): JSX.Element => {
   );
 };
 
-export const GanttChartWithProvider = ({ projectId }: GanttChartProps): JSX.Element => {
+export const GanttChart = ({ projectId }: GanttChartProps): JSX.Element => {
   return (
     <GanttProvider projectId={projectId}>
-      <GanttChart projectId={projectId} />
+      <GanttChartInner projectId={projectId} />
     </GanttProvider>
   );
 };
-
-// Export the component with provider as default
-export { GanttChartWithProvider as GanttChart };
