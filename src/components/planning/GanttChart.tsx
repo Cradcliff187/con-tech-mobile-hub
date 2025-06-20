@@ -1,4 +1,4 @@
-import { GanttLoadingState } from './GanttLoadingState';
+import { GanttLoadingState } from './gantt/components/GanttLoadingState';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GanttControls } from './gantt/GanttControls';
 import { GanttStats } from './gantt/GanttStats';

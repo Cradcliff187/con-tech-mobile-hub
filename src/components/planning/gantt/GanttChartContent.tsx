@@ -1,6 +1,6 @@
 
 import { Task } from '@/types/database';
-import { GanttEmptyStateWrapper } from './components/GanttEmptyStateWrapper';
+import { GanttEmptyState } from './GanttEmptyState';
 import { VirtualGanttContainer } from './components/VirtualGanttContainer';
 import { StandardGanttContainer } from './components/StandardGanttContainer';
 import { useState, useEffect } from 'react';
@@ -57,16 +57,9 @@ export const GanttChartContent = ({
     setUseVirtualScroll(displayTasks.length > 50);
   }, [displayTasks.length]);
 
-  // Handle empty state
-  const emptyState = GanttEmptyStateWrapper({
-    displayTasks,
-    timelineStart,
-    timelineEnd,
-    viewMode
-  });
-  
-  if (emptyState) {
-    return emptyState;
+  // Handle empty state - use GanttEmptyState directly
+  if (displayTasks.length === 0) {
+    return <GanttEmptyState projectId={projectId || 'all'} />;
   }
 
   // Use virtual scrolling for performance with large task lists
