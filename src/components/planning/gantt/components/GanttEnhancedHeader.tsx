@@ -1,7 +1,7 @@
 
 import { AlertTriangle } from 'lucide-react';
 import { GanttChartHeader } from '../GanttChartHeader';
-import { MigrationButton } from '@/utils/taskDateMigration';
+import { MigrationButton } from './TaskDateMigration';
 import { Task } from '@/types/database';
 
 interface GanttEnhancedHeaderProps {
