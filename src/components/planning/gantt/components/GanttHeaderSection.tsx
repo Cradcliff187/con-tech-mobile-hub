@@ -2,6 +2,7 @@
 import { GanttEnhancedHeader } from './GanttEnhancedHeader';
 import { GanttStatusIndicators } from './GanttStatusIndicators';
 import { GanttControls } from '../GanttControls';
+import type { FilterState, FilterChangeHandler } from '../types/ganttTypes';
 
 interface GanttHeaderSectionProps {
   totalDays: number;
@@ -16,8 +17,8 @@ interface GanttHeaderSectionProps {
   onResetUpdates: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  filters: any;
-  onFilterChange: (filters: any) => void;
+  filters: FilterState;
+  onFilterChange: FilterChangeHandler;
   viewMode: 'days' | 'weeks' | 'months';
   onViewModeChange: (mode: 'days' | 'weeks' | 'months') => void;
   isDebugMode: boolean;

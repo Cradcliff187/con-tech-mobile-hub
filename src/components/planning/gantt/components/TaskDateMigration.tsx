@@ -4,9 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 
+interface TaskUpdateData {
+  start_date?: string;
+  due_date?: string;
+}
+
 export const migrateTaskDatesToCurrentYear = async (tasks: Task[]) => {
   const currentYear = 2025;
-  const updatesNeeded: Array<{ id: string; updateData: any }> = [];
+  const updatesNeeded: Array<{ id: string; updateData: TaskUpdateData }> = [];
   
   tasks.forEach(task => {
     const needsUpdate = 
@@ -14,7 +19,7 @@ export const migrateTaskDatesToCurrentYear = async (tasks: Task[]) => {
       (task.due_date && new Date(task.due_date).getFullYear() < currentYear);
     
     if (needsUpdate) {
-      const updateData: any = {};
+      const updateData: TaskUpdateData = {};
       
       if (task.start_date) {
         const date = new Date(task.start_date);

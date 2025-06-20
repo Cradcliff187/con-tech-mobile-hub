@@ -1,5 +1,5 @@
 
-import { GanttAction } from './types';
+import { GanttAction, GanttState } from './types';
 import { Task } from '@/types/database';
 
 // Action creators for Gantt state management
@@ -39,12 +39,12 @@ export const createGanttActions = {
     payload: taskId,
   }),
 
-  setDragState: (dragState: Partial<any>): GanttAction => ({
+  setDragState: (dragState: Partial<GanttState['dragState']>): GanttAction => ({
     type: 'SET_DRAG_STATE',
     payload: dragState,
   }),
 
-  setFilters: (filters: any): GanttAction => ({
+  setFilters: (filters: Partial<GanttState['filters']>): GanttAction => ({
     type: 'SET_FILTERS',
     payload: filters,
   }),

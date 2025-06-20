@@ -2,8 +2,9 @@
 import { useMemo } from 'react';
 import { Task } from '@/types/database';
 import { getAssigneeName } from '../utils/taskUtils';
+import type { FilterState } from '../types/ganttTypes';
 
-export const useGanttFilters = (tasks: Task[], filters: any) => {
+export const useGanttFilters = (tasks: Task[], filters: FilterState) => {
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       // Status filter
