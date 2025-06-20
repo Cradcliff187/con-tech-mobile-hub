@@ -112,6 +112,7 @@ export const useGanttDragBridge = ({
     
     // Task utilities
     getOptimisticTask: enhancedDragDrop.getOptimisticTask,
+    // Fixed: Return the correct Map type instead of Task[]
     optimisticTasks: enhancedDragDrop.optimisticTasks
   };
 };

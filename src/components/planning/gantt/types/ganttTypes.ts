@@ -29,7 +29,7 @@ export interface TaskDateMigrationData {
   migratedDueDate: Date;
 }
 
-// Subscription channel info interface
+// Subscription channel info interface - fixed to match actual return type
 export interface SubscriptionChannelInfo {
   key: string;
   callbackCount: number;
@@ -38,7 +38,7 @@ export interface SubscriptionChannelInfo {
     table?: string;
     schema?: string;
     event?: string;
-    filter?: string;
+    filter?: Record<string, any>; // Changed from string to Record<string, any>
   };
 }
 
