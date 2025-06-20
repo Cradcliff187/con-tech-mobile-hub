@@ -12,6 +12,7 @@ interface DebugPreferences {
 }
 
 export const useDebugMode = () => {
+  // Only initialize debug state in development
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [debugPreferences, setDebugPreferences] = useState<DebugPreferences>({
     showColumnInfo: false,
@@ -25,22 +26,22 @@ export const useDebugMode = () => {
 
   const isDevelopment = process.env.NODE_ENV === 'development';
 
-  // Load debug preferences from localStorage
+  // Load debug preferences from localStorage only in development
   useEffect(() => {
-    if (isDevelopment) {
-      const saved = localStorage.getItem('gantt-debug-preferences');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setDebugPreferences(prev => ({ ...prev, ...parsed }));
-        } catch (error) {
-          console.warn('Failed to parse debug preferences:', error);
-        }
+    if (!isDevelopment) return;
+    
+    const saved = localStorage.getItem('gantt-debug-preferences');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setDebugPreferences(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.warn('Failed to parse debug preferences:', error);
       }
-      
-      const debugMode = localStorage.getItem('gantt-debug-mode') === 'true';
-      setIsDebugMode(debugMode);
     }
+    
+    const debugMode = localStorage.getItem('gantt-debug-mode') === 'true';
+    setIsDebugMode(debugMode);
   }, [isDevelopment]);
 
   const toggleDebugMode = () => {
@@ -59,8 +60,19 @@ export const useDebugMode = () => {
     localStorage.setItem('gantt-debug-preferences', JSON.stringify(newPreferences));
   };
 
+  // Return empty/disabled state in production
+  if (!isDevelopment) {
+    return {
+      isDebugMode: false,
+      debugPreferences: {} as DebugPreferences,
+      toggleDebugMode: () => {},
+      updateDebugPreference: () => {},
+      isDevelopment: false
+    };
+  }
+
   return {
-    isDebugMode: isDebugMode && isDevelopment,
+    isDebugMode,
     debugPreferences,
     toggleDebugMode,
     updateDebugPreference,

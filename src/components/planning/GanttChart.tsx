@@ -15,7 +15,13 @@ import { useGanttState } from './gantt/hooks/useGanttState';
 import { GanttProjectOverview } from './gantt/GanttProjectOverview';
 import { useProjects } from '@/hooks/useProjects';
 import { GanttProvider } from '@/contexts/gantt';
-import { GanttMainContent } from './gantt/components/GanttMainContent';
+
+// Lazy load debug overlay only in development
+const GanttDebugOverlay = process.env.NODE_ENV === 'development' 
+  ? React.lazy(() => import('./gantt/debug/GanttDebugOverlay').then(module => ({ 
+      default: module.GanttDebugOverlay 
+    })))
+  : null;
 
 interface GanttChartProps {
   projectId: string;
@@ -89,16 +95,13 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
   const localUpdatesCount = Object.keys(dragAndDrop.localTaskUpdates).length;
   const criticalTasks = displayTasks.filter(t => t.priority === 'critical').length;
 
-  // Enhanced drag state for overlay integration
-  const enhancedDragState = {
+  // Simplified drag state - only keep actively used properties
+  const simplifiedDragState = {
     dropPreviewDate: dragAndDrop.dropPreviewDate,
     dragPosition: dragAndDrop.dragPosition,
     currentValidity: dragAndDrop.currentValidity,
-    validDropZones: dragAndDrop.validDropZones,
-    showDropZones: dragAndDrop.showDropZones,
     violationMessages: dragAndDrop.violationMessages,
-    suggestedDropDate: dragAndDrop.suggestedDropDate,
-    affectedMarkerIds: dragAndDrop.affectedMarkerIds
+    suggestedDropDate: dragAndDrop.suggestedDropDate
   };
 
   // Navigation handler for project overview
@@ -154,36 +157,76 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
           onViewModeChange={setViewMode}
         />
 
-        {/* Main Gantt Content with Enhanced Debug Overlay */}
-        <GanttMainContent
-          showMiniMap={showMiniMap}
-          displayTasks={displayTasks}
+        {/* Timeline Mini-map for navigation */}
+        {showMiniMap && (
+          <TimelineMiniMap
+            tasks={displayTasks}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            currentViewStart={currentViewStart}
+            currentViewEnd={currentViewEnd}
+            onViewportChange={handleMiniMapViewportChange}
+          />
+        )}
+
+        {/* Summary Statistics with Timeline Navigation */}
+        <GanttStats 
+          tasks={displayTasks} 
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          onNavigateToDate={handleNavigateToDate}
+        />
+
+        {/* Project Overview Timeline */}
+        <GanttProjectOverview
+          project={selectedProject}
           timelineStart={timelineStart}
           timelineEnd={timelineEnd}
           currentViewStart={currentViewStart}
           currentViewEnd={currentViewEnd}
-          onViewportChange={handleMiniMapViewportChange}
-          selectedProject={selectedProject}
           completedTasks={completedTasks}
           totalTasks={displayTasks.length}
           onNavigateToDate={handleNavigateToDate}
           viewMode={viewMode}
-          selectedTaskId={selectedTaskId}
-          onTaskSelect={handleTaskSelect}
-          isDragging={isDragging}
-          timelineRef={timelineRef}
-          onDragOver={dragAndDrop.handleDragOver}
-          onDrop={dragAndDrop.handleDrop}
-          onDragStart={dragAndDrop.handleDragStart}
-          onDragEnd={dragAndDrop.handleDragEnd}
-          draggedTaskId={dragAndDrop.draggedTask?.id}
-          projectId={projectId}
-          dragState={enhancedDragState}
-          isDebugMode={isDebugMode}
-          debugPreferences={debugPreferences}
-          onUpdateDebugPreference={updateDebugPreference}
-          optimisticUpdatesCount={optimisticUpdatesCount}
         />
+
+        {/* Enhanced Gantt Chart with Construction Features and Drag Integration */}
+        <div className="relative">
+          <GanttChartContent
+            displayTasks={displayTasks}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={handleTaskSelect}
+            viewMode={viewMode}
+            isDragging={isDragging}
+            timelineRef={timelineRef}
+            onDragOver={dragAndDrop.handleDragOver}
+            onDrop={dragAndDrop.handleDrop}
+            onDragStart={dragAndDrop.handleDragStart}
+            onDragEnd={dragAndDrop.handleDragEnd}
+            draggedTaskId={dragAndDrop.draggedTask?.id}
+            projectId={projectId}
+            dragState={simplifiedDragState}
+          />
+
+          {/* Enhanced Debug Overlay - only in development */}
+          {process.env.NODE_ENV === 'development' && GanttDebugOverlay && (
+            <React.Suspense fallback={null}>
+              <GanttDebugOverlay
+                isVisible={isDebugMode}
+                tasks={displayTasks}
+                timelineStart={timelineStart}
+                timelineEnd={timelineEnd}
+                viewMode={viewMode}
+                debugPreferences={debugPreferences}
+                onUpdatePreference={updateDebugPreference}
+                optimisticUpdatesCount={optimisticUpdatesCount}
+                isDragging={isDragging}
+              />
+            </React.Suspense>
+          )}
+        </div>
 
         <GanttLegend />
 

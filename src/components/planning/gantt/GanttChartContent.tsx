@@ -20,16 +20,13 @@ interface GanttChartContentProps {
   onDragEnd: () => void;
   draggedTaskId?: string;
   projectId?: string;
-  // Enhanced drag state props for overlay integration
+  // Simplified drag state props
   dragState?: {
     dropPreviewDate: Date | null;
     dragPosition: { x: number; y: number } | null;
     currentValidity: 'valid' | 'warning' | 'invalid';
-    validDropZones: Array<{ start: Date; end: Date; validity: 'valid' | 'warning' | 'invalid' }>;
-    showDropZones: boolean;
     violationMessages: string[];
     suggestedDropDate: Date | null;
-    affectedMarkerIds: string[];
   };
 }
 
