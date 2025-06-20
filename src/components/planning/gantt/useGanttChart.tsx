@@ -5,7 +5,13 @@ import { useGanttContext } from '@/contexts/gantt';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
 import { useGanttDragBridge } from './hooks/useGanttDragBridge';
 import { useDebugMode } from './hooks/useDebugMode';
-import type { GanttChartHook, FilterState } from './types/ganttTypes';
+import type { 
+  GanttChartHook, 
+  FilterState, 
+  FilterChangeHandler,
+  ProjectData,
+  DragAndDropState
+} from './types/ganttTypes';
 import type { Task } from '@/types/database';
 
 interface UseGanttChartProps {
@@ -57,9 +63,9 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     isDevelopment: false
   };
 
-  // Get selected project data
-  const selectedProject = projectId && projectId !== 'all' 
-    ? projects.find(p => p.id === projectId) 
+  // Get selected project data with proper typing
+  const selectedProject: ProjectData | null = projectId && projectId !== 'all' 
+    ? projects.find(p => p.id === projectId) as ProjectData || null
     : null;
 
   // Get filtered tasks from context
@@ -79,8 +85,8 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     viewMode
   });
 
-  // Simplified drag and drop interface
-  const dragAndDrop = {
+  // Properly typed drag and drop interface
+  const dragAndDrop: DragAndDropState = {
     isDragging: dragBridge.isDragging,
     draggedTask: dragBridge.draggedTask,
     dropPreviewDate: dragBridge.dropPreviewDate,
@@ -102,6 +108,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     },
     
     resetLocalUpdates: (): void => {
+      // Only log in development
       if (process.env.NODE_ENV === 'development') {
         console.log('Reset local updates (handled by context)');
       }
@@ -134,8 +141,8 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
-  // Handle filter changes
-  const handleFilterChange = (filterType: string, values: string[]): void => {
+  // Handle filter changes with proper typing
+  const handleFilterChange: FilterChangeHandler = (filterType: string, values: string[]): void => {
     setFilters({ [filterType]: values } as Partial<FilterState>);
   };
 

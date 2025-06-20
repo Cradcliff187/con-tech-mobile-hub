@@ -11,6 +11,13 @@ import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import type { Task } from '@/types/database';
+
+interface TimelineFilters {
+  status: string;
+  category: string;
+  priority: string;
+}
 
 export const TimelineView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -44,7 +51,7 @@ export const TimelineView: React.FC = () => {
   }, [projectFromUrl, projects]);
 
   // Navigation handler for task clicks
-  const handleTaskNavigation = (taskId: string) => {
+  const handleTaskNavigation = (taskId: string): void => {
     const task = tasks.find(t => t.id === taskId);
     const projectId = task?.project_id || selectedProject;
     
@@ -57,12 +64,12 @@ export const TimelineView: React.FC = () => {
   };
 
   // Modal handler for task details (secondary option)
-  const handleTaskModal = (taskId: string) => {
+  const handleTaskModal = (taskId: string): void => {
     setSelectedTask(taskId);
   };
 
   // Find the selected task when user opens the modal
-  const selectedTaskObj = tasks.find(task => task.id === selectedTask);
+  const selectedTaskObj: Task | undefined = tasks.find(task => task.id === selectedTask);
 
   const loading = projectsLoading || tasksLoading;
 

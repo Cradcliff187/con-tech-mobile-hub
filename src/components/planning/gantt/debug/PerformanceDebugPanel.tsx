@@ -52,6 +52,7 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
     }
   }, []);
 
+  // Only render in development
   if (process.env.NODE_ENV !== 'development') {
     return null;
   }
@@ -62,9 +63,13 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
 
   // Safely access memory information
   const getMemoryUsage = (): string => {
-    if ('memory' in performance && (performance as any).memory) {
-      const memory = (performance as any).memory;
-      return (memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+    try {
+      if ('memory' in performance && (performance as any).memory) {
+        const memory = (performance as any).memory;
+        return (memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+      }
+    } catch (error) {
+      // Silently handle memory access errors
     }
     return 'N/A';
   };

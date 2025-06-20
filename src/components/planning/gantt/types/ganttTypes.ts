@@ -9,6 +9,9 @@ export interface FilterState {
   phase: string[];
 }
 
+// Filter change handler type
+export type FilterChangeHandler = (filterType: string, values: string[]) => void;
+
 // Debug preferences interface
 export interface DebugPreferences {
   showColumnInfo: boolean;
@@ -29,6 +32,14 @@ export interface TaskDateMigrationData {
   migratedDueDate: Date;
 }
 
+// Task update data interface for migration operations
+export interface TaskUpdateData {
+  id: string;
+  updates: Partial<Task>;
+  timestamp: Date;
+  source: 'user' | 'migration' | 'system';
+}
+
 // Subscription channel info interface - fixed to match actual return type
 export interface SubscriptionChannelInfo {
   key: string;
@@ -38,7 +49,7 @@ export interface SubscriptionChannelInfo {
     table?: string;
     schema?: string;
     event?: string;
-    filter?: Record<string, any>; // Changed from string to Record<string, any>
+    filter?: Record<string, any>;
   };
 }
 
@@ -51,6 +62,28 @@ export interface SimplifiedDragState {
   suggestedDropDate: Date | null;
 }
 
+// Drag and drop state interface with proper typing
+export interface DragAndDropState {
+  isDragging: boolean;
+  draggedTask: Task | null;
+  dropPreviewDate: Date | null;
+  currentValidity: 'valid' | 'warning' | 'invalid';
+  violationMessages: string[];
+  suggestedDropDate: Date | null;
+  dragPosition: { x: number; y: number } | null;
+  localTaskUpdates: Record<string, Partial<Task>>;
+  
+  // Handlers with proper types
+  handleDragStart: (e: React.DragEvent, task: Task) => void;
+  handleDragEnd: () => void;
+  handleDragOver: (e: React.DragEvent) => void;
+  handleDrop: (e: React.DragEvent) => void;
+  
+  // Utility methods
+  getUpdatedTask: (task: Task) => Task;
+  resetLocalUpdates: () => void;
+}
+
 // Debug mode hook return type
 export interface DebugModeHook {
   isDebugMode: boolean;
@@ -60,14 +93,33 @@ export interface DebugModeHook {
   isDevelopment: boolean;
 }
 
-// Gantt chart hook return type
+// Project interface (imported from database types)
+export interface ProjectData {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+  phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
+  start_date?: string;
+  end_date?: string;
+  budget?: number;
+  spent?: number;
+  progress: number;
+  location?: string;
+  project_manager_id?: string;
+  client_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Gantt chart hook return type with proper typing
 export interface GanttChartHook {
   projectTasks: Task[];
   filteredTasks: Task[];
   displayTasks: Task[];
   loading: boolean;
   error: string | null;
-  selectedProject: any; // Will be typed properly with Project interface
+  selectedProject: ProjectData | null;
   timelineStart: Date;
   timelineEnd: Date;
   timelineRef: React.RefObject<HTMLDivElement>;
@@ -81,8 +133,8 @@ export interface GanttChartHook {
   setViewMode: (mode: 'days' | 'weeks' | 'months') => void;
   completedTasks: number;
   handleTaskSelect: (taskId: string) => void;
-  handleFilterChange: (filterType: string, values: string[]) => void;
-  dragAndDrop: any; // Will be properly typed
+  handleFilterChange: FilterChangeHandler;
+  dragAndDrop: DragAndDropState;
   isDebugMode: boolean;
   debugPreferences: DebugPreferences;
   toggleDebugMode: () => void;
