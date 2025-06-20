@@ -1,3 +1,5 @@
+
+import React from 'react';
 import { GanttLoadingState } from './gantt/components/GanttLoadingState';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GanttControls } from './gantt/GanttControls';
@@ -95,13 +97,16 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
   const localUpdatesCount = Object.keys(dragAndDrop.localTaskUpdates).length;
   const criticalTasks = displayTasks.filter(t => t.priority === 'critical').length;
 
-  // Simplified drag state - only keep actively used properties
-  const simplifiedDragState = {
+  // Create complete drag state with all required properties
+  const completeDragState = {
     dropPreviewDate: dragAndDrop.dropPreviewDate,
     dragPosition: dragAndDrop.dragPosition,
     currentValidity: dragAndDrop.currentValidity,
     violationMessages: dragAndDrop.violationMessages,
-    suggestedDropDate: dragAndDrop.suggestedDropDate
+    suggestedDropDate: dragAndDrop.suggestedDropDate || dragAndDrop.dropPreviewDate,
+    validDropZones: [],
+    showDropZones: false,
+    affectedMarkerIds: []
   };
 
   // Navigation handler for project overview
@@ -207,7 +212,7 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
             onDragEnd={dragAndDrop.handleDragEnd}
             draggedTaskId={dragAndDrop.draggedTask?.id}
             projectId={projectId}
-            dragState={simplifiedDragState}
+            dragState={completeDragState}
           />
 
           {/* Enhanced Debug Overlay - only in development */}

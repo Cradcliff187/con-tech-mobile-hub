@@ -79,6 +79,7 @@ export const useGanttDragBridge = ({
     dropPreviewDate: dragState.dropPreviewDate,
     currentValidity: dragState.currentValidity,
     violationMessages: dragState.violationMessages,
+    suggestedDropDate: dragState.dropPreviewDate, // Add suggested drop date
     
     // Enhanced features from useEnhancedDragDrop
     dragPosition: enhancedDragDrop.dragPreview.position,

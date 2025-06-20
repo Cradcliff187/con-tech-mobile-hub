@@ -27,6 +27,9 @@ interface GanttChartContentProps {
     currentValidity: 'valid' | 'warning' | 'invalid';
     violationMessages: string[];
     suggestedDropDate: Date | null;
+    validDropZones?: { start: Date; end: Date; validity: 'valid' | 'warning' | 'invalid' }[];
+    showDropZones?: boolean;
+    affectedMarkerIds?: string[];
   };
 }
 
@@ -59,6 +62,18 @@ export const GanttChartContent = ({
     return <GanttEmptyState projectId={projectId || 'all'} />;
   }
 
+  // Create complete drag state with defaults for missing properties
+  const completeDragState = dragState ? {
+    dropPreviewDate: dragState.dropPreviewDate,
+    dragPosition: dragState.dragPosition,
+    currentValidity: dragState.currentValidity,
+    violationMessages: dragState.violationMessages,
+    suggestedDropDate: dragState.suggestedDropDate,
+    validDropZones: dragState.validDropZones || [],
+    showDropZones: dragState.showDropZones || false,
+    affectedMarkerIds: dragState.affectedMarkerIds || []
+  } : undefined;
+
   // Use virtual scrolling for performance with large task lists
   if (useVirtualScroll) {
     return (
@@ -74,7 +89,7 @@ export const GanttChartContent = ({
         draggedTaskId={draggedTaskId}
         projectId={projectId}
         isDragging={isDragging}
-        dragState={dragState}
+        dragState={completeDragState}
       />
     );
   }
@@ -95,7 +110,7 @@ export const GanttChartContent = ({
       onDragEnd={onDragEnd}
       draggedTaskId={draggedTaskId}
       projectId={projectId}
-      dragState={dragState}
+      dragState={completeDragState}
     />
   );
 };
