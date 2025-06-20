@@ -132,6 +132,7 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
           punchListTasks={punchListTasks}
           localUpdatesCount={localUpdatesCount}
           onResetUpdates={dragAndDrop.resetLocalUpdates}
+          tasks={displayTasks}
         />
 
         {/* Construction-specific status indicators */}
