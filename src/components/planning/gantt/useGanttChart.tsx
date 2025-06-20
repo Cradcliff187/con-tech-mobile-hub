@@ -4,17 +4,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useGanttContext } from '@/contexts/gantt';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
 import { useGanttDragBridge } from './hooks/useGanttDragBridge';
-
-// Conditionally import debug hook only in development
-const useDebugMode = process.env.NODE_ENV === 'development' 
-  ? require('./hooks/useDebugMode').useDebugMode
-  : () => ({
-      isDebugMode: false,
-      debugPreferences: {},
-      toggleDebugMode: () => {},
-      updateDebugPreference: () => {},
-      isDevelopment: false
-    });
+import { useDebugMode } from './hooks/useDebugMode';
 
 interface UseGanttChartProps {
   projectId: string;
@@ -48,7 +38,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     optimisticUpdates
   } = state;
 
-  // Debug mode functionality - only in development
+  // Debug mode functionality - proper ES6 import
   const {
     isDebugMode,
     debugPreferences,
@@ -79,13 +69,14 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     viewMode
   });
 
-  // Simplified drag and drop interface - removed unused properties
+  // Fixed drag and drop interface - include all required properties
   const dragAndDrop = {
     isDragging: dragBridge.isDragging,
     draggedTask: dragBridge.draggedTask,
     dropPreviewDate: dragBridge.dropPreviewDate,
     currentValidity: dragBridge.currentValidity,
     violationMessages: dragBridge.violationMessages,
+    suggestedDropDate: dragBridge.suggestedDropDate, // Now properly included
     
     // Position and visual state
     dragPosition: dragBridge.dragPosition,
