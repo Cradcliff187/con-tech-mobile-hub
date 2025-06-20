@@ -130,6 +130,17 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
     }
   };
 
+  // Ensure debugPreferences always has the correct structure
+  const safeDebugPreferences = debugPreferences || {
+    showColumnInfo: false,
+    showTaskDetails: false,
+    showGridLines: false,
+    showPerformanceMetrics: false,
+    showScrollInfo: false,
+    showSubscriptions: false,
+    showAuthState: false
+  };
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -224,7 +235,7 @@ const GanttChartInner = ({ projectId }: GanttChartProps) => {
                 timelineStart={timelineStart}
                 timelineEnd={timelineEnd}
                 viewMode={viewMode}
-                debugPreferences={debugPreferences}
+                debugPreferences={safeDebugPreferences}
                 onUpdatePreference={updateDebugPreference}
                 optimisticUpdatesCount={optimisticUpdatesCount}
                 isDragging={isDragging}
