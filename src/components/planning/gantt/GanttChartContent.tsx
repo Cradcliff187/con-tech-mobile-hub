@@ -4,6 +4,7 @@ import { GanttEmptyState } from './GanttEmptyState';
 import { VirtualGanttContainer } from './components/VirtualGanttContainer';
 import { StandardGanttContainer } from './components/StandardGanttContainer';
 import { useState, useEffect } from 'react';
+import type { SimplifiedDragState } from './types/ganttTypes';
 
 interface GanttChartContentProps {
   displayTasks: Task[];
@@ -21,13 +22,7 @@ interface GanttChartContentProps {
   draggedTaskId?: string;
   projectId?: string;
   // Simplified drag state props - only essential properties
-  dragState?: {
-    dropPreviewDate: Date | null;
-    dragPosition: { x: number; y: number } | null;
-    currentValidity: 'valid' | 'warning' | 'invalid';
-    violationMessages: string[];
-    suggestedDropDate: Date | null;
-  };
+  dragState?: SimplifiedDragState;
 }
 
 export const GanttChartContent = ({
@@ -46,8 +41,8 @@ export const GanttChartContent = ({
   draggedTaskId,
   projectId,
   dragState
-}: GanttChartContentProps) => {
-  const [useVirtualScroll, setUseVirtualScroll] = useState(false);
+}: GanttChartContentProps): JSX.Element => {
+  const [useVirtualScroll, setUseVirtualScroll] = useState<boolean>(false);
 
   // Use virtual scrolling for large task lists (>50 tasks)
   useEffect(() => {

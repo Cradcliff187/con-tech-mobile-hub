@@ -1,4 +1,5 @@
 
+/* @__PURE__ */
 import React, { useState, useEffect } from 'react';
 import { Task } from '@/types/database';
 
@@ -9,15 +10,20 @@ interface PerformanceDebugPanelProps {
   viewMode: 'days' | 'weeks' | 'months';
 }
 
+interface ScrollPosition {
+  x: number;
+  y: number;
+}
+
 export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
   tasks,
   timelineStart,
   timelineEnd,
   viewMode
 }) => {
-  const [renderCount, setRenderCount] = useState(0);
-  const [lastRenderTime, setLastRenderTime] = useState(0);
-  const [scrollPosition, setScrollPosition] = useState({ x: 0, y: 0 });
+  const [renderCount, setRenderCount] = useState<number>(0);
+  const [lastRenderTime, setLastRenderTime] = useState<number>(0);
+  const [scrollPosition, setScrollPosition] = useState<ScrollPosition>({ x: 0, y: 0 });
 
   useEffect(() => {
     const startTime = performance.now();
@@ -29,7 +35,7 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
   });
 
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = (): void => {
       const timelineElement = document.querySelector('[data-timeline-container]');
       if (timelineElement) {
         setScrollPosition({
@@ -55,7 +61,7 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
   const completedTasks = tasks.filter(task => task.status === 'completed').length;
 
   // Safely access memory information
-  const getMemoryUsage = () => {
+  const getMemoryUsage = (): string => {
     if ('memory' in performance && (performance as any).memory) {
       const memory = (performance as any).memory;
       return (memory.usedJSHeapSize / 1024 / 1024).toFixed(1);

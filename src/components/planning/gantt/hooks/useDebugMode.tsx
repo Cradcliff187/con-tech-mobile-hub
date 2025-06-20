@@ -1,17 +1,8 @@
 
 import { useState, useEffect } from 'react';
+import type { DebugPreferences, DebugModeHook } from '../types/ganttTypes';
 
-interface DebugPreferences {
-  showColumnInfo: boolean;
-  showTaskDetails: boolean;
-  showGridLines: boolean;
-  showPerformanceMetrics: boolean;
-  showScrollInfo: boolean;
-  showSubscriptions: boolean;
-  showAuthState: boolean;
-}
-
-export const useDebugMode = () => {
+export const useDebugMode = (): DebugModeHook => {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   // Return proper structure immediately in production
@@ -26,7 +17,7 @@ export const useDebugMode = () => {
         showScrollInfo: false,
         showSubscriptions: false,
         showAuthState: false
-      } satisfies DebugPreferences,
+      },
       toggleDebugMode: () => {},
       updateDebugPreference: () => {},
       isDevelopment: false
@@ -34,7 +25,7 @@ export const useDebugMode = () => {
   }
 
   // Only initialize debug state in development
-  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState<boolean>(false);
   const [debugPreferences, setDebugPreferences] = useState<DebugPreferences>({
     showColumnInfo: false,
     showTaskDetails: true,
@@ -53,7 +44,9 @@ export const useDebugMode = () => {
         const parsed = JSON.parse(saved);
         setDebugPreferences(prev => ({ ...prev, ...parsed }));
       } catch (error) {
-        console.warn('Failed to parse debug preferences:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to parse debug preferences:', error);
+        }
       }
     }
     
@@ -61,13 +54,13 @@ export const useDebugMode = () => {
     setIsDebugMode(debugMode);
   }, []);
 
-  const toggleDebugMode = () => {
+  const toggleDebugMode = (): void => {
     const newMode = !isDebugMode;
     setIsDebugMode(newMode);
     localStorage.setItem('gantt-debug-mode', newMode.toString());
   };
 
-  const updateDebugPreference = (key: keyof DebugPreferences, value: boolean) => {
+  const updateDebugPreference = (key: keyof DebugPreferences, value: boolean): void => {
     const newPreferences = { ...debugPreferences, [key]: value };
     setDebugPreferences(newPreferences);
     localStorage.setItem('gantt-debug-preferences', JSON.stringify(newPreferences));

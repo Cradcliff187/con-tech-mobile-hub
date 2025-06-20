@@ -1,3 +1,5 @@
+
+/* @__PURE__ */
 import React, { useState, useEffect } from 'react';
 import { Task } from '@/types/database';
 import { Settings, X, Eye, EyeOff, Wifi, WifiOff, Users } from 'lucide-react';
@@ -9,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ColumnDebugInfo } from './ColumnDebugInfo';
 import { GridDebugLines } from './GridDebugLines';
 import { PerformanceDebugPanel } from './PerformanceDebugPanel';
+import type { DebugPreferences, SubscriptionChannelInfo } from '../types/ganttTypes';
 
 interface GanttDebugOverlayProps {
   isVisible: boolean;
@@ -16,19 +19,16 @@ interface GanttDebugOverlayProps {
   timelineStart: Date;
   timelineEnd: Date;
   viewMode: 'days' | 'weeks' | 'months';
-  debugPreferences: {
-    showColumnInfo: boolean;
-    showTaskDetails: boolean;
-    showGridLines: boolean;
-    showPerformanceMetrics: boolean;
-    showScrollInfo: boolean;
-    showSubscriptions: boolean;
-    showAuthState: boolean;
-  };
-  onUpdatePreference: (key: string, value: boolean) => void;
+  debugPreferences: DebugPreferences;
+  onUpdatePreference: (key: keyof DebugPreferences, value: boolean) => void;
   optimisticUpdatesCount?: number;
   isDragging?: boolean;
   className?: string;
+}
+
+interface SubscriptionInfo {
+  activeCount: number;
+  channels: SubscriptionChannelInfo[];
 }
 
 export const GanttDebugOverlay: React.FC<GanttDebugOverlayProps> = ({
@@ -43,11 +43,11 @@ export const GanttDebugOverlay: React.FC<GanttDebugOverlayProps> = ({
   isDragging = false,
   className = ''
 }) => {
-  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
-  const [subscriptionInfo, setSubscriptionInfo] = useState<{
-    activeCount: number;
-    channels: Array<{ key: string; callbackCount: number; status: string; config: any }>;
-  }>({ activeCount: 0, channels: [] });
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo>({ 
+    activeCount: 0, 
+    channels: [] 
+  });
   
   const { user, session, loading } = useAuth();
 
@@ -55,7 +55,7 @@ export const GanttDebugOverlay: React.FC<GanttDebugOverlayProps> = ({
   useEffect(() => {
     if (!isVisible || process.env.NODE_ENV !== 'development') return;
 
-    const updateSubscriptionInfo = () => {
+    const updateSubscriptionInfo = (): void => {
       const activeCount = subscriptionManager.getActiveChannelCount();
       const channels = subscriptionManager.getChannelInfo();
       setSubscriptionInfo({ activeCount, channels });
@@ -74,7 +74,7 @@ export const GanttDebugOverlay: React.FC<GanttDebugOverlayProps> = ({
     return null;
   }
 
-  const togglePreference = (key: keyof typeof debugPreferences) => {
+  const togglePreference = (key: keyof DebugPreferences): void => {
     onUpdatePreference(key, !debugPreferences[key]);
   };
 
@@ -127,7 +127,7 @@ export const GanttDebugOverlay: React.FC<GanttDebugOverlayProps> = ({
                 {Object.entries(debugPreferences).map(([key, value]) => (
                   <button
                     key={key}
-                    onClick={() => togglePreference(key as keyof typeof debugPreferences)}
+                    onClick={() => togglePreference(key as keyof DebugPreferences)}
                     className="flex items-center justify-between w-full text-xs p-2 rounded hover:bg-white/10 transition-colors"
                   >
                     <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>

@@ -5,12 +5,14 @@ import { useGanttContext } from '@/contexts/gantt';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
 import { useGanttDragBridge } from './hooks/useGanttDragBridge';
 import { useDebugMode } from './hooks/useDebugMode';
+import type { GanttChartHook, FilterState } from './types/ganttTypes';
+import type { Task } from '@/types/database';
 
 interface UseGanttChartProps {
   projectId: string;
 }
 
-export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
+export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook => {
   const { projects } = useProjects();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [timelineRect, setTimelineRect] = useState<DOMRect | null>(null);
@@ -61,7 +63,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     : null;
 
   // Get filtered tasks from context
-  const filteredTasks = getFilteredTasks();
+  const filteredTasks: Task[] = getFilteredTasks();
 
   // Timeline calculation
   const { totalDays } = useTimelineCalculation({
@@ -95,18 +97,20 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
     handleDrop: dragBridge.handleDrop,
     
     // Utility methods
-    getUpdatedTask: (task: any) => {
+    getUpdatedTask: (task: Task): Task => {
       return dragBridge.getOptimisticTask(task.id) || task;
     },
     
-    resetLocalUpdates: () => {
-      console.log('Reset local updates (handled by context)');
+    resetLocalUpdates: (): void => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Reset local updates (handled by context)');
+      }
     }
   };
 
   // Update timeline rect on resize or when timeline changes
   useEffect(() => {
-    const updateTimelineRect = () => {
+    const updateTimelineRect = (): void => {
       if (timelineRef.current) {
         setTimelineRect(timelineRef.current.getBoundingClientRect());
         if (process.env.NODE_ENV === 'development') {
@@ -121,18 +125,18 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps) => {
   }, [timelineStart, timelineEnd, filteredTasks]);
 
   // Get updated tasks with optimistic changes
-  const getDisplayTasks = () => {
+  const getDisplayTasks = (): Task[] => {
     return filteredTasks.map(task => dragAndDrop.getUpdatedTask(task));
   };
 
   // Handle task selection
-  const handleTaskSelect = (taskId: string) => {
+  const handleTaskSelect = (taskId: string): void => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
   // Handle filter changes
-  const handleFilterChange = (filterType: string, values: string[]) => {
-    setFilters({ [filterType]: values });
+  const handleFilterChange = (filterType: string, values: string[]): void => {
+    setFilters({ [filterType]: values } as Partial<FilterState>);
   };
 
   const displayTasks = getDisplayTasks();

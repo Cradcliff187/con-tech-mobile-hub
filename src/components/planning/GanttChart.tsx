@@ -17,8 +17,10 @@ import { useGanttState } from './gantt/hooks/useGanttState';
 import { GanttProjectOverview } from './gantt/GanttProjectOverview';
 import { useProjects } from '@/hooks/useProjects';
 import { GanttProvider } from '@/contexts/gantt';
+import type { SimplifiedDragState } from './gantt/types/ganttTypes';
 
-// Conditionally import debug overlay only in development
+// Conditionally import debug overlay only in development with tree-shaking optimization
+/* @__PURE__ */
 const GanttDebugOverlay = process.env.NODE_ENV === 'development' 
   ? React.lazy(() => import('./gantt/debug/GanttDebugOverlay').then(module => ({ 
       default: module.GanttDebugOverlay 
@@ -29,7 +31,7 @@ interface GanttChartProps {
   projectId: string;
 }
 
-const GanttChart = ({ projectId }: GanttChartProps) => {
+const GanttChart = ({ projectId }: GanttChartProps): JSX.Element => {
   const { projects } = useProjects();
   const {
     projectTasks,
@@ -98,7 +100,7 @@ const GanttChart = ({ projectId }: GanttChartProps) => {
   const criticalTasks = displayTasks.filter(t => t.priority === 'critical').length;
 
   // Simplified drag state - only essential properties
-  const dragState = {
+  const dragState: SimplifiedDragState = {
     dropPreviewDate: dragAndDrop.dropPreviewDate,
     dragPosition: dragAndDrop.dragPosition,
     currentValidity: dragAndDrop.currentValidity,
@@ -107,7 +109,7 @@ const GanttChart = ({ projectId }: GanttChartProps) => {
   };
 
   // Navigation handler for project overview
-  const handleNavigateToDate = (date: Date) => {
+  const handleNavigateToDate = (date: Date): void => {
     if (timelineRef.current) {
       const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
       const daysFromStart = Math.ceil((date.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
@@ -210,7 +212,7 @@ const GanttChart = ({ projectId }: GanttChartProps) => {
             dragState={dragState}
           />
 
-          {/* Debug Overlay - only in development */}
+          {/* Debug Overlay - only in development with tree-shaking */}
           {process.env.NODE_ENV === 'development' && isDebugMode && GanttDebugOverlay && (
             <React.Suspense fallback={null}>
               <GanttDebugOverlay
@@ -242,7 +244,7 @@ const GanttChart = ({ projectId }: GanttChartProps) => {
   );
 };
 
-export const GanttChartWithProvider = ({ projectId }: GanttChartProps) => {
+export const GanttChartWithProvider = ({ projectId }: GanttChartProps): JSX.Element => {
   return (
     <GanttProvider projectId={projectId}>
       <GanttChart projectId={projectId} />
