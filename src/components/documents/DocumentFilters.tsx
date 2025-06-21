@@ -4,17 +4,27 @@ import { useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
 
 interface DocumentFiltersProps {
+  activeFilters?: {
+    category: string;
+    dateRange: string;
+    fileType: string;
+  };
+  onFiltersChange?: (filters: { category: string; dateRange: string; fileType: string }) => void;
   currentFilter: string;
   onFilterChange: (filter: string) => void;
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  className?: string;
 }
 
 export const DocumentFilters = ({ 
+  activeFilters,
+  onFiltersChange,
   currentFilter, 
   onFilterChange, 
   searchTerm, 
-  onSearchChange 
+  onSearchChange,
+  className 
 }: DocumentFiltersProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -50,7 +60,7 @@ export const DocumentFilters = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+    <div className={`bg-white rounded-lg shadow-sm border border-slate-200 p-4 ${className || ''}`}>
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">

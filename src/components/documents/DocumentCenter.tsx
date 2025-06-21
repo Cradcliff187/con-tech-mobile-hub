@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, Filter, Grid, List } from 'lucide-react';
+import { FileText, Grid, List } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,11 +19,8 @@ export const DocumentCenter = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [activeFilters, setActiveFilters] = useState({
-    category: '',
-    dateRange: '',
-    fileType: ''
-  });
+  const [currentFilter, setCurrentFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { projects } = useProjects();
   const { documents, loading, refetch } = useDocuments(projectId || undefined);
@@ -33,19 +30,6 @@ export const DocumentCenter = () => {
     projects.find(p => p.id === projectId), 
     [projects, projectId]
   );
-
-  const filteredDocuments = useMemo(() => {
-    return documents.filter(doc => {
-      if (activeFilters.category && doc.category !== activeFilters.category) {
-        return false;
-      }
-      if (activeFilters.fileType && !doc.file_type?.includes(activeFilters.fileType)) {
-        return false;
-      }
-      // Add date range filtering if needed
-      return true;
-    });
-  }, [documents, activeFilters]);
 
   const documentStats = useMemo(() => {
     const stats = {
@@ -115,7 +99,7 @@ export const DocumentCenter = () => {
         <Tabs defaultValue="documents" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
             <TabsTrigger value="documents" className="text-xs sm:text-sm">
-              Documents ({filteredDocuments.length})
+              Documents ({documents.length})
             </TabsTrigger>
             <TabsTrigger value="upload" className="text-xs sm:text-sm">
               Upload
@@ -129,8 +113,10 @@ export const DocumentCenter = () => {
             {/* Filters and View Controls */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <DocumentFilters
-                activeFilters={activeFilters}
-                onFiltersChange={setActiveFilters}
+                currentFilter={currentFilter}
+                onFilterChange={setCurrentFilter}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
                 className="flex-1"
               />
               
@@ -162,9 +148,9 @@ export const DocumentCenter = () => {
 
             {/* Document List */}
             <DocumentList 
-              documents={filteredDocuments}
-              viewMode={viewMode}
-              onRefresh={refetch}
+              filter={currentFilter}
+              searchTerm={searchTerm}
+              documents={documents}
             />
           </TabsContent>
 
