@@ -3,47 +3,19 @@ import { useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Upload, 
-  Camera, 
-  FileText, 
-  Image, 
-  Receipt, 
-  X, 
-  CheckCircle, 
-  AlertCircle,
-  Sparkles,
-  FolderOpen
-} from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { analyzeFile, validateFileSize, type FileAnalysis, type ProjectPhaseContext } from '@/utils/smartFileAnalysis';
-import { formatFileSize, getFileTypeInfo } from '@/utils/fileTypeHelpers';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-
-interface SmartFileData {
-  file: File;
-  analysis: FileAnalysis;
-  preview?: string;
-  id: string;
-  uploadProgress?: number;
-  error?: string;
-  category: string;
-  description: string;
-  expenseAmount?: string;
-  expenseVendor?: string;
-  expenseType?: string;
-}
+import { analyzeFile, validateFileSize, type ProjectPhaseContext } from '@/utils/smartFileAnalysis';
+import { FileUploadTabs } from './FileUploadTabs';
+import { FilePreviewCard, type SmartFileData } from './FilePreviewCard';
+import { UploadProgress } from './UploadProgress';
 
 interface SmartDocumentUploadProps {
   projectId?: string;
@@ -72,7 +44,6 @@ export const SmartDocumentUpload = ({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
   
   const { uploadDocument } = useDocuments();
   const { projects } = useProjects();
@@ -95,9 +66,7 @@ export const SmartDocumentUpload = ({
   const generateFileId = () => Math.random().toString(36).substr(2, 9);
 
   const createPreview = async (file: File): Promise<string | undefined> => {
-    const fileTypeInfo = getFileTypeInfo(file.type, file.name);
-    
-    if (fileTypeInfo.category === 'image') {
+    if (file.type.startsWith('image/')) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
@@ -105,7 +74,6 @@ export const SmartDocumentUpload = ({
         reader.readAsDataURL(file);
       });
     }
-    
     return undefined;
   };
 
@@ -162,9 +130,7 @@ export const SmartDocumentUpload = ({
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
-      setIsDragOver(false);
-    }
+    setIsDragOver(false);
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,12 +229,6 @@ export const SmartDocumentUpload = ({
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  const getFileIcon = (analysis: FileAnalysis) => {
-    if (analysis.isPhoto) return <Image size={20} className="text-blue-500" />;
-    if (analysis.isReceipt) return <Receipt size={20} className="text-green-500" />;
-    return <FileText size={20} className="text-slate-500" />;
-  };
-
   const canUpload = profile && (
     (profile.is_company_user && profile.account_status === 'approved') ||
     (!profile.is_company_user && profile.account_status === 'approved')
@@ -286,95 +246,17 @@ export const SmartDocumentUpload = ({
 
   const uploadContent = (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="drop" className="flex items-center gap-2">
-            <Upload size={16} />
-            Drag & Drop
-          </TabsTrigger>
-          <TabsTrigger value="browse" className="flex items-center gap-2">
-            <FolderOpen size={16} />
-            Browse Files
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="drop" className="space-y-4">
-          <div
-            ref={dropZoneRef}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
-              ${isDragOver 
-                ? 'border-blue-500 bg-blue-50 scale-105' 
-                : 'border-slate-300 hover:border-slate-400'
-              }
-              ${selectedFiles.length > 0 ? 'border-green-500 bg-green-50' : ''}
-            `}
-          >
-            <div className="space-y-4">
-              <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
-                <Upload size={32} className={isDragOver ? 'text-blue-500' : 'text-slate-400'} />
-              </div>
-              <div>
-                <p className="text-lg font-medium text-slate-700">
-                  {isDragOver ? 'Drop files here' : 'Drag files here to upload'}
-                </p>
-                <p className="text-sm text-slate-500">
-                  Or click to browse files
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <Button
-                  type="button"
-                  onClick={handleBrowseFiles}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <FolderOpen size={16} />
-                  Browse Files
-                </Button>
-                {isMobile && (
-                  <Button
-                    type="button"
-                    onClick={handleCameraCapture}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Camera size={16} />
-                    Take Photo
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="browse" className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Button
-              type="button"
-              onClick={handleBrowseFiles}
-              className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              <FolderOpen size={32} />
-              <span>Browse Files</span>
-            </Button>
-            {isMobile && (
-              <Button
-                type="button"
-                onClick={handleCameraCapture}
-                variant="outline"
-                className="h-24 flex flex-col items-center justify-center gap-2"
-              >
-                <Camera size={32} />
-                <span>Take Photo</span>
-              </Button>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+      <FileUploadTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isDragOver={isDragOver}
+        selectedFilesCount={selectedFiles.length}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onBrowseFiles={handleBrowseFiles}
+        onCameraCapture={handleCameraCapture}
+      />
 
       {/* Hidden file inputs */}
       <input
@@ -413,134 +295,13 @@ export const SmartDocumentUpload = ({
           
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {selectedFiles.map((fileData) => (
-              <div key={fileData.id} className="border border-slate-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  {fileData.preview ? (
-                    <img 
-                      src={fileData.preview} 
-                      alt="Preview" 
-                      className="w-12 h-12 object-cover rounded border"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-slate-100 rounded border flex items-center justify-center">
-                      {getFileIcon(fileData.analysis)}
-                    </div>
-                  )}
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-slate-800 truncate">
-                        {fileData.file.name}
-                      </p>
-                      <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                        <Sparkles size={10} />
-                        {Math.round(fileData.analysis.confidence * 100)}%
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-slate-500">
-                      {formatFileSize(fileData.file.size)}
-                    </p>
-                    
-                    {fileData.uploadProgress !== undefined && (
-                      <div className="mt-2">
-                        <Progress value={fileData.uploadProgress} className="h-2" />
-                      </div>
-                    )}
-                    
-                    {fileData.error && (
-                      <div className="flex items-center gap-1 mt-2 text-sm text-red-600">
-                        <AlertCircle size={12} />
-                        {fileData.error}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(fileData.id)}
-                    className="text-red-600 hover:text-red-700 p-1"
-                    disabled={isUploading}
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-sm font-medium">Category</Label>
-                    <Select 
-                      value={fileData.category}
-                      onValueChange={(value) => updateFileData(fileData.id, { category: value })}
-                      disabled={isUploading}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fileData.analysis.suggestedCategories.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            <div className="flex items-center justify-between w-full">
-                              {cat.label}
-                              {cat.confidence > 0.7 && (
-                                <Badge variant="secondary" className="ml-2 text-xs">
-                                  Suggested
-                                </Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="plans">Plans & Drawings</SelectItem>
-                        <SelectItem value="permits">Permits</SelectItem>
-                        <SelectItem value="contracts">Contracts</SelectItem>
-                        <SelectItem value="photos">Photos</SelectItem>
-                        <SelectItem value="reports">Reports</SelectItem>
-                        <SelectItem value="safety">Safety Documents</SelectItem>
-                        <SelectItem value="receipts">Receipts</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium">Description</Label>
-                    <Input
-                      value={fileData.description}
-                      onChange={(e) => updateFileData(fileData.id, { description: e.target.value })}
-                      placeholder="Document description"
-                      disabled={isUploading}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-                
-                {fileData.analysis.requiresExpenseFields && (
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                    <div>
-                      <Label className="text-sm font-medium">Amount ($)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={fileData.expenseAmount || ''}
-                        onChange={(e) => updateFileData(fileData.id, { expenseAmount: e.target.value })}
-                        placeholder="0.00"
-                        disabled={isUploading}
-                        className="h-9"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Vendor</Label>
-                      <Input
-                        value={fileData.expenseVendor || ''}
-                        onChange={(e) => updateFileData(fileData.id, { expenseVendor: e.target.value })}
-                        placeholder="Vendor name"
-                        disabled={isUploading}
-                        className="h-9"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              <FilePreviewCard
+                key={fileData.id}
+                fileData={fileData}
+                onRemove={removeFile}
+                onUpdate={updateFileData}
+                isUploading={isUploading}
+              />
             ))}
           </div>
         </div>
@@ -566,35 +327,13 @@ export const SmartDocumentUpload = ({
       )}
 
       {/* Upload Actions */}
-      <div className="flex gap-3 pt-4 border-t">
-        <Button
-          onClick={handleUpload}
-          disabled={selectedFiles.length === 0 || isUploading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 min-h-[44px]"
-        >
-          {isUploading ? (
-            <div className="flex items-center gap-2">
-              <LoadingSpinner size="sm" />
-              Uploading...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Upload size={16} />
-              Upload {selectedFiles.length > 0 ? `${selectedFiles.length} File${selectedFiles.length !== 1 ? 's' : ''}` : 'Files'}
-            </div>
-          )}
-        </Button>
-        {variant === 'dialog' && (
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-            className="flex-1 min-h-[44px]"
-            disabled={isUploading}
-          >
-            Cancel
-          </Button>
-        )}
-      </div>
+      <UploadProgress
+        selectedFilesCount={selectedFiles.length}
+        isUploading={isUploading}
+        onUpload={handleUpload}
+        onCancel={variant === 'dialog' ? () => setIsOpen(false) : undefined}
+        variant={variant}
+      />
     </div>
   );
 
