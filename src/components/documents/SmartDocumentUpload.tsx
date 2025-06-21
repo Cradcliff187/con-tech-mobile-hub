@@ -6,16 +6,17 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sparkles } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { analyzeFile, validateFileSize, type ProjectPhaseContext } from '@/utils/smartFileAnalysis';
 import { FileUploadTabs } from './FileUploadTabs';
 import { FilePreviewCard, type SmartFileData } from './FilePreviewCard';
 import { UploadProgress } from './UploadProgress';
+import { toast } from 'sonner';
 
 interface SmartDocumentUploadProps {
   projectId?: string;
@@ -48,7 +49,6 @@ export const SmartDocumentUpload = ({
   const { uploadDocument } = useDocuments();
   const { projects } = useProjects();
   const { profile } = useAuth();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const getProjectContext = useCallback((): ProjectPhaseContext | undefined => {
@@ -86,10 +86,9 @@ export const SmartDocumentUpload = ({
     for (const file of fileArray) {
       const validation = validateFileSize(file);
       if (!validation.isValid) {
-        toast({
-          title: "File too large",
+        toast.error("File too large", {
           description: validation.error,
-          variant: "destructive"
+          duration: 4000,
         });
         continue;
       }
@@ -111,6 +110,13 @@ export const SmartDocumentUpload = ({
     }
     
     setSelectedFiles(prev => [...prev, ...processedFiles]);
+    
+    if (processedFiles.length > 0) {
+      toast.success(`${processedFiles.length} file${processedFiles.length !== 1 ? 's' : ''} added`, {
+        description: 'Files have been analyzed and categorized automatically.',
+        duration: 3000,
+      });
+    }
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -154,6 +160,10 @@ export const SmartDocumentUpload = ({
 
   const removeFile = (fileId: string) => {
     setSelectedFiles(prev => prev.filter(f => f.id !== fileId));
+    toast.info('File removed', {
+      description: 'The file has been removed from the upload queue.',
+      duration: 2000,
+    });
   };
 
   const updateFileData = (fileId: string, updates: Partial<SmartFileData>) => {
@@ -164,17 +174,18 @@ export const SmartDocumentUpload = ({
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) {
-      toast({
-        title: "No files selected",
+      toast.error("No files selected", {
         description: "Please select files to upload",
-        variant: "destructive"
+        duration: 3000,
       });
       return;
     }
 
     setIsUploading(true);
     
-    try {
+    const uploadPromise = async () => {
+      const results = { success: 0, failed: 0 };
+      
       for (const fileData of selectedFiles) {
         try {
           updateFileData(fileData.id, { uploadProgress: 0 });
@@ -191,26 +202,38 @@ export const SmartDocumentUpload = ({
           );
 
           updateFileData(fileData.id, { uploadProgress: 100 });
+          results.success++;
           
         } catch (error) {
           updateFileData(fileData.id, { 
             error: error instanceof Error ? error.message : 'Upload failed',
             uploadProgress: undefined
           });
+          results.failed++;
         }
       }
+      
+      return results;
+    };
 
-      const successCount = selectedFiles.filter(f => !f.error).length;
-      const errorCount = selectedFiles.filter(f => f.error).length;
-
-      if (successCount > 0) {
-        toast({
-          title: "Upload Complete",
-          description: `Successfully uploaded ${successCount} file${successCount !== 1 ? 's' : ''}${errorCount > 0 ? `, ${errorCount} failed` : ''}`
+    try {
+      const results = await uploadPromise();
+      
+      if (results.success > 0) {
+        toast.success("Upload Complete", {
+          description: `Successfully uploaded ${results.success} file${results.success !== 1 ? 's' : ''}${results.failed > 0 ? `, ${results.failed} failed` : ''}`,
+          duration: 4000,
         });
       }
 
-      if (errorCount === 0) {
+      if (results.failed > 0 && results.success === 0) {
+        toast.error("Upload Failed", {
+          description: `Failed to upload ${results.failed} file${results.failed !== 1 ? 's' : ''}`,
+          duration: 4000,
+        });
+      }
+
+      if (results.failed === 0) {
         resetForm();
         setIsOpen(false);
         onUploadComplete?.();
@@ -246,17 +269,19 @@ export const SmartDocumentUpload = ({
 
   const uploadContent = (
     <div className="space-y-6">
-      <FileUploadTabs
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isDragOver={isDragOver}
-        selectedFilesCount={selectedFiles.length}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onBrowseFiles={handleBrowseFiles}
-        onCameraCapture={handleCameraCapture}
-      />
+      <div className="animate-fade-in">
+        <FileUploadTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isDragOver={isDragOver}
+          selectedFilesCount={selectedFiles.length}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onBrowseFiles={handleBrowseFiles}
+          onCameraCapture={handleCameraCapture}
+        />
+      </div>
 
       {/* Hidden file inputs */}
       <input
@@ -278,7 +303,7 @@ export const SmartDocumentUpload = ({
 
       {/* Selected Files */}
       {selectedFiles.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fade-in">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800">
               Selected Files ({selectedFiles.length})
@@ -287,21 +312,26 @@ export const SmartDocumentUpload = ({
               variant="outline"
               size="sm"
               onClick={() => setSelectedFiles([])}
-              className="text-red-600 hover:text-red-700"
+              className="text-red-600 hover:text-red-700 transition-colors duration-200 hover:scale-105"
             >
               Clear All
             </Button>
           </div>
           
           <div className="space-y-3 max-h-64 overflow-y-auto">
-            {selectedFiles.map((fileData) => (
-              <FilePreviewCard
+            {selectedFiles.map((fileData, index) => (
+              <div 
                 key={fileData.id}
-                fileData={fileData}
-                onRemove={removeFile}
-                onUpdate={updateFileData}
-                isUploading={isUploading}
-              />
+                className="animate-stagger-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <FilePreviewCard
+                  fileData={fileData}
+                  onRemove={removeFile}
+                  onUpdate={updateFileData}
+                  isUploading={isUploading}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -309,10 +339,10 @@ export const SmartDocumentUpload = ({
 
       {/* Project Selection */}
       {!currentProjectId && (
-        <div>
+        <div className="animate-fade-in">
           <Label className="text-slate-700 font-medium">Project</Label>
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isUploading}>
-            <SelectTrigger className="mt-1">
+            <SelectTrigger className="mt-1 transition-all duration-200 hover:border-slate-400">
               <SelectValue placeholder="Select project" />
             </SelectTrigger>
             <SelectContent>
@@ -327,19 +357,21 @@ export const SmartDocumentUpload = ({
       )}
 
       {/* Upload Actions */}
-      <UploadProgress
-        selectedFilesCount={selectedFiles.length}
-        isUploading={isUploading}
-        onUpload={handleUpload}
-        onCancel={variant === 'dialog' ? () => setIsOpen(false) : undefined}
-        variant={variant}
-      />
+      <div className="animate-fade-in">
+        <UploadProgress
+          selectedFilesCount={selectedFiles.length}
+          isUploading={isUploading}
+          onUpload={handleUpload}
+          onCancel={variant === 'dialog' ? () => setIsOpen(false) : undefined}
+          variant={variant}
+        />
+      </div>
     </div>
   );
 
   if (variant === 'inline') {
     return (
-      <div className={`bg-white rounded-lg border border-slate-200 p-6 ${className}`}>
+      <div className={`bg-white rounded-lg border border-slate-200 p-6 transition-all duration-200 hover:shadow-lg ${className}`}>
         <h3 className="text-xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
           <Sparkles className="text-blue-500" size={24} />
           Smart Document Upload
@@ -350,29 +382,39 @@ export const SmartDocumentUpload = ({
   }
 
   return (
-    <DialogOrSheet open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) resetForm();
-    }}>
-      <DialogOrSheetTrigger asChild>
-        {triggerButton || (
-          <Button className={`bg-blue-600 hover:bg-blue-700 min-h-[44px] ${className}`}>
-            <Sparkles size={20} className="mr-2" />
-            Smart Upload
-          </Button>
-        )}
-      </DialogOrSheetTrigger>
-      <DialogOrSheetContent className={isMobile ? "h-[90vh]" : "sm:max-w-4xl max-h-[90vh]"}>
-        <DialogOrSheetHeader>
-          <DialogOrSheetTitle className="flex items-center gap-2">
-            <Sparkles className="text-blue-500" size={24} />
-            Smart Document Upload
-          </DialogOrSheetTitle>
-        </DialogOrSheetHeader>
-        <div className="flex-1 overflow-y-auto">
-          {uploadContent}
-        </div>
-      </DialogOrSheetContent>
-    </DialogOrSheet>
+    <TooltipProvider>
+      <DialogOrSheet open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogOrSheetTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {triggerButton || (
+                <Button className={`bg-blue-600 hover:bg-blue-700 min-h-[44px] transition-all duration-200 hover:scale-105 hover:shadow-lg ${className}`}>
+                  <Sparkles size={20} className="mr-2" />
+                  Smart Upload
+                </Button>
+              )}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Upload documents with AI-powered categorization</p>
+              <p className="text-xs text-slate-400">Ctrl+U</p>
+            </TooltipContent>
+          </Tooltip>
+        </DialogOrSheetTrigger>
+        <DialogOrSheetContent className={`${isMobile ? "h-[90vh]" : "sm:max-w-4xl max-h-[90vh]"} animate-scale-in`}>
+          <DialogOrSheetHeader>
+            <DialogOrSheetTitle className="flex items-center gap-2">
+              <Sparkles className="text-blue-500" size={24} />
+              Smart Document Upload
+            </DialogOrSheetTitle>
+          </DialogOrSheetHeader>
+          <div className="flex-1 overflow-y-auto">
+            {uploadContent}
+          </div>
+        </DialogOrSheetContent>
+      </DialogOrSheet>
+    </TooltipProvider>
   );
 };
