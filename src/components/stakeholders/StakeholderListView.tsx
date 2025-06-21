@@ -1,268 +1,188 @@
-import React, { useState } from 'react';
-import { Stakeholder } from '@/hooks/useStakeholders';
-import { ResponsiveTable } from '@/components/common/ResponsiveTable';
+
+import { useState } from 'react';
+import { DataTable, type Column } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, Phone, Mail, MapPin, Edit, Trash, UserPlus, Eye } from 'lucide-react';
-import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
-import { useDialogState } from '@/hooks/useDialogState';
-import { EditStakeholderDialog } from './EditStakeholderDialog';
-import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
-import { AssignStakeholderDialog } from './AssignStakeholderDialog';
-import { StakeholderDetail } from './StakeholderDetail';
-import { StakeholderQuickStatusDropdown } from './StakeholderQuickStatusDropdown';
-import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Users, Mail, Phone, Edit, Trash2, UserPlus } from 'lucide-react';
+import type { Stakeholder } from '@/types/database';
 
 interface StakeholderListViewProps {
   stakeholders: Stakeholder[];
+  loading: boolean;
+  onEdit: (stakeholder: Stakeholder) => void;
+  onDelete: (stakeholder: Stakeholder) => void;
+  onCreate: () => void;
 }
 
-export const StakeholderListView = ({ stakeholders }: StakeholderListViewProps) => {
-  const { toast } = useToast();
-  const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
+export const StakeholderListView = ({
+  stakeholders,
+  loading,
+  onEdit,
+  onDelete,
+  onCreate
+}: StakeholderListViewProps) => {
   const [selectedStakeholder, setSelectedStakeholder] = useState<Stakeholder | null>(null);
 
-  const handleAction = (action: string, stakeholder: Stakeholder) => {
-    setSelectedStakeholder(stakeholder);
-    switch (action) {
-      case 'details':
-        openDialog('details');
-        break;
-      case 'edit':
-        openDialog('edit');
-        break;
-      case 'assign':
-        openDialog('assign');
-        break;
-      case 'delete':
-        openDialog('delete');
-        break;
-    }
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      'active': 'default',
+      'inactive': 'secondary',
+      'pending': 'outline'
+    } as const;
+    
+    return (
+      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
-  const handlePhoneCall = async (phone: string) => {
-    try {
-      window.location.href = `tel:${phone}`;
-      setTimeout(() => {
-        toast({
-          title: "Opening phone app",
-          description: `Calling ${formatPhoneNumber(phone)}`
-        });
-      }, 100);
-    } catch (error) {
-      console.error('Failed to open phone app:', error);
-    }
+  const getRoleBadge = (role: string) => {
+    const colors = {
+      'admin': 'bg-red-100 text-red-800',
+      'project_manager': 'bg-blue-100 text-blue-800',
+      'site_supervisor': 'bg-green-100 text-green-800',
+      'worker': 'bg-yellow-100 text-yellow-800',
+      'client': 'bg-purple-100 text-purple-800',
+      'stakeholder': 'bg-gray-100 text-gray-800',
+      'vendor': 'bg-orange-100 text-orange-800'
+    } as const;
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[role as keyof typeof colors] || colors.stakeholder}`}>
+        {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+      </span>
+    );
   };
 
-  const handleEmailSend = async (email: string, stakeholder: Stakeholder) => {
-    try {
-      const subject = encodeURIComponent(`Contact: ${stakeholder.company_name || stakeholder.contact_person || 'Stakeholder'}`);
-      const mailtoUrl = `mailto:${email}?subject=${subject}`;
-      window.location.href = mailtoUrl;
-      
-      setTimeout(() => {
-        toast({
-          title: "Opening email client",
-          description: `Composing email to ${email}`
-        });
-      }, 100);
-    } catch (error) {
-      console.error('Failed to open email client:', error);
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'subcontractor': return 'bg-blue-100 text-blue-800';
-      case 'employee': return 'bg-green-100 text-green-800';
-      case 'vendor': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
-  };
-
-  const columns = [
+  const columns: Column<Stakeholder>[] = [
     {
-      key: 'name',
-      label: 'Name / Company',
-      mobileLabel: 'Company',
-      render: (value: any, stakeholder: Stakeholder) => (
-        <div className="space-y-1">
-          <div className="font-semibold text-slate-800 break-words">
-            {stakeholder.company_name || 'Individual'}
-          </div>
-          {stakeholder.contact_person && (
-            <div className="text-sm text-slate-600 break-words">
-              {stakeholder.contact_person}
+      key: 'contact_person',
+      header: 'Name',
+      accessor: (stakeholder) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-orange-100 text-orange-700 text-sm">
+              {stakeholder.contact_person?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium text-slate-900">
+              {stakeholder.contact_person || 'Unknown'}
             </div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'contact',
-      label: 'Contact Information',
-      mobileLabel: 'Contact',
-      render: (value: any, stakeholder: Stakeholder) => {
-        const formattedPhone = formatPhoneNumber(stakeholder.phone);
-        const formattedAddress = formatAddress(stakeholder);
-        
-        return (
-          <div className="space-y-1 text-sm">
-            {stakeholder.email && (
-              <button
-                onClick={() => handleEmailSend(stakeholder.email!, stakeholder)}
-                className="flex items-center gap-2 text-slate-600 hover:text-orange-600 break-all"
-              >
-                <Mail size={14} />
-                <span>{stakeholder.email}</span>
-              </button>
-            )}
-            {formattedPhone && (
-              <button
-                onClick={() => handlePhoneCall(stakeholder.phone!)}
-                className="flex items-center gap-2 text-slate-600 hover:text-orange-600"
-              >
-                <Phone size={14} />
-                <span>{formattedPhone}</span>
-              </button>
-            )}
-            {formattedAddress && (
-              <div className="flex items-center gap-2 text-slate-600">
-                <MapPin size={14} />
-                <span className="break-words">{formattedAddress}</span>
+            {stakeholder.company_name && (
+              <div className="text-sm text-slate-500">
+                {stakeholder.company_name}
               </div>
             )}
           </div>
-        );
-      }
-    },
-    {
-      key: 'type_status',
-      label: 'Type & Status',
-      mobileLabel: 'Type/Status',
-      render: (value: any, stakeholder: Stakeholder) => (
-        <div className="space-y-2">
-          <Badge className={getTypeColor(stakeholder.stakeholder_type)}>
-            {stakeholder.stakeholder_type}
-          </Badge>
-          <StakeholderQuickStatusDropdown stakeholder={stakeholder} />
         </div>
-      )
+      ),
+      sortable: true,
+      mobileLabel: 'Contact'
     },
     {
-      key: 'rating',
-      label: 'Rating',
-      render: (value: any, stakeholder: Stakeholder) => (
-        <div className="flex items-center gap-1">
-          <Star size={16} className="text-yellow-500" />
-          <span className="text-sm font-medium">
-            {stakeholder.rating !== null ? stakeholder.rating.toFixed(1) : 'No rating'}
-          </span>
-        </div>
-      )
+      key: 'role',
+      header: 'Role',
+      accessor: (stakeholder) => getRoleBadge(stakeholder.role || 'stakeholder'),
+      filterable: true,
+      mobileLabel: 'Role'
     },
     {
-      key: 'specialties',
-      label: 'Specialties',
-      render: (value: any, stakeholder: Stakeholder) => (
+      key: 'account_status',
+      header: 'Status',
+      accessor: (stakeholder) => getStatusBadge(stakeholder.account_status || 'pending'),
+      filterable: true,
+      mobileLabel: 'Status'
+    },
+    {
+      key: 'email',
+      header: 'Contact',
+      accessor: (stakeholder) => (
         <div className="space-y-1">
-          {stakeholder.specialties && stakeholder.specialties.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {stakeholder.specialties.slice(0, 2).map((specialty, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {specialty}
-                </Badge>
-              ))}
-              {stakeholder.specialties.length > 2 && (
-                <Badge variant="outline" className="text-xs">
-                  +{stakeholder.specialties.length - 2} more
-                </Badge>
-              )}
+          {stakeholder.email && (
+            <div className="flex items-center gap-1 text-sm">
+              <Mail size={12} className="text-slate-400" />
+              <span className="text-slate-600">{stakeholder.email}</span>
             </div>
-          ) : (
-            <span className="text-sm text-slate-400">None</span>
+          )}
+          {stakeholder.phone && (
+            <div className="flex items-center gap-1 text-sm">
+              <Phone size={12} className="text-slate-400" />
+              <span className="text-slate-600">{stakeholder.phone}</span>
+            </div>
           )}
         </div>
-      )
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (value: any, stakeholder: Stakeholder) => (
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction('details', stakeholder)}
-            className="h-8 w-8 p-0"
-          >
-            <Eye size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction('edit', stakeholder)}
-            className="h-8 w-8 p-0"
-          >
-            <Edit size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction('assign', stakeholder)}
-            className="h-8 w-8 p-0"
-          >
-            <UserPlus size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction('delete', stakeholder)}
-            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-          >
-            <Trash size={14} />
-          </Button>
-        </div>
-      )
+      ),
+      mobileLabel: 'Contact Info'
     }
   ];
 
-  return (
-    <>
-      <ResponsiveTable
-        columns={columns}
-        data={stakeholders}
-        emptyMessage="No stakeholders found"
-        cardClassName="p-4 space-y-4"
+  const handleRowClick = (stakeholder: Stakeholder) => {
+    setSelectedStakeholder(stakeholder);
+  };
+
+  const renderActions = (stakeholder: Stakeholder) => (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(stakeholder);
+        }}
+        className="h-8 w-8 p-0"
+      >
+        <Edit size={14} />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(stakeholder);
+        }}
+        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+      >
+        <Trash2 size={14} />
+      </Button>
+    </div>
+  );
+
+  if (!loading && stakeholders.length === 0) {
+    return (
+      <EmptyState
+        variant="card"
+        icon={<Users size={48} className="text-slate-400" />}
+        title="No Team Members Yet"
+        description="Add your first team member to start collaborating on construction projects."
+        actions={[
+          {
+            label: "Add Team Member",
+            onClick: onCreate,
+            icon: <UserPlus size={16} />
+          }
+        ]}
       />
+    );
+  }
 
-      {selectedStakeholder && (
-        <>
-          <StakeholderDetail
-            open={isDialogOpen('details')}
-            onOpenChange={(open) => !open && closeDialog()}
-            stakeholderId={selectedStakeholder.id}
-          />
-
-          <EditStakeholderDialog
-            open={isDialogOpen('edit')}
-            onOpenChange={(open) => !open && closeDialog()}
-            stakeholder={selectedStakeholder}
-          />
-
-          <DeleteStakeholderDialog
-            open={isDialogOpen('delete')}
-            onOpenChange={(open) => !open && closeDialog()}
-            stakeholder={selectedStakeholder}
-          />
-
-          <AssignStakeholderDialog
-            open={isDialogOpen('assign')}
-            onOpenChange={(open) => !open && closeDialog()}
-            stakeholder={selectedStakeholder}
-          />
-        </>
-      )}
-    </>
+  return (
+    <DataTable
+      data={stakeholders}
+      columns={columns}
+      loading={loading}
+      searchable
+      filterable
+      pagination
+      pageSize={10}
+      actions={renderActions}
+      onRowClick={handleRowClick}
+      emptyMessage="No stakeholders found"
+      emptyIcon={<Users size={32} className="text-slate-400" />}
+      className="bg-white rounded-lg border border-slate-200"
+    />
   );
 };
