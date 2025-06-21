@@ -37,7 +37,7 @@ export interface Project {
 
 export interface Stakeholder {
   id: string;
-  stakeholder_type: 'client' | 'vendor' | 'subcontractor' | 'consultant' | 'inspector' | 'other';
+  stakeholder_type: 'client' | 'vendor' | 'subcontractor' | 'employee';
   company_name?: string;
   contact_person?: string;
   email?: string;
@@ -50,8 +50,8 @@ export interface Stakeholder {
   specialties?: string[];
   license_number?: string;
   insurance_expiry?: string;
-  rating?: number;
-  status?: 'active' | 'inactive' | 'pending';
+  rating?: number | null;
+  status: 'active' | 'inactive' | 'pending' | 'suspended';
   account_status?: 'active' | 'inactive' | 'pending';
   role?: string;
   crew_size?: number;
