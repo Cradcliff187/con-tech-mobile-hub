@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,7 @@ import {
 const ComponentShowcase = () => {
   const [progressValue, setProgressValue] = useState(65);
   const [switchValue, setSwitchValue] = useState(false);
-  const [checkboxValue, setCheckboxValue] = useState(false);
+  const [checkboxValue, setCheckboxValue] = useState<boolean>(false);
 
   const codeExample = (component: string, example: string) => (
     <div className="mt-4 p-4 bg-slate-50 rounded-lg border">
@@ -173,7 +172,9 @@ const ComponentShowcase = () => {
                       <Checkbox 
                         id="checkbox" 
                         checked={checkboxValue}
-                        onCheckedChange={setCheckboxValue}
+                        onCheckedChange={(checked) => {
+                          setCheckboxValue(checked === true);
+                        }}
                       />
                       <Label htmlFor="checkbox">Checkbox Option</Label>
                     </div>
@@ -301,8 +302,13 @@ const ComponentShowcase = () => {
                       icon={<FileText size={48} className="text-slate-400" />}
                       title="No documents found"
                       description="Upload your first document to get started with project documentation."
-                      actionLabel="Upload Document"
-                      onAction={() => console.log('Upload clicked')}
+                      actions={[
+                        {
+                          label: "Upload Document",
+                          onClick: () => console.log('Upload clicked'),
+                          icon: <Plus size={16} />
+                        }
+                      ]}
                     />
                   </div>
                 </div>
