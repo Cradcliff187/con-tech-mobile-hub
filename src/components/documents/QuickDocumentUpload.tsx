@@ -1,8 +1,7 @@
 
-import { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DocumentUpload } from './DocumentUpload';
+import { SmartDocumentUpload } from './SmartDocumentUpload';
 
 interface QuickDocumentUploadProps {
   projectId: string;
@@ -17,38 +16,30 @@ export const QuickDocumentUpload = ({
   variant = 'button',
   className 
 }: QuickDocumentUploadProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
   if (variant === 'action') {
     return {
       id: 'upload-document',
       label: 'Upload Document',
       icon: Upload,
-      action: () => setIsOpen(true),
+      action: () => {}, // This will be handled by SmartDocumentUpload component
       shortcut: 'Ctrl+U'
     };
   }
 
   return (
-    <>
-      <Button
-        onClick={() => setIsOpen(true)}
-        className={`bg-blue-600 hover:bg-blue-700 ${className}`}
-        size="sm"
-      >
-        <Upload size={16} className="mr-2" />
-        Upload
-      </Button>
-      
-      {isOpen && (
-        <DocumentUpload
-          projectId={projectId}
-          onUploadComplete={() => {
-            onUploadComplete?.();
-            setIsOpen(false);
-          }}
-        />
-      )}
-    </>
+    <SmartDocumentUpload
+      projectId={projectId}
+      onUploadComplete={onUploadComplete}
+      variant="dialog"
+      triggerButton={
+        <Button
+          className={`bg-blue-600 hover:bg-blue-700 ${className}`}
+          size="sm"
+        >
+          <Upload size={16} className="mr-2" />
+          Upload
+        </Button>
+      }
+    />
   );
 };

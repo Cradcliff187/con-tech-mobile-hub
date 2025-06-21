@@ -1,11 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Upload, Camera, Receipt, FolderOpen } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Project } from '@/types/database';
-import { DocumentUpload } from './DocumentUpload';
-import { PhotoUpload } from './PhotoUpload';
-import { ReceiptUpload } from './ReceiptUpload';
+import { SmartDocumentUpload } from './SmartDocumentUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { useDocuments } from '@/hooks/useDocuments';
 import { QuickActionButton } from '@/components/common/quick-actions/QuickActionButton';
@@ -26,10 +24,6 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { canUpload, refetch } = useDocuments(project?.id);
-  
-  const [documentUploadOpen, setDocumentUploadOpen] = useState(false);
-  const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
-  const [receiptUploadOpen, setReceiptUploadOpen] = useState(false);
 
   const handleUploadComplete = () => {
     refetch();
@@ -50,7 +44,6 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
             const params = new URLSearchParams(searchParams);
             params.set('category', 'plans');
             navigate(`/?section=documents&project=${project.id}&${params.toString()}`);
-            setDocumentUploadOpen(true);
           },
           badge: 'Required',
           variant: 'secondary'
@@ -62,7 +55,11 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
           id: 'progress-photos',
           label: 'Progress Photos',
           icon: Camera,
-          action: () => setPhotoUploadOpen(true),
+          action: () => {
+            const params = new URLSearchParams(searchParams);
+            params.set('category', 'photos');
+            navigate(`/?section=documents&project=${project.id}&${params.toString()}`);
+          },
           badge: 'Active',
           primary: true
         });
@@ -78,7 +75,6 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
             const params = new URLSearchParams(searchParams);
             params.set('category', 'reports');
             navigate(`/?section=documents&project=${project.id}&${params.toString()}`);
-            setDocumentUploadOpen(true);
           },
           badge: 'Required',
           variant: 'destructive'
@@ -91,23 +87,11 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
 
   const baseActions: QuickAction[] = [
     {
-      id: 'upload-document',
-      label: 'Upload Document',
+      id: 'smart-upload',
+      label: 'Smart Upload',
       icon: Upload,
-      action: () => setDocumentUploadOpen(true),
+      action: () => {}, // This will be handled by SmartDocumentUpload component
       primary: !project || project.phase === 'planning'
-    },
-    {
-      id: 'add-photo',
-      label: 'Add Photo',
-      icon: Camera,
-      action: () => setPhotoUploadOpen(true)
-    },
-    {
-      id: 'upload-receipt',
-      label: 'Upload Receipt',
-      icon: Receipt,
-      action: () => setReceiptUploadOpen(true)
     }
   ];
 
@@ -124,61 +108,68 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
   }
 
   if (variant === 'compact') {
-    const primaryAction = allActions.find(a => a.primary) || allActions[0];
     return (
       <div className={`flex gap-2 ${className}`}>
-        <QuickActionButton
-          action={primaryAction}
-          size="sm"
-          className="min-h-[44px]"
+        <SmartDocumentUpload
+          projectId={project?.id}
+          onUploadComplete={handleUploadComplete}
+          variant="dialog"
+          triggerButton={
+            <QuickActionButton
+              action={baseActions[0]}
+              size="sm"
+              className="min-h-[44px]"
+            />
+          }
         />
       </div>
     );
   }
 
   if (variant === 'floating') {
-    const primaryAction = allActions.find(a => a.primary) || allActions[0];
     return (
       <div className={`fixed bottom-6 right-6 z-40 ${className}`}>
-        <QuickActionButton
-          action={primaryAction}
-          size="lg"
-          className="rounded-full shadow-lg min-h-[56px] min-w-[56px]"
+        <SmartDocumentUpload
+          projectId={project?.id}
+          onUploadComplete={handleUploadComplete}
+          variant="dialog"
+          triggerButton={
+            <QuickActionButton
+              action={baseActions[0]}
+              size="lg"
+              className="rounded-full shadow-lg min-h-[56px] min-w-[56px]"
+            />
+          }
         />
       </div>
     );
   }
 
   return (
-    <>
-      <div className={`flex flex-wrap gap-2 lg:gap-3 ${className}`}>
-        {allActions.map((action) => (
-          <QuickActionButton
-            key={action.id}
-            action={action}
-            variant={action.primary ? 'default' : 'outline'}
-            className="min-h-[44px]"
-            showBadge
-          />
-        ))}
-      </div>
-
-      {/* Upload Dialogs */}
-      <DocumentUpload
+    <div className={`flex flex-wrap gap-2 lg:gap-3 ${className}`}>
+      {phaseActions.map((action) => (
+        <QuickActionButton
+          key={action.id}
+          action={action}
+          variant={action.primary ? 'default' : 'outline'}
+          className="min-h-[44px]"
+          showBadge
+        />
+      ))}
+      
+      <SmartDocumentUpload
         projectId={project?.id}
         onUploadComplete={handleUploadComplete}
         variant="dialog"
+        triggerButton={
+          <QuickActionButton
+            action={baseActions[0]}
+            variant={baseActions[0].primary ? 'default' : 'outline'}
+            className="min-h-[44px]"
+            showBadge
+          />
+        }
       />
-
-      <PhotoUpload
-        projectId={project?.id}
-        onUploadComplete={handleUploadComplete}
-      />
-
-      <ReceiptUpload
-        projectId={project?.id}
-        onUploadComplete={handleUploadComplete}
-      />
-    </>
+    </div>
   );
 };
