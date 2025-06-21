@@ -8,23 +8,19 @@ import { RecentActivity } from './RecentActivity';
 import { WeatherWidget } from './WeatherWidget';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { ProjectPhaseManager } from '@/components/planning/ProjectPhaseManager';
-import { SystemHealthCheck } from '@/components/debug/SystemHealthCheck';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { ProjectEquipmentSection } from './ProjectEquipmentSection';
 import { ProjectEquipmentQuickCard } from './ProjectEquipmentQuickCard';
-import { useDebugInfo } from '@/hooks/useDebugInfo';
 import { useProjects } from '@/hooks/useProjects';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 export const ProjectDashboard = () => {
-  const debugInfo = useDebugInfo();
   const { projects } = useProjects();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
-  const isDevelopment = import.meta.env.DEV;
 
   const selectedProject = projectId ? projects.find(p => p.id === projectId) : null;
 
@@ -37,11 +33,6 @@ export const ProjectDashboard = () => {
       description: 'Create new project'
     }
   ], true);
-
-  useEffect(() => {
-    console.log('=== PROJECT DASHBOARD DEBUG INFO ===');
-    console.log('Debug info:', debugInfo);
-  }, [debugInfo]);
 
   return (
     <div className="space-y-6">
@@ -68,9 +59,6 @@ export const ProjectDashboard = () => {
           </Button>
         </div>
       </div>
-
-      {/* System Health Check - Only in Development */}
-      {isDevelopment && <SystemHealthCheck />}
 
       {/* Project Phase Manager - Only shown when a project is selected */}
       {projectId && (

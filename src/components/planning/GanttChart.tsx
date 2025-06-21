@@ -19,14 +19,6 @@ import { useProjects } from '@/hooks/useProjects';
 import { GanttProvider } from '@/contexts/gantt';
 import type { SimplifiedDragState } from './gantt/types/ganttTypes';
 
-// Conditionally import debug overlay only in development with tree-shaking optimization
-/* @__PURE__ */
-const GanttDebugOverlay = process.env.NODE_ENV === 'development' 
-  ? React.lazy(() => import('./gantt/debug/GanttDebugOverlay').then(module => ({ 
-      default: module.GanttDebugOverlay 
-    })))
-  : null;
-
 interface GanttChartProps {
   projectId: string;
 }
@@ -53,10 +45,6 @@ const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
     handleTaskSelect,
     handleFilterChange,
     dragAndDrop,
-    isDebugMode,
-    debugPreferences,
-    toggleDebugMode,
-    updateDebugPreference,
     optimisticUpdatesCount,
     isDragging
   } = useGanttChart({ projectId });
@@ -221,23 +209,6 @@ const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
             projectId={projectId}
             dragState={dragState}
           />
-
-          {/* Debug Overlay - only in development with tree-shaking */}
-          {process.env.NODE_ENV === 'development' && isDebugMode && GanttDebugOverlay && (
-            <React.Suspense fallback={null}>
-              <GanttDebugOverlay
-                isVisible={isDebugMode}
-                tasks={displayTasks}
-                timelineStart={timelineStart}
-                timelineEnd={timelineEnd}
-                viewMode={viewMode}
-                debugPreferences={debugPreferences}
-                onUpdatePreference={updateDebugPreference}
-                optimisticUpdatesCount={optimisticUpdatesCount}
-                isDragging={isDragging}
-              />
-            </React.Suspense>
-          )}
         </div>
 
         <GanttLegend />

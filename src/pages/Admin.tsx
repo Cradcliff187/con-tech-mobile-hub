@@ -3,18 +3,15 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { AdminPanel } from '@/components/admin/AdminPanel';
-import { DatabaseVerification } from '@/components/debug/DatabaseVerification';
-import { WorkflowTester } from '@/components/debug/WorkflowTester';
 import { ApplicationHealth } from '@/components/admin/ApplicationHealth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Database, Shield, TestTube, Activity } from 'lucide-react';
+import { Users, Database, Shield, Activity } from 'lucide-react';
 import { AddressMigration } from '@/components/admin/AddressMigration';
 
 const Admin = () => {
   const { isAdmin, loading } = useAdminAuth();
   const { profile } = useAuth();
-  const isDevelopment = import.meta.env.DEV;
 
   if (loading) {
     return (
@@ -39,12 +36,12 @@ const Admin = () => {
             Admin Dashboard
           </h1>
           <p className="text-slate-600">
-            Manage users, monitor system health, migrate data{isDevelopment ? ', verify system integrity, and test application workflows' : ''}
+            Manage users, monitor system health, and migrate data
           </p>
         </div>
 
         <Tabs defaultValue="health" className="space-y-6">
-          <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-6' : 'grid-cols-4'} lg:w-auto`}>
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
             <TabsTrigger value="health" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Health Monitor
@@ -61,18 +58,6 @@ const Admin = () => {
               <Shield className="h-4 w-4" />
               System Status
             </TabsTrigger>
-            {isDevelopment && (
-              <>
-                <TabsTrigger value="database" className="flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  Database Tests
-                </TabsTrigger>
-                <TabsTrigger value="workflows" className="flex items-center gap-2">
-                  <TestTube className="h-4 w-4" />
-                  Workflow Tests
-                </TabsTrigger>
-              </>
-            )}
           </TabsList>
 
           <TabsContent value="health" className="space-y-6">
@@ -86,18 +71,6 @@ const Admin = () => {
           <TabsContent value="migration" className="space-y-6">
             <AddressMigration />
           </TabsContent>
-
-          {isDevelopment && (
-            <>
-              <TabsContent value="database" className="space-y-6">
-                <DatabaseVerification />
-              </TabsContent>
-
-              <TabsContent value="workflows" className="space-y-6">
-                <WorkflowTester />
-              </TabsContent>
-            </>
-          )}
 
           <TabsContent value="system" className="space-y-6">
             <Card>
@@ -117,7 +90,6 @@ const Admin = () => {
                     <p className="text-sm text-green-600">✓ Admin Controls</p>
                     <p className="text-sm text-green-600">✓ Navigation System</p>
                     <p className="text-sm text-green-600">✓ Health Monitoring</p>
-                    {isDevelopment && <p className="text-sm text-green-600">✓ Workflow Testing</p>}
                   </div>
                 </div>
               </CardContent>
