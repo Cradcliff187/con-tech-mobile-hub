@@ -4,7 +4,6 @@ import { useProjects } from '@/hooks/useProjects';
 import { useGanttContext } from '@/contexts/gantt';
 import { useTimelineCalculation } from './hooks/useTimelineCalculation';
 import { useGanttDragBridge } from './hooks/useGanttDragBridge';
-import { useDebugMode } from './hooks/useDebugMode';
 import type { 
   GanttChartHook, 
   FilterState, 
@@ -45,23 +44,6 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     timelineEnd,
     optimisticUpdates
   } = state;
-
-  // Debug mode functionality - only in development
-  const debugMode = process.env.NODE_ENV === 'development' ? useDebugMode() : {
-    isDebugMode: false,
-    debugPreferences: {
-      showColumnInfo: false,
-      showTaskDetails: false,
-      showGridLines: false,
-      showPerformanceMetrics: false,
-      showScrollInfo: false,
-      showSubscriptions: false,
-      showAuthState: false
-    },
-    toggleDebugMode: () => {},
-    updateDebugPreference: () => {},
-    isDevelopment: false
-  };
 
   // Get selected project data with proper typing
   const selectedProject: ProjectData | null = projectId && projectId !== 'all' 
@@ -149,7 +131,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
   const displayTasks = getDisplayTasks();
   const completedTasks = displayTasks.filter(t => t.status === 'completed').length;
 
-  // Calculate optimistic updates count for debug overlay
+  // Calculate optimistic updates count
   const optimisticUpdatesCount = optimisticUpdates ? optimisticUpdates.size : 0;
 
   return {
@@ -185,13 +167,6 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     
     // Drag and Drop
     dragAndDrop,
-
-    // Debug Mode - properly typed and conditionally available
-    isDebugMode: debugMode.isDebugMode,
-    debugPreferences: debugMode.debugPreferences,
-    toggleDebugMode: debugMode.toggleDebugMode,
-    updateDebugPreference: debugMode.updateDebugPreference,
-    isDevelopment: debugMode.isDevelopment,
     optimisticUpdatesCount,
     isDragging: dragAndDrop.isDragging
   };

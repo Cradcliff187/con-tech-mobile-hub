@@ -12,17 +12,6 @@ export interface FilterState {
 // Filter change handler type
 export type FilterChangeHandler = (filterType: string, values: string[]) => void;
 
-// Debug preferences interface
-export interface DebugPreferences {
-  showColumnInfo: boolean;
-  showTaskDetails: boolean;
-  showGridLines: boolean;
-  showPerformanceMetrics: boolean;
-  showScrollInfo: boolean;
-  showSubscriptions: boolean;
-  showAuthState: boolean;
-}
-
 // Task date migration interface
 export interface TaskDateMigrationData {
   taskId: string;
@@ -84,15 +73,6 @@ export interface DragAndDropState {
   resetLocalUpdates: () => void;
 }
 
-// Debug mode hook return type
-export interface DebugModeHook {
-  isDebugMode: boolean;
-  debugPreferences: DebugPreferences;
-  toggleDebugMode: () => void;
-  updateDebugPreference: (key: keyof DebugPreferences, value: boolean) => void;
-  isDevelopment: boolean;
-}
-
 // Project interface (imported from database types)
 export interface ProjectData {
   id: string;
@@ -135,11 +115,6 @@ export interface GanttChartHook {
   handleTaskSelect: (taskId: string) => void;
   handleFilterChange: FilterChangeHandler;
   dragAndDrop: DragAndDropState;
-  isDebugMode: boolean;
-  debugPreferences: DebugPreferences;
-  toggleDebugMode: () => void;
-  updateDebugPreference: (key: keyof DebugPreferences, value: boolean) => void;
-  isDevelopment: boolean;
   optimisticUpdatesCount: number;
   isDragging: boolean;
 }
