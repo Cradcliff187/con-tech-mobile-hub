@@ -162,7 +162,13 @@ export const StakeholderDirectory = () => {
 
       {/* Stakeholder Display */}
       {view === 'list' ? (
-        <StakeholderListView stakeholders={filteredAndSortedStakeholders} />
+        <StakeholderListView 
+          stakeholders={filteredAndSortedStakeholders} 
+          loading={loading}
+          onEdit={(stakeholder) => console.log('Edit:', stakeholder)}
+          onDelete={(stakeholder) => console.log('Delete:', stakeholder)}
+          onCreate={() => console.log('Create stakeholder')}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAndSortedStakeholders.map((stakeholder) => (

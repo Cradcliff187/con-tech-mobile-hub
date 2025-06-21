@@ -24,7 +24,7 @@ export const CreateProjectDialog = ({
     location: '',
     client_id: defaultClientId || '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
-    status: 'planning' as 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+    status: 'planning' as 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled'
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -89,7 +89,7 @@ export const CreateProjectDialog = ({
   const statusOptions = [
     { value: 'planning', label: 'Planning Phase' },
     { value: 'active', label: 'Active Construction' },
-    { value: 'on_hold', label: 'On Hold' },
+    { value: 'on-hold', label: 'On Hold' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' }
   ];

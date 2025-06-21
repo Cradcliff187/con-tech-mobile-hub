@@ -121,7 +121,12 @@ const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
 FormField.displayName = "FormField";
 
 // Specialized form field components for common use cases
-export interface TextFieldProps extends Omit<FormFieldProps, 'children'> {
+export interface TextFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>,
+    VariantProps<typeof formFieldVariants> {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -143,7 +148,12 @@ export const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
 
 TextField.displayName = "TextField";
 
-export interface TextAreaFieldProps extends Omit<FormFieldProps, 'children'> {
+export interface TextAreaFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>,
+    VariantProps<typeof formFieldVariants> {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -165,7 +175,12 @@ export const TextAreaField = React.forwardRef<HTMLDivElement, TextAreaFieldProps
 
 TextAreaField.displayName = "TextAreaField";
 
-export interface SelectFieldProps extends Omit<FormFieldProps, 'children'> {
+export interface SelectFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>,
+    VariantProps<typeof formFieldVariants> {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;

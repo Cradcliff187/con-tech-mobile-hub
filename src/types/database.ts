@@ -35,6 +35,32 @@ export interface Project {
   };
 }
 
+export interface Stakeholder {
+  id: string;
+  stakeholder_type: 'client' | 'vendor' | 'subcontractor' | 'consultant' | 'inspector' | 'other';
+  company_name?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  specialties?: string[];
+  license_number?: string;
+  insurance_expiry?: string;
+  rating?: number;
+  status?: 'active' | 'inactive' | 'pending';
+  account_status?: 'active' | 'inactive' | 'pending';
+  role?: string;
+  crew_size?: number;
+  notes?: string;
+  profile_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Task {
   id: string;
   title: string;
