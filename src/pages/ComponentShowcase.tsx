@@ -1,3 +1,23 @@
+
+/**
+ * INTERNAL DEVELOPER DOCUMENTATION
+ * 
+ * ComponentShowcase - UI Design System Documentation
+ * 
+ * This component serves as comprehensive documentation for all UI components
+ * used throughout the construction management application. It provides:
+ * - Visual examples of all component variants
+ * - Usage examples and code snippets
+ * - Design principles and guidelines
+ * - Construction-specific styling patterns
+ * 
+ * PURPOSE: Internal reference for developers and designers
+ * ACCESS: Protected route, accessible by direct URL for authenticated users
+ * MAINTENANCE: Update when adding new components or design patterns
+ * 
+ * @internal This is not a user-facing feature
+ */
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +75,19 @@ const ComponentShowcase = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Documentation Header */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+              Internal Documentation
+            </Badge>
+            <Badge variant="secondary">Design System</Badge>
+          </div>
+          <p className="text-blue-800 text-sm">
+            This page is for internal developer reference. It documents all UI components and design patterns used in the construction management application.
+          </p>
+        </div>
+
         <PageHeader
           title="Component Showcase"
           description="A comprehensive documentation of all UI components used in the construction management application"

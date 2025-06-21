@@ -54,8 +54,9 @@ const App = () => {
                       </ProtectedRoute>
                     } 
                   />
+                  {/* Internal Documentation - Design System Reference */}
                   <Route 
-                    path="/showcase" 
+                    path="/internal/design-system" 
                     element={
                       <ProtectedRoute>
                         <ComponentShowcase />
