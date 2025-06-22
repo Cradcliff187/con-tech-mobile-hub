@@ -4,9 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { ApplicationHealth } from '@/components/admin/ApplicationHealth';
+import { MigrationStatus } from '@/components/admin/MigrationStatus';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Database, Shield, Activity } from 'lucide-react';
+import { Users, Database, Shield, Activity, ArrowLeftRight } from 'lucide-react';
 import { AddressMigration } from '@/components/admin/AddressMigration';
 
 const Admin = () => {
@@ -41,7 +42,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="health" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
             <TabsTrigger value="health" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Health Monitor
@@ -53,6 +54,10 @@ const Admin = () => {
             <TabsTrigger value="migration" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
               Data Migration
+            </TabsTrigger>
+            <TabsTrigger value="team-migration" className="flex items-center gap-2">
+              <ArrowLeftRight className="h-4 w-4" />
+              Team Migration
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -70,6 +75,10 @@ const Admin = () => {
 
           <TabsContent value="migration" className="space-y-6">
             <AddressMigration />
+          </TabsContent>
+
+          <TabsContent value="team-migration" className="space-y-6">
+            <MigrationStatus />
           </TabsContent>
 
           <TabsContent value="system" className="space-y-6">
@@ -90,6 +99,7 @@ const Admin = () => {
                     <p className="text-sm text-green-600">✓ Admin Controls</p>
                     <p className="text-sm text-green-600">✓ Navigation System</p>
                     <p className="text-sm text-green-600">✓ Health Monitoring</p>
+                    <p className="text-sm text-green-600">✓ Data Migration Tools</p>
                   </div>
                 </div>
               </CardContent>

@@ -712,6 +712,42 @@ export type Database = {
           },
         ]
       }
+      migration_log: {
+        Row: {
+          created_at: string | null
+          data_snapshot: Json | null
+          id: string
+          issue_description: string
+          operation: string
+          source_id: string | null
+          source_table: string
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_snapshot?: Json | null
+          id?: string
+          issue_description: string
+          operation: string
+          source_id?: string | null
+          source_table: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_snapshot?: Json | null
+          id?: string
+          issue_description?: string
+          operation?: string
+          source_id?: string | null
+          source_table?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_status: string | null
@@ -1741,6 +1777,54 @@ export type Database = {
           },
         ]
       }
+      team_members_backup: {
+        Row: {
+          allocation_id: string | null
+          availability: number | null
+          cost_per_hour: number | null
+          created_at: string | null
+          date: string | null
+          hours_allocated: number | null
+          hours_used: number | null
+          id: string | null
+          name: string | null
+          role: string | null
+          tasks: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          allocation_id?: string | null
+          availability?: number | null
+          cost_per_hour?: number | null
+          created_at?: string | null
+          date?: string | null
+          hours_allocated?: number | null
+          hours_used?: number | null
+          id?: string | null
+          name?: string | null
+          role?: string | null
+          tasks?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          allocation_id?: string | null
+          availability?: number | null
+          cost_per_hour?: number | null
+          created_at?: string | null
+          date?: string | null
+          hours_allocated?: number | null
+          hours_used?: number | null
+          id?: string | null
+          name?: string | null
+          role?: string | null
+          tasks?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_invitations: {
         Row: {
           accepted_at: string | null
@@ -1830,6 +1914,14 @@ export type Database = {
       }
     }
     Views: {
+      migration_summary: {
+        Row: {
+          count: number | null
+          latest_occurrence: string | null
+          operation: string | null
+        }
+        Relationships: []
+      }
       project_labor_costs: {
         Row: {
           assignment_count: number | null
@@ -1919,6 +2011,15 @@ export type Database = {
       mark_overdue_maintenance_tasks: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      migrate_team_members_to_stakeholder_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_processed: number
+          successful_migrations: number
+          stakeholders_created: number
+          errors_logged: number
+        }[]
       }
       user_can_access_project: {
         Args: { project_id: string }
