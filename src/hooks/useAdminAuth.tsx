@@ -1,5 +1,5 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,25 +23,11 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
-  const lastCheckedUserRef = useRef<string | null>(null);
-  const isCheckingRef = useRef(false);
 
   const checkAdminStatus = async () => {
-    // Prevent multiple simultaneous checks
-    if (isCheckingRef.current) {
-      return;
-    }
-
     if (!user || !profile) {
       console.log('No user or profile, not admin');
       setIsAdmin(false);
-      setLoading(false);
-      lastCheckedUserRef.current = null;
-      return;
-    }
-
-    // Skip if we've already checked this user and they haven't changed
-    if (lastCheckedUserRef.current === user.id) {
       setLoading(false);
       return;
     }
@@ -51,12 +37,9 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Account not approved, not admin');
       setIsAdmin(false);
       setLoading(false);
-      lastCheckedUserRef.current = user.id;
       return;
     }
 
-    isCheckingRef.current = true;
-    
     try {
       console.log('Checking admin status for user:', user.email);
       
@@ -76,45 +59,17 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('Admin status result:', isAdminUser);
         setIsAdmin(isAdminUser);
       }
-      
-      lastCheckedUserRef.current = user.id;
     } catch (error) {
       console.error('Exception checking admin status:', error);
       setIsAdmin(false);
-      lastCheckedUserRef.current = user.id;
-    } finally {
-      isCheckingRef.current = false;
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {
-    // Only run when user ID or account status changes, not on every user/profile object change
-    const currentUserId = user?.id || null;
-    const currentAccountStatus = profile?.account_status || null;
-    
-    // Reset state when user changes
-    if (lastCheckedUserRef.current !== currentUserId) {
-      setLoading(true);
-      setIsAdmin(false);
-    }
-    
-    // Use a small debounce to prevent rapid API calls
-    const timeoutId = setTimeout(() => {
-      checkAdminStatus();
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [user?.id, profile?.account_status]); // Only depend on specific values that matter
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isCheckingRef.current = false;
-    };
-  }, []);
+    checkAdminStatus();
+  }, [user, profile]);
 
   return (
     <AdminAuthContext.Provider value={{

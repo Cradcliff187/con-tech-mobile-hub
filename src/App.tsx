@@ -1,20 +1,16 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Auth from '@/pages/Auth';
-import Index from '@/pages/Index';
-import Admin from '@/pages/Admin';
-import NotFound from '@/pages/NotFound';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { QueryClient } from 'react-query';
+import { Auth } from '@/pages/Auth';
+import { Index } from '@/pages';
+import { Admin } from '@/pages/Admin';
+import { NotFound } from '@/pages/NotFound';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { SubscriptionStatusIndicator } from '@/components/common/SubscriptionStatusIndicator';
-import { config } from '@/config/environment';
 
 function App() {
-  const queryClient = new QueryClient();
-
   return (
     <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
+      <QueryClient>
         <div className="min-h-screen bg-background">
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -31,10 +27,10 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           
-          {/* Add subscription status indicator - now uses centralized config */}
-          <SubscriptionStatusIndicator showDetails={config.features.subscriptionStatusIndicator} />
+          {/* Add subscription status indicator */}
+          <SubscriptionStatusIndicator showDetails={process.env.NODE_ENV === 'development'} />
         </div>
-      </QueryClientProvider>
+      </QueryClient>
     </BrowserRouter>
   );
 }
