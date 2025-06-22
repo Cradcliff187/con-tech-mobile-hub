@@ -85,18 +85,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
     return actions;
   };
 
-  const baseActions: QuickAction[] = [
-    {
-      id: 'smart-upload',
-      label: 'Smart Upload',
-      icon: Upload,
-      action: () => {}, // This will be handled by SmartDocumentUpload component
-      primary: !project || project.phase === 'planning'
-    }
-  ];
-
   const phaseActions = getPhaseSpecificActions();
-  const allActions = [...phaseActions, ...baseActions];
 
   if (!canUpload()) {
     return (
@@ -114,13 +103,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
           projectId={project?.id}
           onUploadComplete={handleUploadComplete}
           variant="dialog"
-          triggerButton={
-            <QuickActionButton
-              action={baseActions[0]}
-              size="sm"
-              className="min-h-[44px]"
-            />
-          }
+          className="min-h-[44px]"
         />
       </div>
     );
@@ -133,13 +116,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
           projectId={project?.id}
           onUploadComplete={handleUploadComplete}
           variant="dialog"
-          triggerButton={
-            <QuickActionButton
-              action={baseActions[0]}
-              size="lg"
-              className="rounded-full shadow-lg min-h-[56px] min-w-[56px]"
-            />
-          }
+          className="rounded-full shadow-lg min-h-[56px] min-w-[56px]"
         />
       </div>
     );
@@ -161,14 +138,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
         projectId={project?.id}
         onUploadComplete={handleUploadComplete}
         variant="dialog"
-        triggerButton={
-          <QuickActionButton
-            action={baseActions[0]}
-            variant={baseActions[0].primary ? 'default' : 'outline'}
-            className="min-h-[44px]"
-            showBadge
-          />
-        }
+        className="min-h-[44px]"
       />
     </div>
   );

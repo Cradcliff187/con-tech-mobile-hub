@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -275,21 +274,11 @@ export const SmartDocumentUpload = ({
     const isApproved = profile?.account_status === 'approved';
     const canUploadResult = canUpload();
 
-    console.log('Permission Check Details:', {
-      hasUser,
-      hasProfile,
-      isCompanyUser,
-      isApproved,
-      canUploadResult,
-      finalResult: hasUser && hasProfile && isApproved
-    });
-
     return hasUser && hasProfile && isApproved;
   };
 
   // Show loading state if auth is still loading
   if (!user || !profile) {
-    console.log('Auth still loading, showing loading state');
     return (
       <div className={`flex items-center justify-center p-4 ${className}`}>
         <div className="animate-pulse flex items-center gap-2 text-slate-500">
@@ -302,7 +291,6 @@ export const SmartDocumentUpload = ({
 
   // Show permission denied state with clear messaging
   if (!checkCanUpload()) {
-    console.log('Permission denied, showing restricted access message');
     return (
       <div className={`flex items-center gap-3 text-slate-600 p-4 bg-slate-50 rounded-lg border border-slate-200 ${className}`}>
         <AlertCircle size={20} className="text-amber-500 flex-shrink-0" />
