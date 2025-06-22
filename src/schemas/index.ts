@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 /**
@@ -168,15 +167,18 @@ export const stakeholderSchema = z.object({
     .max(15, 'Maximum 15 specialties allowed')
     .transform(specs => specs.filter(spec => spec.trim().length > 0 && !/[<>]/g.test(spec))),
   
-  crew_size: z.union([
-    z.string().transform(str => {
-      if (str === '' || str === undefined) return undefined;
-      const parsed = parseInt(str);
-      return isNaN(parsed) ? undefined : parsed;
-    }),
-    z.number(),
-    z.undefined()
-  ]).refine(size => size === undefined || (size >= 0 && size <= 1000), 
+  crew_size: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return undefined;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        const parsed = parseInt(val, 10);
+        return isNaN(parsed) ? undefined : parsed;
+      }
+      return undefined;
+    },
+    z.number().min(0).max(1000).optional()
+  ).refine(size => size === undefined || (size >= 0 && size <= 1000), 
     'Crew size must be between 0 and 1,000'),
   
   license_number: optionalString(100)
