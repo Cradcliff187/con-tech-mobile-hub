@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
-import { Upload, Sparkles } from 'lucide-react';
+import { Upload, Sparkles, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { SmartDocumentUpload } from './SmartDocumentUpload';
+import { useProjects } from '@/hooks/useProjects';
 
 interface SmartUploadButtonProps {
   projectId?: string;
@@ -23,6 +25,26 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
   showTooltip = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { projects } = useProjects();
+  
+  // Get current project info for intelligent labeling
+  const currentProject = projects.find(p => p.id === projectId);
+  const projectPhase = currentProject?.phase || 'planning';
+
+  const getPhaseSpecificLabel = () => {
+    switch (projectPhase) {
+      case 'planning':
+        return 'Upload Plans';
+      case 'active':
+        return 'Add Progress';
+      case 'punch_list':
+        return 'Upload Issues';
+      case 'closeout':
+        return 'Final Docs';
+      default:
+        return 'Smart Upload';
+    }
+  };
 
   const getButtonContent = () => {
     switch (variant) {
@@ -31,17 +53,34 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
       case 'compact':
         return (
           <>
-            <Upload size={16} className="mr-2" />
-            Upload
+            <Plus size={16} className="mr-2" />
+            {projectId ? getPhaseSpecificLabel() : 'Upload'}
           </>
         );
       case 'floating':
-        return <Sparkles size={24} />;
+        return (
+          <div className="flex flex-col items-center">
+            <Sparkles size={24} />
+            {projectId && (
+              <Badge 
+                variant="secondary" 
+                className="mt-1 text-xs bg-white/20 text-white border-white/30"
+              >
+                {projectPhase}
+              </Badge>
+            )}
+          </div>
+        );
       default:
         return (
           <>
             <Sparkles size={20} className="mr-2" />
-            Smart Upload
+            {projectId ? getPhaseSpecificLabel() : 'Smart Upload'}
+            {projectId && projectPhase !== 'planning' && (
+              <Badge variant="secondary" className="ml-2 text-xs">
+                {projectPhase}
+              </Badge>
+            )}
           </>
         );
     }
@@ -60,6 +99,31 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
       default:
         return `${baseStyles} min-h-[44px] bg-blue-600 hover:bg-blue-700`;
     }
+  };
+
+  const getTooltipContent = () => {
+    if (!projectId) {
+      return (
+        <div>
+          <p>Upload documents with AI-powered categorization</p>
+          <p className="text-xs text-slate-400">Ctrl+U</p>
+        </div>
+      );
+    }
+
+    const phaseActions = {
+      planning: 'Upload plans, permits, and contracts',
+      active: 'Add progress photos and expense receipts',
+      punch_list: 'Document punch list items and issues',
+      closeout: 'Upload final documentation and reports'
+    };
+
+    return (
+      <div>
+        <p>{phaseActions[projectPhase as keyof typeof phaseActions] || 'Upload project documents'}</p>
+        <p className="text-xs text-slate-400">Smart categorization enabled • Ctrl+U</p>
+      </div>
+    );
   };
 
   const handleClick = () => {
@@ -85,8 +149,7 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
           {triggerButton}
         </TooltipTrigger>
         <TooltipContent>
-          <p>Upload documents with AI-powered categorization</p>
-          <p className="text-xs text-slate-400">Ctrl+U</p>
+          {getTooltipContent()}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

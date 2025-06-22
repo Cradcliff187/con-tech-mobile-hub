@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, AlertCircle } from 'lucide-react';
+import { Sparkles, AlertCircle, FileText, Camera, Receipt, Shield, Building, ClipboardList } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +25,25 @@ interface SmartDocumentUploadProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+const DOCUMENT_CATEGORIES = [
+  { value: 'plans', label: 'Plans & Drawings', icon: FileText, description: 'Blueprints, CAD files, architectural drawings' },
+  { value: 'photos', label: 'Progress Photos', icon: Camera, description: 'Site photos, before/after images, progress documentation' },
+  { value: 'receipts', label: 'Receipts & Expenses', icon: Receipt, description: 'Purchase receipts, invoices, expense documentation' },
+  { value: 'permits', label: 'Permits & Approvals', icon: Shield, description: 'Building permits, inspections, regulatory approvals' },
+  { value: 'contracts', label: 'Contracts & Agreements', icon: Building, description: 'Contracts, proposals, legal documents' },
+  { value: 'reports', label: 'Reports & Documentation', icon: ClipboardList, description: 'Status reports, inspection reports, documentation' },
+  { value: 'safety', label: 'Safety Documents', icon: Shield, description: 'Safety protocols, MSDS sheets, incident reports' },
+  { value: 'other', label: 'Other Documents', icon: FileText, description: 'Miscellaneous project documents' }
+];
+
+const PHASE_PRIORITY_CATEGORIES = {
+  planning: ['plans', 'permits', 'contracts'],
+  active: ['photos', 'receipts', 'reports', 'safety'],
+  punch_list: ['photos', 'reports'],
+  closeout: ['reports', 'photos', 'other'],
+  completed: ['other', 'reports']
+};
+
 export const SmartDocumentUpload = ({
   projectId,
   onUploadComplete,
@@ -42,6 +60,8 @@ export const SmartDocumentUpload = ({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(currentProjectId);
   const [activeTab, setActiveTab] = useState('drop');
+  const [preSelectedCategory, setPreSelectedCategory] = useState<string>('');
+  const [uploadTemplate, setUploadTemplate] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +71,51 @@ export const SmartDocumentUpload = ({
   const { user, profile } = useAuth();
   const isMobile = useIsMobile();
 
-  // Debug logging for permission and state changes
+  // Get current project and its phase
+  const currentProject = projects.find(p => p.id === selectedProjectId);
+  const projectPhase = currentProject?.phase || 'planning';
+
+  // Get prioritized categories based on project phase
+  const getPrioritizedCategories = useCallback(() => {
+    const phaseCategories = PHASE_PRIORITY_CATEGORIES[projectPhase as keyof typeof PHASE_PRIORITY_CATEGORIES] || [];
+    const prioritized = DOCUMENT_CATEGORIES.filter(cat => phaseCategories.includes(cat.value));
+    const others = DOCUMENT_CATEGORIES.filter(cat => !phaseCategories.includes(cat.value));
+    return [...prioritized, ...others];
+  }, [projectPhase]);
+
+  // Upload templates based on project phase
+  const getUploadTemplates = useCallback(() => {
+    const templates = [];
+    
+    switch (projectPhase) {
+      case 'planning':
+        templates.push(
+          { value: 'plans-batch', label: 'Architectural Plans Package', category: 'plans' },
+          { value: 'permits-batch', label: 'Permit Documentation', category: 'permits' }
+        );
+        break;
+      case 'active':
+        templates.push(
+          { value: 'daily-photos', label: 'Daily Progress Photos', category: 'photos' },
+          { value: 'expense-receipts', label: 'Expense Receipts', category: 'receipts' },
+          { value: 'safety-checklist', label: 'Safety Documentation', category: 'safety' }
+        );
+        break;
+      case 'punch_list':
+        templates.push(
+          { value: 'punch-photos', label: 'Punch List Items', category: 'photos' },
+          { value: 'completion-docs', label: 'Completion Documentation', category: 'reports' }
+        );
+        break;
+    }
+    
+    return templates;
+  }, [projectPhase]);
+
+  const uploadTemplates = getUploadTemplates();
+  const prioritizedCategories = getPrioritizedCategories();
+
+  // Debug logging
   useEffect(() => {
     console.log('SmartDocumentUpload Debug:', {
       user: user ? { id: user.id, email: user.email } : null,
@@ -63,9 +127,11 @@ export const SmartDocumentUpload = ({
       canUploadResult: canUpload(),
       variant,
       projectId: currentProjectId,
-      isOpen
+      isOpen,
+      projectPhase,
+      preSelectedCategory
     });
-  }, [user, profile, canUpload, variant, currentProjectId, isOpen]);
+  }, [user, profile, canUpload, variant, currentProjectId, isOpen, projectPhase, preSelectedCategory]);
 
   // Handle dialog state changes
   const handleOpenChange = (open: boolean) => {
@@ -123,12 +189,15 @@ export const SmartDocumentUpload = ({
       const analysis = analyzeFile(file, projectContext);
       const preview = await createPreview(file);
       
+      // Use pre-selected category if available, otherwise use AI analysis
+      const finalCategory = preSelectedCategory || analysis.category;
+      
       processedFiles.push({
         file,
-        analysis,
+        analysis: { ...analysis, category: finalCategory },
         preview,
         id: generateFileId(),
-        category: analysis.category,
+        category: finalCategory,
         description: file.name,
         expenseAmount: analysis.isReceipt ? '' : undefined,
         expenseVendor: analysis.isReceipt ? '' : undefined,
@@ -140,7 +209,9 @@ export const SmartDocumentUpload = ({
     
     if (processedFiles.length > 0) {
       toast.success(`${processedFiles.length} file${processedFiles.length !== 1 ? 's' : ''} added`, {
-        description: 'Files have been analyzed and categorized automatically.',
+        description: preSelectedCategory 
+          ? `Files categorized as ${DOCUMENT_CATEGORIES.find(c => c.value === preSelectedCategory)?.label}`
+          : 'Files analyzed and categorized automatically.',
         duration: 3000,
       });
     }
@@ -269,8 +340,22 @@ export const SmartDocumentUpload = ({
     setSelectedFiles([]);
     setSelectedProjectId(currentProjectId);
     setActiveTab('drop');
+    setPreSelectedCategory('');
+    setUploadTemplate('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  const handleTemplateSelect = (templateValue: string) => {
+    const template = uploadTemplates.find(t => t.value === templateValue);
+    if (template) {
+      setPreSelectedCategory(template.category);
+      setUploadTemplate(templateValue);
+      toast.info("Template Applied", {
+        description: `Files will be categorized as ${DOCUMENT_CATEGORIES.find(c => c.value === template.category)?.label}`,
+        duration: 3000,
+      });
+    }
   };
 
   // Enhanced permission checking
@@ -323,6 +408,87 @@ export const SmartDocumentUpload = ({
 
   const uploadContent = (
     <div className="space-y-6">
+      {/* Smart Category Selection */}
+      <div className="animate-fade-in bg-slate-50 rounded-lg p-4 border border-slate-200">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+              <Sparkles className="text-blue-500" size={20} />
+              Smart Document Upload
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Select a document type to enable intelligent categorization and processing
+            </p>
+          </div>
+
+          {/* Upload Templates */}
+          {uploadTemplates.length > 0 && (
+            <div>
+              <Label className="text-slate-700 font-medium">Quick Templates</Label>
+              <Select value={uploadTemplate} onValueChange={handleTemplateSelect} disabled={isUploading}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Choose a template for faster upload" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uploadTemplates.map((template) => (
+                    <SelectItem key={template.value} value={template.value}>
+                      {template.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Document Category Selection */}
+          <div>
+            <Label className="text-slate-700 font-medium">
+              Document Type {projectPhase !== 'planning' && <span className="text-xs text-blue-600">({projectPhase} phase)</span>}
+            </Label>
+            <Select value={preSelectedCategory} onValueChange={setPreSelectedCategory} disabled={isUploading}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select document type (optional - AI will auto-detect)" />
+              </SelectTrigger>
+              <SelectContent>
+                {prioritizedCategories.map((category) => {
+                  const Icon = category.icon;
+                  const isPriority = PHASE_PRIORITY_CATEGORIES[projectPhase as keyof typeof PHASE_PRIORITY_CATEGORIES]?.includes(category.value);
+                  return (
+                    <SelectItem key={category.value} value={category.value}>
+                      <div className="flex items-center gap-2">
+                        <Icon size={16} className={isPriority ? "text-blue-600" : "text-slate-500"} />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {category.label}
+                            {isPriority && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Recommended</span>}
+                          </div>
+                          <div className="text-xs text-slate-500">{category.description}</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {preSelectedCategory && (
+            <div className="text-sm text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} />
+                <span className="font-medium">Smart Processing Enabled</span>
+              </div>
+              <p className="mt-1">
+                All uploaded files will be categorized as "{DOCUMENT_CATEGORIES.find(c => c.value === preSelectedCategory)?.label}".
+                {preSelectedCategory === 'receipts' && " Expense tracking fields will be automatically added."}
+                {preSelectedCategory === 'photos' && " Location and timestamp metadata will be captured."}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* File Upload Interface */}
       <div className="animate-fade-in">
         <FileUploadTabs
           activeTab={activeTab}
@@ -426,10 +592,6 @@ export const SmartDocumentUpload = ({
   if (variant === 'inline') {
     return (
       <div className={`bg-white rounded-lg border border-slate-200 p-6 transition-all duration-200 hover:shadow-lg ${className}`}>
-        <h3 className="text-xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
-          <Sparkles className="text-blue-500" size={24} />
-          Smart Document Upload
-        </h3>
         {uploadContent}
       </div>
     );
