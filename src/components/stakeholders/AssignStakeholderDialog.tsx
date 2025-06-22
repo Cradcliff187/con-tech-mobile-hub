@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useStakeholderAssignments } from '@/hooks/useStakeholderAssignments';
-import { useEmployeeAssignments } from '@/hooks/useEmployeeAssignments';
+import { useEmployeeAssignments } from '@/hooks/employee-assignments';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { useTasks } from '@/hooks/useTasks';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
