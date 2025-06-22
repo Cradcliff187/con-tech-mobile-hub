@@ -20,7 +20,12 @@ export const sanitizeStakeholderInput = (field: string, value: any) => {
     case 'zip_code':
       return sanitizeInput(value, 'text');
     case 'crew_size':
-      return value;
+      // Convert string to number, return undefined if invalid
+      if (value === '' || value === null || value === undefined) {
+        return undefined;
+      }
+      const numValue = typeof value === 'string' ? parseInt(value) : value;
+      return isNaN(numValue) ? undefined : numValue;
     case 'specialties':
       return Array.isArray(value) ? value.map(v => sanitizeInput(v, 'text')) : value;
     default:
@@ -55,9 +60,7 @@ export const transformStakeholderData = (validatedData: StakeholderFormData) => 
     state: validatedData.state,
     zip_code: validatedData.zip_code,
     specialties: validatedData.specialties && validatedData.specialties.length > 0 ? validatedData.specialties : undefined,
-    crew_size: typeof validatedData.crew_size === 'string' 
-      ? parseInt(validatedData.crew_size) || undefined 
-      : validatedData.crew_size,
+    crew_size: validatedData.crew_size,
     license_number: validatedData.license_number,
     insurance_expiry: validatedData.insurance_expiry || undefined,
     notes: validatedData.notes,

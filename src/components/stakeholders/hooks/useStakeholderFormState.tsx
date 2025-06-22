@@ -8,7 +8,7 @@ interface UseStakeholderFormStateProps {
 }
 
 export const useStakeholderFormState = ({ defaultType }: UseStakeholderFormStateProps) => {
-  const [formData, setFormData] = useState<StakeholderFormData>(getInitialFormData(defaultType));
+  const [formData, setFormData] = useState<StakeholderFormData>(() => getInitialFormData(defaultType));
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
