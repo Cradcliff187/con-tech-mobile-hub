@@ -99,7 +99,8 @@ export const taskSchema = z.object({
   // Aligned with database enum - removed 'cancelled'
   status: z.enum(['not-started', 'in-progress', 'completed', 'blocked']),
   
-  task_type: z.enum(['regular', 'milestone', 'inspection', 'maintenance']).optional(),
+  // Fixed to match database constraint - only 'regular' and 'punch_list' allowed
+  task_type: z.enum(['regular', 'punch_list']).optional(),
   
   due_date: z.string().optional()
     .refine(date => !date || /^\d{4}-\d{2}-\d{2}$/.test(date), 'Invalid date format'),
