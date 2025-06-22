@@ -1,8 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { useResourceAllocations } from '@/hooks/useResourceAllocations';
+import { useEmployeeResourceAllocations } from '@/hooks/useEmployeeResourceAllocations';
 import { useProjects } from '@/hooks/useProjects';
-import { useResourceConflicts } from '@/hooks/useResourceConflicts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,8 +25,8 @@ interface TeamMemberAllocation {
     hoursUsed: number;
     percentage: number;
     status: string;
-    allocationId: string;
-    teamMemberId: string;
+    assignmentId: string;
+    stakeholderId: string;
   }[];
   conflicts: boolean;
   availability: number;
@@ -43,12 +42,14 @@ interface DragPreview {
 
 export const DragDropResourceView = () => {
   const { projects } = useProjects();
-  const { allocations, loading, refetch } = useResourceAllocations();
+  const { allocations, loading, refetch } = useEmployeeResourceAllocations();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [filterMember, setFilterMember] = useState('');
   const [filterProject, setFilterProject] = useState('all');
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const { toast } = useToast();
+
+  console.warn('⚠️ MIGRATION NOTICE: DragDropResourceView now uses stakeholder assignments instead of team_members');
 
   // Get active projects only
   const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'planning');
@@ -97,8 +98,8 @@ export const DragDropResourceView = () => {
           hoursUsed: member.hours_used,
           percentage: (member.hours_allocated / 40) * 100,
           status: project.status,
-          allocationId: allocation.id,
-          teamMemberId: member.id
+          assignmentId: member.id, // This is the stakeholder_assignment id
+          stakeholderId: member.user_id || ''
         });
       });
     });
@@ -215,7 +216,7 @@ export const DragDropResourceView = () => {
     if (!member || !sourceProject) {
       toast({
         title: "Error",
-        description: "Could not find member or project allocation",
+        description: "Could not find member or project assignment",
         variant: "destructive"
       });
       return;
@@ -238,58 +239,18 @@ export const DragDropResourceView = () => {
     }
 
     try {
-      // Find target allocation for the week
-      const targetAllocation = allocations.find(a => 
-        a.project_id === targetProjectId && 
-        a.week_start_date === allocations.find(sa => sa.id === sourceProject.allocationId)?.week_start_date
-      );
-
-      if (!targetAllocation) {
-        toast({
-          title: "Error",
-          description: "Could not find target project allocation for this week",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Update database: move the team member to new allocation
+      console.warn('⚠️ LEGACY OPERATION: Updating stakeholder assignment instead of team_members');
+      
+      // Update the stakeholder assignment to move to new project
       const { error: updateError } = await supabase
-        .from('team_members')
+        .from('stakeholder_assignments')
         .update({
-          allocation_id: targetAllocation.id
+          project_id: targetProjectId
         })
-        .eq('id', sourceProject.teamMemberId);
+        .eq('id', sourceProject.assignmentId);
 
       if (updateError) {
         throw updateError;
-      }
-
-      // Update source allocation total_used
-      const sourceAllocation = allocations.find(a => a.id === sourceProject.allocationId);
-      if (sourceAllocation) {
-        const { error: sourceUpdateError } = await supabase
-          .from('resource_allocations')
-          .update({
-            total_used: Math.max(0, sourceAllocation.total_used - (sourceProject.hoursAllocated * sourceProject.hoursUsed / sourceProject.hoursAllocated || 0))
-          })
-          .eq('id', sourceProject.allocationId);
-
-        if (sourceUpdateError) {
-          console.error('Error updating source allocation:', sourceUpdateError);
-        }
-      }
-
-      // Update target allocation total_used
-      const { error: targetUpdateError } = await supabase
-        .from('resource_allocations')
-        .update({
-          total_used: targetAllocation.total_used + (sourceProject.hoursAllocated * sourceProject.hoursUsed / sourceProject.hoursAllocated || 0)
-        })
-        .eq('id', targetAllocation.id);
-
-      if (targetUpdateError) {
-        console.error('Error updating target allocation:', targetUpdateError);
       }
 
       toast({

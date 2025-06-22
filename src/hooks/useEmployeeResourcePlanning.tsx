@@ -36,6 +36,8 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
   const { projects } = useProjects();
   const [resourceGroups, setResourceGroups] = useState<EmployeeResourceGroup[]>([]);
 
+  console.warn('⚠️ MIGRATION NOTICE: useEmployeeResourcePlanning uses employee assignments instead of team_members');
+
   // Filter assignments for employees only and by project if specified
   const filteredAssignments = useMemo(() => {
     return employeeAssignments.filter(assignment => {
@@ -99,37 +101,34 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
   }, [filteredAssignments, projects]);
 
   // Calculate summary statistics
-  const summaryStats = useMemo(() => {
+  const summaryStats = useM
+
+(() => {
     const totalMembers = groupedAssignments.reduce((sum, group) => sum + group.members.length, 0);
-    const overallocatedCount = groupedAssignments.reduce((count, group) => 
-      count + group.members.filter(m => m.availability > 100).length, 0
-    );
     const totalHours = groupedAssignments.reduce((sum, group) => sum + group.total_allocated_hours, 0);
-    const totalBudgetUsed = groupedAssignments.reduce((sum, group) => sum + group.total_used, 0);
-    const totalBudget = groupedAssignments.reduce((sum, group) => sum + group.total_budget, 0);
-    const budgetVariance = totalBudget - totalBudgetUsed;
-    const budgetVariancePercentage = totalBudget > 0 ? (budgetVariance / totalBudget) * 100 : 0;
+    const totalCost = groupedAssignments.reduce((sum, group) => sum + group.total_actual_cost, 0);
+    const avgUtilization = totalMembers > 0 ? (totalHours / (totalMembers * 40)) * 100 : 0;
 
     return {
       totalMembers,
-      overallocatedCount,
       totalHours,
-      totalBudgetUsed,
-      totalBudget,
-      budgetVariance,
-      budgetVariancePercentage
+      totalCost,
+      avgUtilization,
+      totalProjects: new Set(groupedAssignments.map(g => g.project_id)).size
     };
   }, [groupedAssignments]);
 
-  // Update state when groupedAssignments change
   useEffect(() => {
     setResourceGroups(groupedAssignments);
   }, [groupedAssignments]);
 
   return {
-    allocations: resourceGroups, // Keep same interface as useResourceAllocations
+    resourceGroups,
     loading,
     summaryStats,
-    createAllocation: async () => ({ error: 'Not implemented for employee assignments' })
+    refetch: () => {
+      // This would trigger a refetch of employee assignments
+      console.log('Refetching employee resource planning data...');
+    }
   };
 };

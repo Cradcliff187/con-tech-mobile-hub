@@ -32,14 +32,36 @@ export const usePersonnelConflictResolution = (
       return;
     }
 
+    console.warn('⚠️ MIGRATION NOTICE: Using stakeholder assignments instead of team_members for conflict resolution');
+
     setIsSubmitting(true);
 
     try {
       switch (selectedOption) {
         case 'reassign':
-          // In a real implementation, this would reassign specific tasks
-          // For now, we'll log the action and update allocation records
-          console.log('Reassigning tasks:', reassignmentNotes);
+          // Update stakeholder assignments instead of team_members
+          console.log('Reassigning tasks using stakeholder assignments:', reassignmentNotes);
+          
+          // Find stakeholder assignments for the conflicted employee
+          const { data: assignments, error: fetchError } = await supabase
+            .from('stakeholder_assignments')
+            .select('*')
+            .in('project_id', conflict.affectedProjects);
+
+          if (fetchError) throw fetchError;
+
+          // Update assignment notes with reassignment information
+          if (assignments && assignments.length > 0) {
+            const { error: updateError } = await supabase
+              .from('stakeholder_assignments')
+              .update({
+                notes: `REASSIGNED: ${reassignmentNotes}`,
+                status: 'reassigned'
+              })
+              .eq('id', assignments[0].id);
+
+            if (updateError) throw updateError;
+          }
           break;
           
         case 'extend':
@@ -55,13 +77,13 @@ export const usePersonnelConflictResolution = (
           break;
 
         case 'reduce':
-          // Update resource allocations to reduce hours
+          // Update stakeholder assignments to reduce hours instead of team_members
           const { error: allocationError } = await supabase
-            .from('team_members')
+            .from('stakeholder_assignments')
             .update({
-              hours_allocated: newHours
+              total_hours: newHours
             })
-            .eq('name', conflict.title.split(' ')[0]); // Extract member name from title
+            .in('project_id', conflict.affectedProjects);
 
           if (allocationError) throw allocationError;
           break;
@@ -69,7 +91,7 @@ export const usePersonnelConflictResolution = (
 
       toast({
         title: "Conflict Resolved",
-        description: "Personnel overallocation has been resolved"
+        description: "Personnel overallocation has been resolved using the new assignment system"
       });
 
       onResolved();

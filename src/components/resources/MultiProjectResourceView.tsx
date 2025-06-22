@@ -1,6 +1,5 @@
-
 import { useState, useMemo } from 'react';
-import { useResourceAllocations } from '@/hooks/useResourceAllocations';
+import { useEmployeeResourceAllocations } from '@/hooks/useEmployeeResourceAllocations';
 import { useProjects } from '@/hooks/useProjects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,10 +32,13 @@ interface TeamMemberAllocation {
 
 export const MultiProjectResourceView = () => {
   const { projects } = useProjects();
-  const { allocations, loading } = useResourceAllocations();
+  const { allocations, loading } = useEmployeeResourceAllocations();
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [filterMember, setFilterMember] = useState('');
   const [filterProject, setFilterProject] = useState('all');
+
+  // Log migration notice
+  console.warn('⚠️ MIGRATION NOTICE: MultiProjectResourceView now uses employee assignments instead of team_members');
 
   // Get active projects only
   const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'planning');

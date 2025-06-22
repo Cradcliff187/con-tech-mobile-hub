@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Users, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
+import { useEmployeeAssignments } from '@/hooks/employee-assignments';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
 
@@ -25,12 +25,15 @@ export const ResourceOverview = () => {
   const { user } = useAuth();
   const { projects } = useProjects();
   const { tasks } = useTasks();
+  const { employeeAssignments } = useEmployeeAssignments();
+
+  console.warn('⚠️ MIGRATION NOTICE: ResourceOverview now uses employee assignments instead of team_members');
 
   useEffect(() => {
     const fetchResourceData = async () => {
       if (!user) return;
 
-      console.log('Fetching resource data...');
+      console.log('Fetching resource data with new employee assignments system...');
 
       try {
         // Fetch total workers from profiles
@@ -45,24 +48,39 @@ export const ResourceOverview = () => {
         const workersCount = profiles?.length || 0;
         setTotalWorkers(workersCount);
 
-        // Calculate team data from projects and tasks
+        // Calculate team data from projects and employee assignments
         const activeProjects = projects.filter(p => p.status === 'active');
         setActiveTeams(activeProjects.length);
 
         const teamData: TeamData[] = activeProjects.map(project => {
-          const projectTasks = tasks.filter(t => t.project_id === project.id);
-          const uniqueMembers = new Set(
-            projectTasks
-              .map(task => task.assignee_id || task.assigned_stakeholder_id)
-              .filter(Boolean)
+          // Get employee assignments for this project
+          const projectAssignments = employeeAssignments.filter(assignment => 
+            assignment.project_id === project.id
           );
+          
+          // Get tasks for this project
+          const projectTasks = tasks.filter(t => t.project_id === project.id);
           const activeTasks = projectTasks.filter(task => task.status === 'in-progress').length;
+          
+          // Count unique employees assigned to this project
+          const uniqueEmployees = new Set(
+            projectAssignments.map(assignment => assignment.stakeholder_id)
+          );
+          
+          // Calculate utilization based on hours and assignments
+          const totalAllocatedHours = projectAssignments.reduce((sum, assignment) => 
+            sum + (assignment.total_hours || 0), 0
+          );
+          
+          const utilizationRate = uniqueEmployees.size > 0 && totalAllocatedHours > 0
+            ? Math.min(100, Math.floor((totalAllocatedHours / (uniqueEmployees.size * 40)) * 100))
+            : 0;
           
           return {
             project_name: project.name,
-            total_members: uniqueMembers.size,
+            total_members: uniqueEmployees.size,
             active_tasks: activeTasks,
-            utilization: uniqueMembers.size > 0 ? Math.floor((activeTasks / uniqueMembers.size) * 100) : 0
+            utilization: utilizationRate
           };
         });
 
@@ -72,7 +90,7 @@ export const ResourceOverview = () => {
         const totalUtil = teamData.reduce((sum, team) => sum + team.utilization, 0);
         setAvgUtilization(teamData.length > 0 ? Math.floor(totalUtil / teamData.length) : 0);
 
-        console.log('Resource data calculated:', {
+        console.log('Resource data calculated with employee assignments:', {
           workersCount,
           activeProjectsCount: activeProjects.length,
           teamData,
@@ -87,7 +105,7 @@ export const ResourceOverview = () => {
     };
 
     fetchResourceData();
-  }, [user, projects, tasks]);
+  }, [user, projects, tasks, employeeAssignments]);
 
   const getUtilizationColor = (utilization: number) => {
     if (utilization >= 90) return 'text-red-600 bg-red-100';
