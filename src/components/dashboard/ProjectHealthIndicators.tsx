@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -6,6 +7,8 @@ import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Calendar, 
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useMilestones } from '@/hooks/useMilestones';
+import { useSafetyMetrics } from '@/hooks/useSafetyMetrics';
+import { useBudgetTracking } from '@/hooks/useBudgetTracking';
 import { CircularProgressSkeleton } from './skeletons/CircularProgressSkeleton';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 
@@ -125,12 +128,77 @@ const PhaseIndicator = ({ currentPhase }: { currentPhase: string }) => {
   );
 };
 
+// Calculate budget health based on real metrics
+const calculateBudgetHealth = (budgetMetrics: any): number => {
+  if (!budgetMetrics) return 75; // Default fallback
+  
+  const { totalBudget, currentSpend, variance } = budgetMetrics;
+  
+  if (totalBudget === 0) return 85; // New project default
+  
+  // Calculate health based on spending efficiency and variance
+  const spendingRatio = currentSpend / totalBudget;
+  const varianceHealth = variance >= 0 ? 100 : Math.max(60, 100 + (variance / totalBudget) * 100);
+  
+  // Penalize over-spending, reward under-budget
+  let spendingHealth = 100;
+  if (spendingRatio > 0.9) {
+    spendingHealth = Math.max(60, 100 - (spendingRatio - 0.9) * 500);
+  } else if (spendingRatio < 0.8) {
+    spendingHealth = Math.min(95, 85 + (0.8 - spendingRatio) * 100);
+  }
+  
+  return Math.round((varianceHealth * 0.6) + (spendingHealth * 0.4));
+};
+
+// Calculate safety health based on real metrics
+const calculateSafetyHealth = (safetyMetrics: any): number => {
+  if (!safetyMetrics) return 85; // Default fallback
+  
+  const { 
+    safetyComplianceRate, 
+    daysWithoutIncident, 
+    toolboxTalksCompleted, 
+    toolboxTalksTotal 
+  } = safetyMetrics;
+  
+  // Base health on compliance rate
+  let healthScore = safetyComplianceRate || 85;
+  
+  // Boost for days without incident
+  if (daysWithoutIncident > 30) {
+    healthScore = Math.min(100, healthScore + 5);
+  } else if (daysWithoutIncident < 7) {
+    healthScore = Math.max(60, healthScore - 10);
+  }
+  
+  // Factor in toolbox talks completion
+  const toolboxCompletion = toolboxTalksTotal > 0 
+    ? (toolboxTalksCompleted / toolboxTalksTotal) * 100 
+    : 90;
+  
+  if (toolboxCompletion < 80) {
+    healthScore = Math.max(70, healthScore - 5);
+  }
+  
+  return Math.round(healthScore);
+};
+
+// Generate trend based on score
+const generateTrend = (score: number): 'up' | 'down' | 'stable' => {
+  if (score >= 90) return 'up';
+  if (score <= 70) return 'down';
+  return 'stable';
+};
+
 export const ProjectHealthIndicators = () => {
   const { projects, loading: projectsLoading } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
   const { milestones, loading: milestonesLoading } = useMilestones();
+  const { metrics: safetyMetrics, loading: safetyLoading } = useSafetyMetrics();
+  const { metrics: budgetMetrics, loading: budgetLoading } = useBudgetTracking();
 
-  const isLoading = projectsLoading || tasksLoading || milestonesLoading;
+  const isLoading = projectsLoading || tasksLoading || milestonesLoading || safetyLoading || budgetLoading;
 
   const healthMetrics = useMemo((): { 
     overallHealth: number; 
@@ -162,8 +230,8 @@ export const ProjectHealthIndicators = () => {
         ? Math.max(0, Math.round(((totalCompletedTasks - overdueTasks) / totalCompletedTasks) * 100))
         : 85;
 
-      // Calculate Budget Health (mock data - would integrate with real budget tracking)
-      const budgetHealth = Math.round(Math.random() * 20 + 75); // 75-95%
+      // Calculate Budget Health using real data
+      const budgetHealth = calculateBudgetHealth(budgetMetrics);
 
       // Calculate Quality Health
       const criticalTasks = tasks.filter(task => task.priority === 'critical').length;
@@ -174,8 +242,8 @@ export const ProjectHealthIndicators = () => {
         ? Math.round((completedCriticalTasks / criticalTasks) * 100)
         : 90;
 
-      // Calculate Safety Health (mock data - would integrate with real safety tracking)
-      const safetyHealth = Math.round(Math.random() * 15 + 80); // 80-95%
+      // Calculate Safety Health using real data
+      const safetyHealth = calculateSafetyHealth(safetyMetrics);
 
       // Calculate Overall Health
       const overallHealth = Math.round(
@@ -184,13 +252,6 @@ export const ProjectHealthIndicators = () => {
         (qualityHealth * 0.25) + 
         (safetyHealth * 0.25)
       );
-
-      // Generate trend data (mock - would use historical data)
-      const generateTrend = (score: number): 'up' | 'down' | 'stable' => {
-        if (score >= 90) return 'up';
-        if (score <= 70) return 'down';
-        return 'stable';
-      };
 
       const metrics: HealthMetric[] = [
         {
@@ -244,7 +305,7 @@ export const ProjectHealthIndicators = () => {
         error: 'Failed to calculate health metrics'
       };
     }
-  }, [projects, tasks, milestones, projectsLoading]);
+  }, [projects, tasks, milestones, safetyMetrics, budgetMetrics, projectsLoading]);
 
   if (isLoading) {
     return (
