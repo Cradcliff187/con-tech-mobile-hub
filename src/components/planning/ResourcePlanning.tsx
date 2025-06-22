@@ -43,9 +43,7 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
       cost_per_hour: member.cost_per_hour,
       availability: member.availability,
       date: selectedWeek,
-      tasks: member.tasks || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      tasks: member.tasks || []
     };
     
     setSelectedMember(teamMember);

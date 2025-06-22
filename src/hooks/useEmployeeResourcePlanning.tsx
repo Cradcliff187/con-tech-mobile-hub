@@ -32,18 +32,18 @@ interface EmployeeResourceMember {
 }
 
 export const useEmployeeResourcePlanning = (projectId?: string) => {
-  const { assignments, loading } = useEmployeeAssignments();
+  const { employeeAssignments, loading } = useEmployeeAssignments();
   const { projects } = useProjects();
   const [resourceGroups, setResourceGroups] = useState<EmployeeResourceGroup[]>([]);
 
   // Filter assignments for employees only and by project if specified
   const filteredAssignments = useMemo(() => {
-    return assignments.filter(assignment => {
+    return employeeAssignments.filter(assignment => {
       const isEmployee = assignment.stakeholder?.stakeholder_type === 'employee';
       const matchesProject = !projectId || assignment.project_id === projectId;
       return isEmployee && matchesProject;
     });
-  }, [assignments, projectId]);
+  }, [employeeAssignments, projectId]);
 
   // Group assignments by week_start_date and project
   const groupedAssignments = useMemo(() => {
