@@ -1,4 +1,19 @@
 
+/**
+ * @deprecated This component has been replaced by CompactWeatherWidget
+ * 
+ * LEGACY COMPONENT - DO NOT USE
+ * 
+ * This file is kept for reference only. The WeatherWidget has been replaced
+ * by CompactWeatherWidget which provides better integration with the dashboard
+ * layout and shows weather impact on construction tasks.
+ * 
+ * Migration: Use CompactWeatherWidget instead
+ * Location: src/components/dashboard/CompactWeatherWidget.tsx
+ * 
+ * Last used: Dashboard redesign (2025-06-22)
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Cloud, Sun, CloudRain, Thermometer } from 'lucide-react';
 import { useWeatherData } from '@/hooks/useWeatherData';

@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+// Core Dashboard Components
 import { ProjectHealthIndicators } from './ProjectHealthIndicators';
 import { SchedulePerformance } from './SchedulePerformance';
 import { SafetyMetrics } from './SafetyMetrics';
@@ -11,11 +12,33 @@ import { RecentActivity } from './RecentActivity';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { ProjectSummaryBar } from './ProjectSummaryBar';
+// Hooks
 import { useProjects } from '@/hooks/useProjects';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+// UI Components
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
+/**
+ * ProjectDashboard - Main dashboard component with redesigned layout
+ * 
+ * Layout Structure:
+ * 1. ProjectSummaryBar - Portfolio-wide metrics and navigation
+ * 2. Dashboard Header - Title and Create Project action
+ * 3. Primary Metrics Grid - 6 key dashboard components in responsive grid
+ * 4. Recent Activity - Activity feed at bottom
+ * 
+ * Responsive Design:
+ * - Desktop (lg+): 3-column grid
+ * - Tablet (md): 2-column grid  
+ * - Mobile (sm): 1-column grid
+ * 
+ * Deprecated Components Removed:
+ * - QuickStats (replaced by ProjectSummaryBar)
+ * - WeatherWidget (replaced by CompactWeatherWidget)
+ * - AdvancedMetrics (integrated into individual components)
+ * - Project-specific sections (moved to project detail views)
+ */
 export const ProjectDashboard = () => {
   const { projects } = useProjects();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
@@ -36,7 +59,7 @@ export const ProjectDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Project Summary Bar */}
+      {/* Portfolio Summary Bar - Key metrics and navigation */}
       <ProjectSummaryBar />
 
       {/* Dashboard Header with Create Project Button */}
@@ -63,7 +86,7 @@ export const ProjectDashboard = () => {
         </div>
       </div>
 
-      {/* Primary Metrics Grid - 3 columns desktop, 2 tablet, 1 mobile */}
+      {/* Primary Metrics Grid - Responsive 3/2/1 column layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <ProjectHealthIndicators />
         <SchedulePerformance />
@@ -73,7 +96,7 @@ export const ProjectDashboard = () => {
         <CompactWeatherWidget />
       </div>
       
-      {/* Recent Activity */}
+      {/* Recent Activity Feed */}
       <RecentActivity />
 
       {/* Create Project Dialog */}

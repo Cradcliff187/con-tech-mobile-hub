@@ -1,4 +1,19 @@
 
+/**
+ * @deprecated This component has been replaced by ProjectSummaryBar
+ * 
+ * LEGACY COMPONENT - DO NOT USE
+ * 
+ * This file is kept for reference only. QuickStats has been replaced by
+ * ProjectSummaryBar which provides more comprehensive construction-specific
+ * metrics including portfolio value, safety scores, and critical alerts.
+ * 
+ * Migration: Use ProjectSummaryBar instead
+ * Location: src/components/dashboard/ProjectSummaryBar.tsx
+ * 
+ * Last used: Dashboard redesign (2025-06-22)
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, CheckSquare, Calendar } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
