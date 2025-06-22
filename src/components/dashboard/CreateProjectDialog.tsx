@@ -112,6 +112,8 @@ export const CreateProjectDialog = ({
 
       const projectData = {
         ...validation.data,
+        // Convert budget to number if it exists
+        budget: validation.data.budget || undefined,
         // Keep legacy location for backward compatibility during transition
         location: [
           validation.data.street_address, 

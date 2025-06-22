@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -258,7 +257,7 @@ export const StakeholderFormFields = ({
           <Input
             id="crew_size"
             type="number"
-            value={formData.crew_size}
+            value={formData.crew_size?.toString() || ''}
             onChange={(e) => onInputChange('crew_size', e.target.value)}
             placeholder="Number of crew members"
             min="0"

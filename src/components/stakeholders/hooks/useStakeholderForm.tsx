@@ -12,7 +12,7 @@ interface UseStakeholderFormProps {
 }
 
 export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStakeholderFormProps) => {
-  const [formData, setFormData] = useState<Partial<StakeholderFormData>>({
+  const [formData, setFormData] = useState<StakeholderFormData>({
     stakeholder_type: defaultType || 'subcontractor',
     company_name: '',
     contact_person: '',
@@ -23,7 +23,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
     state: '',
     zip_code: '',
     specialties: [],
-    crew_size: '',
+    crew_size: undefined,
     license_number: '',
     insurance_expiry: '',
     notes: '',
@@ -68,7 +68,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
         sanitizedValue = sanitizeInput(value, 'text');
         break;
       case 'crew_size':
-        sanitizedValue = value === '' ? '' : sanitizeInput(value, 'number').toString();
+        sanitizedValue = value === '' ? undefined : parseInt(value.toString());
         break;
       case 'specialties':
         sanitizedValue = Array.isArray(value) ? value.map(v => sanitizeInput(v, 'text')) : value;
@@ -90,13 +90,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
   };
 
   const validateForm = (): boolean => {
-    // Prepare data for validation
-    const dataToValidate = {
-      ...formData,
-      crew_size: formData.crew_size === '' ? undefined : parseInt(formData.crew_size as string)
-    };
-    
-    const validation = validateFormData(stakeholderSchema, dataToValidate);
+    const validation = validateFormData(stakeholderSchema, formData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -119,7 +113,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
       state: '',
       zip_code: '',
       specialties: [],
-      crew_size: '',
+      crew_size: undefined,
       license_number: '',
       insurance_expiry: '',
       notes: '',
@@ -143,13 +137,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
     setLoading(true);
 
     try {
-      // Prepare data for validation one more time
-      const dataToValidate = {
-        ...formData,
-        crew_size: formData.crew_size === '' ? undefined : parseInt(formData.crew_size as string)
-      };
-      
-      const validation = validateFormData(stakeholderSchema, dataToValidate);
+      const validation = validateFormData(stakeholderSchema, formData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
@@ -204,7 +192,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
   };
 
   return {
-    formData: formData as StakeholderFormData,
+    formData,
     errors,
     loading,
     handleInputChange,

@@ -13,6 +13,9 @@ export const calculateSkillMatchPercentage = (requiredSkills: string[], workerSk
   return Math.round((matches.length / requiredSkills.length) * 100);
 };
 
+// Add the missing export alias
+export const calculateSkillMatch = calculateSkillMatchPercentage;
+
 export const PUNCH_LIST_CATEGORY_SKILLS = {
   paint: ['painting', 'surface prep', 'color matching'],
   electrical: ['electrical', 'wiring', 'circuits'],

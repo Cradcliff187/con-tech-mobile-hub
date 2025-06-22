@@ -19,6 +19,7 @@ export const CreateStakeholderDialog = ({
 }: CreateStakeholderDialogProps) => {
   const {
     formData,
+    errors,
     loading,
     handleInputChange,
     handleSubmit
@@ -40,6 +41,7 @@ export const CreateStakeholderDialog = ({
           formData={formData}
           onInputChange={handleInputChange}
           defaultType={defaultType}
+          errors={errors}
         />
         
         <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
