@@ -18,6 +18,11 @@ export interface StakeholderAssignment {
   notes?: string;
   created_at: string;
   updated_at: string;
+  // New enhanced tracking fields
+  total_hours: number;
+  total_cost: number;
+  week_start_date?: string;
+  daily_hours: Record<string, number>;
   stakeholder?: Stakeholder;
 }
 
@@ -57,11 +62,30 @@ export const useStakeholderAssignments = () => {
     }
   };
 
-  const createAssignment = async (assignmentData: Omit<StakeholderAssignment, 'id' | 'created_at' | 'updated_at' | 'stakeholder'>) => {
+  const createAssignment = async (assignmentData: Omit<StakeholderAssignment, 'id' | 'created_at' | 'updated_at' | 'stakeholder' | 'total_hours' | 'total_cost' | 'daily_hours'>) => {
     try {
+      // Auto-calculate week_start_date from start_date if provided
+      const enhancedData = {
+        ...assignmentData,
+        total_hours: 0,
+        total_cost: 0,
+        daily_hours: {},
+        week_start_date: assignmentData.start_date 
+          ? new Date(assignmentData.start_date).toISOString().split('T')[0]
+          : null
+      };
+
+      // Set week_start_date to Monday of the week if start_date is provided
+      if (enhancedData.start_date) {
+        const startDate = new Date(enhancedData.start_date);
+        const monday = new Date(startDate);
+        monday.setDate(startDate.getDate() - startDate.getDay() + 1);
+        enhancedData.week_start_date = monday.toISOString().split('T')[0];
+      }
+
       const { data, error } = await supabase
         .from('stakeholder_assignments')
-        .insert([assignmentData])
+        .insert([enhancedData])
         .select(`
           *,
           stakeholder:stakeholders(*)
@@ -118,6 +142,53 @@ export const useStakeholderAssignments = () => {
     }
   };
 
+  const updateDailyHours = async (id: string, date: string, hours: number) => {
+    try {
+      // Get current assignment
+      const assignment = assignments.find(a => a.id === id);
+      if (!assignment) throw new Error('Assignment not found');
+
+      // Update daily hours
+      const updatedDailyHours = {
+        ...assignment.daily_hours,
+        [date]: hours
+      };
+
+      // Calculate new total hours
+      const totalHours = Object.values(updatedDailyHours).reduce((sum, h) => sum + h, 0);
+
+      const { data, error } = await supabase
+        .from('stakeholder_assignments')
+        .update({
+          daily_hours: updatedDailyHours,
+          total_hours: totalHours
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          stakeholder:stakeholders(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      setAssignments(prev => prev.map(a => a.id === id ? data : a));
+      toast({
+        title: "Success",
+        description: "Daily hours updated successfully"
+      });
+      return { data, error: null };
+    } catch (error: any) {
+      console.error('Error updating daily hours:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update daily hours",
+        variant: "destructive"
+      });
+      return { data: null, error };
+    }
+  };
+
   useEffect(() => {
     fetchAssignments();
   }, []);
@@ -127,6 +198,7 @@ export const useStakeholderAssignments = () => {
     loading,
     createAssignment,
     updateAssignment,
+    updateDailyHours,
     refetch: fetchAssignments
   };
 };

@@ -1106,6 +1106,7 @@ export type Database = {
       stakeholder_assignments: {
         Row: {
           created_at: string | null
+          daily_hours: Json | null
           end_date: string | null
           equipment_id: string | null
           hourly_rate: number | null
@@ -1117,10 +1118,14 @@ export type Database = {
           start_date: string | null
           status: string | null
           task_id: string | null
+          total_cost: number | null
+          total_hours: number | null
           updated_at: string | null
+          week_start_date: string | null
         }
         Insert: {
           created_at?: string | null
+          daily_hours?: Json | null
           end_date?: string | null
           equipment_id?: string | null
           hourly_rate?: number | null
@@ -1132,10 +1137,14 @@ export type Database = {
           start_date?: string | null
           status?: string | null
           task_id?: string | null
+          total_cost?: number | null
+          total_hours?: number | null
           updated_at?: string | null
+          week_start_date?: string | null
         }
         Update: {
           created_at?: string | null
+          daily_hours?: Json | null
           end_date?: string | null
           equipment_id?: string | null
           hourly_rate?: number | null
@@ -1147,7 +1156,10 @@ export type Database = {
           start_date?: string | null
           status?: string | null
           task_id?: string | null
+          total_cost?: number | null
+          total_hours?: number | null
           updated_at?: string | null
+          week_start_date?: string | null
         }
         Relationships: [
           {
@@ -1818,7 +1830,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_labor_costs: {
+        Row: {
+          assignment_count: number | null
+          avg_hourly_rate: number | null
+          earliest_start_date: string | null
+          latest_end_date: string | null
+          project_id: string | null
+          project_name: string | null
+          stakeholder_type:
+            | Database["public"]["Enums"]["stakeholder_type"]
+            | null
+          total_cost: number | null
+          total_hours: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_budget_variance: {
