@@ -49,7 +49,16 @@ export const useStakeholderAssignments = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setAssignments(data || []);
+      
+      // Transform the data to ensure proper typing for daily_hours
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        daily_hours: typeof item.daily_hours === 'object' && item.daily_hours !== null 
+          ? item.daily_hours as Record<string, number>
+          : {} as Record<string, number>
+      })) as StakeholderAssignment[];
+      
+      setAssignments(transformedData);
     } catch (error: any) {
       console.error('Error fetching assignments:', error);
       toast({
@@ -94,12 +103,20 @@ export const useStakeholderAssignments = () => {
 
       if (error) throw error;
 
-      setAssignments(prev => [data, ...prev]);
+      // Transform the returned data
+      const transformedData = {
+        ...data,
+        daily_hours: typeof data.daily_hours === 'object' && data.daily_hours !== null 
+          ? data.daily_hours as Record<string, number>
+          : {} as Record<string, number>
+      } as StakeholderAssignment;
+
+      setAssignments(prev => [transformedData, ...prev]);
       toast({
         title: "Success",
         description: "Stakeholder assigned successfully"
       });
-      return { data, error: null };
+      return { data: transformedData, error: null };
     } catch (error: any) {
       console.error('Error creating assignment:', error);
       toast({
@@ -125,12 +142,20 @@ export const useStakeholderAssignments = () => {
 
       if (error) throw error;
 
-      setAssignments(prev => prev.map(a => a.id === id ? data : a));
+      // Transform the returned data
+      const transformedData = {
+        ...data,
+        daily_hours: typeof data.daily_hours === 'object' && data.daily_hours !== null 
+          ? data.daily_hours as Record<string, number>
+          : {} as Record<string, number>
+      } as StakeholderAssignment;
+
+      setAssignments(prev => prev.map(a => a.id === id ? transformedData : a));
       toast({
         title: "Success",
         description: "Assignment updated successfully"
       });
-      return { data, error: null };
+      return { data: transformedData, error: null };
     } catch (error: any) {
       console.error('Error updating assignment:', error);
       toast({
@@ -172,12 +197,20 @@ export const useStakeholderAssignments = () => {
 
       if (error) throw error;
 
-      setAssignments(prev => prev.map(a => a.id === id ? data : a));
+      // Transform the returned data
+      const transformedData = {
+        ...data,
+        daily_hours: typeof data.daily_hours === 'object' && data.daily_hours !== null 
+          ? data.daily_hours as Record<string, number>
+          : {} as Record<string, number>
+      } as StakeholderAssignment;
+
+      setAssignments(prev => prev.map(a => a.id === id ? transformedData : a));
       toast({
         title: "Success",
         description: "Daily hours updated successfully"
       });
-      return { data, error: null };
+      return { data: transformedData, error: null };
     } catch (error: any) {
       console.error('Error updating daily hours:', error);
       toast({

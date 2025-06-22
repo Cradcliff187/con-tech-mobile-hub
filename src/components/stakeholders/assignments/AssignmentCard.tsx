@@ -11,7 +11,7 @@ interface AssignmentCardProps {
   assignment: StakeholderAssignment;
   projects: Project[];
   isUpdating: boolean;
-  onStatusChange: (id: string, status: string) => void;
+  onStatusChange: (assignmentId: string, newStatus: string, currentStatus: string) => void;
 }
 
 export const AssignmentCard = ({ 
@@ -163,7 +163,7 @@ export const AssignmentCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onStatusChange(assignment.id, 'active')}
+              onClick={() => onStatusChange(assignment.id, 'active', assignment.status)}
               disabled={isUpdating}
             >
               Activate
@@ -173,7 +173,7 @@ export const AssignmentCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onStatusChange(assignment.id, 'completed')}
+              onClick={() => onStatusChange(assignment.id, 'completed', assignment.status)}
               disabled={isUpdating}
             >
               Complete
@@ -183,7 +183,7 @@ export const AssignmentCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onStatusChange(assignment.id, 'on-hold')}
+              onClick={() => onStatusChange(assignment.id, 'on-hold', assignment.status)}
               disabled={isUpdating}
             >
               Hold
