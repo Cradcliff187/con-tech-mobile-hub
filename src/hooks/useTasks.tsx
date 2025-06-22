@@ -11,7 +11,8 @@ interface UseTasksOptions {
 }
 
 /**
- * Enhanced tasks hook with optimized subscription management
+ * Enhanced tasks hook with intelligent project filtering
+ * This is the single source of truth for all task subscriptions
  */
 export const useTasks = (options: UseTasksOptions = {}) => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -21,27 +22,23 @@ export const useTasks = (options: UseTasksOptions = {}) => {
   const { loading, error, fetchTasks } = useTaskFetching(user);
   const { createTask, updateTask } = useTaskOperations(user);
   
-  // Optimized subscription with improved memoization
-  const { subscriptionStatus } = useImprovedTaskSubscription({ 
+  // Single subscription for all tasks with intelligent filtering
+  useImprovedTaskSubscription({ 
     user, 
     onTasksUpdate: setTasks,
-    projectId
+    projectId // Pass project filter to subscription
   });
 
   useEffect(() => {
     if (!user) return;
 
-    // Initial fetch with debouncing
-    const timeoutId = setTimeout(() => {
-      fetchTasks().then((fetchedTasks) => {
-        if (fetchedTasks) {
-          setTasks(fetchedTasks);
-        }
-      });
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [user?.id, fetchTasks]);
+    // Initial fetch
+    fetchTasks().then((fetchedTasks) => {
+      if (fetchedTasks) {
+        setTasks(fetchedTasks);
+      }
+    });
+  }, [user?.id]);
 
   const refetch = async () => {
     const fetchedTasks = await fetchTasks();
@@ -61,7 +58,6 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     error,
     createTask,
     updateTask,
-    refetch,
-    subscriptionStatus // Expose subscription status for debugging
+    refetch
   };
 };

@@ -4,37 +4,26 @@ import { SubscriptionConfig, SubscriptionCallback, ChannelManager } from './type
 import { generateChannelKey, generateChannelName, formatFilterForSupabase } from './channelUtils';
 import { SubscriptionErrorHandler } from './errorHandling';
 
-interface SubscriptionMetrics {
-  totalSubscriptions: number;
-  activeChannels: number;
-  reconnectionAttempts: number;
-  connectionErrors: number;
-  lastHealthCheck: Date;
-}
-
 /**
- * Enhanced Centralized Subscription Manager with connection pooling and health monitoring
+ * Enhanced Centralized Subscription Manager with improved error handling and retry logic
+ * 
+ * This singleton class manages all real-time subscriptions in the application,
+ * providing the following features:
+ * 
+ * - **Automatic Deduplication**: Multiple components subscribing to the same table
+ *   will share a single channel, reducing overhead
+ * - **Proper Cleanup**: Channels are automatically cleaned up when no longer needed
+ * - **Error Recovery**: Built-in reconnection capabilities for failed channels
+ * - **Debug Support**: Status monitoring and channel information for debugging
  */
 export class SubscriptionManager {
   private static instance: SubscriptionManager;
   private channels: Map<string, ChannelManager> = new Map();
   private isCleaningUp: boolean = false;
   private errorHandler: SubscriptionErrorHandler = new SubscriptionErrorHandler();
-  private metrics: SubscriptionMetrics = {
-    totalSubscriptions: 0,
-    activeChannels: 0,
-    reconnectionAttempts: 0,
-    connectionErrors: 0,
-    lastHealthCheck: new Date()
-  };
-
-  // Connection pool configuration
-  private readonly MAX_CHANNELS = 10;
-  private readonly HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
-  private healthCheckInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
-    this.startHealthMonitoring();
+    // Private constructor to enforce singleton pattern
   }
 
   public static getInstance(): SubscriptionManager {
@@ -45,47 +34,7 @@ export class SubscriptionManager {
   }
 
   /**
-   * Start health monitoring for all channels
-   */
-  private startHealthMonitoring(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-    }
-
-    this.healthCheckInterval = setInterval(() => {
-      this.performHealthCheck();
-    }, this.HEALTH_CHECK_INTERVAL);
-  }
-
-  /**
-   * Perform health check on all active channels
-   */
-  private performHealthCheck(): void {
-    this.metrics.lastHealthCheck = new Date();
-    this.metrics.activeChannels = this.channels.size;
-    
-    // Check for stale channels and cleanup
-    const staleChannels: string[] = [];
-    
-    this.channels.forEach((manager, key) => {
-      if (manager.callbacks.size === 0) {
-        staleChannels.push(key);
-      }
-    });
-
-    // Cleanup stale channels
-    staleChannels.forEach(key => {
-      this.cleanupChannel(key);
-    });
-
-    // Log health status in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Subscription Health:', this.getHealthStatus());
-    }
-  }
-
-  /**
-   * Subscribe to a table with connection pooling and deduplication
+   * Subscribe to a table with automatic deduplication
    */
   public subscribe<T = any>(
     config: SubscriptionConfig,
@@ -96,11 +45,6 @@ export class SubscriptionManager {
       return () => {};
     }
 
-    // Check connection pool limits
-    if (this.channels.size >= this.MAX_CHANNELS) {
-      console.warn(`Maximum channel limit (${this.MAX_CHANNELS}) reached. Consider optimizing subscriptions.`);
-    }
-
     const channelKey = generateChannelKey(config);
     let channelManager = this.channels.get(channelKey);
 
@@ -108,7 +52,6 @@ export class SubscriptionManager {
     if (!channelManager) {
       channelManager = this.createChannel(config, channelKey);
       this.channels.set(channelKey, channelManager);
-      this.metrics.totalSubscriptions++;
     }
 
     // Add callback to the channel
@@ -120,21 +63,22 @@ export class SubscriptionManager {
       if (manager) {
         manager.callbacks.delete(callback);
         
-        // If no more callbacks, schedule cleanup with debouncing
+        // If no more callbacks, cleanup the channel with debouncing
         if (manager.callbacks.size === 0) {
+          // Debounce cleanup to prevent rapid create/destroy cycles
           setTimeout(() => {
             const currentManager = this.channels.get(channelKey);
             if (currentManager && currentManager.callbacks.size === 0) {
               this.cleanupChannel(channelKey);
             }
-          }, 1000);
+          }, 1000); // 1 second debounce
         }
       }
     };
   }
 
   /**
-   * Create a new channel with enhanced configuration
+   * Create a new channel with proper configuration
    */
   private createChannel(config: SubscriptionConfig, channelKey: string): ChannelManager {
     const channelName = generateChannelName(config);
@@ -156,7 +100,7 @@ export class SubscriptionManager {
       table
     };
 
-    // Add filter if provided
+    // Add filter if provided - convert to Supabase's expected string format
     if (filter && Object.keys(filter).length > 0) {
       const filterString = formatFilterForSupabase(filter);
       if (filterString) {
@@ -166,33 +110,30 @@ export class SubscriptionManager {
 
     // Set up real-time listener with enhanced error handling
     channel.on('postgres_changes', postgresChangesConfig, (payload) => {
+      // Call all registered callbacks for this channel
       channelManager.callbacks.forEach(cb => {
         try {
           cb(payload);
         } catch (error) {
           console.error('Error in subscription callback:', error);
-          this.metrics.connectionErrors++;
         }
       });
     });
 
-    // Enhanced subscription status handling
+    // Enhanced subscription status handling with retry logic
     channel.subscribe((status) => {
       channelManager.status = status;
 
       if (status === 'CHANNEL_ERROR') {
         console.error(`Channel error for ${channelKey}, initiating retry...`);
-        this.metrics.connectionErrors++;
         this.errorHandler.handleChannelError(
           channelKey,
           config,
-          (key, cfg) => {
-            this.metrics.reconnectionAttempts++;
-            this.reconnectChannelInternal(key, cfg);
-          },
+          (key, cfg) => this.reconnectChannelInternal(key, cfg),
           (key) => this.cleanupChannel(key)
         );
       } else if (status === 'SUBSCRIBED') {
+        // Reset reconnect attempts on successful connection
         this.errorHandler.resetReconnectAttempts(channelKey);
       }
     });
@@ -208,8 +149,10 @@ export class SubscriptionManager {
     if (channelManager) {
       const callbacks = Array.from(channelManager.callbacks);
       
+      // Clean up the existing channel
       this.cleanupChannel(channelKey);
       
+      // Re-subscribe all callbacks
       callbacks.forEach(callback => {
         this.subscribe(config, callback);
       });
@@ -217,7 +160,7 @@ export class SubscriptionManager {
   }
 
   /**
-   * Clean up a specific channel
+   * Clean up a specific channel and remove it from the manager
    */
   private cleanupChannel(channelKey: string): void {
     const channelManager = this.channels.get(channelKey);
@@ -228,6 +171,7 @@ export class SubscriptionManager {
         console.warn(`Error cleaning up channel ${channelKey}:`, error);
       }
       
+      // Clean up error handling state
       this.errorHandler.cleanupErrorState(channelKey);
       this.channels.delete(channelKey);
     }
@@ -251,46 +195,12 @@ export class SubscriptionManager {
   }
 
   /**
-   * Get health status and metrics
-   */
-  public getHealthStatus() {
-    return {
-      ...this.metrics,
-      channelUtilization: `${this.channels.size}/${this.MAX_CHANNELS}`,
-      isHealthy: this.channels.size < this.MAX_CHANNELS && this.metrics.connectionErrors < 5
-    };
-  }
-
-  /**
-   * Get active channel count
-   */
-  public getActiveChannelCount(): number {
-    return this.channels.size;
-  }
-
-  /**
-   * Get detailed channel information
-   */
-  public getChannelInfo(): Array<{ key: string; callbackCount: number; status: string; config: SubscriptionConfig }> {
-    return Array.from(this.channels.entries()).map(([key, manager]) => ({
-      key,
-      callbackCount: manager.callbacks.size,
-      status: manager.status,
-      config: manager.config
-    }));
-  }
-
-  /**
    * Clean up all subscriptions
    */
   public unsubscribeAll(): void {
     this.isCleaningUp = true;
     
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
-    }
-    
+    // Clear all error handling state
     this.errorHandler.cleanupAll();
     
     const channelKeys = Array.from(this.channels.keys());
@@ -300,5 +210,24 @@ export class SubscriptionManager {
     
     this.channels.clear();
     this.isCleaningUp = false;
+  }
+
+  /**
+   * Get active channel count (useful for debugging)
+   */
+  public getActiveChannelCount(): number {
+    return this.channels.size;
+  }
+
+  /**
+   * Get detailed channel information (useful for debugging)
+   */
+  public getChannelInfo(): Array<{ key: string; callbackCount: number; status: string; config: SubscriptionConfig }> {
+    return Array.from(this.channels.entries()).map(([key, manager]) => ({
+      key,
+      callbackCount: manager.callbacks.size,
+      status: manager.status,
+      config: manager.config
+    }));
   }
 }
