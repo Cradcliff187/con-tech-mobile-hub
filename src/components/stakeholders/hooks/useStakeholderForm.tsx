@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
@@ -150,12 +149,22 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
       ].filter(Boolean).join(', ');
 
       const stakeholderData = {
-        ...validation.data,
-        status: validation.data.status || 'active', // Ensure status is always defined
-        address: legacyAddress || undefined, // Keep for backward compatibility
+        stakeholder_type: validation.data.stakeholder_type,
+        company_name: validation.data.company_name,
+        contact_person: validation.data.contact_person,
+        email: validation.data.email,
+        phone: validation.data.phone,
+        street_address: validation.data.street_address,
+        city: validation.data.city,
+        state: validation.data.state,
+        zip_code: validation.data.zip_code,
+        specialties: validation.data.specialties && validation.data.specialties.length > 0 ? validation.data.specialties : undefined,
         crew_size: validation.data.crew_size,
+        license_number: validation.data.license_number,
         insurance_expiry: validation.data.insurance_expiry || undefined,
-        specialties: validation.data.specialties && validation.data.specialties.length > 0 ? validation.data.specialties : undefined
+        notes: validation.data.notes,
+        status: validation.data.status,
+        address: legacyAddress || undefined, // Keep for backward compatibility
       };
 
       const { error } = await createStakeholder(stakeholderData);

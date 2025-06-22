@@ -165,7 +165,15 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
         throw new Error('Form validation failed');
       }
 
-      const { error } = await createTask(validation.data);
+      // Ensure estimated_hours is a number or undefined
+      const taskData = {
+        ...validation.data,
+        estimated_hours: typeof validation.data.estimated_hours === 'string' 
+          ? parseInt(validation.data.estimated_hours) || undefined 
+          : validation.data.estimated_hours
+      };
+
+      const { error } = await createTask(taskData);
 
       if (error) {
         const errorMessage = typeof error === 'string' ? error : error?.message || 'Unknown error occurred';
@@ -297,7 +305,23 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="task_type">Task Type</Label>
+              <Select 
+                value={formData.task_type || 'regular'} 
+                onValueChange={(value: 'regular' | 'punch_list') => handleInputChange('task_type', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="regular">Regular Task</SelectItem>
+                  <SelectItem value="punch_list">Punch List Item</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select 

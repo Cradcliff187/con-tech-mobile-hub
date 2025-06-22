@@ -3,7 +3,6 @@ import { StakeholderFormFields } from './forms/StakeholderFormFields';
 import { useStakeholderForm } from './hooks/useStakeholderForm';
 import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
 import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
-import { StakeholderFormData } from '@/schemas';
 
 interface CreateStakeholderDialogProps {
   open: boolean;
@@ -39,7 +38,7 @@ export const CreateStakeholderDialog = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <StakeholderFormFields 
-          formData={formData as StakeholderFormData}
+          formData={formData}
           onInputChange={handleInputChange}
           defaultType={defaultType}
           errors={errors}
