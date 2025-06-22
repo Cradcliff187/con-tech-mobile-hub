@@ -1,71 +1,72 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Task } from '@/types/database';
+import { calculateTaskDatesFromEstimate } from '@/components/planning/gantt/utils/dateUtils';
 
 interface ResourceConflict {
-  conflict_type: string;
-  conflicting_allocation_id: string;
-  conflicting_team_name: string;
-  allocated_hours: number;
-  available_hours: number;
+  id: string;
+  taskIds: string[];
+  type: 'personnel' | 'equipment' | 'skill';
+  severity: 'high' | 'medium' | 'low';
+  description: string;
+  date: Date;
 }
 
-export const useResourceConflicts = (userId?: string, date?: string, hours?: number) => {
+export const useResourceConflicts = (tasks: Task[]) => {
   const [conflicts, setConflicts] = useState<ResourceConflict[]>([]);
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
-  const checkResourceConflicts = async () => {
-    if (!userId || !date || !hours) {
-      setConflicts([]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('check_resource_conflicts', {
-        p_user_id: userId,
-        p_date: date,
-        p_hours: hours
-      });
-
-      if (error) {
-        console.error('Error checking resource conflicts:', error);
-        toast({
-          title: "Error",
-          description: "Failed to check resource conflicts",
-          variant: "destructive"
-        });
-        setConflicts([]);
-      } else {
-        setConflicts(data || []);
-      }
-    } catch (error) {
-      console.error('Error checking resource conflicts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to check resource conflicts",
-        variant: "destructive"
-      });
-      setConflicts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    if (userId && date && hours) {
-      checkResourceConflicts();
-    } else {
-      setConflicts([]);
-    }
-  }, [userId, date, hours]);
+    const detectConflicts = () => {
+      const detectedConflicts: ResourceConflict[] = [];
 
-  return {
-    conflicts,
-    loading,
-    checkConflicts: checkResourceConflicts,
-    hasConflicts: conflicts.length > 0
-  };
+      // Check for overlapping tasks requiring same skills or assignees
+      tasks.forEach((task1, i) => {
+        tasks.slice(i + 1).forEach(task2 => {
+          const { calculatedStartDate: start1, calculatedEndDate: end1 } = calculateTaskDatesFromEstimate(task1);
+          const { calculatedStartDate: start2, calculatedEndDate: end2 } = calculateTaskDatesFromEstimate(task2);
+          
+          // Check for date overlap
+          const hasOverlap = start1 <= end2 && start2 <= end1;
+          
+          if (hasOverlap) {
+            // Check for same assignee conflicts
+            if (task1.assignee_id && task2.assignee_id && task1.assignee_id === task2.assignee_id) {
+              detectedConflicts.push({
+                id: `assignee-conflict-${task1.id}-${task2.id}`,
+                taskIds: [task1.id, task2.id],
+                type: 'personnel',
+                severity: 'high',
+                description: 'Same person assigned to overlapping tasks',
+                date: start1 > start2 ? start1 : start2
+              });
+            }
+
+            // Check for skill conflicts (if both tasks have required skills)
+            if (task1.required_skills && task2.required_skills) {
+              const sharedSkills = task1.required_skills.filter(skill => 
+                task2.required_skills?.includes(skill)
+              );
+              
+              if (sharedSkills.length > 0) {
+                detectedConflicts.push({
+                  id: `skill-conflict-${task1.id}-${task2.id}`,
+                  taskIds: [task1.id, task2.id],
+                  type: 'skill',
+                  severity: sharedSkills.length > 1 ? 'high' : 'medium',
+                  description: `Skill conflict: ${sharedSkills.join(', ')}`,
+                  date: start1 > start2 ? start1 : start2
+                });
+              }
+            }
+          }
+        });
+      });
+
+      setConflicts(detectedConflicts);
+    };
+
+    detectConflicts();
+  }, [tasks]);
+
+  return { conflicts };
 };

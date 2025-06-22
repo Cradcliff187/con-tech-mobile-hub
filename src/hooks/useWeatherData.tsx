@@ -1,75 +1,98 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
-interface WeatherData {
+interface WeatherEvent {
   id: string;
-  location: string;
-  temperature?: number;
-  condition?: string;
-  humidity?: number;
-  wind_speed?: number;
-  forecast?: any;
-  last_updated: string;
+  date: Date;
+  type: 'rain' | 'snow' | 'storm' | 'holiday';
+  severity: 'high' | 'moderate' | 'low';
+  description: string;
 }
 
-export const useWeatherData = (location: string = 'default') => {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+export const useWeatherData = (startDate: Date, endDate: Date) => {
+  const [weatherEvents, setWeatherEvents] = useState<WeatherEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchWeather = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('weather_data')
-        .select('*')
-        .eq('location', location)
-        .order('last_updated', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching weather data:', error);
-      } else {
-        setWeather(data);
-      }
-    } catch (error) {
-      console.error('Error fetching weather data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchWeather();
-  }, [location]);
+    const fetchWeatherData = async () => {
+      setLoading(true);
+      
+      // For now, we'll generate some realistic weather events based on date patterns
+      // In production, this would call a real weather API
+      const events: WeatherEvent[] = [];
+      const current = new Date(startDate);
+      
+      while (current <= endDate) {
+        // Add holiday markers for known dates
+        const month = current.getMonth();
+        const date = current.getDate();
+        
+        if ((month === 6 && date === 4)) { // July 4th
+          events.push({
+            id: `holiday-${current.getTime()}`,
+            date: new Date(current),
+            type: 'holiday',
+            severity: 'high',
+            description: 'Independence Day - Federal Holiday'
+          });
+        }
+        
+        if ((month === 11 && date === 25)) { // Christmas
+          events.push({
+            id: `holiday-${current.getTime()}`,
+            date: new Date(current),
+            type: 'holiday',
+            severity: 'high',
+            description: 'Christmas Day - Federal Holiday'
+          });
+        }
+        
+        if ((month === 0 && date === 1)) { // New Year's
+          events.push({
+            id: `holiday-${current.getTime()}`,
+            date: new Date(current),
+            type: 'holiday',
+            severity: 'high',
+            description: 'New Year\'s Day - Federal Holiday'
+          });
+        }
 
-  const updateWeather = async (weatherData: Partial<WeatherData>) => {
-    const { data, error } = await supabase
-      .from('weather_data')
-      .upsert({
-        location,
-        temperature: weatherData.temperature,
-        condition: weatherData.condition,
-        humidity: weatherData.humidity,
-        wind_speed: weatherData.wind_speed,
-        forecast: weatherData.forecast,
-        last_updated: new Date().toISOString()
-      })
-      .select()
-      .single();
+        // Add some seasonal weather patterns (simplified)
+        if (month >= 5 && month <= 8) { // Summer months
+          // Occasional summer storms
+          if (current.getDay() === 3 && Math.random() > 0.85) {
+            events.push({
+              id: `storm-${current.getTime()}`,
+              date: new Date(current),
+              type: 'storm',
+              severity: 'moderate',
+              description: 'Thunderstorm warning - Consider rescheduling outdoor work'
+            });
+          }
+        }
+        
+        if (month >= 11 || month <= 2) { // Winter months
+          // Occasional winter weather
+          if (Math.random() > 0.9) {
+            events.push({
+              id: `winter-${current.getTime()}`,
+              date: new Date(current),
+              type: 'snow',
+              severity: 'moderate',
+              description: 'Winter weather advisory - Check equipment readiness'
+            });
+          }
+        }
+        
+        current.setDate(current.getDate() + 1);
+      }
+      
+      setWeatherEvents(events);
+      setLoading(false);
+    };
 
-    if (!error && data) {
-      setWeather(data);
-    }
+    fetchWeatherData();
+  }, [startDate, endDate]);
 
-    return { data, error };
-  };
-
-  return {
-    weather,
-    loading,
-    updateWeather,
-    refetch: fetchWeather
-  };
+  return { weatherEvents, loading };
 };

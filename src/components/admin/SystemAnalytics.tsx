@@ -3,36 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, Activity, Database, Clock, MousePointer } from 'lucide-react';
+import { TrendingUp, Users, Activity, Database, Clock } from 'lucide-react';
+import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
 
 export const SystemAnalytics = () => {
-  // Mock data for demonstration
-  const userActivityData = [
-    { name: 'Mon', logins: 24, activeUsers: 18 },
-    { name: 'Tue', logins: 32, activeUsers: 25 },
-    { name: 'Wed', logins: 28, activeUsers: 22 },
-    { name: 'Thu', logins: 35, activeUsers: 28 },
-    { name: 'Fri', logins: 42, activeUsers: 35 },
-    { name: 'Sat', logins: 15, activeUsers: 12 },
-    { name: 'Sun', logins: 18, activeUsers: 14 },
-  ];
-
-  const performanceData = [
-    { name: '00:00', responseTime: 125, queries: 850 },
-    { name: '04:00', responseTime: 95, queries: 620 },
-    { name: '08:00', responseTime: 185, queries: 1240 },
-    { name: '12:00', responseTime: 220, queries: 1580 },
-    { name: '16:00', responseTime: 165, queries: 1120 },
-    { name: '20:00', responseTime: 140, queries: 920 },
-  ];
-
-  const featureUsageData = [
-    { name: 'Task Management', value: 35, color: '#3b82f6' },
-    { name: 'Project Planning', value: 25, color: '#10b981' },
-    { name: 'Resource Allocation', value: 20, color: '#f59e0b' },
-    { name: 'Communication', value: 12, color: '#ef4444' },
-    { name: 'Reports', value: 8, color: '#8b5cf6' },
-  ];
+  const { analytics, loading } = useSystemAnalytics();
 
   const chartConfig = {
     logins: {
@@ -53,6 +28,21 @@ export const SystemAnalytics = () => {
     },
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-6 w-6 text-slate-600" />
+          <h2 className="text-2xl font-bold text-slate-800">System Analytics</h2>
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="text-slate-600 mt-2">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -68,8 +58,8 @@ export const SystemAnalytics = () => {
               <Users className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-slate-600">Total Users</p>
-                <p className="text-2xl font-bold text-slate-900">247</p>
-                <p className="text-xs text-green-600">+12% from last month</p>
+                <p className="text-2xl font-bold text-slate-900">{analytics.totalUsers}</p>
+                <p className="text-xs text-green-600">Live data</p>
               </div>
             </div>
           </CardContent>
@@ -81,8 +71,8 @@ export const SystemAnalytics = () => {
               <Activity className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-slate-600">Active Today</p>
-                <p className="text-2xl font-bold text-slate-900">89</p>
-                <p className="text-xs text-green-600">+5% from yesterday</p>
+                <p className="text-2xl font-bold text-slate-900">{analytics.activeToday}</p>
+                <p className="text-xs text-green-600">Real-time</p>
               </div>
             </div>
           </CardContent>
@@ -94,8 +84,8 @@ export const SystemAnalytics = () => {
               <Clock className="h-8 w-8 text-orange-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-slate-600">Avg Response</p>
-                <p className="text-2xl font-bold text-slate-900">165ms</p>
-                <p className="text-xs text-red-600">+8ms from last week</p>
+                <p className="text-2xl font-bold text-slate-900">{analytics.avgResponseTime}ms</p>
+                <p className="text-xs text-blue-600">Calculated</p>
               </div>
             </div>
           </CardContent>
@@ -107,8 +97,8 @@ export const SystemAnalytics = () => {
               <Database className="h-8 w-8 text-purple-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-slate-600">DB Queries/Hr</p>
-                <p className="text-2xl font-bold text-slate-900">1,247</p>
-                <p className="text-xs text-green-600">-3% from last hour</p>
+                <p className="text-2xl font-bold text-slate-900">{analytics.dbQueriesPerHour}</p>
+                <p className="text-xs text-green-600">Live estimate</p>
               </div>
             </div>
           </CardContent>
@@ -125,11 +115,11 @@ export const SystemAnalytics = () => {
         <TabsContent value="activity" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Daily User Activity</CardTitle>
+              <CardTitle>Daily User Activity (Last 7 Days)</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[400px]">
-                <BarChart data={userActivityData}>
+                <BarChart data={analytics.userActivityData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -145,11 +135,11 @@ export const SystemAnalytics = () => {
         <TabsContent value="performance" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>System Performance Metrics</CardTitle>
+              <CardTitle>System Performance Metrics (24 Hours)</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[400px]">
-                <LineChart data={performanceData}>
+                <LineChart data={analytics.performanceData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis yAxisId="left" />
@@ -179,14 +169,14 @@ export const SystemAnalytics = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Feature Usage Distribution</CardTitle>
+                <CardTitle>Feature Usage Distribution (30 Days)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={featureUsageData}
+                        data={analytics.featureUsageData}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -194,7 +184,7 @@ export const SystemAnalytics = () => {
                         paddingAngle={5}
                         dataKey="value"
                       >
-                        {featureUsageData.map((entry, index) => (
+                        {analytics.featureUsageData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -211,7 +201,7 @@ export const SystemAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {featureUsageData.map((feature) => (
+                  {analytics.featureUsageData.map((feature) => (
                     <div key={feature.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div 
@@ -225,6 +215,9 @@ export const SystemAnalytics = () => {
                       </div>
                     </div>
                   ))}
+                  {analytics.featureUsageData.length === 0 && (
+                    <p className="text-slate-500 text-center py-4">No feature usage data available</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

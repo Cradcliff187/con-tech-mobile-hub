@@ -1,9 +1,8 @@
 
 import { AlertTriangle, Users, Wrench } from 'lucide-react';
 import { Task } from '@/types/database';
-import { useResourceConflicts } from '@/hooks/useResourceConflicts';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
+import { useResourceConflicts } from '@/hooks/useResourceConflicts';
 
 interface ResourceConflictIndicatorsProps {
   tasks: Task[];
@@ -11,66 +10,12 @@ interface ResourceConflictIndicatorsProps {
   timelineEnd: Date;
 }
 
-// Mock resource conflict detection for construction teams
-const detectResourceConflicts = (tasks: Task[]) => {
-  const conflicts: Array<{
-    id: string;
-    taskIds: string[];
-    type: 'personnel' | 'equipment' | 'skill';
-    severity: 'high' | 'medium' | 'low';
-    description: string;
-    date: Date;
-  }> = [];
-
-  // Check for overlapping tasks requiring same skills
-  tasks.forEach((task1, i) => {
-    tasks.slice(i + 1).forEach(task2 => {
-      const { calculatedStartDate: start1, calculatedEndDate: end1 } = calculateTaskDatesFromEstimate(task1);
-      const { calculatedStartDate: start2, calculatedEndDate: end2 } = calculateTaskDatesFromEstimate(task2);
-      
-      // Check for date overlap
-      const hasOverlap = start1 <= end2 && start2 <= end1;
-      
-      if (hasOverlap && task1.required_skills && task2.required_skills) {
-        const sharedSkills = task1.required_skills.filter(skill => 
-          task2.required_skills?.includes(skill)
-        );
-        
-        if (sharedSkills.length > 0) {
-          conflicts.push({
-            id: `conflict-${task1.id}-${task2.id}`,
-            taskIds: [task1.id, task2.id],
-            type: 'skill',
-            severity: sharedSkills.length > 1 ? 'high' : 'medium',
-            description: `Skill conflict: ${sharedSkills.join(', ')}`,
-            date: start1 > start2 ? start1 : start2
-          });
-        }
-      }
-      
-      // Check for same assignee conflicts
-      if (hasOverlap && task1.assignee_id && task2.assignee_id && task1.assignee_id === task2.assignee_id) {
-        conflicts.push({
-          id: `assignee-conflict-${task1.id}-${task2.id}`,
-          taskIds: [task1.id, task2.id],
-          type: 'personnel',
-          severity: 'high',
-          description: 'Same person assigned to overlapping tasks',
-          date: start1 > start2 ? start1 : start2
-        });
-      }
-    });
-  });
-
-  return conflicts;
-};
-
 export const ResourceConflictIndicators = ({
   tasks,
   timelineStart,
   timelineEnd
 }: ResourceConflictIndicatorsProps) => {
-  const conflicts = detectResourceConflicts(tasks);
+  const { conflicts } = useResourceConflicts(tasks);
 
   const getConflictPosition = (conflictDate: Date) => {
     const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));

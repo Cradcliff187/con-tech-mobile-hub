@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
+import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { TeamMember } from '@/types/database';
 import { X, User } from 'lucide-react';
-import { getTeamMemberDefaults, getDefaultRequiredSkills, getDefaultPriority } from '@/utils/smart-defaults';
+import { getDefaultRequiredSkills, getDefaultPriority } from '@/utils/smart-defaults';
 
 interface QuickTaskAssignDialogProps {
   open: boolean;
@@ -38,48 +40,27 @@ export const QuickTaskAssignDialog = ({
   
   const { createTask } = useTasks();
   const { projects } = useProjects();
+  const { stakeholders } = useStakeholders(projectId);
   const { toast } = useToast();
 
   const currentProject = projects.find(p => p.id === projectId);
+  
+  // Find the actual stakeholder data instead of creating mock object
+  const selectedStakeholder = preSelectedMember ? 
+    stakeholders.find(s => s.contact_person === preSelectedMember.name) : 
+    null;
 
   // Apply smart defaults when dialog opens or project/member changes
   useEffect(() => {
-    if (open && currentProject && preSelectedMember) {
+    if (open && currentProject) {
       const currentDate = new Date().toISOString().split('T')[0];
       
-      // Create a complete mock stakeholder object with all required properties
-      const mockStakeholder = {
-        id: preSelectedMember.user_id || '',
-        profile_id: preSelectedMember.user_id,
-        stakeholder_type: 'employee' as const,
-        company_name: preSelectedMember.name,
-        contact_person: preSelectedMember.name,
-        phone: null,
-        email: null,
-        address: null,
-        specialties: [] as string[], // Empty array instead of undefined
-        crew_size: null,
-        status: 'active' as const,
-        insurance_expiry: null,
-        license_number: null,
-        notes: null,
-        rating: 0,
-        created_at: currentDate,
-        updated_at: currentDate
-      };
-
-      const memberDefaults = getTeamMemberDefaults(
-        mockStakeholder,
-        currentProject,
-        currentDate
-      );
-
-      // Set smart defaults
+      // Set smart defaults based on real data
       setPriority(getDefaultPriority(currentProject.phase));
-      setEstimatedHours(memberDefaults.hours_allocated?.toString() || '4');
+      setEstimatedHours('4'); // Default 4 hours
       
       // Set default title based on member role and project phase
-      if (preSelectedMember.role && currentProject.phase) {
+      if (preSelectedMember?.role && currentProject.phase) {
         const phaseAction = currentProject.phase === 'punch_list' ? 'Inspect' : 
                            currentProject.phase === 'closeout' ? 'Finalize' : 'Work on';
         setTitle(`${phaseAction} - ${preSelectedMember.role}`);
@@ -124,7 +105,7 @@ export const QuickTaskAssignDialog = ({
       progress: 0,
       status: 'not-started' as const,
       required_skills: requiredSkills.length > 0 ? requiredSkills : undefined,
-      assigned_stakeholder_id: preSelectedMember?.user_id || undefined
+      assigned_stakeholder_id: selectedStakeholder?.id || undefined
     };
 
     const { error } = await createTask(taskData);
@@ -179,9 +160,14 @@ export const QuickTaskAssignDialog = ({
                   <div>${preSelectedMember.cost_per_hour}/hr</div>
                 </div>
               </div>
-              {currentProject && (
+              {currentProject && selectedStakeholder && (
                 <p className="text-xs text-blue-600 mt-2">
-                  Smart defaults applied for {currentProject.phase} phase
+                  ✓ Stakeholder found in database - {selectedStakeholder.stakeholder_type}
+                </p>
+              )}
+              {currentProject && !selectedStakeholder && (
+                <p className="text-xs text-amber-600 mt-2">
+                  ⚠️ Team member not found in stakeholders - task will be unassigned
                 </p>
               )}
             </div>
