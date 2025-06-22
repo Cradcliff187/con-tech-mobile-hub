@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
-import { stakeholderSchema, type StakeholderFormData, validateFormData } from '@/schemas';
-import { sanitizeInput } from '@/utils/validation';
+import { validateStakeholderForm, transformStakeholderData } from '../utils/stakeholderFormUtils';
+import { useStakeholderFormState } from './useStakeholderFormState';
 
 interface UseStakeholderFormProps {
   defaultType?: 'client' | 'subcontractor' | 'employee' | 'vendor';
@@ -12,84 +12,21 @@ interface UseStakeholderFormProps {
 }
 
 export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, onClose }: UseStakeholderFormProps) => {
-  const [formData, setFormData] = useState<StakeholderFormData>({
-    stakeholder_type: defaultType,
-    company_name: '',
-    contact_person: '',
-    email: '',
-    phone: '',
-    street_address: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    specialties: [],
-    crew_size: undefined,
-    license_number: '',
-    insurance_expiry: '',
-    notes: '',
-    status: 'active'
-  });
-  
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   
   const { createStakeholder } = useStakeholders();
   const { toast } = useToast();
 
-  useEffect(() => {
-    setFormData(prev => ({ ...prev, stakeholder_type: defaultType }));
-  }, [defaultType]);
-
-  const handleInputChange = (field: string, value: any) => {
-    // Sanitize input based on field type
-    let sanitizedValue = value;
-    
-    switch (field) {
-      case 'company_name':
-      case 'contact_person':
-      case 'city':
-      case 'state':
-      case 'license_number':
-        sanitizedValue = sanitizeInput(value, 'text');
-        break;
-      case 'email':
-        sanitizedValue = sanitizeInput(value, 'email');
-        break;
-      case 'phone':
-        sanitizedValue = sanitizeInput(value, 'phone');
-        break;
-      case 'notes':
-        sanitizedValue = sanitizeInput(value, 'html');
-        break;
-      case 'street_address':
-      case 'zip_code':
-        sanitizedValue = sanitizeInput(value, 'text');
-        break;
-      case 'crew_size':
-        // Keep as string for form input, will be converted during validation
-        sanitizedValue = value;
-        break;
-      case 'specialties':
-        sanitizedValue = Array.isArray(value) ? value.map(v => sanitizeInput(v, 'text')) : value;
-        break;
-      default:
-        sanitizedValue = value;
-    }
-    
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
-    
-    // Clear field error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
+  const {
+    formData,
+    errors,
+    setErrors,
+    handleInputChange,
+    resetForm
+  } = useStakeholderFormState({ defaultType });
 
   const validateForm = (): boolean => {
-    const validation = validateFormData(stakeholderSchema, formData);
+    const validation = validateStakeholderForm(formData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -98,27 +35,6 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     
     setErrors({});
     return true;
-  };
-
-  const resetForm = () => {
-    setFormData({
-      stakeholder_type: defaultType,
-      company_name: '',
-      contact_person: '',
-      email: '',
-      phone: '',
-      street_address: '',
-      city: '',
-      state: '',
-      zip_code: '',
-      specialties: [],
-      crew_size: undefined,
-      license_number: '',
-      insurance_expiry: '',
-      notes: '',
-      status: 'active'
-    });
-    setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,39 +52,12 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     setLoading(true);
 
     try {
-      const validation = validateFormData(stakeholderSchema, formData);
+      const validation = validateStakeholderForm(formData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
 
-      // Create legacy address field for backward compatibility
-      const legacyAddress = [
-        validation.data.street_address,
-        validation.data.city,
-        validation.data.state,
-        validation.data.zip_code
-      ].filter(Boolean).join(', ');
-
-      const stakeholderData = {
-        stakeholder_type: validation.data.stakeholder_type,
-        company_name: validation.data.company_name,
-        contact_person: validation.data.contact_person,
-        email: validation.data.email,
-        phone: validation.data.phone,
-        street_address: validation.data.street_address,
-        city: validation.data.city,
-        state: validation.data.state,
-        zip_code: validation.data.zip_code,
-        specialties: validation.data.specialties && validation.data.specialties.length > 0 ? validation.data.specialties : undefined,
-        crew_size: typeof validation.data.crew_size === 'string' 
-          ? parseInt(validation.data.crew_size) || undefined 
-          : validation.data.crew_size,
-        license_number: validation.data.license_number,
-        insurance_expiry: validation.data.insurance_expiry || undefined,
-        notes: validation.data.notes,
-        status: validation.data.status,
-        address: legacyAddress || undefined, // Keep for backward compatibility
-      };
+      const stakeholderData = transformStakeholderData(validation.data);
 
       const { error } = await createStakeholder(stakeholderData);
 
