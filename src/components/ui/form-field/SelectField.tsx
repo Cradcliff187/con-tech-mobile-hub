@@ -4,6 +4,12 @@ import { type VariantProps } from "class-variance-authority";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormField, formFieldVariants } from "./FormField";
 
+export interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
 export interface SelectFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>,
     VariantProps<typeof formFieldVariants> {
   label: string;
@@ -12,21 +18,22 @@ export interface SelectFieldProps extends Omit<React.HTMLAttributes<HTMLDivEleme
   hint?: string;
   value: string;
   onChange: (value: string) => void;
+  options: SelectOption[];
   placeholder?: string;
-  options: Array<{ value: string; label: string; disabled?: boolean }>;
+  disabled?: boolean;
 }
 
 export const SelectField = React.forwardRef<HTMLDivElement, SelectFieldProps>(
-  ({ value, onChange, placeholder, options, ...props }, ref) => (
+  ({ value, onChange, options, placeholder, disabled, ...props }, ref) => (
     <FormField ref={ref} {...props}>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
-            <SelectItem
-              key={option.value}
+            <SelectItem 
+              key={option.value} 
               value={option.value}
               disabled={option.disabled}
             >
