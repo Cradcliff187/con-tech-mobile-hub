@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Users, Clock, DollarSign, AlertTriangle, Calendar, UserPlus, Plus, Wrench, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, Clock, DollarSign, AlertTriangle, Calendar, UserPlus, Plus, Wrench, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEmployeeResourcePlanning } from '@/hooks/useEmployeeResourcePlanning';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useEquipment } from '@/hooks/useEquipment';
-import { useEmployeeResourcePlanning } from '@/hooks/useEmployeeResourcePlanning';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { QuickTaskAssignDialog } from './QuickTaskAssignDialog';
+import { CostRollupIndicator } from './CostRollupIndicator';
+import { UtilizationAnalytics } from './UtilizationAnalytics';
 import { TeamMember } from '@/types/database';
 
 interface ResourcePlanningProps {
@@ -125,6 +127,9 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
         </div>
       </div>
 
+      {/* Cost Rollup Indicator */}
+      <CostRollupIndicator projectId={projectId} />
+
       {/* Enhanced Resource Overview with Budget Information */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-blue-50 rounded-lg p-4">
@@ -192,6 +197,7 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
         <TabsList>
           <TabsTrigger value="personnel">Personnel</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="calendar">Calendar View</TabsTrigger>
         </TabsList>
 
@@ -362,6 +368,10 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <UtilizationAnalytics projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="calendar" className="space-y-6">

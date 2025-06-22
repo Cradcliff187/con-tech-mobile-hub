@@ -1959,6 +1959,24 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: number
       }
+      calculate_employee_utilization: {
+        Args: {
+          target_stakeholder_id?: string
+          start_date?: string
+          end_date?: string
+        }
+        Returns: {
+          stakeholder_id: string
+          stakeholder_name: string
+          date_period: string
+          total_allocated_hours: number
+          max_available_hours: number
+          utilization_percentage: number
+          is_overallocated: boolean
+          conflict_details: Json
+          project_assignments: Json
+        }[]
+      }
       check_equipment_availability: {
         Args: {
           p_equipment_id: string
@@ -1977,6 +1995,10 @@ export type Database = {
           allocated_hours: number
           available_hours: number
         }[]
+      }
+      create_daily_cost_snapshot: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       get_user_invitations: {
         Args: Record<PropertyKey, never>
@@ -2020,6 +2042,10 @@ export type Database = {
           stakeholders_created: number
           errors_logged: number
         }[]
+      }
+      update_project_labor_costs: {
+        Args: { target_project_id: string }
+        Returns: undefined
       }
       user_can_access_project: {
         Args: { project_id: string }
