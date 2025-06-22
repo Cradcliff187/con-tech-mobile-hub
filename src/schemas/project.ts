@@ -23,7 +23,7 @@ export const projectSchema = z.object({
   
   budget: numericFieldSchema(0, 999999999),
   
-  client_id: z.string().uuid('Please select a valid client'),
+  client_id: requiredString(36, 'Please select a client'),
   
   status: z.enum(['planning', 'active', 'on-hold', 'completed', 'cancelled']),
   

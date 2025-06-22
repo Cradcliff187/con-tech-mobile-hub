@@ -1,24 +1,29 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import { AddressFormFields } from '@/components/common/AddressFormFields';
+import { Stakeholder } from '@/hooks/useStakeholders';
 
 interface CreateProjectFormFieldsProps {
   formData: any;
   errors: Record<string, string[]>;
   onInputChange: (field: string, value: string) => void;
   disabled?: boolean;
+  clients: Stakeholder[];
+  onCreateClient: () => void;
 }
 
 export const CreateProjectFormFields = ({
   formData,
   errors,
   onInputChange,
-  disabled = false
+  disabled = false,
+  clients,
+  onCreateClient
 }: CreateProjectFormFieldsProps) => {
   const getFieldError = (field: string): string | undefined => {
     return errors[field]?.[0];
@@ -26,6 +31,49 @@ export const CreateProjectFormFields = ({
 
   return (
     <>
+      <div className="space-y-2">
+        <Label htmlFor="client_id">Client *</Label>
+        <div className="flex gap-2">
+          <Select 
+            value={formData.client_id || ''} 
+            onValueChange={(value) => onInputChange('client_id', value)}
+            disabled={disabled}
+          >
+            <SelectTrigger className={getFieldError('client_id') ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select a client" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.company_name || client.contact_person}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={onCreateClient}
+            disabled={disabled}
+            className="flex-shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        {getFieldError('client_id') && (
+          <p className="text-sm text-red-600 flex items-center gap-1">
+            <AlertTriangle size={12} />
+            {getFieldError('client_id')}
+          </p>
+        )}
+        {clients.length === 0 && (
+          <p className="text-sm text-slate-500">
+            No clients found. Click the + button to create a new client.
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="name">Project Name *</Label>
         <Input
