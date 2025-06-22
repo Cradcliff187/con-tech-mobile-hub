@@ -21,7 +21,6 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
   const { createStakeholder } = useStakeholders();
   const { toast } = useToast();
 
-  // Simplified handleInputChange using coerceFieldValue utility
   const handleInputChange = (field: string, value: any) => {
     setFormData(prevData => {
       const coercedValue = coerceFieldValue(field, value);
@@ -66,7 +65,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
         throw new Error('Form validation failed');
       }
 
-      // Use the validated data directly - Zod preprocessing handles all transformations
+      // Use the validated data (which has correct types after Zod preprocessing)
       const stakeholderData = transformStakeholderData(validation.data);
 
       const { error } = await createStakeholder(stakeholderData);
