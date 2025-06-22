@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionConfig, SubscriptionCallback, ChannelManager } from './types';
 import { generateChannelKey, generateChannelName, formatFilterForSupabase } from './channelUtils';
 import { SubscriptionErrorHandler } from './errorHandling';
-import type { RealtimePostgresChangesFilter } from '@supabase/supabase-js';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 /**
  * Enhanced Centralized Subscription Manager with improved error handling and retry logic
@@ -146,22 +146,22 @@ export class SubscriptionManager {
     // Configure the channel with proper filter format
     const { table, event = '*', schema = 'public', filter } = config;
     
-    const postgresChangesConfig: RealtimePostgresChangesFilter = {
+    const postgresChangesConfig = {
       event,
       schema,
       table
-    };
+    } as const;
 
     // Add filter if provided - convert to Supabase's expected string format
     if (filter && Object.keys(filter).length > 0) {
       const filterString = formatFilterForSupabase(filter);
       if (filterString) {
-        postgresChangesConfig.filter = filterString;
+        (postgresChangesConfig as any).filter = filterString;
       }
     }
 
     // Set up real-time listener with enhanced error handling
-    channel.on('postgres_changes', postgresChangesConfig, (payload) => {
+    channel.on('postgres_changes', postgresChangesConfig, (payload: RealtimePostgresChangesPayload<any>) => {
       try {
         // Call all registered callbacks for this channel
         channelManager.callbacks.forEach(cb => {
