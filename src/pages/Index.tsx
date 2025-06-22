@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -12,7 +11,7 @@ import { StakeholderManager } from '@/components/stakeholders/StakeholderManager
 import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
-import { ProjectsOverview } from '@/components/projects/ProjectsOverview';
+import { ProjectsList } from '@/components/projects/ProjectsList';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -83,7 +82,7 @@ const IndexContent = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return <ProjectDashboard />;
-      case 'projects': return <ProjectsOverview />;
+      case 'projects': return <ProjectsList />;
       case 'tasks': return <TaskManager />;
       case 'stakeholders': return <StakeholderManager />;
       case 'planning': return <ProjectPlanning />;
