@@ -12,6 +12,7 @@ import { StakeholderManager } from '@/components/stakeholders/StakeholderManager
 import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
+import { ProjectsOverview } from '@/components/projects/ProjectsOverview';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -29,7 +30,8 @@ import {
   Users,
   Calendar,
   BarChart3,
-  Clock
+  Clock,
+  Folder
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
@@ -58,6 +60,7 @@ const IndexContent = () => {
 
   const navigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'projects', label: 'Projects', icon: Folder },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'stakeholders', label: 'Stakeholders', icon: Users },
     { id: 'planning', label: 'Planning', icon: Calendar },
@@ -68,18 +71,19 @@ const IndexContent = () => {
     { id: 'reports', label: 'Reports', icon: BarChart3 }
   ];
 
-  // Core mobile navigation items - include planning as primary feature
+  // Core mobile navigation items - include projects as primary feature
   const mobileNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'projects', label: 'Projects', icon: Folder },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'planning', label: 'Planning', icon: Calendar },
-    { id: 'resources', label: 'Resources', icon: Wrench },
-    { id: 'reports', label: 'Reports', icon: BarChart3 }
+    { id: 'resources', label: 'Resources', icon: Wrench }
   ];
 
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return <ProjectDashboard />;
+      case 'projects': return <ProjectsOverview />;
       case 'tasks': return <TaskManager />;
       case 'stakeholders': return <StakeholderManager />;
       case 'planning': return <ProjectPlanning />;
@@ -131,7 +135,7 @@ const IndexContent = () => {
           </div>
         </main>
 
-        {/* Mobile Bottom Navigation - Enhanced with Planning */}
+        {/* Mobile Bottom Navigation - Enhanced with Projects */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 z-30">
           <div className="flex justify-around">
             {mobileNavItems.map((item) => {
