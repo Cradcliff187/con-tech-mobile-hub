@@ -2,11 +2,13 @@
 import React, { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
-import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
+import { ResponsiveDialog } from '@/components/common/ResponsiveDialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Project } from '@/types/database';
 
 interface DeleteProjectDialogProps {
@@ -51,31 +53,31 @@ export const DeleteProjectDialog = ({ open, onOpenChange, project }: DeleteProje
 
   if (!canDelete) {
     return (
-      <ConfirmationDialog
+      <ResponsiveDialog
         open={open}
         onOpenChange={handleOpenChange}
         title="Access Denied"
-        description="You don't have permission to delete projects. Only administrators and project managers can delete projects."
-        confirmText="OK"
-        onConfirm={() => onOpenChange(false)}
-        variant="default"
-      />
+      >
+        <div className="p-4 text-center">
+          <p className="text-slate-600 mb-4">
+            You don't have permission to delete projects. Only administrators and project managers can delete projects.
+          </p>
+          <Button onClick={() => onOpenChange(false)}>
+            OK
+          </Button>
+        </div>
+      </ResponsiveDialog>
     );
   }
 
   return (
-    <ConfirmationDialog
+    <ResponsiveDialog
       open={open}
       onOpenChange={handleOpenChange}
       title="Delete Project"
-      description=""
-      confirmText="Delete Project"
-      cancelText="Cancel"
-      variant="destructive"
-      onConfirm={handleConfirm}
-      loading={loading}
+      className="max-w-md"
     >
-      <div className="space-y-4">
+      <div className="space-y-4 p-4">
         <Alert className="border-red-200 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800">
@@ -109,7 +111,31 @@ export const DeleteProjectDialog = ({ open, onOpenChange, project }: DeleteProje
             Project name doesn't match. Please type "{project?.name}" exactly.
           </p>
         )}
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={loading || !isConfirmationValid}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" className="mr-2" />
+                Deleting...
+              </>
+            ) : (
+              'Delete Project'
+            )}
+          </Button>
+        </div>
       </div>
-    </ConfirmationDialog>
+    </ResponsiveDialog>
   );
 };
