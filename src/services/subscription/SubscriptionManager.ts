@@ -15,12 +15,15 @@ import { SubscriptionErrorHandler } from './errorHandling';
  * - **Proper Cleanup**: Channels are automatically cleaned up when no longer needed
  * - **Error Recovery**: Built-in reconnection capabilities for failed channels
  * - **Debug Support**: Status monitoring and channel information for debugging
+ * - **Rate Limiting**: Circuit breaker pattern to prevent server overload
  */
 export class SubscriptionManager {
   private static instance: SubscriptionManager;
   private channels: Map<string, ChannelManager> = new Map();
   private isCleaningUp: boolean = false;
   private errorHandler: SubscriptionErrorHandler = new SubscriptionErrorHandler();
+  private globalRateLimit: Map<string, number> = new Map();
+  private circuitBreaker: Map<string, { failures: number; lastFailure: number; isOpen: boolean }> = new Map();
 
   private constructor() {
     // Private constructor to enforce singleton pattern
@@ -34,7 +37,55 @@ export class SubscriptionManager {
   }
 
   /**
-   * Subscribe to a table with automatic deduplication
+   * Check if we should allow the operation based on rate limiting and circuit breaker
+   */
+  private shouldAllowOperation(key: string): boolean {
+    const now = Date.now();
+    
+    // Check rate limiting (max 10 operations per second per key)
+    const lastCall = this.globalRateLimit.get(key) || 0;
+    if (now - lastCall < 100) { // 100ms minimum between calls
+      console.warn(`Rate limit exceeded for ${key}`);
+      return false;
+    }
+    
+    // Check circuit breaker
+    const breaker = this.circuitBreaker.get(key);
+    if (breaker?.isOpen) {
+      // Try to recover after 30 seconds
+      if (now - breaker.lastFailure > 30000) {
+        breaker.isOpen = false;
+        breaker.failures = 0;
+        console.log(`Circuit breaker recovered for ${key}`);
+      } else {
+        console.warn(`Circuit breaker is open for ${key}`);
+        return false;
+      }
+    }
+    
+    this.globalRateLimit.set(key, now);
+    return true;
+  }
+
+  /**
+   * Record a failure for circuit breaker logic
+   */
+  private recordFailure(key: string): void {
+    const breaker = this.circuitBreaker.get(key) || { failures: 0, lastFailure: 0, isOpen: false };
+    breaker.failures++;
+    breaker.lastFailure = Date.now();
+    
+    // Open circuit breaker after 3 failures
+    if (breaker.failures >= 3) {
+      breaker.isOpen = true;
+      console.warn(`Circuit breaker opened for ${key} after ${breaker.failures} failures`);
+    }
+    
+    this.circuitBreaker.set(key, breaker);
+  }
+
+  /**
+   * Subscribe to a table with automatic deduplication and protection
    */
   public subscribe<T = any>(
     config: SubscriptionConfig,
@@ -46,6 +97,12 @@ export class SubscriptionManager {
     }
 
     const channelKey = generateChannelKey(config);
+    
+    // Check rate limiting and circuit breaker
+    if (!this.shouldAllowOperation(channelKey)) {
+      return () => {};
+    }
+
     let channelManager = this.channels.get(channelKey);
 
     // If channel doesn't exist, create it
@@ -71,14 +128,14 @@ export class SubscriptionManager {
             if (currentManager && currentManager.callbacks.size === 0) {
               this.cleanupChannel(channelKey);
             }
-          }, 1000); // 1 second debounce
+          }, 2000); // Increased debounce to 2 seconds
         }
       }
     };
   }
 
   /**
-   * Create a new channel with proper configuration
+   * Create a new channel with proper configuration and error handling
    */
   private createChannel(config: SubscriptionConfig, channelKey: string): ChannelManager {
     const channelName = generateChannelName(config);
@@ -110,14 +167,19 @@ export class SubscriptionManager {
 
     // Set up real-time listener with enhanced error handling
     channel.on('postgres_changes', postgresChangesConfig, (payload) => {
-      // Call all registered callbacks for this channel
-      channelManager.callbacks.forEach(cb => {
-        try {
-          cb(payload);
-        } catch (error) {
-          console.error('Error in subscription callback:', error);
-        }
-      });
+      try {
+        // Call all registered callbacks for this channel
+        channelManager.callbacks.forEach(cb => {
+          try {
+            cb(payload);
+          } catch (error) {
+            console.error('Error in subscription callback:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Error processing subscription payload:', error);
+        this.recordFailure(channelKey);
+      }
     });
 
     // Enhanced subscription status handling with retry logic
@@ -125,16 +187,23 @@ export class SubscriptionManager {
       channelManager.status = status;
 
       if (status === 'CHANNEL_ERROR') {
-        console.error(`Channel error for ${channelKey}, initiating retry...`);
-        this.errorHandler.handleChannelError(
-          channelKey,
-          config,
-          (key, cfg) => this.reconnectChannelInternal(key, cfg),
-          (key) => this.cleanupChannel(key)
-        );
+        console.error(`Channel error for ${channelKey}, recording failure`);
+        this.recordFailure(channelKey);
+        
+        // Only retry if circuit breaker allows it
+        if (this.shouldAllowOperation(`retry-${channelKey}`)) {
+          this.errorHandler.handleChannelError(
+            channelKey,
+            config,
+            (key, cfg) => this.reconnectChannelInternal(key, cfg),
+            (key) => this.cleanupChannel(key)
+          );
+        }
       } else if (status === 'SUBSCRIBED') {
-        // Reset reconnect attempts on successful connection
+        // Reset circuit breaker on successful connection
+        this.circuitBreaker.delete(channelKey);
         this.errorHandler.resetReconnectAttempts(channelKey);
+        console.log(`Channel ${channelKey} successfully subscribed`);
       }
     });
 
@@ -142,7 +211,7 @@ export class SubscriptionManager {
   }
 
   /**
-   * Internal reconnection logic
+   * Internal reconnection logic with exponential backoff
    */
   private reconnectChannelInternal(channelKey: string, config: SubscriptionConfig): void {
     const channelManager = this.channels.get(channelKey);
@@ -152,10 +221,14 @@ export class SubscriptionManager {
       // Clean up the existing channel
       this.cleanupChannel(channelKey);
       
-      // Re-subscribe all callbacks
-      callbacks.forEach(callback => {
-        this.subscribe(config, callback);
-      });
+      // Re-subscribe all callbacks with exponential backoff
+      const retryDelay = Math.min(1000 * Math.pow(2, (this.circuitBreaker.get(channelKey)?.failures || 0)), 30000);
+      
+      setTimeout(() => {
+        callbacks.forEach(callback => {
+          this.subscribe(config, callback);
+        });
+      }, retryDelay);
     }
   }
 
@@ -174,6 +247,7 @@ export class SubscriptionManager {
       // Clean up error handling state
       this.errorHandler.cleanupErrorState(channelKey);
       this.channels.delete(channelKey);
+      console.log(`Channel ${channelKey} cleaned up`);
     }
   }
 
@@ -187,10 +261,16 @@ export class SubscriptionManager {
   }
 
   /**
-   * Reconnect a specific channel
+   * Reconnect a specific channel with rate limiting
    */
   public async reconnectChannel(config: SubscriptionConfig): Promise<void> {
     const channelKey = generateChannelKey(config);
+    
+    if (!this.shouldAllowOperation(`reconnect-${channelKey}`)) {
+      console.warn('Reconnect rate limited for channel:', channelKey);
+      return;
+    }
+    
     this.reconnectChannelInternal(channelKey, config);
   }
 
@@ -203,6 +283,10 @@ export class SubscriptionManager {
     // Clear all error handling state
     this.errorHandler.cleanupAll();
     
+    // Clear rate limiting and circuit breaker state
+    this.globalRateLimit.clear();
+    this.circuitBreaker.clear();
+    
     const channelKeys = Array.from(this.channels.keys());
     channelKeys.forEach(channelKey => {
       this.cleanupChannel(channelKey);
@@ -210,6 +294,7 @@ export class SubscriptionManager {
     
     this.channels.clear();
     this.isCleaningUp = false;
+    console.log('All subscriptions cleaned up');
   }
 
   /**
@@ -228,6 +313,18 @@ export class SubscriptionManager {
       callbackCount: manager.callbacks.size,
       status: manager.status,
       config: manager.config
+    }));
+  }
+
+  /**
+   * Get circuit breaker status for debugging
+   */
+  public getCircuitBreakerStatus(): Array<{ key: string; failures: number; isOpen: boolean; lastFailure: number }> {
+    return Array.from(this.circuitBreaker.entries()).map(([key, breaker]) => ({
+      key,
+      failures: breaker.failures,
+      isOpen: breaker.isOpen,
+      lastFailure: breaker.lastFailure
     }));
   }
 }

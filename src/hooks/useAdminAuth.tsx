@@ -1,7 +1,8 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface AdminAuthContextType {
   isAdmin: boolean;
@@ -23,8 +24,28 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
+  const checkingRef = useRef(false);
+  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCheckRef = useRef<number>(0);
+
+  // Debounce the trigger values to prevent rapid changes
+  const debouncedUserId = useDebounce(user?.id, 300);
+  const debouncedAccountStatus = useDebounce(profile?.account_status, 300);
 
   const checkAdminStatus = async () => {
+    // Prevent concurrent checks
+    if (checkingRef.current) {
+      console.log('Admin check already in progress, skipping');
+      return;
+    }
+
+    // Implement cooldown period (minimum 2 seconds between checks)
+    const now = Date.now();
+    if (now - lastCheckRef.current < 2000) {
+      console.log('Admin check cooldown active, skipping');
+      return;
+    }
+
     if (!user || !profile) {
       console.log('No user or profile, not admin');
       setIsAdmin(false);
@@ -39,6 +60,9 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       return;
     }
+
+    checkingRef.current = true;
+    lastCheckRef.current = now;
 
     try {
       console.log('Checking admin status for user:', user.email);
@@ -62,14 +86,40 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Exception checking admin status:', error);
       setIsAdmin(false);
+    } finally {
+      checkingRef.current = false;
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
+  // Use debounced values and only essential properties to prevent infinite loops
   useEffect(() => {
-    checkAdminStatus();
-  }, [user, profile]);
+    // Clear any existing cooldown
+    if (cooldownRef.current) {
+      clearTimeout(cooldownRef.current);
+    }
+
+    // Add small delay to prevent rapid successive calls
+    cooldownRef.current = setTimeout(() => {
+      checkAdminStatus();
+    }, 100);
+
+    return () => {
+      if (cooldownRef.current) {
+        clearTimeout(cooldownRef.current);
+      }
+    };
+  }, [debouncedUserId, debouncedAccountStatus]); // Only depend on debounced primitive values
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) {
+        clearTimeout(cooldownRef.current);
+      }
+      checkingRef.current = false;
+    };
+  }, []);
 
   return (
     <AdminAuthContext.Provider value={{

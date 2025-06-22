@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +69,13 @@ export const useDocuments = (projectId?: string) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  
+  // Use refs to prevent infinite loops
+  const fetchingRef = useRef(false);
+  const lastFetchRef = useRef<string>('');
+  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Stable fetch function that doesn't depend on toast
   const fetchDocuments = useCallback(async () => {
     if (!user) {
       setDocuments([]);
@@ -78,8 +83,25 @@ export const useDocuments = (projectId?: string) => {
       return;
     }
 
+    // Prevent concurrent fetches
+    if (fetchingRef.current) {
+      console.log('Documents fetch already in progress, skipping');
+      return;
+    }
+
+    // Create fetch key to prevent duplicate fetches
+    const fetchKey = `${user.id}-${projectId || 'all'}`;
+    if (lastFetchRef.current === fetchKey) {
+      console.log('Documents already fetched for this context, skipping');
+      return;
+    }
+
+    fetchingRef.current = true;
+    lastFetchRef.current = fetchKey;
+
     console.log('Fetching documents for user:', user.id, 'Project:', projectId);
     setLoading(true);
+    
     try {
       let query = supabase
         .from('documents')
@@ -105,19 +127,51 @@ export const useDocuments = (projectId?: string) => {
     } catch (error) {
       console.error('Error fetching documents:', error);
       setDocuments([]);
-      toast({
-        title: "Error loading documents",
-        description: error instanceof Error ? error.message : "Failed to load documents",
-        variant: "destructive"
-      });
+      // Show error toast without including it in dependencies
+      setTimeout(() => {
+        toast({
+          title: "Error loading documents",
+          description: error instanceof Error ? error.message : "Failed to load documents",
+          variant: "destructive"
+        });
+      }, 0);
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
     }
-  }, [user, projectId, toast]);
+  }, [user?.id, projectId]); // Only depend on primitive values
 
+  // Effect that only runs when user or project changes
   useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
+    // Clear any existing cooldown
+    if (cooldownRef.current) {
+      clearTimeout(cooldownRef.current);
+    }
+
+    // Reset fetch tracking when context changes
+    lastFetchRef.current = '';
+    
+    // Add small delay to prevent rapid successive calls
+    cooldownRef.current = setTimeout(() => {
+      fetchDocuments();
+    }, 100);
+
+    return () => {
+      if (cooldownRef.current) {
+        clearTimeout(cooldownRef.current);
+      }
+    };
+  }, [user?.id, projectId]); // Only depend on primitive values, not fetchDocuments
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) {
+        clearTimeout(cooldownRef.current);
+      }
+      fetchingRef.current = false;
+    };
+  }, []);
 
   const uploadDocument = useCallback(async (
     file: File, 
@@ -202,7 +256,7 @@ export const useDocuments = (projectId?: string) => {
       setUploading(false);
       setUploadProgress(0);
     }
-  }, [user, projectId]);
+  }, [user?.id, projectId]);
 
   const deleteDocument = useCallback(async (id: string, filePath: string) => {
     console.log('Deleting document:', id, 'File path:', filePath);
@@ -359,6 +413,12 @@ export const useDocuments = (projectId?: string) => {
     return profile.is_company_user && profile.account_status === 'approved';
   }, [user, profile]);
 
+  const refetch = useCallback(() => {
+    // Reset fetch tracking to force a new fetch
+    lastFetchRef.current = '';
+    fetchDocuments();
+  }, [fetchDocuments]);
+
   return {
     documents,
     loading,
@@ -369,7 +429,7 @@ export const useDocuments = (projectId?: string) => {
     downloadDocument,
     shareDocument,
     previewDocument,
-    refetch: fetchDocuments,
+    refetch,
     canUpload,
     canDelete
   };

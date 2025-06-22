@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
 import { subscriptionManager, SubscriptionConfig, SubscriptionCallback } from '@/services/subscription';
 import { mapTaskFromDb } from './taskMapping';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface UseImprovedTaskSubscriptionProps {
   user: any;
@@ -23,6 +24,11 @@ export const useImprovedTaskSubscription = ({
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastConfigRef = useRef<string>('');
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce the user ID and project ID to prevent rapid subscription changes
+  const debouncedUserId = useDebounce(user?.id, 300);
+  const debouncedProjectId = useDebounce(projectId, 300);
 
   // Stabilized callback to prevent unnecessary re-subscriptions
   const stableOnTasksUpdate = useCallback((tasks: Task[]) => {
@@ -58,7 +64,7 @@ export const useImprovedTaskSubscription = ({
 
   useEffect(() => {
     // Clean up subscription if user logs out
-    if (!user) {
+    if (!debouncedUserId) {
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
@@ -67,6 +73,10 @@ export const useImprovedTaskSubscription = ({
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      if (statusCheckIntervalRef.current) {
+        clearInterval(statusCheckIntervalRef.current);
+        statusCheckIntervalRef.current = null;
+      }
       setSubscriptionStatus('idle');
       setCurrentTasks([]);
       lastConfigRef.current = '';
@@ -74,7 +84,7 @@ export const useImprovedTaskSubscription = ({
     }
 
     // Create stable config identifier
-    const configKey = `${user.id}-${projectId || 'all'}`;
+    const configKey = `${debouncedUserId}-${debouncedProjectId || 'all'}`;
     
     // Skip if we already have this exact subscription
     if (lastConfigRef.current === configKey) {
@@ -93,12 +103,18 @@ export const useImprovedTaskSubscription = ({
       reconnectTimeoutRef.current = null;
     }
 
+    // Clear status check interval
+    if (statusCheckIntervalRef.current) {
+      clearInterval(statusCheckIntervalRef.current);
+      statusCheckIntervalRef.current = null;
+    }
+
     // Configure subscription
     const subscriptionConfig: SubscriptionConfig = {
       table: 'tasks',
       event: '*',
       schema: 'public',
-      ...(projectId && projectId !== 'all' && { filter: { project_id: projectId } })
+      ...(debouncedProjectId && debouncedProjectId !== 'all' && { filter: { project_id: debouncedProjectId } })
     };
 
     // Subscribe with enhanced error handling
@@ -106,8 +122,8 @@ export const useImprovedTaskSubscription = ({
     unsubscribeRef.current = unsubscribe;
     lastConfigRef.current = configKey;
 
-    // Monitor subscription status
-    const statusInterval = setInterval(() => {
+    // Monitor subscription status with reduced frequency (every 5 seconds instead of 1 second)
+    statusCheckIntervalRef.current = setInterval(() => {
       const status = subscriptionManager.getChannelStatus(subscriptionConfig);
       setSubscriptionStatus(status);
       
@@ -116,12 +132,15 @@ export const useImprovedTaskSubscription = ({
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnect();
           reconnectTimeoutRef.current = null;
-        }, 2000); // 2 second delay for reconnect
+        }, 5000); // Increased to 5 second delay for reconnect
       }
-    }, 1000);
+    }, 5000); // Reduced frequency to every 5 seconds
 
     return () => {
-      clearInterval(statusInterval);
+      if (statusCheckIntervalRef.current) {
+        clearInterval(statusCheckIntervalRef.current);
+        statusCheckIntervalRef.current = null;
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -132,16 +151,16 @@ export const useImprovedTaskSubscription = ({
       }
       lastConfigRef.current = '';
     };
-  }, [user?.id, projectId, handleTaskUpdate]);
+  }, [debouncedUserId, debouncedProjectId, handleTaskUpdate]);
 
   const reconnect = useCallback(async () => {
-    if (!user) return;
+    if (!debouncedUserId) return;
 
     const subscriptionConfig: SubscriptionConfig = {
       table: 'tasks',
       event: '*',
       schema: 'public',
-      ...(projectId && projectId !== 'all' && { filter: { project_id: projectId } })
+      ...(debouncedProjectId && debouncedProjectId !== 'all' && { filter: { project_id: debouncedProjectId } })
     };
 
     try {
@@ -150,7 +169,22 @@ export const useImprovedTaskSubscription = ({
     } catch (error) {
       console.error('Failed to reconnect task subscription:', error);
     }
-  }, [user, projectId]);
+  }, [debouncedUserId, debouncedProjectId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (statusCheckIntervalRef.current) {
+        clearInterval(statusCheckIntervalRef.current);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, []);
 
   return {
     subscriptionStatus,
