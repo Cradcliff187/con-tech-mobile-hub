@@ -123,7 +123,7 @@ export const taskSchema = z.object({
     .max(20, 'Maximum 20 skills allowed')
     .transform(skills => skills.filter(skill => skill.trim().length > 0 && !/[<>]/g.test(skill))),
   
-  punch_list_category: optionalString(100),
+  punch_list_category: z.enum(['electrical', 'plumbing', 'carpentry', 'flooring', 'hvac', 'paint', 'other']).optional(),
   
   assigned_stakeholder_id: z.string().uuid().optional(),
   

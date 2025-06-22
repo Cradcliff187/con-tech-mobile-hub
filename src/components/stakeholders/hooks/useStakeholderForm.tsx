@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
@@ -150,6 +151,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
 
       const stakeholderData = {
         ...validation.data,
+        status: validation.data.status || 'active', // Ensure status is always defined
         address: legacyAddress || undefined, // Keep for backward compatibility
         crew_size: validation.data.crew_size,
         insurance_expiry: validation.data.insurance_expiry || undefined,
