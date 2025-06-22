@@ -65,8 +65,8 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
         throw new Error('Form validation failed');
       }
 
-      // Use the validated data (which has correct types after Zod preprocessing)
-      const stakeholderData = transformStakeholderData(validation.data);
+      // Type assertion to ensure proper typing after Zod validation
+      const stakeholderData = transformStakeholderData(validation.data as StakeholderFormData);
 
       const { error } = await createStakeholder(stakeholderData);
 
