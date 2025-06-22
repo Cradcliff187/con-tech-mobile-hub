@@ -22,6 +22,7 @@ export interface Stakeholder {
   notes?: string;
   status: 'active' | 'inactive' | 'pending' | 'suspended';
   rating: number;
+  profile_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -114,9 +115,18 @@ export const useStakeholders = (projectId?: string) => {
       if (error) throw error;
 
       setStakeholders(prev => prev.filter(s => s.id !== id));
+      toast({
+        title: "Success",
+        description: "Stakeholder deleted successfully"
+      });
       return { error: null };
     } catch (error) {
       console.error('Error deleting stakeholder:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete stakeholder. They may have active assignments.",
+        variant: "destructive"
+      });
       return { error };
     }
   };
