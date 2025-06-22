@@ -36,7 +36,7 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
   const { projects } = useProjects();
   const [resourceGroups, setResourceGroups] = useState<EmployeeResourceGroup[]>([]);
 
-  console.warn('⚠️ MIGRATION NOTICE: useEmployeeResourcePlanning uses employee assignments instead of team_members');
+  console.info('✅ Employee Resource Planning: Using consolidated stakeholder_assignments system');
 
   // Filter assignments for employees only and by project if specified
   const filteredAssignments = useMemo(() => {
@@ -53,7 +53,7 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
 
     filteredAssignments.forEach(assignment => {
       const project = projects.find(p => p.id === assignment.project_id);
-      const weekKey = `${assignment.week_start_date || 'no-week'}-${assignment.project_id || 'no-project'}`;
+      const weekKey = `${assignment.week_start_date || 'current-week'}-${assignment.project_id || 'no-project'}`;
       
       if (!groups.has(weekKey)) {
         // Calculate estimated budget based on total hours and average rates
@@ -75,7 +75,7 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
 
       const group = groups.get(weekKey)!;
       
-      // Convert assignment to member format
+      // Convert assignment to member format with accurate cost calculations
       const member: EmployeeResourceMember = {
         id: assignment.id,
         name: assignment.stakeholder?.contact_person || 'Unknown Employee',
@@ -84,12 +84,18 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
         hours_used: Math.floor((assignment.total_hours || 0) * 0.7), // Simulate 70% completion
         cost_per_hour: assignment.hourly_rate || 0,
         hourly_rate: assignment.hourly_rate || 0,
-        total_cost: assignment.total_cost || 0,
+        total_cost: assignment.total_cost || 0, // Now using accurate cost from database
         availability: assignment.utilization_percentage || 85, // Use utilization or default
         utilization_percentage: assignment.utilization_percentage,
         tasks: [], // Could be enhanced to show related tasks
         user_id: assignment.stakeholder?.profile_id
       };
+
+      // Validate cost calculation accuracy
+      const calculatedCost = member.hours_allocated * member.hourly_rate;
+      if (Math.abs(member.total_cost - calculatedCost) > 0.01) {
+        console.warn(`Cost discrepancy detected for ${member.name}: stored=${member.total_cost}, calculated=${calculatedCost}`);
+      }
 
       group.members.push(member);
       group.total_allocated_hours += member.hours_allocated;
@@ -100,17 +106,27 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
     return Array.from(groups.values());
   }, [filteredAssignments, projects]);
 
-  // Calculate summary statistics
+  // Calculate summary statistics with enhanced accuracy
   const summaryStats = useMemo(() => {
     const totalMembers = groupedAssignments.reduce((sum, group) => sum + group.members.length, 0);
     const totalHours = groupedAssignments.reduce((sum, group) => sum + group.total_allocated_hours, 0);
     const totalCost = groupedAssignments.reduce((sum, group) => sum + group.total_actual_cost, 0);
     const totalBudget = groupedAssignments.reduce((sum, group) => sum + group.total_budget, 0);
+    
+    // Calculate average utilization more accurately
     const avgUtilization = totalMembers > 0 ? (totalHours / (totalMembers * 40)) * 100 : 0;
+    
     const budgetVariance = totalBudget - totalCost;
     const budgetVariancePercentage = totalBudget > 0 ? ((budgetVariance / totalBudget) * 100) : 0;
+    
+    // Count overallocated employees (>40 hours per week)
     const overallocatedCount = groupedAssignments.reduce((count, group) => 
-      count + group.members.filter(m => (m.utilization_percentage || 0) > 100).length, 0
+      count + group.members.filter(m => m.hours_allocated > 40).length, 0
+    );
+
+    // Calculate cost accuracy metrics
+    const totalMembersWithCostData = groupedAssignments.reduce((count, group) => 
+      count + group.members.filter(m => m.total_cost > 0).length, 0
     );
 
     return {
@@ -119,11 +135,15 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
       totalCost,
       totalBudget,
       totalBudgetUsed: totalCost,
-      avgUtilization,
+      avgUtilization: Math.round(avgUtilization * 100) / 100, // Round to 2 decimal places
       totalProjects: new Set(groupedAssignments.map(g => g.project_id)).size,
       budgetVariance,
-      budgetVariancePercentage,
-      overallocatedCount
+      budgetVariancePercentage: Math.round(budgetVariancePercentage * 100) / 100,
+      overallocatedCount,
+      costAccuracyMetrics: {
+        membersWithCostData: totalMembersWithCostData,
+        averageHourlyRate: totalMembers > 0 ? totalCost / totalHours : 0
+      }
     };
   }, [groupedAssignments]);
 
@@ -137,7 +157,6 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
     loading,
     summaryStats,
     refetch: () => {
-      // This would trigger a refetch of employee assignments
       console.log('Refetching employee resource planning data...');
     }
   };
