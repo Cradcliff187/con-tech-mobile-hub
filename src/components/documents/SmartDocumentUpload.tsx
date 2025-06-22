@@ -2,17 +2,16 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, AlertCircle, FileText, Camera, Receipt, Shield, Building, ClipboardList } from 'lucide-react';
+import { AlertCircle, Sparkles } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { analyzeFile, validateFileSize, type ProjectPhaseContext } from '@/utils/smartFileAnalysis';
-import { FileUploadTabs } from './FileUploadTabs';
-import { FilePreviewCard, type SmartFileData } from './FilePreviewCard';
+import { type SmartFileData } from './FilePreviewCard';
+import { CategorySelectionPanel } from './CategorySelectionPanel';
+import { FileProcessingArea } from './FileProcessingArea';
+import { ProjectSelectionField } from './ProjectSelectionField';
 import { UploadProgress } from './UploadProgress';
 import { toast } from 'sonner';
 
@@ -26,14 +25,14 @@ interface SmartDocumentUploadProps {
 }
 
 const DOCUMENT_CATEGORIES = [
-  { value: 'plans', label: 'Plans & Drawings', icon: FileText, description: 'Blueprints, CAD files, architectural drawings' },
-  { value: 'photos', label: 'Progress Photos', icon: Camera, description: 'Site photos, before/after images, progress documentation' },
-  { value: 'receipts', label: 'Receipts & Expenses', icon: Receipt, description: 'Purchase receipts, invoices, expense documentation' },
-  { value: 'permits', label: 'Permits & Approvals', icon: Shield, description: 'Building permits, inspections, regulatory approvals' },
-  { value: 'contracts', label: 'Contracts & Agreements', icon: Building, description: 'Contracts, proposals, legal documents' },
-  { value: 'reports', label: 'Reports & Documentation', icon: ClipboardList, description: 'Status reports, inspection reports, documentation' },
-  { value: 'safety', label: 'Safety Documents', icon: Shield, description: 'Safety protocols, MSDS sheets, incident reports' },
-  { value: 'other', label: 'Other Documents', icon: FileText, description: 'Miscellaneous project documents' }
+  { value: 'plans', label: 'Plans & Drawings', icon: require('lucide-react').FileText, description: 'Blueprints, CAD files, architectural drawings' },
+  { value: 'photos', label: 'Progress Photos', icon: require('lucide-react').Camera, description: 'Site photos, before/after images, progress documentation' },
+  { value: 'receipts', label: 'Receipts & Expenses', icon: require('lucide-react').Receipt, description: 'Purchase receipts, invoices, expense documentation' },
+  { value: 'permits', label: 'Permits & Approvals', icon: require('lucide-react').Shield, description: 'Building permits, inspections, regulatory approvals' },
+  { value: 'contracts', label: 'Contracts & Agreements', icon: require('lucide-react').Building, description: 'Contracts, proposals, legal documents' },
+  { value: 'reports', label: 'Reports & Documentation', icon: require('lucide-react').ClipboardList, description: 'Status reports, inspection reports, documentation' },
+  { value: 'safety', label: 'Safety Documents', icon: require('lucide-react').Shield, description: 'Safety protocols, MSDS sheets, incident reports' },
+  { value: 'other', label: 'Other Documents', icon: require('lucide-react').FileText, description: 'Miscellaneous project documents' }
 ];
 
 const PHASE_PRIORITY_CATEGORIES = {
@@ -78,7 +77,8 @@ export const SmartDocumentUpload = ({
   // Get prioritized categories based on project phase
   const getPrioritizedCategories = useCallback(() => {
     const phaseCategories = PHASE_PRIORITY_CATEGORIES[projectPhase as keyof typeof PHASE_PRIORITY_CATEGORIES] || [];
-    const prioritized = DOCUMENT_CATEGORIES.filter(cat => phaseCategories.includes(cat.value));
+    const prioritized = DOCUMENT_CATEGORIES.filter(cat => phaseCategories.includes(cat.value))
+      .map(cat => ({ ...cat, isPriority: true }));
     const others = DOCUMENT_CATEGORIES.filter(cat => !phaseCategories.includes(cat.value));
     return [...prioritized, ...others];
   }, [projectPhase]);
@@ -408,100 +408,34 @@ export const SmartDocumentUpload = ({
 
   const uploadContent = (
     <div className="space-y-6">
-      {/* Smart Category Selection */}
-      <div className="animate-fade-in bg-slate-50 rounded-lg p-4 border border-slate-200">
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <Sparkles className="text-blue-500" size={20} />
-              Smart Document Upload
-            </h3>
-            <p className="text-sm text-slate-600 mt-1">
-              Select a document type to enable intelligent categorization and processing
-            </p>
-          </div>
+      {/* Category Selection Panel */}
+      <CategorySelectionPanel
+        uploadTemplates={uploadTemplates}
+        uploadTemplate={uploadTemplate}
+        onTemplateSelect={handleTemplateSelect}
+        preSelectedCategory={preSelectedCategory}
+        onCategorySelect={setPreSelectedCategory}
+        prioritizedCategories={prioritizedCategories}
+        projectPhase={projectPhase}
+        isUploading={isUploading}
+      />
 
-          {/* Upload Templates */}
-          {uploadTemplates.length > 0 && (
-            <div>
-              <Label className="text-slate-700 font-medium">Quick Templates</Label>
-              <Select value={uploadTemplate} onValueChange={handleTemplateSelect} disabled={isUploading}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a template for faster upload" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uploadTemplates.map((template) => (
-                    <SelectItem key={template.value} value={template.value}>
-                      {template.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Document Category Selection */}
-          <div>
-            <Label className="text-slate-700 font-medium">
-              Document Type {projectPhase !== 'planning' && <span className="text-xs text-blue-600">({projectPhase} phase)</span>}
-            </Label>
-            <Select value={preSelectedCategory} onValueChange={setPreSelectedCategory} disabled={isUploading}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select document type (optional - AI will auto-detect)" />
-              </SelectTrigger>
-              <SelectContent>
-                {prioritizedCategories.map((category) => {
-                  const Icon = category.icon;
-                  const isPriority = PHASE_PRIORITY_CATEGORIES[projectPhase as keyof typeof PHASE_PRIORITY_CATEGORIES]?.includes(category.value);
-                  return (
-                    <SelectItem key={category.value} value={category.value}>
-                      <div className="flex items-center gap-2">
-                        <Icon size={16} className={isPriority ? "text-blue-600" : "text-slate-500"} />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            {category.label}
-                            {isPriority && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Recommended</span>}
-                          </div>
-                          <div className="text-xs text-slate-500">{category.description}</div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {preSelectedCategory && (
-            <div className="text-sm text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} />
-                <span className="font-medium">Smart Processing Enabled</span>
-              </div>
-              <p className="mt-1">
-                All uploaded files will be categorized as "{DOCUMENT_CATEGORIES.find(c => c.value === preSelectedCategory)?.label}".
-                {preSelectedCategory === 'receipts' && " Expense tracking fields will be automatically added."}
-                {preSelectedCategory === 'photos' && " Location and timestamp metadata will be captured."}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* File Upload Interface */}
-      <div className="animate-fade-in">
-        <FileUploadTabs
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isDragOver={isDragOver}
-          selectedFilesCount={selectedFiles.length}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onBrowseFiles={handleBrowseFiles}
-          onCameraCapture={handleCameraCapture}
-        />
-      </div>
+      {/* File Processing Area */}
+      <FileProcessingArea
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isDragOver={isDragOver}
+        selectedFiles={selectedFiles}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onBrowseFiles={handleBrowseFiles}
+        onCameraCapture={handleCameraCapture}
+        onRemoveFile={removeFile}
+        onUpdateFileData={updateFileData}
+        onClearAllFiles={() => setSelectedFiles([])}
+        isUploading={isUploading}
+      />
 
       {/* Hidden file inputs */}
       <input
@@ -521,60 +455,14 @@ export const SmartDocumentUpload = ({
         className="hidden"
       />
 
-      {/* Selected Files */}
-      {selectedFiles.length > 0 && (
-        <div className="space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-800">
-              Selected Files ({selectedFiles.length})
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedFiles([])}
-              className="text-red-600 hover:text-red-700 transition-colors duration-200 hover:scale-105"
-            >
-              Clear All
-            </Button>
-          </div>
-          
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {selectedFiles.map((fileData, index) => (
-              <div 
-                key={fileData.id}
-                className="animate-stagger-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <FilePreviewCard
-                  fileData={fileData}
-                  onRemove={removeFile}
-                  onUpdate={updateFileData}
-                  isUploading={isUploading}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Project Selection */}
-      {!currentProjectId && (
-        <div className="animate-fade-in">
-          <Label className="text-slate-700 font-medium">Project</Label>
-          <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isUploading}>
-            <SelectTrigger className="mt-1 transition-all duration-200 hover:border-slate-400">
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <ProjectSelectionField
+        selectedProjectId={selectedProjectId}
+        onProjectSelect={setSelectedProjectId}
+        projects={projects}
+        isUploading={isUploading}
+        currentProjectId={currentProjectId}
+      />
 
       {/* Upload Actions */}
       <div className="animate-fade-in">
