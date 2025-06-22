@@ -1,5 +1,6 @@
 
 import { MapPin, Calendar, Clock, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { formatAddress } from '@/utils/addressFormatting';
 
 interface ProjectCardProps {
@@ -11,6 +12,7 @@ interface ProjectCardProps {
     spent?: number;
     end_date?: string;
     status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+    phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
     location?: string;
     street_address?: string;
     city?: string;
@@ -32,6 +34,14 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
     'on-hold': 'bg-yellow-100 text-yellow-800',
     'completed': 'bg-green-100 text-green-800',
     'cancelled': 'bg-red-100 text-red-800'
+  };
+
+  const phaseColors = {
+    'planning': 'border-blue-500 text-blue-700',
+    'active': 'border-green-500 text-green-700',
+    'punch_list': 'border-orange-500 text-orange-700',
+    'closeout': 'border-yellow-500 text-yellow-700',
+    'completed': 'border-gray-500 text-gray-700'
   };
 
   const progressColor = project.progress >= 75 ? 'bg-green-500' : 
@@ -74,9 +84,14 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
         <h3 className="text-lg font-semibold text-slate-800 line-clamp-2">
           {project.name}
         </h3>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
-          {project.status.replace('-', ' ')}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
+            {project.status.replace('-', ' ')}
+          </span>
+          <Badge variant="outline" className={phaseColors[project.phase]}>
+            {project.phase.replace('_', ' ')}
+          </Badge>
+        </div>
       </div>
 
       <div className="space-y-3">

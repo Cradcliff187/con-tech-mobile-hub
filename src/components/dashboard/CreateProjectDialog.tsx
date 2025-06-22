@@ -43,6 +43,7 @@ export const CreateProjectDialog = ({
           formData={formData}
           errors={errors}
           onInputChange={handleInputChange}
+          disabled={isSubmitting}
         />
 
         <div className="flex justify-end gap-3 pt-4 border-t">
@@ -60,8 +61,8 @@ export const CreateProjectDialog = ({
           >
             {isSubmitting ? (
               <>
-                <LoadingSpinner size="sm" />
-                Creating...
+                <LoadingSpinner size="sm" className="mr-2" />
+                Creating Project...
               </>
             ) : (
               'Create Project'
