@@ -1,11 +1,11 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
@@ -22,7 +22,8 @@ interface SmartDocumentUploadProps {
   onUploadComplete?: () => void;
   variant?: 'dialog' | 'inline';
   className?: string;
-  triggerButton?: React.ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const SmartDocumentUpload = ({
@@ -30,12 +31,12 @@ export const SmartDocumentUpload = ({
   onUploadComplete,
   variant = 'dialog',
   className,
-  triggerButton
+  isOpen,
+  onOpenChange
 }: SmartDocumentUploadProps) => {
   const [searchParams] = useSearchParams();
   const currentProjectId = projectId || searchParams.get('project') || '';
   
-  const [isOpen, setIsOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<SmartFileData[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -69,16 +70,12 @@ export const SmartDocumentUpload = ({
   // Handle dialog state changes
   const handleOpenChange = (open: boolean) => {
     console.log('Dialog state changing:', { from: isOpen, to: open });
-    setIsOpen(open);
+    if (onOpenChange) {
+      onOpenChange(open);
+    }
     if (!open) {
       resetForm();
     }
-  };
-
-  // Explicit click handler for manual testing
-  const handleTriggerClick = () => {
-    console.log('Trigger clicked, opening dialog');
-    setIsOpen(true);
   };
 
   const getProjectContext = useCallback((): ProjectPhaseContext | undefined => {
@@ -259,7 +256,7 @@ export const SmartDocumentUpload = ({
 
       if (results.failed === 0) {
         resetForm();
-        setIsOpen(false);
+        handleOpenChange(false);
         onUploadComplete?.();
       }
       
@@ -323,7 +320,6 @@ export const SmartDocumentUpload = ({
   const DialogOrSheetContent = isMobile ? SheetContent : DialogContent;
   const DialogOrSheetHeader = isMobile ? SheetHeader : DialogHeader;
   const DialogOrSheetTitle = isMobile ? SheetTitle : DialogTitle;
-  const DialogOrSheetTrigger = isMobile ? SheetTrigger : DialogTrigger;
 
   const uploadContent = (
     <div className="space-y-6">
@@ -420,7 +416,7 @@ export const SmartDocumentUpload = ({
           selectedFilesCount={selectedFiles.length}
           isUploading={isUploading}
           onUpload={handleUpload}
-          onCancel={variant === 'dialog' ? () => setIsOpen(false) : undefined}
+          onCancel={variant === 'dialog' ? () => handleOpenChange(false) : undefined}
           variant={variant}
         />
       </div>
@@ -441,24 +437,6 @@ export const SmartDocumentUpload = ({
 
   return (
     <DialogOrSheet open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogOrSheetTrigger asChild onClick={handleTriggerClick}>
-        {triggerButton || (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className={`bg-blue-600 hover:bg-blue-700 min-h-[44px] transition-all duration-200 hover:scale-105 hover:shadow-lg ${className}`}>
-                  <Sparkles size={20} className="mr-2" />
-                  Smart Upload
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Upload documents with AI-powered categorization</p>
-                <p className="text-xs text-slate-400">Ctrl+U</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </DialogOrSheetTrigger>
       <DialogOrSheetContent className={`${isMobile ? "h-[90vh]" : "sm:max-w-4xl max-h-[90vh]"} animate-scale-in`}>
         <DialogOrSheetHeader>
           <DialogOrSheetTitle className="flex items-center gap-2">

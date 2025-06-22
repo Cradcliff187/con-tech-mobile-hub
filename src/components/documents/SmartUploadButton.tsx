@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Upload, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,6 +22,8 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
   className,
   showTooltip = true
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   const getButtonContent = () => {
     switch (variant) {
       case 'minimal':
@@ -60,11 +62,17 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
     }
   };
 
+  const handleClick = () => {
+    console.log('SmartUploadButton clicked, opening dialog');
+    setIsOpen(true);
+  };
+
   const triggerButton = (
     <Button
       variant={variant === 'minimal' ? 'ghost' : 'default'}
       size={size}
       className={`${getButtonStyles()} ${className}`}
+      onClick={handleClick}
     >
       {getButtonContent()}
     </Button>
@@ -85,12 +93,15 @@ export const SmartUploadButton: React.FC<SmartUploadButtonProps> = ({
   ) : triggerButton;
 
   return (
-    <SmartDocumentUpload
-      projectId={projectId}
-      onUploadComplete={onUploadComplete}
-      variant="dialog"
-      triggerButton={ButtonComponent}
-      className={className}
-    />
+    <>
+      {ButtonComponent}
+      <SmartDocumentUpload
+        projectId={projectId}
+        onUploadComplete={onUploadComplete}
+        variant="dialog"
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+      />
+    </>
   );
 };
