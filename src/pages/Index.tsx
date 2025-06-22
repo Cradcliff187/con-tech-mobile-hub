@@ -11,7 +11,7 @@ import { StakeholderManager } from '@/components/stakeholders/StakeholderManager
 import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
-import { ProjectsList } from '@/components/projects/ProjectsList';
+import { ProjectsManager } from '@/components/projects/ProjectsManager';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -82,7 +82,7 @@ const IndexContent = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return <ProjectDashboard />;
-      case 'projects': return <ProjectsList />;
+      case 'projects': return <ProjectsManager />;
       case 'tasks': return <TaskManager />;
       case 'stakeholders': return <StakeholderManager />;
       case 'planning': return <ProjectPlanning />;
