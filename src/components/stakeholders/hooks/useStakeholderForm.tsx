@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
-import { validateStakeholderForm, transformStakeholderData } from '../utils/stakeholderFormUtils';
+import { validateFormData, stakeholderSchema } from '@/schemas';
+import { transformStakeholderData } from '../utils/stakeholderFormUtils';
 import { useStakeholderFormState } from './useStakeholderFormState';
 import { type StakeholderFormData } from '@/schemas';
 
@@ -30,7 +31,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
   const typedFormData = formData as StakeholderFormData;
 
   const validateForm = (): boolean => {
-    const validation = validateStakeholderForm(typedFormData);
+    const validation = validateFormData(stakeholderSchema, typedFormData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -56,12 +57,18 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     setLoading(true);
 
     try {
-      const validation = validateStakeholderForm(typedFormData);
+      const validation = validateFormData(stakeholderSchema, typedFormData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
 
-      const stakeholderData = transformStakeholderData(validation.data);
+      // Ensure crew_size is properly typed as number | undefined
+      const validatedData = {
+        ...validation.data,
+        crew_size: typeof validation.data.crew_size === 'number' ? validation.data.crew_size : undefined
+      };
+
+      const stakeholderData = transformStakeholderData(validatedData);
 
       const { error } = await createStakeholder(stakeholderData);
 
@@ -74,7 +81,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
       } else {
         toast({
           title: "Stakeholder created successfully",
-          description: `${validation.data.company_name || validation.data.contact_person} has been added with enhanced security validation`
+          description: `${validatedData.company_name || validatedData.contact_person} has been added with enhanced security validation`
         });
         
         resetForm();
