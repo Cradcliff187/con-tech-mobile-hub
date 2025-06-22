@@ -1,8 +1,34 @@
+
 # Welcome to your Lovable project
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/c23b86a1-82a8-4638-9815-b929360757ce
+
+## Environment Configuration
+
+This application requires environment variables to be configured for proper operation.
+
+### Required Environment Variables
+
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+
+### Configuration in Loveable
+
+1. Go to Project Settings > Environment Variables
+2. Add the required variables listed above
+3. Save and redeploy your application
+
+### Local Development
+
+Create a `.env` file in your project root:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+For detailed configuration instructions, see [Environment Configuration Guide](docs/ENVIRONMENT_CONFIGURATION.md).
 
 ## How can I edit this code?
 

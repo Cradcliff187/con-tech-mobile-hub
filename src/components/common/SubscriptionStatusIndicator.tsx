@@ -4,6 +4,7 @@ import { Wifi, WifiOff, AlertCircle, Activity } from 'lucide-react';
 import { subscriptionManager } from '@/services/subscription';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { config } from '@/config/environment';
 
 interface SubscriptionStatusIndicatorProps {
   showDetails?: boolean;
@@ -19,14 +20,14 @@ export const SubscriptionStatusIndicator = ({
 
   useEffect(() => {
     // Show indicator in development mode or when there are issues
-    const shouldShow = process.env.NODE_ENV === 'development' || !healthStatus.isHealthy;
+    const shouldShow = config.app.isDevelopment || !healthStatus.isHealthy;
     setIsVisible(shouldShow);
 
     const interval = setInterval(() => {
       const newStatus = subscriptionManager.getHealthStatus();
       setHealthStatus(newStatus);
       
-      const shouldShowNow = process.env.NODE_ENV === 'development' || !newStatus.isHealthy;
+      const shouldShowNow = config.app.isDevelopment || !newStatus.isHealthy;
       setIsVisible(shouldShowNow);
     }, 2000);
 
@@ -87,7 +88,7 @@ export const SubscriptionStatusIndicator = ({
               {showDetails && (
                 <>
                   <span className="text-xs">{getStatusText()}</span>
-                  {process.env.NODE_ENV === 'development' && (
+                  {config.app.isDevelopment && (
                     <span className="text-xs opacity-75">
                       ({healthStatus.activeChannels})
                     </span>

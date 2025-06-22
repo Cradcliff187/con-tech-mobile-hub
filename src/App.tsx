@@ -7,6 +7,7 @@ import Admin from '@/pages/Admin';
 import NotFound from '@/pages/NotFound';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { SubscriptionStatusIndicator } from '@/components/common/SubscriptionStatusIndicator';
+import { config } from '@/config/environment';
 
 function App() {
   const queryClient = new QueryClient();
@@ -30,8 +31,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           
-          {/* Add subscription status indicator */}
-          <SubscriptionStatusIndicator showDetails={process.env.NODE_ENV === 'development'} />
+          {/* Add subscription status indicator - now uses centralized config */}
+          <SubscriptionStatusIndicator showDetails={config.features.subscriptionStatusIndicator} />
         </div>
       </QueryClientProvider>
     </BrowserRouter>
