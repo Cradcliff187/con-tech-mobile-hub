@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionConfig, SubscriptionCallback, ChannelManager } from './types';
 import { generateChannelKey, generateChannelName, formatFilterForSupabase } from './channelUtils';
@@ -146,35 +147,40 @@ export class SubscriptionManager {
     // Configure the channel with proper filter format
     const { table, event = '*', schema = 'public', filter } = config;
     
+    // Build the postgres changes configuration
     const postgresChangesConfig = {
       event,
       schema,
       table
-    } as const;
+    } as any;
 
     // Add filter if provided - convert to Supabase's expected string format
     if (filter && Object.keys(filter).length > 0) {
       const filterString = formatFilterForSupabase(filter);
       if (filterString) {
-        (postgresChangesConfig as any).filter = filterString;
+        postgresChangesConfig.filter = filterString;
       }
     }
 
-    // Set up real-time listener with enhanced error handling
-    channel.on('postgres_changes', postgresChangesConfig, (payload: RealtimePostgresChangesPayload<any>) => {
-      try {
-        // Call all registered callbacks for this channel
-        channelManager.callbacks.forEach(cb => {
-          try {
-            cb(payload);
-          } catch (error) {
-            // Error in callback - log but don't fail entire channel
-          }
-        });
-      } catch (error) {
-        this.recordFailure(channelKey);
+    // Set up real-time listener with enhanced error handling using the correct method
+    channel.on(
+      'postgres_changes',
+      postgresChangesConfig,
+      (payload: RealtimePostgresChangesPayload<any>) => {
+        try {
+          // Call all registered callbacks for this channel
+          channelManager.callbacks.forEach(cb => {
+            try {
+              cb(payload);
+            } catch (error) {
+              // Error in callback - log but don't fail entire channel
+            }
+          });
+        } catch (error) {
+          this.recordFailure(channelKey);
+        }
       }
-    });
+    );
 
     // Enhanced subscription status handling with retry logic
     channel.subscribe((status) => {
