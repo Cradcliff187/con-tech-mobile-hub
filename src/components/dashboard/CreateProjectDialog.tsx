@@ -111,21 +111,12 @@ export const CreateProjectDialog = ({
         throw new Error('Form validation failed');
       }
 
-      const projectData = {
+      await createProject({
         ...validation.data,
-        // Budget is now properly converted to number by schema
-        budget: validation.data.budget,
-        // Keep legacy location for backward compatibility during transition
-        location: [
-          validation.data.street_address, 
-          validation.data.city, 
-          validation.data.state, 
-          validation.data.zip_code
-        ].filter(Boolean).join(', ') || undefined,
+        budget: typeof validation.data.budget === 'string' ? parseFloat(validation.data.budget) : validation.data.budget,
         progress: 0
-      };
+      });
 
-      await createProject(projectData);
       toast({
         title: "Success",
         description: "Project created successfully with enhanced security validation",
