@@ -23,7 +23,9 @@ export const projectSchema = z.object({
   
   budget: numericFieldSchema(0, 999999999),
   
-  client_id: requiredString(36, 'Please select a client'),
+  client_id: z.string()
+    .min(1, 'Please select a client')
+    .max(36, 'Invalid client ID'),
   
   status: z.enum(['planning', 'active', 'on-hold', 'completed', 'cancelled']),
   
