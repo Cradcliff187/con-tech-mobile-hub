@@ -44,8 +44,7 @@ export const CompactWeatherWidget = () => {
     if (!weather || !tasks.length) return 0;
     
     const activeTasks = tasks.filter(task => 
-      task.status !== 'completed' && 
-      task.status !== 'cancelled'
+      task.status !== 'completed'
     );
     
     const affectedTasks = activeTasks.filter(task => {
