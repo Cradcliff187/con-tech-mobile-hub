@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +18,7 @@ interface DragOperation {
 interface ConflictResolution {
   strategy: 'overwrite' | 'merge' | 'abort';
   conflictingFields: string[];
-  resolution: Record<string, any>;
+  resolution: Record<string, unknown>;
 }
 
 interface DragPreview {
@@ -52,9 +51,48 @@ interface UseEnhancedDragDropProps {
   timelineStart: Date;
   timelineEnd: Date;
   viewMode: 'days' | 'weeks' | 'months';
-  updateTask: (id: string, updates: Partial<Task>) => Promise<{ data?: any; error?: string }>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<{ data?: Task; error?: string }>;
   onTasksUpdate?: (tasks: Task[]) => void;
 }
+
+/**
+ * Validate drag operation based on business rules
+ */
+const validateDragOperation = (
+  task: Task, 
+  newStartDate: Date, 
+  timelineStart: Date, 
+  timelineEnd: Date
+): { isValid: boolean; violations: string[] } => {
+  const violations: string[] = [];
+  
+  // Check if date is within timeline bounds
+  if (newStartDate < timelineStart || newStartDate > timelineEnd) {
+    violations.push('Task date is outside the timeline range');
+  }
+  
+  // Check if it's a weekend (optional business rule)
+  const dayOfWeek = newStartDate.getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    violations.push('Task scheduled for weekend - requires approval');
+  }
+  
+  // Check for minimum task duration
+  if (task.due_date) {
+    const currentEnd = new Date(task.due_date);
+    const currentStart = task.start_date ? new Date(task.start_date) : new Date();
+    const duration = Math.ceil((currentEnd.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (duration < 1) {
+      violations.push('Task duration must be at least 1 day');
+    }
+  }
+  
+  return {
+    isValid: violations.length === 0,
+    violations
+  };
+};
 
 export const useEnhancedDragDrop = ({
   tasks,
@@ -234,7 +272,6 @@ export const useEnhancedDragDrop = ({
     const operation = state.activeOperations.get(operationId);
     if (!operation) return;
 
-    // Update operation status to saving
     setState(prev => ({
       ...prev,
       activeOperations: new Map(prev.activeOperations).set(operationId, {
@@ -251,7 +288,6 @@ export const useEnhancedDragDrop = ({
         throw new Error(error);
       }
 
-      // Mark operation as completed
       setState(prev => ({
         ...prev,
         activeOperations: new Map(prev.activeOperations).set(operationId, {
@@ -266,13 +302,11 @@ export const useEnhancedDragDrop = ({
         description: `Successfully updated task: ${operation.originalData.title}`,
       });
 
-      // Schedule cleanup
       setTimeout(() => cleanupOperation(operationId), 2000);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Handle retry logic
       if (operation.retryCount < 2) {
         setState(prev => ({
           ...prev,
@@ -283,7 +317,6 @@ export const useEnhancedDragDrop = ({
           })
         }));
 
-        // Retry after delay
         setTimeout(() => executeOperation(operationId), 1000 * (operation.retryCount + 1));
         
         toast({
@@ -291,7 +324,6 @@ export const useEnhancedDragDrop = ({
           description: `Retrying task update (attempt ${operation.retryCount + 2}/3)`,
         });
       } else {
-        // Max retries reached, rollback
         setState(prev => ({
           ...prev,
           activeOperations: new Map(prev.activeOperations).set(operationId, {
@@ -334,7 +366,6 @@ export const useEnhancedDragDrop = ({
     setState(prev => ({ ...prev, isSaving: true }));
 
     try {
-      // Execute all operations in parallel
       const promises = bulkOperation.operationIds.map(operationId => executeOperation(operationId));
       await Promise.all(promises);
 
@@ -411,11 +442,13 @@ export const useEnhancedDragDrop = ({
     const relativeX = e.clientX - rect.left;
     const timelineWidth = rect.width;
     
-    // Calculate preview date based on position
     const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
     const daysFromStart = Math.floor((relativeX / timelineWidth) * totalDays);
     const previewDate = new Date(timelineStart);
     previewDate.setDate(previewDate.getDate() + daysFromStart);
+
+    // Validate the drag operation
+    const validation = validateDragOperation(state.dragPreview.task, previewDate, timelineStart, timelineEnd);
 
     setState(prev => ({
       ...prev,
@@ -423,7 +456,8 @@ export const useEnhancedDragDrop = ({
         ...prev.dragPreview,
         position: { x: e.clientX, y: e.clientY },
         previewDate,
-        validity: 'valid' // TODO: Add validation logic
+        validity: validation.isValid ? 'valid' : 'warning',
+        violationMessages: validation.violations
       }
     }));
   }, [state.dragPreview.task, state.isSaving, timelineStart, timelineEnd]);
@@ -437,7 +471,6 @@ export const useEnhancedDragDrop = ({
     const task = state.dragPreview.task;
     const newStartDate = state.dragPreview.previewDate;
     
-    // Calculate task duration and new end date
     const currentStart = task.start_date ? new Date(task.start_date) : new Date();
     const currentEnd = task.due_date ? new Date(task.due_date) : new Date();
     const duration = Math.ceil((currentEnd.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24));
@@ -450,7 +483,6 @@ export const useEnhancedDragDrop = ({
       due_date: newEndDate.toISOString()
     };
 
-    // Create and execute operation
     const operationId = createDragOperation(task, updates);
     executeOperation(operationId);
 

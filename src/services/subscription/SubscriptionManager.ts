@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionConfig, SubscriptionCallback, ChannelManager } from './types';
 import { generateChannelKey, generateChannelName, formatFilterForSupabase } from './channelUtils';
@@ -45,7 +44,6 @@ export class SubscriptionManager {
     // Check rate limiting (max 10 operations per second per key)
     const lastCall = this.globalRateLimit.get(key) || 0;
     if (now - lastCall < 100) { // 100ms minimum between calls
-      console.warn(`Rate limit exceeded for ${key}`);
       return false;
     }
     
@@ -56,9 +54,7 @@ export class SubscriptionManager {
       if (now - breaker.lastFailure > 30000) {
         breaker.isOpen = false;
         breaker.failures = 0;
-        console.log(`Circuit breaker recovered for ${key}`);
       } else {
-        console.warn(`Circuit breaker is open for ${key}`);
         return false;
       }
     }
@@ -78,7 +74,6 @@ export class SubscriptionManager {
     // Open circuit breaker after 3 failures
     if (breaker.failures >= 3) {
       breaker.isOpen = true;
-      console.warn(`Circuit breaker opened for ${key} after ${breaker.failures} failures`);
     }
     
     this.circuitBreaker.set(key, breaker);
@@ -92,7 +87,6 @@ export class SubscriptionManager {
     callback: SubscriptionCallback<T>
   ): () => void {
     if (this.isCleaningUp) {
-      console.warn('Cannot subscribe during cleanup process');
       return () => {};
     }
 
@@ -151,7 +145,14 @@ export class SubscriptionManager {
     // Configure the channel with proper filter format
     const { table, event = '*', schema = 'public', filter } = config;
     
-    let postgresChangesConfig: any = {
+    interface PostgresChangesConfig {
+      event: string;
+      schema: string;
+      table: string;
+      filter?: string;
+    }
+
+    let postgresChangesConfig: PostgresChangesConfig = {
       event,
       schema,
       table
@@ -173,11 +174,10 @@ export class SubscriptionManager {
           try {
             cb(payload);
           } catch (error) {
-            console.error('Error in subscription callback:', error);
+            // Error in callback - log but don't fail entire channel
           }
         });
       } catch (error) {
-        console.error('Error processing subscription payload:', error);
         this.recordFailure(channelKey);
       }
     });
@@ -187,7 +187,6 @@ export class SubscriptionManager {
       channelManager.status = status;
 
       if (status === 'CHANNEL_ERROR') {
-        console.error(`Channel error for ${channelKey}, recording failure`);
         this.recordFailure(channelKey);
         
         // Only retry if circuit breaker allows it
@@ -203,7 +202,6 @@ export class SubscriptionManager {
         // Reset circuit breaker on successful connection
         this.circuitBreaker.delete(channelKey);
         this.errorHandler.resetReconnectAttempts(channelKey);
-        console.log(`Channel ${channelKey} successfully subscribed`);
       }
     });
 
@@ -241,13 +239,12 @@ export class SubscriptionManager {
       try {
         supabase.removeChannel(channelManager.channel);
       } catch (error) {
-        console.warn(`Error cleaning up channel ${channelKey}:`, error);
+        // Cleanup error - not critical
       }
       
       // Clean up error handling state
       this.errorHandler.cleanupErrorState(channelKey);
       this.channels.delete(channelKey);
-      console.log(`Channel ${channelKey} cleaned up`);
     }
   }
 
@@ -267,7 +264,6 @@ export class SubscriptionManager {
     const channelKey = generateChannelKey(config);
     
     if (!this.shouldAllowOperation(`reconnect-${channelKey}`)) {
-      console.warn('Reconnect rate limited for channel:', channelKey);
       return;
     }
     
@@ -294,7 +290,6 @@ export class SubscriptionManager {
     
     this.channels.clear();
     this.isCleaningUp = false;
-    console.log('All subscriptions cleaned up');
   }
 
   /**
