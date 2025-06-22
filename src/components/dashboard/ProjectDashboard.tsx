@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AdvancedMetrics } from './AdvancedMetrics';
@@ -11,6 +10,7 @@ import { ProjectPhaseManager } from '@/components/planning/ProjectPhaseManager';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { ProjectEquipmentSection } from './ProjectEquipmentSection';
 import { ProjectEquipmentQuickCard } from './ProjectEquipmentQuickCard';
+import { ProjectSummaryBar } from './ProjectSummaryBar';
 import { useProjects } from '@/hooks/useProjects';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,9 @@ export const ProjectDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Project Summary Bar */}
+      <ProjectSummaryBar />
+
       {/* Dashboard Header with Create Project Button */}
       <div className="flex justify-between items-center">
         <div>
@@ -74,7 +77,6 @@ export const ProjectDashboard = () => {
           <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ProjectEquipmentQuickCard project={selectedProject} />
-            {/* Add more quick cards here as needed */}
           </div>
         </div>
       )}
