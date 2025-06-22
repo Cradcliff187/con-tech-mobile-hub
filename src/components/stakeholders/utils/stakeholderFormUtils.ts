@@ -1,73 +1,6 @@
 
-import { stakeholderSchema, type StakeholderFormData, validateFormData } from '@/schemas';
-import { sanitizeInput } from '@/utils/validation';
-
-export const sanitizeStakeholderInput = (field: string, value: any) => {
-  switch (field) {
-    case 'company_name':
-    case 'contact_person':
-    case 'city':
-    case 'state':
-    case 'license_number':
-      return sanitizeInput(value, 'text');
-    case 'email':
-      return sanitizeInput(value, 'email');
-    case 'phone':
-      return sanitizeInput(value, 'phone');
-    case 'notes':
-      return sanitizeInput(value, 'html');
-    case 'street_address':
-    case 'zip_code':
-      return sanitizeInput(value, 'text');
-    case 'crew_size':
-      // Convert string to number, return undefined if invalid
-      if (value === '' || value === null || value === undefined) {
-        return undefined;
-      }
-      const numValue = typeof value === 'string' ? parseInt(value) : value;
-      return isNaN(numValue) ? undefined : numValue;
-    case 'specialties':
-      return Array.isArray(value) ? value.map(v => sanitizeInput(v, 'text')) : value;
-    default:
-      return value;
-  }
-};
-
-export const validateStakeholderForm = (formData: StakeholderFormData) => {
-  return validateFormData(stakeholderSchema, formData);
-};
-
-export const createLegacyAddress = (data: StakeholderFormData) => {
-  return [
-    data.street_address,
-    data.city,
-    data.state,
-    data.zip_code
-  ].filter(Boolean).join(', ');
-};
-
-export const transformStakeholderData = (validatedData: StakeholderFormData) => {
-  const legacyAddress = createLegacyAddress(validatedData);
-
-  return {
-    stakeholder_type: validatedData.stakeholder_type,
-    company_name: validatedData.company_name,
-    contact_person: validatedData.contact_person,
-    email: validatedData.email,
-    phone: validatedData.phone,
-    street_address: validatedData.street_address,
-    city: validatedData.city,
-    state: validatedData.state,
-    zip_code: validatedData.zip_code,
-    specialties: validatedData.specialties && validatedData.specialties.length > 0 ? validatedData.specialties : undefined,
-    crew_size: validatedData.crew_size,
-    license_number: validatedData.license_number,
-    insurance_expiry: validatedData.insurance_expiry || undefined,
-    notes: validatedData.notes,
-    status: validatedData.status,
-    address: legacyAddress || undefined,
-  };
-};
+import { type StakeholderFormData } from '@/schemas';
+import { validateFormData, stakeholderSchema } from '@/schemas';
 
 export const getInitialFormData = (defaultType: 'client' | 'subcontractor' | 'employee' | 'vendor'): StakeholderFormData => ({
   stakeholder_type: defaultType,
@@ -86,3 +19,26 @@ export const getInitialFormData = (defaultType: 'client' | 'subcontractor' | 'em
   notes: '',
   status: 'active'
 });
+
+export const validateStakeholderForm = (data: StakeholderFormData) => {
+  return validateFormData(stakeholderSchema, data);
+};
+
+export const transformStakeholderData = (data: StakeholderFormData) => {
+  return {
+    ...data,
+    // Ensure crew_size is properly handled
+    crew_size: data.crew_size || null,
+    // Ensure empty strings are converted to null for optional fields
+    company_name: data.company_name || null,
+    email: data.email || null,
+    phone: data.phone || null,
+    street_address: data.street_address || null,
+    city: data.city || null,
+    state: data.state || null,
+    zip_code: data.zip_code || null,
+    license_number: data.license_number || null,
+    insurance_expiry: data.insurance_expiry || null,
+    notes: data.notes || null
+  };
+};

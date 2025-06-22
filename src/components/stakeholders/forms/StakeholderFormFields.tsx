@@ -1,3 +1,4 @@
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,24 +13,6 @@ import { AlertTriangle, X } from 'lucide-react';
 import { sanitizeText, sanitizeStringArray } from '@/utils/validation';
 import { useState } from 'react';
 import { type StakeholderFormData } from '@/schemas';
-
-interface StakeholderFormData {
-  stakeholder_type: 'client' | 'subcontractor' | 'employee' | 'vendor';
-  company_name: string;
-  contact_person: string;
-  email: string;
-  phone: string;
-  street_address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  specialties: string[];
-  crew_size: number | undefined;
-  license_number: string;
-  insurance_expiry: string;
-  notes: string;
-  status: 'active' | 'inactive' | 'pending' | 'suspended';
-}
 
 interface StakeholderFormFieldsProps {
   formData: StakeholderFormData;
@@ -141,7 +124,7 @@ export const StakeholderFormFields = ({
           <Label htmlFor="company_name">Company Name</Label>
           <Input
             id="company_name"
-            value={formData.company_name}
+            value={formData.company_name || ''}
             onChange={(e) => handleSanitizedChange('company_name', e.target.value)}
             placeholder="Enter company name (max 200 characters)"
             className={getFieldError('company_name') ? 'border-red-500' : ''}
@@ -177,7 +160,7 @@ export const StakeholderFormFields = ({
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <EmailInput
-            value={formData.email}
+            value={formData.email || ''}
             onChange={(value) => handleSanitizedChange('email', value, 'email')}
             className={getFieldError('email') ? 'border-red-500' : ''}
           />
@@ -192,7 +175,7 @@ export const StakeholderFormFields = ({
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
           <PhoneInput
-            value={formData.phone}
+            value={formData.phone || ''}
             onChange={(value) => handleSanitizedChange('phone', value, 'phone')}
             placeholder="Phone number"
             className={getFieldError('phone') ? 'border-red-500' : ''}
@@ -209,10 +192,10 @@ export const StakeholderFormFields = ({
       <div className="space-y-2">
         <Label>Address</Label>
         <AddressFormFields
-          streetAddress={formData.street_address}
-          city={formData.city}
-          state={formData.state}
-          zipCode={formData.zip_code}
+          streetAddress={formData.street_address || ''}
+          city={formData.city || ''}
+          state={formData.state || ''}
+          zipCode={formData.zip_code || ''}
           onFieldChange={onInputChange}
           errors={errors}
         />
@@ -278,7 +261,7 @@ export const StakeholderFormFields = ({
             <Label htmlFor="license_number">License Number</Label>
             <Input
               id="license_number"
-              value={formData.license_number}
+              value={formData.license_number || ''}
               onChange={(e) => handleSanitizedChange('license_number', e.target.value)}
               placeholder="Professional license # (alphanumeric only)"
               className={getFieldError('license_number') ? 'border-red-500' : ''}
@@ -299,7 +282,7 @@ export const StakeholderFormFields = ({
           <Input
             id="insurance_expiry"
             type="date"
-            value={formData.insurance_expiry}
+            value={formData.insurance_expiry || ''}
             onChange={(e) => onInputChange('insurance_expiry', e.target.value)}
             className={getFieldError('insurance_expiry') ? 'border-red-500' : ''}
           />
@@ -316,7 +299,7 @@ export const StakeholderFormFields = ({
         <Label htmlFor="notes">Notes</Label>
         <Textarea
           id="notes"
-          value={formData.notes}
+          value={formData.notes || ''}
           onChange={(e) => handleSanitizedChange('notes', e.target.value)}
           placeholder="Additional information (max 2,000 characters)"
           rows={3}
