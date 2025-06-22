@@ -1,15 +1,15 @@
+
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AdvancedMetrics } from './AdvancedMetrics';
 import { ProjectHealthIndicators } from './ProjectHealthIndicators';
-import { QuickStats } from './QuickStats';
+import { SchedulePerformance } from './SchedulePerformance';
+import { SafetyMetrics } from './SafetyMetrics';
+import { BudgetTracker } from './BudgetTracker';
+import { ResourceUtilization } from './ResourceUtilization';
+import { CompactWeatherWidget } from './CompactWeatherWidget';
 import { RecentActivity } from './RecentActivity';
-import { WeatherWidget } from './WeatherWidget';
 import { CreateProjectDialog } from './CreateProjectDialog';
-import { ProjectPhaseManager } from '@/components/planning/ProjectPhaseManager';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
-import { ProjectEquipmentSection } from './ProjectEquipmentSection';
-import { ProjectEquipmentQuickCard } from './ProjectEquipmentQuickCard';
 import { ProjectSummaryBar } from './ProjectSummaryBar';
 import { useProjects } from '@/hooks/useProjects';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -63,44 +63,14 @@ export const ProjectDashboard = () => {
         </div>
       </div>
 
-      {/* Project Phase Manager - Only shown when a project is selected */}
-      {projectId && (
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Phase Management</h2>
-          <ProjectPhaseManager />
-        </div>
-      )}
-
-      {/* Project Quick Cards - Only shown when a project is selected */}
-      {selectedProject && (
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ProjectEquipmentQuickCard project={selectedProject} />
-          </div>
-        </div>
-      )}
-
-      {/* Project Equipment Section - Only shown when a project is selected */}
-      {selectedProject && (
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Project Equipment</h2>
-          <ProjectEquipmentSection project={selectedProject} />
-        </div>
-      )}
-
-      {/* Enhanced Metrics Section */}
-      <AdvancedMetrics />
-      
-      {/* Project Health Monitoring */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <ProjectHealthIndicators />
-        </div>
-        <div className="space-y-6">
-          <WeatherWidget />
-          <QuickStats />
-        </div>
+      {/* Primary Metrics Grid - 3 columns desktop, 2 tablet, 1 mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <ProjectHealthIndicators />
+        <SchedulePerformance />
+        <SafetyMetrics />
+        <BudgetTracker />
+        <ResourceUtilization />
+        <CompactWeatherWidget />
       </div>
       
       {/* Recent Activity */}
