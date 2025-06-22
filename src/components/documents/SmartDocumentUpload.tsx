@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, AlertCircle } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,10 +46,25 @@ export const SmartDocumentUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
-  const { uploadDocument } = useDocuments();
+  const { uploadDocument, canUpload, canDelete } = useDocuments();
   const { projects } = useProjects();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const isMobile = useIsMobile();
+
+  // Debug logging for component lifecycle and permissions
+  useEffect(() => {
+    console.log('SmartDocumentUpload Debug:', {
+      user: user ? { id: user.id, email: user.email } : null,
+      profile: profile ? { 
+        is_company_user: profile.is_company_user, 
+        account_status: profile.account_status,
+        role: profile.role 
+      } : null,
+      canUploadResult: canUpload(),
+      variant,
+      projectId: currentProjectId
+    });
+  }, [user, profile, canUpload, variant, currentProjectId]);
 
   const getProjectContext = useCallback((): ProjectPhaseContext | undefined => {
     if (!selectedProjectId) return undefined;
@@ -252,14 +267,61 @@ export const SmartDocumentUpload = ({
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  const canUpload = profile && (
-    (profile.is_company_user && profile.account_status === 'approved') ||
-    (!profile.is_company_user && profile.account_status === 'approved')
-  );
+  // Enhanced permission checking with detailed logging
+  const checkCanUpload = () => {
+    const hasUser = !!user;
+    const hasProfile = !!profile;
+    const isCompanyUser = profile?.is_company_user;
+    const isApproved = profile?.account_status === 'approved';
+    const canUploadResult = canUpload();
 
-  if (!canUpload) {
-    return null;
+    console.log('Permission Check Details:', {
+      hasUser,
+      hasProfile,
+      isCompanyUser,
+      isApproved,
+      canUploadResult,
+      finalResult: hasUser && hasProfile && isApproved
+    });
+
+    return hasUser && hasProfile && isApproved;
+  };
+
+  // Show loading state if auth is still loading
+  if (!user || !profile) {
+    console.log('Auth still loading, showing loading state');
+    return (
+      <div className={`flex items-center justify-center p-4 ${className}`}>
+        <div className="animate-pulse flex items-center gap-2 text-slate-500">
+          <Sparkles size={20} />
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
   }
+
+  // Show permission denied state with clear messaging
+  if (!checkCanUpload()) {
+    console.log('Permission denied, showing restricted access message');
+    return (
+      <div className={`flex items-center gap-3 text-slate-600 p-4 bg-slate-50 rounded-lg border border-slate-200 ${className}`}>
+        <AlertCircle size={20} className="text-amber-500 flex-shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium">Upload Restricted</p>
+          <p className="text-slate-500 mt-1">
+            {!profile?.is_company_user 
+              ? "External users need approval to upload documents. Contact your project manager."
+              : profile?.account_status !== 'approved'
+              ? "Your account is pending approval. Contact an administrator."
+              : "You don't have permission to upload documents."
+            }
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('Rendering Smart Upload component with permissions granted');
 
   const DialogOrSheet = isMobile ? Sheet : Dialog;
   const DialogOrSheetContent = isMobile ? SheetContent : DialogContent;

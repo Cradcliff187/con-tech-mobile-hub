@@ -368,10 +368,24 @@ export const useDocuments = (projectId?: string) => {
   }, []);
 
   const canUpload = useCallback(() => {
-    return user && profile && (
-      (profile.is_company_user && profile.account_status === 'approved') ||
-      (!profile.is_company_user && profile.account_status === 'approved')
-    );
+    const hasUser = !!user;
+    const hasProfile = !!profile;
+    const isCompanyUser = profile?.is_company_user;
+    const isApproved = profile?.account_status === 'approved';
+    
+    const result = hasUser && hasProfile && isApproved;
+    
+    console.log('useDocuments canUpload check:', {
+      hasUser,
+      hasProfile,
+      isCompanyUser,
+      isApproved,
+      result,
+      userEmail: user?.email,
+      profileRole: profile?.role
+    });
+    
+    return result;
   }, [user, profile]);
 
   const canDelete = useCallback((document: DocumentRecord) => {
