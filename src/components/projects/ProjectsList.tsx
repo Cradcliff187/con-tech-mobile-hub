@@ -1,15 +1,13 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
-import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
-import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useProjectsListState } from '@/components/projects/hooks/useProjectsListState';
 import { ProjectsListFilters } from '@/components/projects/ProjectsListFilters';
 import { ProjectsQuickFilters } from '@/components/projects/ProjectsQuickFilters';
 import { ProjectsDisplay } from '@/components/projects/ProjectsDisplay';
+import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
+import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
+import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 
 export const ProjectsList = () => {
   const {
@@ -58,22 +56,6 @@ export const ProjectsList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Projects</h1>
-          <p className="text-slate-600">Manage and overview all your construction projects</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {canEdit && (
-            <Button onClick={() => setShowCreateDialog(true)} className="flex items-center gap-2">
-              <Plus size={20} />
-              New Project
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Search and Filters */}
       <ProjectsListFilters
         searchQuery={searchQuery}

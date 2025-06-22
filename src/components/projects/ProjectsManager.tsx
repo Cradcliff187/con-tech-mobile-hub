@@ -212,10 +212,8 @@ export const ProjectsManager = () => {
         })}
       </div>
 
-      {/* Projects List */}
-      <div className="bg-white rounded-lg border border-slate-200">
-        <ProjectsList />
-      </div>
+      {/* Projects List - No wrapper card */}
+      <ProjectsList />
 
       {/* Create Project Dialog */}
       <CreateProjectDialog
