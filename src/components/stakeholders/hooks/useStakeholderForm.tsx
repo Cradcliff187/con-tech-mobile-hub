@@ -65,8 +65,9 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
         throw new Error('Form validation failed');
       }
 
-      // Use the validated data directly (Zod preprocessing ensures correct types)
-      const stakeholderData = transformStakeholderData(validation.data);
+      // Explicitly type the validated data to ensure TypeScript recognizes the correct types
+      const validatedData = validation.data as StakeholderFormData;
+      const stakeholderData = transformStakeholderData(validatedData);
 
       const { error } = await createStakeholder(stakeholderData);
 
@@ -79,7 +80,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
       } else {
         toast({
           title: "Stakeholder created successfully",
-          description: `${validation.data.company_name || validation.data.contact_person} has been added successfully`
+          description: `${validatedData.company_name || validatedData.contact_person} has been added successfully`
         });
         
         resetForm();
