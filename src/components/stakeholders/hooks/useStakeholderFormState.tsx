@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { type StakeholderFormData } from '@/schemas';
-import { sanitizeStakeholderInput, getInitialFormData } from '../utils/stakeholderFormUtils';
+import { getInitialFormData } from '../utils/stakeholderFormUtils';
+import { coerceFieldValue } from '@/utils/form-type-guards';
 
 interface UseStakeholderFormStateProps {
   defaultType: 'client' | 'subcontractor' | 'employee' | 'vendor';
@@ -16,13 +17,10 @@ export const useStakeholderFormState = ({ defaultType }: UseStakeholderFormState
   }, [defaultType]);
 
   const handleInputChange = (field: string, value: any) => {
-    if (field === 'crew_size') {
-      const numValue = value === '' || value === null || value === undefined ? undefined : parseInt(value);
-      setFormData(prev => ({ ...prev, crew_size: isNaN(numValue) ? undefined : numValue }));
-    } else {
-      const sanitizedValue = sanitizeStakeholderInput(field, value);
-      setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
-    }
+    // Use type guards to coerce the value to the correct type
+    const coercedValue = coerceFieldValue(field, value);
+    
+    setFormData(prev => ({ ...prev, [field]: coercedValue }));
     
     // Clear field error when user starts typing
     if (errors[field]) {

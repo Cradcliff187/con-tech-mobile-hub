@@ -4,6 +4,7 @@ import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { validateStakeholderForm, transformStakeholderData } from '../utils/stakeholderFormUtils';
 import { useStakeholderFormState } from './useStakeholderFormState';
+import { type StakeholderFormData } from '@/schemas';
 
 interface UseStakeholderFormProps {
   defaultType?: 'client' | 'subcontractor' | 'employee' | 'vendor';
@@ -25,8 +26,11 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     resetForm
   } = useStakeholderFormState({ defaultType });
 
+  // Type-safe form data
+  const typedFormData = formData as StakeholderFormData;
+
   const validateForm = (): boolean => {
-    const validation = validateStakeholderForm(formData);
+    const validation = validateStakeholderForm(typedFormData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -52,7 +56,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     setLoading(true);
 
     try {
-      const validation = validateStakeholderForm(formData);
+      const validation = validateStakeholderForm(typedFormData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
@@ -93,7 +97,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
   };
 
   return {
-    formData,
+    formData: typedFormData,
     errors,
     loading,
     handleInputChange,

@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, X } from 'lucide-react';
 import { sanitizeText, sanitizeStringArray } from '@/utils/validation';
 import { useState } from 'react';
+import { type StakeholderFormData } from '@/schemas';
 
 interface StakeholderFormData {
   stakeholder_type: 'client' | 'subcontractor' | 'employee' | 'vendor';
