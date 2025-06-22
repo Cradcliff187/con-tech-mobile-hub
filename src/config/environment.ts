@@ -3,7 +3,7 @@
  * Environment Configuration for Construction Management App
  * 
  * This configuration works with:
- * - Loveable's deployment system (using import.meta.env)
+ * - Loveable's deployment system
  * - Local development environments
  * - Vite build system
  */
@@ -25,33 +25,14 @@ interface EnvironmentConfig {
   };
 }
 
-// Validate required environment variables
-const validateEnvironment = (): void => {
-  const requiredVars = [
-    { key: 'VITE_SUPABASE_URL', value: import.meta.env.VITE_SUPABASE_URL },
-    { key: 'VITE_SUPABASE_ANON_KEY', value: import.meta.env.VITE_SUPABASE_ANON_KEY }
-  ];
-
-  const missingVars = requiredVars.filter(({ value }) => !value);
-  
-  if (missingVars.length > 0) {
-    const missingKeys = missingVars.map(({ key }) => key).join(', ');
-    throw new Error(
-      `Missing required environment variables: ${missingKeys}\n\n` +
-      'Please ensure these are configured:\n' +
-      '- In Loveable: Project Settings > Environment Variables\n' +
-      '- For local development: Create .env file with these variables'
-    );
-  }
-};
-
-// Validate environment on module load
-validateEnvironment();
+// Use the actual Supabase project configuration from Loveable
+const SUPABASE_URL = 'https://jjmedlilkxmrbacoitio.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbWVkbGlsa3htcmJhY29pdGlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MzAwNjIsImV4cCI6MjA2NTUwNjA2Mn0.xRHKmoJut_Yj9zMJArfoTVUDexN9SIzOqPSkKDURGfM';
 
 export const config: EnvironmentConfig = {
   supabase: {
-    url: import.meta.env.VITE_SUPABASE_URL || '',
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+    url: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY,
   },
   app: {
     name: 'ConstructPro',
