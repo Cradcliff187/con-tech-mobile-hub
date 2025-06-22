@@ -29,11 +29,6 @@ const phoneSchema = z.string()
   .max(20, 'Phone number too long')
   .transform(str => str.trim());
 
-const urlSchema = z.string()
-  .url('Please enter a valid URL')
-  .max(2000, 'URL too long')
-  .refine(url => /^https?:\/\//.test(url), 'Only HTTP and HTTPS URLs are allowed');
-
 // Project validation schema
 export const projectSchema = z.object({
   name: requiredString(100)
@@ -55,7 +50,11 @@ export const projectSchema = z.object({
     .refine(zip => !zip || /^[\d\-\s]*$/.test(zip), 'ZIP code should only contain numbers, spaces, and hyphens'),
   
   budget: z.union([
-    z.string().transform(str => str === '' ? undefined : parseFloat(str)),
+    z.string().transform(str => {
+      if (str === '' || str === undefined) return undefined;
+      const parsed = parseFloat(str);
+      return isNaN(parsed) ? undefined : parsed;
+    }),
     z.number(),
     z.undefined()
   ]).refine(budget => budget === undefined || (budget >= 0 && budget <= 999999999), 
@@ -82,7 +81,7 @@ export const projectSchema = z.object({
   path: ["end_date"]
 });
 
-// Task validation schema
+// Task validation schema - aligned with database enum
 export const taskSchema = z.object({
   title: requiredString(200)
     .refine(title => !/[<>]/g.test(title), 'Task title contains invalid characters'),
@@ -97,7 +96,8 @@ export const taskSchema = z.object({
   
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   
-  status: z.enum(['not-started', 'in-progress', 'completed', 'blocked', 'cancelled']),
+  // Aligned with database enum - removed 'cancelled'
+  status: z.enum(['not-started', 'in-progress', 'completed', 'blocked']),
   
   task_type: z.enum(['regular', 'milestone', 'inspection', 'maintenance']).optional(),
   
@@ -108,7 +108,11 @@ export const taskSchema = z.object({
     .refine(date => !date || /^\d{4}-\d{2}-\d{2}$/.test(date), 'Invalid date format'),
   
   estimated_hours: z.union([
-    z.string().transform(str => str === '' ? undefined : parseInt(str)),
+    z.string().transform(str => {
+      if (str === '' || str === undefined) return undefined;
+      const parsed = parseInt(str);
+      return isNaN(parsed) ? undefined : parsed;
+    }),
     z.number(),
     z.undefined()
   ]).refine(hours => hours === undefined || (hours >= 0 && hours <= 10000), 
@@ -133,7 +137,7 @@ export const taskSchema = z.object({
   path: ["due_date"]
 });
 
-// Stakeholder validation schema
+// Stakeholder validation schema - make required fields explicit
 export const stakeholderSchema = z.object({
   stakeholder_type: z.enum(['client', 'subcontractor', 'employee', 'vendor']),
   
@@ -164,7 +168,11 @@ export const stakeholderSchema = z.object({
     .transform(specs => specs.filter(spec => spec.trim().length > 0 && !/[<>]/g.test(spec))),
   
   crew_size: z.union([
-    z.string().transform(str => str === '' ? undefined : parseInt(str)),
+    z.string().transform(str => {
+      if (str === '' || str === undefined) return undefined;
+      const parsed = parseInt(str);
+      return isNaN(parsed) ? undefined : parsed;
+    }),
     z.number(),
     z.undefined()
   ]).refine(size => size === undefined || (size >= 0 && size <= 1000), 

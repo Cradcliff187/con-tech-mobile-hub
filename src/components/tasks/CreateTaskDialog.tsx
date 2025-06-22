@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -318,20 +317,21 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category || ''}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-                placeholder="Task category"
-                className={getFieldError('category') ? 'border-red-500' : ''}
-              />
-              {getFieldError('category') && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
-                  <AlertTriangle size={12} />
-                  {getFieldError('category')}
-                </p>
-              )}
+              <Label htmlFor="status">Status</Label>
+              <Select 
+                value={formData.status || 'not-started'} 
+                onValueChange={(value: 'not-started' | 'in-progress' | 'completed' | 'blocked') => handleInputChange('status', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not-started">Not Started</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="blocked">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

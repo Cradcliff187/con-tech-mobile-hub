@@ -14,7 +14,7 @@ interface CreateStakeholderDialogProps {
 export const CreateStakeholderDialog = ({ 
   open, 
   onOpenChange, 
-  defaultType,
+  defaultType = 'subcontractor',
   onSuccess 
 }: CreateStakeholderDialogProps) => {
   const {

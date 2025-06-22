@@ -47,7 +47,7 @@ export const CreateProjectDialog = ({
 
   const handleInputChange = (field: keyof ProjectFormData, value: string) => {
     // Sanitize input based on field type
-    let sanitizedValue: string | number = value;
+    let sanitizedValue: string | number | undefined = value;
     
     switch (field) {
       case 'name':
@@ -63,7 +63,8 @@ export const CreateProjectDialog = ({
         sanitizedValue = sanitizeInput(value, 'text') as string;
         break;
       case 'budget':
-        sanitizedValue = value; // Will be validated by schema
+        // Keep as string for form input, will be converted during validation
+        sanitizedValue = value;
         break;
       default:
         sanitizedValue = sanitizeInput(value, 'text') as string;
@@ -112,8 +113,8 @@ export const CreateProjectDialog = ({
 
       const projectData = {
         ...validation.data,
-        // Convert budget to number if it exists
-        budget: validation.data.budget || undefined,
+        // Budget is now properly converted to number by schema
+        budget: validation.data.budget,
         // Keep legacy location for backward compatibility during transition
         location: [
           validation.data.street_address, 
@@ -264,7 +265,7 @@ export const CreateProjectDialog = ({
           <TextField
             label="Budget ($)"
             type="text"
-            value={formData.budget?.toString() || ''}
+            value={typeof formData.budget === 'number' ? formData.budget.toString() : (formData.budget || '')}
             onChange={(value) => handleInputChange('budget', value)}
             placeholder="0"
             hint="Project budget in USD"

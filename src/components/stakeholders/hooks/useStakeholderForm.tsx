@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
@@ -11,9 +10,9 @@ interface UseStakeholderFormProps {
   onClose: () => void;
 }
 
-export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStakeholderFormProps) => {
+export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, onClose }: UseStakeholderFormProps) => {
   const [formData, setFormData] = useState<StakeholderFormData>({
-    stakeholder_type: defaultType || 'subcontractor',
+    stakeholder_type: defaultType,
     company_name: '',
     contact_person: '',
     email: '',
@@ -37,9 +36,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
   const { toast } = useToast();
 
   useEffect(() => {
-    if (defaultType) {
-      setFormData(prev => ({ ...prev, stakeholder_type: defaultType }));
-    }
+    setFormData(prev => ({ ...prev, stakeholder_type: defaultType }));
   }, [defaultType]);
 
   const handleInputChange = (field: string, value: any) => {
@@ -68,7 +65,8 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
         sanitizedValue = sanitizeInput(value, 'text');
         break;
       case 'crew_size':
-        sanitizedValue = value === '' ? undefined : parseInt(value.toString());
+        // Keep as string for form input, will be converted during validation
+        sanitizedValue = value;
         break;
       case 'specialties':
         sanitizedValue = Array.isArray(value) ? value.map(v => sanitizeInput(v, 'text')) : value;
@@ -103,7 +101,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
 
   const resetForm = () => {
     setFormData({
-      stakeholder_type: defaultType || 'subcontractor',
+      stakeholder_type: defaultType,
       company_name: '',
       contact_person: '',
       email: '',
@@ -153,7 +151,7 @@ export const useStakeholderForm = ({ defaultType, onSuccess, onClose }: UseStake
       const stakeholderData = {
         ...validation.data,
         address: legacyAddress || undefined, // Keep for backward compatibility
-        crew_size: validation.data.crew_size || undefined,
+        crew_size: validation.data.crew_size,
         insurance_expiry: validation.data.insurance_expiry || undefined,
         specialties: validation.data.specialties && validation.data.specialties.length > 0 ? validation.data.specialties : undefined
       };
