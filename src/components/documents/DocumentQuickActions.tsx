@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Upload, Camera, Receipt, FolderOpen } from 'lucide-react';
+import { Camera, FolderOpen } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Project } from '@/types/database';
-import { SmartDocumentUpload } from './SmartDocumentUpload';
+import { SmartUploadButton } from './SmartUploadButton';
 import { useAuth } from '@/hooks/useAuth';
 import { useDocuments } from '@/hooks/useDocuments';
 import { QuickActionButton } from '@/components/common/quick-actions/QuickActionButton';
@@ -39,7 +39,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
         actions.push({
           id: 'upload-plans',
           label: 'Upload Plans',
-          icon: Upload,
+          icon: Camera,
           action: () => {
             const params = new URLSearchParams(searchParams);
             params.set('category', 'plans');
@@ -70,7 +70,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
         actions.push({
           id: 'final-docs',
           label: 'Final Documents',
-          icon: Upload,
+          icon: Camera,
           action: () => {
             const params = new URLSearchParams(searchParams);
             params.set('category', 'reports');
@@ -99,11 +99,11 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
   if (variant === 'compact') {
     return (
       <div className={`flex gap-2 ${className}`}>
-        <SmartDocumentUpload
+        <SmartUploadButton
           projectId={project?.id}
           onUploadComplete={handleUploadComplete}
-          variant="dialog"
-          className="min-h-[44px]"
+          variant="compact"
+          size="sm"
         />
       </div>
     );
@@ -112,11 +112,11 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
   if (variant === 'floating') {
     return (
       <div className={`fixed bottom-6 right-6 z-40 ${className}`}>
-        <SmartDocumentUpload
+        <SmartUploadButton
           projectId={project?.id}
           onUploadComplete={handleUploadComplete}
-          variant="dialog"
-          className="rounded-full shadow-lg min-h-[56px] min-w-[56px]"
+          variant="floating"
+          size="lg"
         />
       </div>
     );
@@ -134,11 +134,11 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
         />
       ))}
       
-      <SmartDocumentUpload
+      <SmartUploadButton
         projectId={project?.id}
         onUploadComplete={handleUploadComplete}
-        variant="dialog"
-        className="min-h-[44px]"
+        variant="default"
+        size="default"
       />
     </div>
   );

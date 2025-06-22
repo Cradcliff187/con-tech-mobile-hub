@@ -45,12 +45,12 @@ export const SmartDocumentUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
-  const { uploadDocument, canUpload, canDelete } = useDocuments();
+  const { uploadDocument, canUpload } = useDocuments();
   const { projects } = useProjects();
   const { user, profile } = useAuth();
   const isMobile = useIsMobile();
 
-  // Debug logging for component lifecycle and permissions
+  // Debug logging for permission and state changes
   useEffect(() => {
     console.log('SmartDocumentUpload Debug:', {
       user: user ? { id: user.id, email: user.email } : null,
@@ -61,9 +61,25 @@ export const SmartDocumentUpload = ({
       } : null,
       canUploadResult: canUpload(),
       variant,
-      projectId: currentProjectId
+      projectId: currentProjectId,
+      isOpen
     });
-  }, [user, profile, canUpload, variant, currentProjectId]);
+  }, [user, profile, canUpload, variant, currentProjectId, isOpen]);
+
+  // Handle dialog state changes
+  const handleOpenChange = (open: boolean) => {
+    console.log('Dialog state changing:', { from: isOpen, to: open });
+    setIsOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
+
+  // Explicit click handler for manual testing
+  const handleTriggerClick = () => {
+    console.log('Trigger clicked, opening dialog');
+    setIsOpen(true);
+  };
 
   const getProjectContext = useCallback((): ProjectPhaseContext | undefined => {
     if (!selectedProjectId) return undefined;
@@ -197,7 +213,7 @@ export const SmartDocumentUpload = ({
 
     setIsUploading(true);
     
-    const uploadPromise = async () => {
+    try {
       const results = { success: 0, failed: 0 };
       
       for (const fileData of selectedFiles) {
@@ -226,12 +242,6 @@ export const SmartDocumentUpload = ({
           results.failed++;
         }
       }
-      
-      return results;
-    };
-
-    try {
-      const results = await uploadPromise();
       
       if (results.success > 0) {
         toast.success("Upload Complete", {
@@ -266,13 +276,11 @@ export const SmartDocumentUpload = ({
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  // Enhanced permission checking with detailed logging
+  // Enhanced permission checking
   const checkCanUpload = () => {
     const hasUser = !!user;
     const hasProfile = !!profile;
-    const isCompanyUser = profile?.is_company_user;
     const isApproved = profile?.account_status === 'approved';
-    const canUploadResult = canUpload();
 
     return hasUser && hasProfile && isApproved;
   };
@@ -432,39 +440,36 @@ export const SmartDocumentUpload = ({
   }
 
   return (
-    <TooltipProvider>
-      <DialogOrSheet open={isOpen} onOpenChange={(open) => {
-        setIsOpen(open);
-        if (!open) resetForm();
-      }}>
-        <DialogOrSheetTrigger asChild>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {triggerButton || (
+    <DialogOrSheet open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogOrSheetTrigger asChild onClick={handleTriggerClick}>
+        {triggerButton || (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button className={`bg-blue-600 hover:bg-blue-700 min-h-[44px] transition-all duration-200 hover:scale-105 hover:shadow-lg ${className}`}>
                   <Sparkles size={20} className="mr-2" />
                   Smart Upload
                 </Button>
-              )}
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Upload documents with AI-powered categorization</p>
-              <p className="text-xs text-slate-400">Ctrl+U</p>
-            </TooltipContent>
-          </Tooltip>
-        </DialogOrSheetTrigger>
-        <DialogOrSheetContent className={`${isMobile ? "h-[90vh]" : "sm:max-w-4xl max-h-[90vh]"} animate-scale-in`}>
-          <DialogOrSheetHeader>
-            <DialogOrSheetTitle className="flex items-center gap-2">
-              <Sparkles className="text-blue-500" size={24} />
-              Smart Document Upload
-            </DialogOrSheetTitle>
-          </DialogOrSheetHeader>
-          <div className="flex-1 overflow-y-auto">
-            {uploadContent}
-          </div>
-        </DialogOrSheetContent>
-      </DialogOrSheet>
-    </TooltipProvider>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Upload documents with AI-powered categorization</p>
+                <p className="text-xs text-slate-400">Ctrl+U</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </DialogOrSheetTrigger>
+      <DialogOrSheetContent className={`${isMobile ? "h-[90vh]" : "sm:max-w-4xl max-h-[90vh]"} animate-scale-in`}>
+        <DialogOrSheetHeader>
+          <DialogOrSheetTitle className="flex items-center gap-2">
+            <Sparkles className="text-blue-500" size={24} />
+            Smart Document Upload
+          </DialogOrSheetTitle>
+        </DialogOrSheetHeader>
+        <div className="flex-1 overflow-y-auto">
+          {uploadContent}
+        </div>
+      </DialogOrSheetContent>
+    </DialogOrSheet>
   );
 };

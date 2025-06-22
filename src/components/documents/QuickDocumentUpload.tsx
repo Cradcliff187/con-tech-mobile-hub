@@ -1,7 +1,7 @@
 
 import { Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { SmartDocumentUpload } from './SmartDocumentUpload';
+import { SmartUploadButton } from './SmartUploadButton';
+import { QuickAction } from '@/components/common/quick-actions/types';
 
 interface QuickDocumentUploadProps {
   projectId: string;
@@ -21,25 +21,18 @@ export const QuickDocumentUpload = ({
       id: 'upload-document',
       label: 'Upload Document',
       icon: Upload,
-      action: () => {}, // This will be handled by SmartDocumentUpload component
+      action: () => {}, // This will be handled by SmartUploadButton component
       shortcut: 'Ctrl+U'
-    };
+    } as QuickAction;
   }
 
   return (
-    <SmartDocumentUpload
+    <SmartUploadButton
       projectId={projectId}
       onUploadComplete={onUploadComplete}
-      variant="dialog"
-      triggerButton={
-        <Button
-          className={`bg-blue-600 hover:bg-blue-700 ${className}`}
-          size="sm"
-        >
-          <Upload size={16} className="mr-2" />
-          Upload
-        </Button>
-      }
+      variant="compact"
+      size="sm"
+      className={className}
     />
   );
 };
