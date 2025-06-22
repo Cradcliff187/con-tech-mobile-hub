@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Project } from '@/types/database';
 import { format } from 'date-fns';
+import { prepareOptionalSelectField, normalizeSelectValue } from '@/utils/selectHelpers';
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -39,7 +39,7 @@ export const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDi
     progress: 0,
     status: 'planning' as Project['status'],
     phase: 'planning' as Project['phase'],
-    client_id: ''
+    client_id: 'none'
   });
 
   // Check if user can edit projects
@@ -62,7 +62,7 @@ export const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDi
         progress: project.progress || 0,
         status: project.status || 'planning',
         phase: project.phase || 'planning',
-        client_id: project.client_id || ''
+        client_id: normalizeSelectValue(project.client_id)
       });
     }
   }, [project]);
@@ -87,7 +87,7 @@ export const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDi
       progress: formData.progress,
       status: formData.status,
       phase: formData.phase,
-      client_id: formData.client_id || null
+      client_id: prepareOptionalSelectField(formData.client_id)
     };
 
     const { error } = await updateProject(project.id, projectData);
@@ -149,7 +149,7 @@ export const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDi
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No client</SelectItem>
+                <SelectItem value="none">No client</SelectItem>
                 {clientOptions.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.company_name || client.contact_person}

@@ -10,6 +10,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Users, AlertTriangle } from 'lucide-react';
+import { prepareOptionalSelectField } from '@/utils/selectHelpers';
 
 interface BulkTaskActionsDialogProps {
   open: boolean;
@@ -22,7 +23,7 @@ export const BulkTaskActionsDialog = ({ open, onOpenChange, tasks }: BulkTaskAct
   const [bulkAction, setBulkAction] = useState<string>('');
   const [newStatus, setNewStatus] = useState<Task['status']>('not-started');
   const [newPriority, setNewPriority] = useState<Task['priority']>('medium');
-  const [selectedStakeholderId, setSelectedStakeholderId] = useState<string>('');
+  const [selectedStakeholderId, setSelectedStakeholderId] = useState<string>('none');
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { updateTask } = useTasks();
@@ -68,7 +69,7 @@ export const BulkTaskActionsDialog = ({ open, onOpenChange, tasks }: BulkTaskAct
           case 'update-priority':
             return updateTask(taskId, { priority: newPriority });
           case 'assign-stakeholder':
-            return updateTask(taskId, { assigned_stakeholder_id: selectedStakeholderId || undefined });
+            return updateTask(taskId, { assigned_stakeholder_id: prepareOptionalSelectField(selectedStakeholderId) });
           default:
             return Promise.resolve({ error: null });
         }
@@ -109,7 +110,7 @@ export const BulkTaskActionsDialog = ({ open, onOpenChange, tasks }: BulkTaskAct
     setBulkAction('');
     setNewStatus('not-started');
     setNewPriority('medium');
-    setSelectedStakeholderId('');
+    setSelectedStakeholderId('none');
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -237,7 +238,7 @@ export const BulkTaskActionsDialog = ({ open, onOpenChange, tasks }: BulkTaskAct
                     <SelectValue placeholder="Select stakeholder..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassign</SelectItem>
+                    <SelectItem value="none">Unassign</SelectItem>
                     {stakeholders.map((stakeholder) => (
                       <SelectItem key={stakeholder.id} value={stakeholder.id}>
                         {stakeholder.contact_person || stakeholder.company_name || stakeholder.email}

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Copy, Eye, EyeOff } from 'lucide-react';
+import { prepareOptionalSelectField } from '@/utils/selectHelpers';
 
 interface CreateExternalUserDialogProps {
   open: boolean;
@@ -23,7 +24,7 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
     email: '',
     full_name: '',
     role: 'stakeholder' as string,
-    project_id: '' as string
+    project_id: 'none' as string
   });
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
@@ -35,7 +36,7 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
 
     const { tempPassword: generatedPassword, error } = await createExternalUser({
       ...formData,
-      project_id: formData.project_id || undefined
+      project_id: prepareOptionalSelectField(formData.project_id)
     });
 
     if (!error && generatedPassword) {
@@ -50,7 +51,7 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
       email: '',
       full_name: '',
       role: 'stakeholder',
-      project_id: ''
+      project_id: 'none'
     });
     setTempPassword('');
     setShowPassword(false);
@@ -181,7 +182,7 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  <SelectItem value="">No specific project</SelectItem>
+                  <SelectItem value="none">No specific project</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
