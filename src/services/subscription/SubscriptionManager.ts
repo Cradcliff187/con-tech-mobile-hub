@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionConfig, SubscriptionCallback, ChannelManager } from './types';
 import { generateChannelKey, generateChannelName, formatFilterForSupabase } from './channelUtils';
 import { SubscriptionErrorHandler } from './errorHandling';
+import type { RealtimePostgresChangesFilter } from '@supabase/supabase-js';
 
 /**
  * Enhanced Centralized Subscription Manager with improved error handling and retry logic
@@ -145,14 +146,7 @@ export class SubscriptionManager {
     // Configure the channel with proper filter format
     const { table, event = '*', schema = 'public', filter } = config;
     
-    interface PostgresChangesConfig {
-      event: string;
-      schema: string;
-      table: string;
-      filter?: string;
-    }
-
-    let postgresChangesConfig: PostgresChangesConfig = {
+    const postgresChangesConfig: RealtimePostgresChangesFilter = {
       event,
       schema,
       table
