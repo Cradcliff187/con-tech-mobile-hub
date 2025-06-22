@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -12,6 +13,7 @@ import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { ProjectsManager } from '@/components/projects/ProjectsManager';
+import { EmployeeCostDashboard } from '@/components/costs/EmployeeCostDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -30,7 +32,8 @@ import {
   Calendar,
   BarChart3,
   Clock,
-  Folder
+  Folder,
+  DollarSign
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
