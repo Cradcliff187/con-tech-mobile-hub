@@ -10,15 +10,15 @@ export const QuickStats = () => {
   const { tasks } = useTasks();
   const { stakeholders } = useStakeholders();
 
-  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const totalProjects = projects.length;
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const totalTasks = tasks.length;
   const activeStakeholders = stakeholders.filter(s => s.status === 'active').length;
 
   const stats = [
     {
-      title: 'Active Projects',
-      value: activeProjects,
+      title: 'Total Projects',
+      value: totalProjects,
       icon: Building2,
       color: 'text-blue-600'
     },
