@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
@@ -159,7 +160,9 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
         state: validation.data.state,
         zip_code: validation.data.zip_code,
         specialties: validation.data.specialties && validation.data.specialties.length > 0 ? validation.data.specialties : undefined,
-        crew_size: validation.data.crew_size,
+        crew_size: typeof validation.data.crew_size === 'string' 
+          ? parseInt(validation.data.crew_size) || undefined 
+          : validation.data.crew_size,
         license_number: validation.data.license_number,
         insurance_expiry: validation.data.insurance_expiry || undefined,
         notes: validation.data.notes,

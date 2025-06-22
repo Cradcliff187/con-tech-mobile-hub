@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -55,13 +56,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
   useEffect(() => {
     if (selectedProject) {
       const defaults = getTaskDefaults(selectedProject);
-      setFormData(prev => ({
-        ...prev,
-        priority: defaults.priority || 'medium',
-        estimated_hours: defaults.estimated_hours || undefined,
-        punch_list_category: defaults.punch_list_category || undefined,
-        required_skills: defaults.required_skills || []
-      }));
+      setFormData(prev => ({ ...prev, ...defaults }));
     }
   }, [selectedProject]);
 
