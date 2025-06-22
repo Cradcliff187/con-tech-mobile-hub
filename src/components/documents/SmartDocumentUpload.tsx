@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { AlertCircle, Sparkles } from 'lucide-react';
+import { AlertCircle, Sparkles, FileText, Camera, Receipt, Shield, Building, ClipboardList } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,14 +25,14 @@ interface SmartDocumentUploadProps {
 }
 
 const DOCUMENT_CATEGORIES = [
-  { value: 'plans', label: 'Plans & Drawings', icon: require('lucide-react').FileText, description: 'Blueprints, CAD files, architectural drawings' },
-  { value: 'photos', label: 'Progress Photos', icon: require('lucide-react').Camera, description: 'Site photos, before/after images, progress documentation' },
-  { value: 'receipts', label: 'Receipts & Expenses', icon: require('lucide-react').Receipt, description: 'Purchase receipts, invoices, expense documentation' },
-  { value: 'permits', label: 'Permits & Approvals', icon: require('lucide-react').Shield, description: 'Building permits, inspections, regulatory approvals' },
-  { value: 'contracts', label: 'Contracts & Agreements', icon: require('lucide-react').Building, description: 'Contracts, proposals, legal documents' },
-  { value: 'reports', label: 'Reports & Documentation', icon: require('lucide-react').ClipboardList, description: 'Status reports, inspection reports, documentation' },
-  { value: 'safety', label: 'Safety Documents', icon: require('lucide-react').Shield, description: 'Safety protocols, MSDS sheets, incident reports' },
-  { value: 'other', label: 'Other Documents', icon: require('lucide-react').FileText, description: 'Miscellaneous project documents' }
+  { value: 'plans', label: 'Plans & Drawings', icon: FileText, description: 'Blueprints, CAD files, architectural drawings' },
+  { value: 'photos', label: 'Progress Photos', icon: Camera, description: 'Site photos, before/after images, progress documentation' },
+  { value: 'receipts', label: 'Receipts & Expenses', icon: Receipt, description: 'Purchase receipts, invoices, expense documentation' },
+  { value: 'permits', label: 'Permits & Approvals', icon: Shield, description: 'Building permits, inspections, regulatory approvals' },
+  { value: 'contracts', label: 'Contracts & Agreements', icon: Building, description: 'Contracts, proposals, legal documents' },
+  { value: 'reports', label: 'Reports & Documentation', icon: ClipboardList, description: 'Status reports, inspection reports, documentation' },
+  { value: 'safety', label: 'Safety Documents', icon: Shield, description: 'Safety protocols, MSDS sheets, incident reports' },
+  { value: 'other', label: 'Other Documents', icon: FileText, description: 'Miscellaneous project documents' }
 ];
 
 const PHASE_PRIORITY_CATEGORIES = {
