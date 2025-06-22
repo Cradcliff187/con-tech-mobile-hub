@@ -16,9 +16,13 @@ export const useStakeholderFormState = ({ defaultType }: UseStakeholderFormState
   }, [defaultType]);
 
   const handleInputChange = (field: string, value: any) => {
-    const sanitizedValue = sanitizeStakeholderInput(field, value);
-    
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
+    if (field === 'crew_size') {
+      const numValue = value === '' || value === null || value === undefined ? undefined : parseInt(value);
+      setFormData(prev => ({ ...prev, crew_size: isNaN(numValue) ? undefined : numValue }));
+    } else {
+      const sanitizedValue = sanitizeStakeholderInput(field, value);
+      setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
+    }
     
     // Clear field error when user starts typing
     if (errors[field]) {

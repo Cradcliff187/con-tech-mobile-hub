@@ -106,12 +106,17 @@ export const CreateProjectFormFields = ({
         </div>
       </div>
 
-      <AddressFormFields
-        formData={formData}
-        onInputChange={onInputChange}
-        errors={errors}
-        disabled={disabled}
-      />
+      <div className="space-y-2">
+        <Label>Address</Label>
+        <AddressFormFields
+          streetAddress={formData.street_address || ''}
+          city={formData.city || ''}
+          state={formData.state || ''}
+          zipCode={formData.zip_code || ''}
+          onFieldChange={onInputChange}
+          errors={errors}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
