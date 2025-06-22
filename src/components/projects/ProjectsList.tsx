@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
@@ -27,7 +26,7 @@ export const ProjectsList = () => {
   const { projects, loading } = useProjects();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('table'); // Changed default from 'grid' to 'table'
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
