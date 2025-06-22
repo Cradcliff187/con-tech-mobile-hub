@@ -26,19 +26,20 @@ export const validateStakeholderForm = (data: StakeholderFormData) => {
 
 export const transformStakeholderData = (data: StakeholderFormData) => {
   return {
-    ...data,
-    // Ensure crew_size is properly handled
-    crew_size: data.crew_size || null,
-    // Ensure empty strings are converted to null for optional fields
+    stakeholder_type: data.stakeholder_type,
     company_name: data.company_name || null,
+    contact_person: data.contact_person,
     email: data.email || null,
     phone: data.phone || null,
     street_address: data.street_address || null,
     city: data.city || null,
     state: data.state || null,
     zip_code: data.zip_code || null,
+    specialties: data.specialties,
+    crew_size: data.crew_size || null,
     license_number: data.license_number || null,
     insurance_expiry: data.insurance_expiry || null,
-    notes: data.notes || null
+    notes: data.notes || null,
+    status: data.status
   };
 };
