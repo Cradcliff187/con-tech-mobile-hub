@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDocuments } from '@/hooks/useDocuments';
 import { QuickActionButton } from '@/components/common/quick-actions/QuickActionButton';
 import { QuickAction } from '@/components/common/quick-actions/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DocumentQuickActionsProps {
   project?: Project;
@@ -22,8 +23,16 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
 }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { canUpload, refetch } = useDocuments(project?.id);
+
+  console.log('DocumentQuickActions render:', {
+    variant,
+    hasUser: !!user,
+    hasProfile: !!profile,
+    canUploadResult: canUpload(),
+    projectId: project?.id
+  });
 
   const handleUploadComplete = () => {
     refetch();
@@ -87,6 +96,33 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
 
   const phaseActions = getPhaseSpecificActions();
 
+  // Show loading state while auth is initializing
+  if (!user || !profile) {
+    if (variant === 'compact') {
+      return (
+        <div className={`flex gap-2 ${className}`}>
+          <Skeleton className="h-11 w-24" />
+        </div>
+      );
+    }
+
+    if (variant === 'floating') {
+      return (
+        <div className={`fixed bottom-6 right-6 z-40 ${className}`}>
+          <Skeleton className="h-14 w-14 rounded-full" />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`flex flex-wrap gap-2 lg:gap-3 ${className}`}>
+        <Skeleton className="h-11 w-32" />
+        <Skeleton className="h-11 w-28" />
+      </div>
+    );
+  }
+
+  // Show restriction message if user doesn't have upload permission
   if (!canUpload()) {
     return (
       <div className="flex items-center gap-2 text-slate-500 p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -96,6 +132,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
     );
   }
 
+  // Render compact variant
   if (variant === 'compact') {
     return (
       <div className={`flex gap-2 ${className}`}>
@@ -109,6 +146,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
     );
   }
 
+  // Render floating variant
   if (variant === 'floating') {
     return (
       <div className={`fixed bottom-6 right-6 z-40 ${className}`}>
@@ -122,6 +160,7 @@ export const DocumentQuickActions: React.FC<DocumentQuickActionsProps> = ({
     );
   }
 
+  // Render inline variant (default)
   return (
     <div className={`flex flex-wrap gap-2 lg:gap-3 ${className}`}>
       {phaseActions.map((action) => (
