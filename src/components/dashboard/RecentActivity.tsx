@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, User, FileText, CheckSquare } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
@@ -6,6 +5,8 @@ import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
+import { ActivityListSkeleton } from './skeletons/ActivityListSkeleton';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
 
 interface ActivityItem {
   id: string;
@@ -17,14 +18,21 @@ interface ActivityItem {
 }
 
 export const RecentActivity = () => {
-  const { tasks } = useTasks();
-  const { projects } = useProjects();
+  const { tasks, loading: tasksLoading } = useTasks();
+  const { projects, loading: projectsLoading } = useProjects();
   const { stakeholders } = useStakeholders();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRecentActivities = async () => {
+      if (tasksLoading || projectsLoading) return;
+      
       try {
+        setLoading(true);
+        setError(null);
+
         const activityItems: ActivityItem[] = [];
 
         // Get recent tasks with assignee names
@@ -90,14 +98,47 @@ export const RecentActivity = () => {
         setActivities(activityItems.slice(0, 5));
       } catch (error) {
         console.error('Error fetching recent activities:', error);
+        setError('Failed to load recent activity');
         setActivities([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (tasks.length > 0 || projects.length > 0) {
+    if (!tasksLoading && !projectsLoading && (tasks.length > 0 || projects.length > 0)) {
       fetchRecentActivities();
+    } else if (!tasksLoading && !projectsLoading) {
+      setLoading(false);
     }
-  }, [tasks, projects, stakeholders]);
+  }, [tasks, projects, stakeholders, tasksLoading, projectsLoading]);
+
+  if (loading || tasksLoading || projectsLoading) {
+    return <ActivityListSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-800">
+            <Clock size={20} />
+            Recent Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ErrorFallback 
+            title="Activity Feed Unavailable"
+            description={error}
+            resetError={() => {
+              setError(null);
+              setLoading(true);
+            }}
+            className="max-w-none"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (activities.length === 0) {
     return (

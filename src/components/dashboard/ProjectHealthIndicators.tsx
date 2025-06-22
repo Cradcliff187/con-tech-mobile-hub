@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -7,6 +6,8 @@ import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Calendar, 
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useMilestones } from '@/hooks/useMilestones';
+import { CircularProgressSkeleton } from './skeletons/CircularProgressSkeleton';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
 
 interface HealthMetric {
   name: string;
@@ -125,111 +126,170 @@ const PhaseIndicator = ({ currentPhase }: { currentPhase: string }) => {
 };
 
 export const ProjectHealthIndicators = () => {
-  const { projects } = useProjects();
-  const { tasks } = useTasks();
-  const { milestones } = useMilestones();
+  const { projects, loading: projectsLoading } = useProjects();
+  const { tasks, loading: tasksLoading } = useTasks();
+  const { milestones, loading: milestonesLoading } = useMilestones();
+
+  const isLoading = projectsLoading || tasksLoading || milestonesLoading;
 
   const healthMetrics = useMemo((): { 
     overallHealth: number; 
     metrics: HealthMetric[];
     phaseDistribution: Record<string, number>;
+    error?: string;
   } => {
-    if (projects.length === 0) {
+    try {
+      if (projects.length === 0 && !projectsLoading) {
+        return {
+          overallHealth: 0,
+          metrics: [],
+          phaseDistribution: {},
+          error: 'No projects available'
+        };
+      }
+
+      // Calculate Schedule Health
+      const today = new Date();
+      const overdueTasks = tasks.filter(task => 
+        task.due_date && new Date(task.due_date) < today && task.status !== 'completed'
+      ).length;
+      const completedOnTime = tasks.filter(task => 
+        task.status === 'completed' && 
+        (!task.due_date || new Date(task.due_date) >= today)
+      ).length;
+      const totalCompletedTasks = tasks.filter(task => task.status === 'completed').length;
+      const scheduleHealth = totalCompletedTasks > 0 
+        ? Math.max(0, Math.round(((totalCompletedTasks - overdueTasks) / totalCompletedTasks) * 100))
+        : 85;
+
+      // Calculate Budget Health (mock data - would integrate with real budget tracking)
+      const budgetHealth = Math.round(Math.random() * 20 + 75); // 75-95%
+
+      // Calculate Quality Health
+      const criticalTasks = tasks.filter(task => task.priority === 'critical').length;
+      const completedCriticalTasks = tasks.filter(task => 
+        task.priority === 'critical' && task.status === 'completed'
+      ).length;
+      const qualityHealth = criticalTasks > 0 
+        ? Math.round((completedCriticalTasks / criticalTasks) * 100)
+        : 90;
+
+      // Calculate Safety Health (mock data - would integrate with real safety tracking)
+      const safetyHealth = Math.round(Math.random() * 15 + 80); // 80-95%
+
+      // Calculate Overall Health
+      const overallHealth = Math.round(
+        (scheduleHealth * 0.25) + 
+        (budgetHealth * 0.25) + 
+        (qualityHealth * 0.25) + 
+        (safetyHealth * 0.25)
+      );
+
+      // Generate trend data (mock - would use historical data)
+      const generateTrend = (score: number): 'up' | 'down' | 'stable' => {
+        if (score >= 90) return 'up';
+        if (score <= 70) return 'down';
+        return 'stable';
+      };
+
+      const metrics: HealthMetric[] = [
+        {
+          name: 'Schedule',
+          score: scheduleHealth,
+          trend: generateTrend(scheduleHealth),
+          icon: Calendar,
+          color: scheduleHealth >= 85 ? 'stroke-green-500' : scheduleHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
+          description: 'Task completion vs timeline'
+        },
+        {
+          name: 'Budget',
+          score: budgetHealth,
+          trend: generateTrend(budgetHealth),
+          icon: DollarSign,
+          color: budgetHealth >= 85 ? 'stroke-green-500' : budgetHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
+          description: 'Cost vs planned budget'
+        },
+        {
+          name: 'Quality',
+          score: qualityHealth,
+          trend: generateTrend(qualityHealth),
+          icon: CheckCircle,
+          color: qualityHealth >= 85 ? 'stroke-green-500' : qualityHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
+          description: 'Work quality and standards'
+        },
+        {
+          name: 'Safety',
+          score: safetyHealth,
+          trend: generateTrend(safetyHealth),
+          icon: Shield,
+          color: safetyHealth >= 85 ? 'stroke-green-500' : safetyHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
+          description: 'Safety compliance and incidents'
+        }
+      ];
+
+      // Calculate phase distribution
+      const phaseDistribution = projects.reduce((acc, project) => {
+        const phase = project.phase || 'planning';
+        acc[phase] = (acc[phase] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      return { overallHealth, metrics, phaseDistribution };
+    } catch (error) {
+      console.error('Error calculating health metrics:', error);
       return {
         overallHealth: 0,
         metrics: [],
-        phaseDistribution: {}
+        phaseDistribution: {},
+        error: 'Failed to calculate health metrics'
       };
     }
+  }, [projects, tasks, milestones, projectsLoading]);
 
-    // Calculate Schedule Health
-    const today = new Date();
-    const overdueTasks = tasks.filter(task => 
-      task.due_date && new Date(task.due_date) < today && task.status !== 'completed'
-    ).length;
-    const completedOnTime = tasks.filter(task => 
-      task.status === 'completed' && 
-      (!task.due_date || new Date(task.due_date) >= today)
-    ).length;
-    const totalCompletedTasks = tasks.filter(task => task.status === 'completed').length;
-    const scheduleHealth = totalCompletedTasks > 0 
-      ? Math.max(0, Math.round(((totalCompletedTasks - overdueTasks) / totalCompletedTasks) * 100))
-      : 85;
-
-    // Calculate Budget Health (mock data - would integrate with real budget tracking)
-    const budgetHealth = Math.round(Math.random() * 20 + 75); // 75-95%
-
-    // Calculate Quality Health
-    const criticalTasks = tasks.filter(task => task.priority === 'critical').length;
-    const completedCriticalTasks = tasks.filter(task => 
-      task.priority === 'critical' && task.status === 'completed'
-    ).length;
-    const qualityHealth = criticalTasks > 0 
-      ? Math.round((completedCriticalTasks / criticalTasks) * 100)
-      : 90;
-
-    // Calculate Safety Health (mock data - would integrate with real safety tracking)
-    const safetyHealth = Math.round(Math.random() * 15 + 80); // 80-95%
-
-    // Calculate Overall Health
-    const overallHealth = Math.round(
-      (scheduleHealth * 0.25) + 
-      (budgetHealth * 0.25) + 
-      (qualityHealth * 0.25) + 
-      (safetyHealth * 0.25)
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-800">
+            <TrendingUp size={20} />
+            Project Health
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="text-center">
+              <CircularProgressSkeleton size={120} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <CircularProgressSkeleton key={i} size={80} />
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
+  }
 
-    // Generate trend data (mock - would use historical data)
-    const generateTrend = (score: number): 'up' | 'down' | 'stable' => {
-      if (score >= 90) return 'up';
-      if (score <= 70) return 'down';
-      return 'stable';
-    };
-
-    const metrics: HealthMetric[] = [
-      {
-        name: 'Schedule',
-        score: scheduleHealth,
-        trend: generateTrend(scheduleHealth),
-        icon: Calendar,
-        color: scheduleHealth >= 85 ? 'stroke-green-500' : scheduleHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
-        description: 'Task completion vs timeline'
-      },
-      {
-        name: 'Budget',
-        score: budgetHealth,
-        trend: generateTrend(budgetHealth),
-        icon: DollarSign,
-        color: budgetHealth >= 85 ? 'stroke-green-500' : budgetHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
-        description: 'Cost vs planned budget'
-      },
-      {
-        name: 'Quality',
-        score: qualityHealth,
-        trend: generateTrend(qualityHealth),
-        icon: CheckCircle,
-        color: qualityHealth >= 85 ? 'stroke-green-500' : qualityHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
-        description: 'Work quality and standards'
-      },
-      {
-        name: 'Safety',
-        score: safetyHealth,
-        trend: generateTrend(safetyHealth),
-        icon: Shield,
-        color: safetyHealth >= 85 ? 'stroke-green-500' : safetyHealth >= 70 ? 'stroke-orange-500' : 'stroke-red-500',
-        description: 'Safety compliance and incidents'
-      }
-    ];
-
-    // Calculate phase distribution
-    const phaseDistribution = projects.reduce((acc, project) => {
-      const phase = project.phase || 'planning';
-      acc[phase] = (acc[phase] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return { overallHealth, metrics, phaseDistribution };
-  }, [projects, tasks, milestones]);
+  if (healthMetrics.error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-800">
+            <TrendingUp size={20} />
+            Project Health
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ErrorFallback 
+            title="Health Data Unavailable"
+            description={healthMetrics.error}
+            className="max-w-none"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   const getOverallHealthColor = (score: number) => {
     if (score >= 85) return 'stroke-green-500';

@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -7,6 +6,8 @@ import { Calendar, Clock, AlertTriangle, CheckCircle, Target } from 'lucide-reac
 import { useTasks } from '@/hooks/useTasks';
 import { useMilestones } from '@/hooks/useMilestones';
 import { useSearchParams } from 'react-router-dom';
+import { MetricCardSkeleton } from './skeletons/MetricCardSkeleton';
+import { ErrorFallback } from '@/components/common/ErrorFallback';
 
 interface ScheduleMetrics {
   onTimePercentage: number;
@@ -59,62 +60,129 @@ export const SchedulePerformance = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
   
-  const { tasks } = useTasks({ projectId: projectId || undefined });
-  const { milestones } = useMilestones(projectId || undefined);
+  const { tasks, loading: tasksLoading } = useTasks({ projectId: projectId || undefined });
+  const { milestones, loading: milestonesLoading } = useMilestones(projectId || undefined);
 
-  const scheduleMetrics: ScheduleMetrics = useMemo(() => {
-    const today = new Date();
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(today.getDate() + 7);
+  const isLoading = tasksLoading || milestonesLoading;
 
-    // Calculate on-time percentage
-    const completedTasks = tasks.filter(task => task.status === 'completed');
-    const onTimeCompletedTasks = completedTasks.filter(task => {
-      if (!task.due_date) return true; // No due date means it can't be late
-      return new Date(task.due_date) >= today || task.status === 'completed';
-    });
-    const onTimePercentage = completedTasks.length > 0 
-      ? Math.round((onTimeCompletedTasks.length / completedTasks.length) * 100)
-      : 100;
+  const scheduleMetrics: ScheduleMetrics & { error?: string } = useMemo(() => {
+    try {
+      if (tasks.length === 0 && milestones.length === 0 && !isLoading) {
+        return {
+          onTimePercentage: 0,
+          delayedTasksCount: 0,
+          criticalPathCount: 0,
+          upcomingMilestones: [],
+          totalCompletedTasks: 0,
+          totalOverdueTasks: 0,
+          error: 'No schedule data available'
+        };
+      }
 
-    // Calculate delayed tasks (overdue and not completed)
-    const delayedTasks = tasks.filter(task => 
-      task.status !== 'completed' && 
-      task.due_date && 
-      new Date(task.due_date) < today
+      const today = new Date();
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(today.getDate() + 7);
+
+      // Calculate on-time percentage
+      const completedTasks = tasks.filter(task => task.status === 'completed');
+      const onTimeCompletedTasks = completedTasks.filter(task => {
+        if (!task.due_date) return true; // No due date means it can't be late
+        return new Date(task.due_date) >= today || task.status === 'completed';
+      });
+      const onTimePercentage = completedTasks.length > 0 
+        ? Math.round((onTimeCompletedTasks.length / completedTasks.length) * 100)
+        : 100;
+
+      // Calculate delayed tasks (overdue and not completed)
+      const delayedTasks = tasks.filter(task => 
+        task.status !== 'completed' && 
+        task.due_date && 
+        new Date(task.due_date) < today
+      );
+
+      // Calculate critical path items (critical priority and not completed)
+      const criticalPathTasks = tasks.filter(task => 
+        task.priority === 'critical' && 
+        task.status !== 'completed'
+      );
+
+      // Get upcoming milestones (next 7 days)
+      const upcomingMilestones = milestones
+        .filter(milestone => {
+          const dueDate = new Date(milestone.due_date);
+          return dueDate >= today && dueDate <= sevenDaysFromNow;
+        })
+        .map(milestone => ({
+          id: milestone.id,
+          title: milestone.title,
+          due_date: milestone.due_date,
+          daysUntilDue: getDaysUntilDue(milestone.due_date),
+          status: milestone.status
+        }))
+        .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
+        .slice(0, 5); // Limit to 5 most urgent
+
+      return {
+        onTimePercentage,
+        delayedTasksCount: delayedTasks.length,
+        criticalPathCount: criticalPathTasks.length,
+        upcomingMilestones,
+        totalCompletedTasks: completedTasks.length,
+        totalOverdueTasks: delayedTasks.length
+      };
+    } catch (error) {
+      console.error('Error calculating schedule metrics:', error);
+      return {
+        onTimePercentage: 0,
+        delayedTasksCount: 0,
+        criticalPathCount: 0,
+        upcomingMilestones: [],
+        totalCompletedTasks: 0,
+        totalOverdueTasks: 0,
+        error: 'Failed to calculate schedule performance'
+      };
+    }
+  }, [tasks, milestones, isLoading]);
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            Schedule Performance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <MetricCardSkeleton key={i} showProgress={i <= 2} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     );
+  }
 
-    // Calculate critical path items (critical priority and not completed)
-    const criticalPathTasks = tasks.filter(task => 
-      task.priority === 'critical' && 
-      task.status !== 'completed'
+  if (scheduleMetrics.error) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            Schedule Performance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ErrorFallback 
+            title="Schedule Data Unavailable"
+            description={scheduleMetrics.error}
+            className="max-w-none"
+          />
+        </CardContent>
+      </Card>
     );
-
-    // Get upcoming milestones (next 7 days)
-    const upcomingMilestones = milestones
-      .filter(milestone => {
-        const dueDate = new Date(milestone.due_date);
-        return dueDate >= today && dueDate <= sevenDaysFromNow;
-      })
-      .map(milestone => ({
-        id: milestone.id,
-        title: milestone.title,
-        due_date: milestone.due_date,
-        daysUntilDue: getDaysUntilDue(milestone.due_date),
-        status: milestone.status
-      }))
-      .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
-      .slice(0, 5); // Limit to 5 most urgent
-
-    return {
-      onTimePercentage,
-      delayedTasksCount: delayedTasks.length,
-      criticalPathCount: criticalPathTasks.length,
-      upcomingMilestones,
-      totalCompletedTasks: completedTasks.length,
-      totalOverdueTasks: delayedTasks.length
-    };
-  }, [tasks, milestones]);
+  }
 
   const onTimeStatus = scheduleMetrics.onTimePercentage >= 85 
     ? { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' }
