@@ -46,7 +46,7 @@ export const ContactInfoFields = ({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="stakeholder_type">Type *</Label>
           <Select 
@@ -97,7 +97,7 @@ export const ContactInfoFields = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="company_name">Company Name</Label>
           <Input
@@ -134,7 +134,7 @@ export const ContactInfoFields = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <EmailInput

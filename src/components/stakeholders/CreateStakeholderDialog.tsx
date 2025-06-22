@@ -36,7 +36,7 @@ export const CreateStakeholderDialog = ({
       title={`Add New ${formData.stakeholder_type === 'client' ? 'Client' : 'Stakeholder'}`}
       className="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <StakeholderFormFields 
           formData={formData}
           onInputChange={handleInputChange}
@@ -44,7 +44,7 @@ export const CreateStakeholderDialog = ({
           errors={errors}
         />
         
-        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
           <TouchFriendlyButton 
             type="button" 
             variant="outline" 
