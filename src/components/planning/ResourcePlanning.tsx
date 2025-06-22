@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Users, Clock, DollarSign, AlertTriangle, Calendar, UserPlus, Plus, Wrench } from 'lucide-react';
+import { Users, Clock, DollarSign, AlertTriangle, Calendar, UserPlus, Plus, Wrench, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useEquipment } from '@/hooks/useEquipment';
+import { useEmployeeResourcePlanning } from '@/hooks/useEmployeeResourcePlanning';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { QuickTaskAssignDialog } from './QuickTaskAssignDialog';
 import { TeamMember } from '@/types/database';
@@ -16,7 +16,7 @@ interface ResourcePlanningProps {
 }
 
 export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
-  const { allocations, loading } = useResourceAllocations(projectId);
+  const { allocations, loading, summaryStats } = useEmployeeResourcePlanning(projectId);
   const { allocations: equipmentAllocations } = useEquipmentAllocations();
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
@@ -30,8 +30,25 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
   const currentProject = projects.find(p => p.id === projectId);
   const projectEquipmentAllocations = equipmentAllocations.filter(ea => ea.project_id === projectId);
 
-  const handleQuickAssign = (member: TeamMember) => {
-    setSelectedMember(member);
+  const handleQuickAssign = (member: any) => {
+    // Convert employee resource member to TeamMember format for dialog
+    const teamMember: TeamMember = {
+      id: member.id,
+      allocation_id: '', // Not applicable for stakeholder assignments
+      user_id: member.user_id,
+      name: member.name,
+      role: member.role,
+      hours_allocated: member.hours_allocated,
+      hours_used: member.hours_used,
+      cost_per_hour: member.cost_per_hour,
+      availability: member.availability,
+      date: selectedWeek,
+      tasks: member.tasks || [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    setSelectedMember(teamMember);
     setQuickAssignOpen(true);
   };
 
@@ -47,6 +64,15 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
     if (percentage >= 90) return 'text-red-600';
     if (percentage >= 75) return 'text-orange-600';
     return 'text-green-600';
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   if (loading) {
@@ -78,23 +104,6 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
     );
   }
 
-  const totalMembers = allocations.reduce((sum, allocation) => 
-    sum + (allocation.members?.length || 0), 0
-  );
-  
-  const totalHours = allocations.reduce((sum, allocation) => 
-    sum + (allocation.members?.reduce((memberSum, member) => 
-      memberSum + member.hours_allocated, 0) || 0), 0
-  );
-  
-  const totalBudgetUsed = allocations.reduce((sum, allocation) => 
-    sum + allocation.total_used, 0
-  );
-  
-  const overallocatedCount = allocations.reduce((count, allocation) => 
-    count + (allocation.members?.filter(m => m.availability > 100).length || 0), 0
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -118,15 +127,15 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
         </div>
       </div>
 
-      {/* Resource Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Enhanced Resource Overview with Budget Information */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-blue-50 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Users size={20} className="text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">Total Resources</span>
+            <span className="text-sm font-medium text-blue-800">Total Employees</span>
           </div>
           <div className="text-2xl font-bold text-blue-600">
-            {totalMembers}
+            {summaryStats.totalMembers}
           </div>
         </div>
         
@@ -136,17 +145,17 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
             <span className="text-sm font-medium text-green-800">Total Hours</span>
           </div>
           <div className="text-2xl font-bold text-green-600">
-            {totalHours}
+            {summaryStats.totalHours}
           </div>
         </div>
         
         <div className="bg-orange-50 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign size={20} className="text-orange-600" />
-            <span className="text-sm font-medium text-orange-800">Budget Used</span>
+            <span className="text-sm font-medium text-orange-800">Labor Cost</span>
           </div>
           <div className="text-2xl font-bold text-orange-600">
-            ${totalBudgetUsed.toLocaleString()}
+            {formatCurrency(summaryStats.totalBudgetUsed)}
           </div>
         </div>
         
@@ -157,6 +166,25 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
           </div>
           <div className="text-2xl font-bold text-purple-600">
             {projectEquipmentAllocations.length}
+          </div>
+        </div>
+
+        <div className={`rounded-lg p-4 ${summaryStats.budgetVariance >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            {summaryStats.budgetVariance >= 0 ? (
+              <TrendingUp size={20} className="text-green-600" />
+            ) : (
+              <TrendingDown size={20} className="text-red-600" />
+            )}
+            <span className={`text-sm font-medium ${summaryStats.budgetVariance >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+              Budget Variance
+            </span>
+          </div>
+          <div className={`text-2xl font-bold ${summaryStats.budgetVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {summaryStats.budgetVariance >= 0 ? '+' : ''}{formatCurrency(summaryStats.budgetVariance)}
+          </div>
+          <div className={`text-xs ${summaryStats.budgetVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {summaryStats.budgetVariancePercentage >= 0 ? '+' : ''}{summaryStats.budgetVariancePercentage.toFixed(1)}%
           </div>
         </div>
       </div>
@@ -170,12 +198,12 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
         </TabsList>
 
         <TabsContent value="personnel" className="space-y-6">
-          {/* Team Allocations */}
+          {/* Employee Assignments */}
           {allocations.length === 0 ? (
             <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
               <Users size={48} className="mx-auto mb-4 text-slate-400" />
-              <h3 className="text-lg font-medium text-slate-600 mb-2">No Resource Allocations</h3>
-              <p className="text-slate-500">Create resource allocations to manage your project team.</p>
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No Employee Assignments</h3>
+              <p className="text-slate-500">Assign employees to this project to manage resources.</p>
             </div>
           ) : (
             allocations.map((allocation) => (
@@ -185,12 +213,15 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                     <h4 className="text-lg font-semibold text-slate-800">{allocation.team_name}</h4>
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-slate-600">
+                        Week: {new Date(allocation.week_start_date).toLocaleDateString()}
+                      </span>
+                      <span className="text-slate-600">
                         Budget: <span className={getBudgetStatus(allocation.total_used, allocation.total_budget)}>
-                          ${allocation.total_used.toLocaleString()} / ${allocation.total_budget.toLocaleString()}
+                          {formatCurrency(allocation.total_used)} / {formatCurrency(allocation.total_budget)}
                         </span>
                       </span>
                       <span className="text-slate-600">
-                        {allocation.members?.length || 0} members
+                        {allocation.members?.length || 0} employees
                       </span>
                     </div>
                   </div>
@@ -201,12 +232,12 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                     <table className="w-full">
                       <thead className="bg-slate-50">
                         <tr>
-                          <th className="text-left px-6 py-3 text-sm font-medium text-slate-700">Resource</th>
+                          <th className="text-left px-6 py-3 text-sm font-medium text-slate-700">Employee</th>
                           <th className="text-left px-6 py-3 text-sm font-medium text-slate-700">Role</th>
+                          <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Hourly Rate</th>
                           <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Hours</th>
+                          <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Total Cost</th>
                           <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Utilization</th>
-                          <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Cost</th>
-                          <th className="text-left px-6 py-3 text-sm font-medium text-slate-700">Current Tasks</th>
                           <th className="text-center px-6 py-3 text-sm font-medium text-slate-700">Actions</th>
                         </tr>
                       </thead>
@@ -217,6 +248,11 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                               <div className="font-medium text-slate-800">{member.name}</div>
                             </td>
                             <td className="px-6 py-4 text-slate-600">{member.role}</td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="font-medium text-green-600">
+                                {formatCurrency(member.hourly_rate)}/hr
+                              </div>
+                            </td>
                             <td className="px-6 py-4 text-center">
                               <div className="text-sm">
                                 <div className="font-medium">{member.hours_used} / {member.hours_allocated}h</div>
@@ -229,26 +265,14 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUtilizationColor(member.availability)}`}>
-                                {member.availability}%
-                              </span>
+                              <div className="font-medium text-slate-800">
+                                {formatCurrency(member.total_cost)}
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <div className="text-sm">
-                                <div className="font-medium">${(member.hours_used * member.cost_per_hour).toLocaleString()}</div>
-                                <div className="text-slate-500">${member.cost_per_hour}/hr</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="space-y-1">
-                                {member.tasks?.length > 0 ? member.tasks.map((task, taskIndex) => (
-                                  <span key={taskIndex} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1">
-                                    {task}
-                                  </span>
-                                )) : (
-                                  <span className="text-xs text-slate-500">No tasks assigned</span>
-                                )}
-                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUtilizationColor(member.availability)}`}>
+                                {member.utilization_percentage?.toFixed(1) || member.availability}%
+                              </span>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <div className="flex items-center justify-center gap-1">
@@ -270,7 +294,7 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                   </div>
                 ) : (
                   <div className="px-6 py-8 text-center text-slate-500">
-                    No team members assigned to this allocation yet.
+                    No employees assigned to this project yet.
                   </div>
                 )}
               </div>
@@ -356,15 +380,41 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
       </Tabs>
 
       {/* Resource Conflicts - Only show if there are actual conflicts */}
-      {overallocatedCount > 0 && (
+      {summaryStats.overallocatedCount > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={20} className="text-red-600" />
             <h4 className="font-semibold text-red-800">Resource Conflicts</h4>
           </div>
           <div className="space-y-2 text-sm text-red-700">
-            <div>• {overallocatedCount} team member{overallocatedCount !== 1 ? 's are' : ' is'} overallocated</div>
+            <div>• {summaryStats.overallocatedCount} employee{summaryStats.overallocatedCount !== 1 ? 's are' : ' is'} overallocated</div>
             <div>• Review resource allocation to prevent burnout and delays</div>
+          </div>
+        </div>
+      )}
+
+      {/* Budget Summary */}
+      {summaryStats.totalBudget > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <DollarSign size={20} className="text-blue-600" />
+            <h4 className="font-semibold text-blue-800">Labor Budget Summary</h4>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-blue-700">Total Budget:</span>
+              <div className="font-semibold text-blue-800">{formatCurrency(summaryStats.totalBudget)}</div>
+            </div>
+            <div>
+              <span className="text-blue-700">Used:</span>
+              <div className="font-semibold text-blue-800">{formatCurrency(summaryStats.totalBudgetUsed)}</div>
+            </div>
+            <div>
+              <span className="text-blue-700">Remaining:</span>
+              <div className={`font-semibold ${summaryStats.budgetVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(summaryStats.budgetVariance)}
+              </div>
+            </div>
           </div>
         </div>
       )}
