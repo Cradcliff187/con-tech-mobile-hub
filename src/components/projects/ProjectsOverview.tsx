@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { EmptyState } from '@/components/dashboard/EmptyState';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export const ProjectsOverview = () => {
   const { projects, loading } = useProjects();
@@ -52,14 +52,16 @@ export const ProjectsOverview = () => {
       {/* Projects Grid */}
       {filteredProjects.length === 0 ? (
         <EmptyState
+          icon={<Plus size={48} />}
           title="No projects found"
           description={searchQuery ? "No projects match your search criteria." : "Get started by creating your first project."}
-          action={!searchQuery ? (
-            <Button onClick={() => setShowCreateDialog(true)} className="flex items-center gap-2">
-              <Plus size={20} />
-              Create Project
-            </Button>
-          ) : undefined}
+          actions={!searchQuery ? [
+            { 
+              label: "Create Project", 
+              onClick: () => setShowCreateDialog(true),
+              icon: <Plus size={16} />
+            }
+          ] : []}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
