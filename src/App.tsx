@@ -1,16 +1,19 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient } from 'react-query';
-import { Auth } from '@/pages/Auth';
-import { Index } from '@/pages';
-import { Admin } from '@/pages/Admin';
-import { NotFound } from '@/pages/NotFound';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Auth from '@/pages/Auth';
+import Index from '@/pages/Index';
+import Admin from '@/pages/Admin';
+import NotFound from '@/pages/NotFound';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { SubscriptionStatusIndicator } from '@/components/common/SubscriptionStatusIndicator';
 
 function App() {
+  const queryClient = new QueryClient();
+
   return (
     <BrowserRouter>
-      <QueryClient>
+      <QueryClientProvider client={queryClient}>
         <div className="min-h-screen bg-background">
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -30,7 +33,7 @@ function App() {
           {/* Add subscription status indicator */}
           <SubscriptionStatusIndicator showDetails={process.env.NODE_ENV === 'development'} />
         </div>
-      </QueryClient>
+      </QueryClientProvider>
     </BrowserRouter>
   );
 }
