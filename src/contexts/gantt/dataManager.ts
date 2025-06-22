@@ -39,6 +39,7 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
   }, [fetchedTasks, loading, error, dispatch]);
 
   // Calculate timeline bounds that include all tasks
+  // Fixed: Use primitive dependencies instead of filteredTasks to prevent infinite loop
   useEffect(() => {
     const today = new Date(2025, 5, 18); // June 18, 2025 (month is 0-indexed)
     let start: Date;
@@ -63,27 +64,42 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
         end = addWeeks(today, 2);
     }
 
-    // Expand timeline to include all tasks if they fall outside
-    if (filteredTasks.length > 0) {
-      const taskDates = filteredTasks.flatMap(task => {
-        const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-        return [calculatedStartDate, calculatedEndDate];
-      });
-      
-      const earliestTask = new Date(Math.min(...taskDates.map(d => d.getTime())));
-      const latestTask = new Date(Math.max(...taskDates.map(d => d.getTime())));
-      
-      // Expand timeline if tasks are outside current bounds
-      if (earliestTask < start) {
-        start = subDays(earliestTask, 7); // Add padding
-      }
-      if (latestTask > end) {
-        end = addDays(latestTask, 7); // Add padding
+    // Only calculate task dates if we have tasks
+    if (state.tasks.length > 0) {
+      try {
+        const taskDates = state.tasks.flatMap(task => {
+          const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+          return [calculatedStartDate, calculatedEndDate];
+        });
+        
+        if (taskDates.length > 0) {
+          const earliestTask = new Date(Math.min(...taskDates.map(d => d.getTime())));
+          const latestTask = new Date(Math.max(...taskDates.map(d => d.getTime())));
+          
+          // Expand timeline if tasks are outside current bounds
+          if (earliestTask < start) {
+            start = subDays(earliestTask, 7); // Add padding
+          }
+          if (latestTask > end) {
+            end = addDays(latestTask, 7); // Add padding
+          }
+        }
+      } catch (error) {
+        console.log('Error calculating task dates for timeline:', error);
+        // Continue with default timeline bounds
       }
     }
 
-    dispatch({ type: 'SET_TIMELINE_BOUNDS', payload: { start, end } });
-  }, [state.viewMode, filteredTasks, dispatch]);
+    // Only dispatch if bounds actually changed
+    const currentStart = state.timelineStart?.getTime();
+    const currentEnd = state.timelineEnd?.getTime();
+    const newStartTime = start.getTime();
+    const newEndTime = end.getTime();
+
+    if (currentStart !== newStartTime || currentEnd !== newEndTime) {
+      dispatch({ type: 'SET_TIMELINE_BOUNDS', payload: { start, end } });
+    }
+  }, [state.viewMode, state.tasks, state.timelineStart, state.timelineEnd, dispatch]);
 
   return {
     filteredTasks
