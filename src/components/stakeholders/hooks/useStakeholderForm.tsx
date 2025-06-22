@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { validateFormData, stakeholderSchema } from '@/schemas';
-import { transformStakeholderData } from '../utils/stakeholderFormUtils';
-import { useStakeholderFormState } from './useStakeholderFormState';
+import { transformStakeholderData, getInitialFormData } from '../utils/stakeholderFormUtils';
 import { type StakeholderFormData } from '@/schemas';
 
 interface UseStakeholderFormProps {
@@ -15,23 +14,57 @@ interface UseStakeholderFormProps {
 
 export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, onClose }: UseStakeholderFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  
+  // Direct state management with proper typing
+  const [formData, setFormData] = useState<StakeholderFormData>(getInitialFormData(defaultType));
   
   const { createStakeholder } = useStakeholders();
   const { toast } = useToast();
 
-  const {
-    formData,
-    errors,
-    setErrors,
-    handleInputChange,
-    resetForm
-  } = useStakeholderFormState({ defaultType });
+  // Enhanced handleInputChange with proper type handling
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prevData => {
+      const newData = { ...prevData };
+      
+      // Special handling for crew_size to ensure proper type conversion
+      if (field === 'crew_size') {
+        if (value === '' || value === null || value === undefined) {
+          newData.crew_size = undefined;
+        } else if (typeof value === 'string') {
+          const parsed = parseInt(value, 10);
+          newData.crew_size = isNaN(parsed) ? undefined : parsed;
+        } else if (typeof value === 'number') {
+          newData.crew_size = value;
+        } else {
+          newData.crew_size = undefined;
+        }
+        return newData;
+      }
+      
+      // Validation for stakeholder_type to ensure it's never undefined
+      if (field === 'stakeholder_type') {
+        if (!value || !['client', 'subcontractor', 'employee', 'vendor'].includes(value)) {
+          // Don't update if invalid value
+          return prevData;
+        }
+        newData.stakeholder_type = value;
+        return newData;
+      }
+      
+      // Standard field updates with type safety
+      (newData as any)[field] = value;
+      return newData;
+    });
+  };
 
-  // Type-safe form data
-  const typedFormData = formData as StakeholderFormData;
+  const resetForm = () => {
+    setFormData(getInitialFormData(defaultType));
+    setErrors({});
+  };
 
   const validateForm = (): boolean => {
-    const validation = validateFormData(stakeholderSchema, typedFormData);
+    const validation = validateFormData(stakeholderSchema, formData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -57,7 +90,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     setLoading(true);
 
     try {
-      const validation = validateFormData(stakeholderSchema, typedFormData);
+      const validation = validateFormData(stakeholderSchema, formData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
@@ -104,7 +137,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
   };
 
   return {
-    formData: typedFormData,
+    formData,
     errors,
     loading,
     handleInputChange,
