@@ -1,5 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
 import { useProjects } from '@/hooks/useProjects';
+import { useAuth } from '@/hooks/useAuth';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Grid3X3, List, MoreHorizontal, Eye, Edit, Trash2, Archive, X } from 'lucide-react';
+import { Plus, Search, Grid3X3, List, MoreHorizontal, Eye, Edit, Trash2, Archive, ArchiveRestore, X } from 'lucide-react';
 import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
+import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
+import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useSearchParams } from 'react-router-dom';
@@ -23,16 +27,26 @@ interface FilterState {
 }
 
 export const ProjectsList = () => {
-  const { projects, loading } = useProjects();
+  const { projects, loading, archiveProject, unarchiveProject } = useProjects();
+  const { profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('table'); // Changed default from 'grid' to 'table'
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
     phase: 'all',
     client: 'all'
   });
+
+  // Permission checks
+  const canEdit = profile?.is_company_user && profile?.account_status === 'approved';
+  const canDelete = profile?.is_company_user && 
+                   profile?.account_status === 'approved' && 
+                   (profile?.role === 'admin' || profile?.role === 'project_manager');
 
   // Get unique values for filters
   const filterOptions = useMemo(() => {
@@ -84,18 +98,21 @@ export const ProjectsList = () => {
   };
 
   const handleEditProject = (project: Project) => {
-    console.log('Edit project:', project.id);
-    // TODO: Implement edit functionality
-  };
-
-  const handleArchiveProject = (project: Project) => {
-    console.log('Archive project:', project.id);
-    // TODO: Implement archive functionality
+    setSelectedProject(project);
+    setShowEditDialog(true);
   };
 
   const handleDeleteProject = (project: Project) => {
-    console.log('Delete project:', project.id);
-    // TODO: Implement delete functionality with confirmation
+    setSelectedProject(project);
+    setShowDeleteDialog(true);
+  };
+
+  const handleArchiveProject = async (project: Project) => {
+    if (project.status === 'cancelled') {
+      await unarchiveProject(project.id);
+    } else {
+      await archiveProject(project.id);
+    }
   };
 
   // Table columns for DataTable
@@ -122,9 +139,10 @@ export const ProjectsList = () => {
         <Badge variant={
           project.status === 'active' ? 'default' :
           project.status === 'completed' ? 'secondary' :
+          project.status === 'cancelled' ? 'outline' :
           project.status === 'on-hold' ? 'outline' : 'outline'
         }>
-          {project.status.replace('-', ' ')}
+          {project.status === 'cancelled' ? 'Archived' : project.status.replace('-', ' ')}
         </Badge>
       )
     },
@@ -151,7 +169,7 @@ export const ProjectsList = () => {
     {
       key: 'progress',
       header: 'Progress',
-      accessor: (project: Project) => (
+      accessor: (project: Project)=>(
         <div className="flex items-center gap-2">
           <div className="w-16 bg-slate-200 rounded-full h-2">
             <div 
@@ -239,16 +257,17 @@ export const ProjectsList = () => {
               <List size={16} />
             </Button>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)} className="flex items-center gap-2">
-            <Plus size={20} />
-            New Project
-          </Button>
+          {canEdit && (
+            <Button onClick={() => setShowCreateDialog(true)} className="flex items-center gap-2">
+              <Plus size={20} />
+              New Project
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Search and Filters */}
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
           <Input
@@ -259,7 +278,6 @@ export const ProjectsList = () => {
           />
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
             <SelectTrigger className="w-[140px]">
@@ -269,7 +287,7 @@ export const ProjectsList = () => {
               <SelectItem value="all">All Statuses</SelectItem>
               {filterOptions.statuses.map(status => (
                 <SelectItem key={status} value={status}>
-                  {status.replace('-', ' ')}
+                  {status === 'cancelled' ? 'Archived' : status.replace('-', ' ')}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -329,7 +347,7 @@ export const ProjectsList = () => {
                 ? "No projects match your search criteria." 
                 : "Get started by creating your first project."
           }
-          actions={!searchQuery && activeFiltersCount === 0 ? [
+          actions={!searchQuery && activeFiltersCount === 0 && canEdit ? [
             { 
               label: "Create Project", 
               onClick: () => setShowCreateDialog(true),
@@ -340,7 +358,6 @@ export const ProjectsList = () => {
       ) : (
         <>
           {viewMode === 'grid' ? (
-            /* Grid View */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProjects.map((project) => (
                 <div key={project.id} className="relative group">
@@ -362,21 +379,36 @@ export const ProjectsList = () => {
                           <Eye size={16} />
                           View Project
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditProject(project)}>
-                          <Edit size={16} />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleArchiveProject(project)}>
-                          <Archive size={16} />
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteProject(project)}
-                          className="text-red-600"
-                        >
-                          <Trash2 size={16} />
-                          Delete
-                        </DropdownMenuItem>
+                        {canEdit && (
+                          <DropdownMenuItem onClick={() => handleEditProject(project)}>
+                            <Edit size={16} />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {canEdit && (
+                          <DropdownMenuItem onClick={() => handleArchiveProject(project)}>
+                            {project.status === 'cancelled' ? (
+                              <>
+                                <ArchiveRestore size={16} />
+                                Restore
+                              </>
+                            ) : (
+                              <>
+                                <Archive size={16} />
+                                Archive
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete && (
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteProject(project)}
+                            className="text-red-600"
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -384,11 +416,10 @@ export const ProjectsList = () => {
               ))}
             </div>
           ) : (
-            /* Table View */
             <DataTable
               data={filteredProjects}
               columns={tableColumns}
-              searchable={false} // We handle search externally
+              searchable={false}
               sortable={true}
               pagination={true}
               pageSize={10}
@@ -406,28 +437,42 @@ export const ProjectsList = () => {
                       <Eye size={16} />
                       View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEditProject(project)}>
-                      <Edit size={16} />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleArchiveProject(project)}>
-                      <Archive size={16} />
-                      Archive
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleDeleteProject(project)}
-                      className="text-red-600"
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => handleEditProject(project)}>
+                        <Edit size={16} />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => handleArchiveProject(project)}>
+                        {project.status === 'cancelled' ? (
+                          <>
+                            <ArchiveRestore size={16} />
+                            Restore
+                          </>
+                        ) : (
+                          <>
+                            <Archive size={16} />
+                            Archive
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteProject(project)}
+                        className="text-red-600"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
             />
           )}
 
-          {/* Project Count */}
           <div className="text-sm text-slate-500 text-center">
             Showing {filteredProjects.length} of {projects.length} projects
             {activeFiltersCount > 0 && ` (${activeFiltersCount} filter${activeFiltersCount > 1 ? 's' : ''} active)`}
@@ -440,6 +485,24 @@ export const ProjectsList = () => {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
       />
+
+      {/* Edit Project Dialog */}
+      {selectedProject && (
+        <EditProjectDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          project={selectedProject}
+        />
+      )}
+
+      {/* Delete Project Dialog */}
+      {selectedProject && (
+        <DeleteProjectDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          project={selectedProject}
+        />
+      )}
     </div>
   );
 };
