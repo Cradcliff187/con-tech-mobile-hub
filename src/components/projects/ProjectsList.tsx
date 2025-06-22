@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
@@ -42,6 +41,12 @@ export const ProjectsList = () => {
     client: 'all'
   });
 
+  // Initialize filters from URL params
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status') || 'all';
+    setFilters(prev => ({ ...prev, status: statusFromUrl }));
+  }, [searchParams]);
+
   // Permission checks
   const canEdit = profile?.is_company_user && profile?.account_status === 'approved';
   const canDelete = profile?.is_company_user && 
@@ -57,6 +62,26 @@ export const ProjectsList = () => {
     return { statuses, phases, clients };
   }, [projects]);
 
+  // Calculate quick filter counts
+  const quickFilterCounts = useMemo(() => ({
+    all: projects.length,
+    active: projects.filter(p => p.status === 'active').length,
+    planning: projects.filter(p => p.status === 'planning').length,
+    'on-hold': projects.filter(p => p.status === 'on-hold').length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    archived: projects.filter(p => p.status === 'cancelled').length
+  }), [projects]);
+
+  // Quick filter configuration
+  const quickFilters = [
+    { key: 'all', label: 'All', count: quickFilterCounts.all },
+    { key: 'active', label: 'Active', count: quickFilterCounts.active },
+    { key: 'planning', label: 'Planning', count: quickFilterCounts.planning },
+    { key: 'on-hold', label: 'On Hold', count: quickFilterCounts['on-hold'] },
+    { key: 'completed', label: 'Completed', count: quickFilterCounts.completed },
+    { key: 'archived', label: 'Archived', count: quickFilterCounts.archived }
+  ];
+
   // Apply filters and search
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
@@ -66,8 +91,15 @@ export const ProjectsList = () => {
         project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.location?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Status filter
-      const matchesStatus = filters.status === 'all' || project.status === filters.status;
+      // Status filter - handle quick filter mapping
+      let matchesStatus = true;
+      if (filters.status !== 'all') {
+        if (filters.status === 'archived') {
+          matchesStatus = project.status === 'cancelled';
+        } else {
+          matchesStatus = project.status === filters.status;
+        }
+      }
 
       // Phase filter
       const matchesPhase = filters.phase === 'all' || project.phase === filters.phase;
@@ -84,12 +116,31 @@ export const ProjectsList = () => {
   // Handle filter changes
   const handleFilterChange = (filterType: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
+    
+    // Update URL for status filter
+    if (filterType === 'status') {
+      const newParams = new URLSearchParams(searchParams);
+      if (value === 'all') {
+        newParams.delete('status');
+      } else {
+        newParams.set('status', value);
+      }
+      setSearchParams(newParams);
+    }
+  };
+
+  // Handle quick filter clicks
+  const handleQuickFilter = (filterKey: string) => {
+    handleFilterChange('status', filterKey);
   };
 
   // Clear all filters
   const clearFilters = () => {
     setFilters({ status: 'all', phase: 'all', client: 'all' });
     setSearchQuery('');
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('status');
+    setSearchParams(newParams);
   };
 
   // Project actions
@@ -222,7 +273,7 @@ export const ProjectsList = () => {
     }
   ];
 
-  // Active filters count
+  // Active filters count - include quick filter in count
   const activeFiltersCount = Object.values(filters).filter(value => value !== 'all').length + (searchQuery ? 1 : 0);
 
   if (loading) {
@@ -333,6 +384,28 @@ export const ProjectsList = () => {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Quick Filter Buttons */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {quickFilters.map((filter) => (
+          <Button
+            key={filter.key}
+            variant="ghost"
+            size="sm"
+            onClick={() => handleQuickFilter(filter.key)}
+            className={`flex items-center gap-2 whitespace-nowrap min-h-[44px] ${
+              filters.status === filter.key
+                ? 'text-orange-600 bg-orange-50 hover:bg-orange-100'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <span>{filter.label}</span>
+            <Badge variant="secondary" className="text-xs">
+              {filter.count}
+            </Badge>
+          </Button>
+        ))}
       </div>
 
       {/* Projects Display */}
