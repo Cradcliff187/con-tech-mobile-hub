@@ -25,28 +25,31 @@ export const useDatabaseStats = () => {
   useEffect(() => {
     const fetchDatabaseStats = async () => {
       try {
-        // Get counts for major tables
-        const tableNames = [
-          'projects', 'tasks', 'stakeholders', 'profiles', 
-          'documents', 'activity_log', 'messages', 'equipment'
+        // Use individual queries for each table to avoid dynamic table name issues
+        const tableQueries = [
+          { name: 'projects', query: supabase.from('projects').select('*', { count: 'exact', head: true }) },
+          { name: 'tasks', query: supabase.from('tasks').select('*', { count: 'exact', head: true }) },
+          { name: 'stakeholders', query: supabase.from('stakeholders').select('*', { count: 'exact', head: true }) },
+          { name: 'profiles', query: supabase.from('profiles').select('*', { count: 'exact', head: true }) },
+          { name: 'documents', query: supabase.from('documents').select('*', { count: 'exact', head: true }) },
+          { name: 'activity_log', query: supabase.from('activity_log').select('*', { count: 'exact', head: true }) },
+          { name: 'messages', query: supabase.from('messages').select('*', { count: 'exact', head: true }) },
+          { name: 'equipment', query: supabase.from('equipment').select('*', { count: 'exact', head: true }) }
         ];
 
         const tableStats = await Promise.all(
-          tableNames.map(async (tableName) => {
-            const { count } = await supabase
-              .from(tableName)
-              .select('*', { count: 'exact', head: true });
-            
+          tableQueries.map(async ({ name, query }) => {
+            const { count } = await query;
             return {
-              name: tableName,
+              name,
               rowCount: count || 0,
-              size: `${Math.round((count || 0) * 0.5)} KB` // Estimated size
+              size: `${Math.round((count || 0) * 0.5)} KB`
             };
           })
         );
 
         const totalRows = tableStats.reduce((sum, table) => sum + table.rowCount, 0);
-        const estimatedSizeMB = Math.round(totalRows * 0.0005 * 100) / 100; // Rough estimate
+        const estimatedSizeMB = Math.round(totalRows * 0.0005 * 100) / 100;
 
         setStats({
           tables: tableStats,

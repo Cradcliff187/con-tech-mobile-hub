@@ -9,25 +9,51 @@ interface WeatherEvent {
   description: string;
 }
 
-export const useWeatherData = (startDate: Date, endDate: Date) => {
+interface CurrentWeather {
+  temperature: number;
+  condition: string;
+  humidity: number;
+  wind_speed: number;
+}
+
+// Overloaded hook - can return weather events or current weather
+export function useWeatherData(startDate: Date, endDate: Date): { weatherEvents: WeatherEvent[]; loading: boolean };
+export function useWeatherData(mode: 'default'): { weather: CurrentWeather | null; loading: boolean };
+export function useWeatherData(startDateOrMode: Date | 'default', endDate?: Date) {
   const [weatherEvents, setWeatherEvents] = useState<WeatherEvent[]>([]);
+  const [weather, setWeather] = useState<CurrentWeather | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchWeatherData = async () => {
+    const fetchData = async () => {
       setLoading(true);
       
-      // For now, we'll generate some realistic weather events based on date patterns
-      // In production, this would call a real weather API
+      if (startDateOrMode === 'default') {
+        // Return current weather for widgets
+        const mockWeather: CurrentWeather = {
+          temperature: 72,
+          condition: 'Partly Cloudy',
+          humidity: 65,
+          wind_speed: 8
+        };
+        
+        setTimeout(() => {
+          setWeather(mockWeather);
+          setLoading(false);
+        }, 500);
+        return;
+      }
+
+      // Return weather events for timeline (existing logic)
+      const startDate = startDateOrMode as Date;
       const events: WeatherEvent[] = [];
       const current = new Date(startDate);
       
-      while (current <= endDate) {
-        // Add holiday markers for known dates
+      while (current <= endDate!) {
         const month = current.getMonth();
         const date = current.getDate();
         
-        if ((month === 6 && date === 4)) { // July 4th
+        if ((month === 6 && date === 4)) {
           events.push({
             id: `holiday-${current.getTime()}`,
             date: new Date(current),
@@ -37,7 +63,7 @@ export const useWeatherData = (startDate: Date, endDate: Date) => {
           });
         }
         
-        if ((month === 11 && date === 25)) { // Christmas
+        if ((month === 11 && date === 25)) {
           events.push({
             id: `holiday-${current.getTime()}`,
             date: new Date(current),
@@ -47,7 +73,7 @@ export const useWeatherData = (startDate: Date, endDate: Date) => {
           });
         }
         
-        if ((month === 0 && date === 1)) { // New Year's
+        if ((month === 0 && date === 1)) {
           events.push({
             id: `holiday-${current.getTime()}`,
             date: new Date(current),
@@ -57,9 +83,7 @@ export const useWeatherData = (startDate: Date, endDate: Date) => {
           });
         }
 
-        // Add some seasonal weather patterns (simplified)
-        if (month >= 5 && month <= 8) { // Summer months
-          // Occasional summer storms
+        if (month >= 5 && month <= 8) {
           if (current.getDay() === 3 && Math.random() > 0.85) {
             events.push({
               id: `storm-${current.getTime()}`,
@@ -71,8 +95,7 @@ export const useWeatherData = (startDate: Date, endDate: Date) => {
           }
         }
         
-        if (month >= 11 || month <= 2) { // Winter months
-          // Occasional winter weather
+        if (month >= 11 || month <= 2) {
           if (Math.random() > 0.9) {
             events.push({
               id: `winter-${current.getTime()}`,
@@ -91,8 +114,12 @@ export const useWeatherData = (startDate: Date, endDate: Date) => {
       setLoading(false);
     };
 
-    fetchWeatherData();
-  }, [startDate, endDate]);
+    fetchData();
+  }, [startDateOrMode, endDate]);
+
+  if (startDateOrMode === 'default') {
+    return { weather, loading };
+  }
 
   return { weatherEvents, loading };
-};
+}

@@ -1,19 +1,20 @@
 
 import { useState } from 'react';
-import { useStakeholders, Stakeholder } from '@/hooks/useStakeholders';
+import { Stakeholder } from '@/hooks/useStakeholders';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DeleteStakeholderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   stakeholder: Stakeholder | null;
+  onDeleted?: () => void;
 }
 
-export const DeleteStakeholderDialog = ({ open, onOpenChange, stakeholder }: DeleteStakeholderDialogProps) => {
-  const { deleteStakeholder } = useStakeholders();
+export const DeleteStakeholderDialog = ({ open, onOpenChange, stakeholder, onDeleted }: DeleteStakeholderDialogProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -21,23 +22,31 @@ export const DeleteStakeholderDialog = ({ open, onOpenChange, stakeholder }: Del
     if (!stakeholder) return;
 
     setLoading(true);
-    const { error } = await deleteStakeholder(stakeholder.id);
     
-    if (!error) {
+    try {
+      const { error } = await supabase
+        .from('stakeholders')
+        .delete()
+        .eq('id', stakeholder.id);
+      
+      if (error) throw error;
+      
       onOpenChange(false);
+      onDeleted?.();
       toast({
         title: "Success",
         description: "Stakeholder deleted successfully"
       });
-    } else {
+    } catch (error) {
+      console.error('Error deleting stakeholder:', error);
       toast({
         title: "Error",
         description: "Failed to delete stakeholder. They may have active assignments.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   if (!stakeholder) return null;
