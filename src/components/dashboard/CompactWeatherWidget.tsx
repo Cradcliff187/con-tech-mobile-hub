@@ -72,8 +72,8 @@ export const CompactWeatherWidget = () => {
   };
 
   const handleViewDetails = () => {
-    // Could open a modal or navigate to detailed weather view
-    console.log('View detailed weather information');
+    // Open detailed weather information in a new tab or modal
+    window.open('https://weather.com', '_blank');
   };
 
   return (

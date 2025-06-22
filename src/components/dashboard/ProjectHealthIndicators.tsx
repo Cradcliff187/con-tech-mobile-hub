@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Calendar, DollarSign, Shield, Wrench } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Calendar, DollarSign, Shield } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useMilestones } from '@/hooks/useMilestones';
@@ -100,7 +100,7 @@ const PhaseIndicator = ({ currentPhase }: { currentPhase: string }) => {
   return (
     <div className="flex items-center justify-between w-full">
       {phases.map((phase, index) => (
-        <React.Fragment key={phase.key}>
+        <div key={phase.key} className="flex items-center">
           <div className="flex flex-col items-center">
             <div className={`w-3 h-3 rounded-full ${
               index <= currentIndex 
@@ -122,7 +122,7 @@ const PhaseIndicator = ({ currentPhase }: { currentPhase: string }) => {
                 : 'bg-slate-200'
             }`} />
           )}
-        </React.Fragment>
+        </div>
       ))}
     </div>
   );
@@ -297,7 +297,6 @@ export const ProjectHealthIndicators = () => {
 
       return { overallHealth, metrics, phaseDistribution };
     } catch (error) {
-      console.error('Error calculating health metrics:', error);
       return {
         overallHealth: 0,
         metrics: [],
