@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Users, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,13 +28,9 @@ export const ResourceOverview = () => {
   const { tasks } = useTasks();
   const { employeeAssignments } = useEmployeeAssignments();
 
-  console.warn('⚠️ MIGRATION NOTICE: ResourceOverview now uses employee assignments instead of team_members');
-
   useEffect(() => {
     const fetchResourceData = async () => {
       if (!user) return;
-
-      console.log('Fetching resource data with new employee assignments system...');
 
       try {
         // Fetch total workers from profiles
@@ -42,8 +39,6 @@ export const ResourceOverview = () => {
           .select('id, role, account_status')
           .in('role', ['worker', 'site_supervisor', 'project_manager'])
           .eq('account_status', 'approved');
-        
-        console.log('Workers query result:', { profiles, error: profilesError });
         
         const workersCount = profiles?.length || 0;
         setTotalWorkers(workersCount);
@@ -89,13 +84,6 @@ export const ResourceOverview = () => {
         // Calculate average utilization
         const totalUtil = teamData.reduce((sum, team) => sum + team.utilization, 0);
         setAvgUtilization(teamData.length > 0 ? Math.floor(totalUtil / teamData.length) : 0);
-
-        console.log('Resource data calculated with employee assignments:', {
-          workersCount,
-          activeProjectsCount: activeProjects.length,
-          teamData,
-          avgUtilization: totalUtil / teamData.length
-        });
 
       } catch (error) {
         console.error('Error fetching resource data:', error);

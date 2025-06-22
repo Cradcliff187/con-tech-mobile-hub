@@ -37,8 +37,6 @@ export const useEmployeeResourceAllocations = (projectId?: string) => {
   const fetchAllocations = async () => {
     if (!user) return;
 
-    console.warn('⚠️ MIGRATION NOTICE: Using new employee assignments system instead of deprecated team_members');
-
     setLoading(true);
     try {
       // Get stakeholder assignments for employees grouped by project and week
@@ -57,7 +55,7 @@ export const useEmployeeResourceAllocations = (projectId?: string) => {
           )
         `)
         .eq('stakeholders.stakeholder_type', 'employee')
-        .in('status', ['assigned', 'active'])
+        .in('status', ['assigned', 'active', 'completed'])
         .order('week_start_date', { ascending: false });
 
       if (projectId) {
@@ -71,7 +69,7 @@ export const useEmployeeResourceAllocations = (projectId?: string) => {
         return;
       }
 
-      // Group assignments by project and week to mimic resource_allocations structure
+      // Group assignments by project and week
       const groupedAllocations = new Map<string, EmployeeResourceAllocation>();
 
       assignments?.forEach(assignment => {
@@ -126,8 +124,8 @@ export const useEmployeeResourceAllocations = (projectId?: string) => {
   }, [user, projectId]);
 
   const createAllocation = async (allocationData: any) => {
-    console.warn('⚠️ DEPRECATED: createAllocation should use stakeholder assignments directly');
-    // This would need to create stakeholder assignments instead
+    // This function is maintained for compatibility
+    // New allocations should use stakeholder assignments directly
     return { error: 'Use stakeholder assignments system instead' };
   };
 
