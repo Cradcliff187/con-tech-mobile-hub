@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Users, Clock, DollarSign, AlertTriangle, Calendar, UserPlus, Plus, Wrench, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ interface ResourcePlanningProps {
 }
 
 export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
-  const { allocations, loading, summaryStats } = useEmployeeResourcePlanning(projectId);
+  const { resourceGroups, loading, summaryStats } = useEmployeeResourcePlanning(projectId);
   const { allocations: equipmentAllocations } = useEquipmentAllocations();
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
@@ -203,35 +204,35 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
 
         <TabsContent value="personnel" className="space-y-6">
           {/* Employee Assignments */}
-          {allocations.length === 0 ? (
+          {resourceGroups.length === 0 ? (
             <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
               <Users size={48} className="mx-auto mb-4 text-slate-400" />
               <h3 className="text-lg font-medium text-slate-600 mb-2">No Employee Assignments</h3>
               <p className="text-slate-500">Assign employees to this project to manage resources.</p>
             </div>
           ) : (
-            allocations.map((allocation) => (
-              <div key={allocation.id} className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+            resourceGroups.map((group) => (
+              <div key={group.id} className="bg-white rounded-lg border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-semibold text-slate-800">{allocation.team_name}</h4>
+                    <h4 className="text-lg font-semibold text-slate-800">{group.team_name}</h4>
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-slate-600">
-                        Week: {new Date(allocation.week_start_date).toLocaleDateString()}
+                        Week: {new Date(group.week_start_date).toLocaleDateString()}
                       </span>
                       <span className="text-slate-600">
-                        Budget: <span className={getBudgetStatus(allocation.total_used, allocation.total_budget)}>
-                          {formatCurrency(allocation.total_used)} / {formatCurrency(allocation.total_budget)}
+                        Budget: <span className={getBudgetStatus(group.total_used, group.total_budget)}>
+                          {formatCurrency(group.total_used)} / {formatCurrency(group.total_budget)}
                         </span>
                       </span>
                       <span className="text-slate-600">
-                        {allocation.members?.length || 0} employees
+                        {group.members?.length || 0} employees
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {allocation.members && allocation.members.length > 0 ? (
+                {group.members && group.members.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-slate-50">
@@ -246,7 +247,7 @@ export const ResourcePlanning = ({ projectId }: ResourcePlanningProps) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {allocation.members.map((member, memberIndex) => (
+                        {group.members.map((member, memberIndex) => (
                           <tr key={member.id} className={memberIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                             <td className="px-6 py-4">
                               <div className="font-medium text-slate-800">{member.name}</div>

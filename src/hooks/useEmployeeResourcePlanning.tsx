@@ -101,20 +101,29 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
   }, [filteredAssignments, projects]);
 
   // Calculate summary statistics
-  const summaryStats = useM
-
-(() => {
+  const summaryStats = useMemo(() => {
     const totalMembers = groupedAssignments.reduce((sum, group) => sum + group.members.length, 0);
     const totalHours = groupedAssignments.reduce((sum, group) => sum + group.total_allocated_hours, 0);
     const totalCost = groupedAssignments.reduce((sum, group) => sum + group.total_actual_cost, 0);
+    const totalBudget = groupedAssignments.reduce((sum, group) => sum + group.total_budget, 0);
     const avgUtilization = totalMembers > 0 ? (totalHours / (totalMembers * 40)) * 100 : 0;
+    const budgetVariance = totalBudget - totalCost;
+    const budgetVariancePercentage = totalBudget > 0 ? ((budgetVariance / totalBudget) * 100) : 0;
+    const overallocatedCount = groupedAssignments.reduce((count, group) => 
+      count + group.members.filter(m => (m.utilization_percentage || 0) > 100).length, 0
+    );
 
     return {
       totalMembers,
       totalHours,
       totalCost,
+      totalBudget,
+      totalBudgetUsed: totalCost,
       avgUtilization,
-      totalProjects: new Set(groupedAssignments.map(g => g.project_id)).size
+      totalProjects: new Set(groupedAssignments.map(g => g.project_id)).size,
+      budgetVariance,
+      budgetVariancePercentage,
+      overallocatedCount
     };
   }, [groupedAssignments]);
 
@@ -124,6 +133,7 @@ export const useEmployeeResourcePlanning = (projectId?: string) => {
 
   return {
     resourceGroups,
+    allocations: groupedAssignments, // Keep backward compatibility
     loading,
     summaryStats,
     refetch: () => {
