@@ -105,7 +105,7 @@ export const CostExportDialog = ({ onExport }: CostExportDialogProps) => {
                 <Checkbox 
                   id="projects" 
                   checked={includeProjects}
-                  onCheckedChange={setIncludeProjects}
+                  onCheckedChange={(checked) => setIncludeProjects(checked === true)}
                 />
                 <label htmlFor="projects" className="text-sm">Project Cost Overview</label>
               </div>
@@ -114,7 +114,7 @@ export const CostExportDialog = ({ onExport }: CostExportDialogProps) => {
                 <Checkbox 
                   id="employees" 
                   checked={includeEmployees}
-                  onCheckedChange={setIncludeEmployees}
+                  onCheckedChange={(checked) => setIncludeEmployees(checked === true)}
                 />
                 <label htmlFor="employees" className="text-sm">Employee Earnings Data</label>
               </div>
@@ -124,7 +124,7 @@ export const CostExportDialog = ({ onExport }: CostExportDialogProps) => {
                   <Checkbox 
                     id="charts" 
                     checked={includeCharts}
-                    onCheckedChange={setIncludeCharts}
+                    onCheckedChange={(checked) => setIncludeCharts(checked === true)}
                   />
                   <label htmlFor="charts" className="text-sm">Charts and Visualizations</label>
                 </div>

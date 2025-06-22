@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, DollarSign, Users, TrendingUp, Clock } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
+import type { DateRange } from 'react-day-picker';
 
 import { useEmployeeCostAnalytics } from '@/hooks/useEmployeeCostAnalytics';
 import { useBurnRateAnalysis } from '@/hooks/useBurnRateAnalysis';
@@ -23,7 +24,7 @@ import { CostExportDialog } from './CostExportDialog';
 export const EmployeeCostDashboard = () => {
   const { projects } = useProjects();
   const [selectedProject, setSelectedProject] = useState<string>('all');
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: subDays(new Date(), 30),
     to: new Date()
   });
@@ -81,6 +82,12 @@ export const EmployeeCostDashboard = () => {
       case 'thisMonth':
         setDateRange({ from: startOfMonth(today), to: endOfMonth(today) });
         break;
+    }
+  };
+
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    if (range?.from && range?.to) {
+      setDateRange({ from: range.from, to: range.to });
     }
   };
 
@@ -159,7 +166,7 @@ export const EmployeeCostDashboard = () => {
                   mode="range"
                   defaultMonth={dateRange.from}
                   selected={dateRange}
-                  onSelect={(range) => range && setDateRange(range)}
+                  onSelect={handleDateRangeSelect}
                   numberOfMonths={2}
                 />
               </PopoverContent>
