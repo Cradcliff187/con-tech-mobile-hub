@@ -17,7 +17,7 @@ export const useStakeholderFormState = ({ defaultType }: UseStakeholderFormState
   }, [defaultType]);
 
   const handleInputChange = (field: string, value: any) => {
-    // Use type guards to coerce the value to the correct type
+    // Use the same coercion logic as the main form hook
     const coercedValue = coerceFieldValue(field, value);
     
     setFormData(prev => ({ ...prev, [field]: coercedValue }));

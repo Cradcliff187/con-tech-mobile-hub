@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { validateFormData, stakeholderSchema } from '@/schemas';
 import { transformStakeholderData, getInitialFormData } from '../utils/stakeholderFormUtils';
 import { type StakeholderFormData } from '@/schemas';
+import { coerceFieldValue } from '@/utils/form-type-guards';
 
 interface UseStakeholderFormProps {
   defaultType?: 'client' | 'subcontractor' | 'employee' | 'vendor';
@@ -15,46 +16,16 @@ interface UseStakeholderFormProps {
 export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, onClose }: UseStakeholderFormProps) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-  
-  // Direct state management with proper typing
   const [formData, setFormData] = useState<StakeholderFormData>(getInitialFormData(defaultType));
   
   const { createStakeholder } = useStakeholders();
   const { toast } = useToast();
 
-  // Enhanced handleInputChange with proper type handling
+  // Simplified handleInputChange using coerceFieldValue utility
   const handleInputChange = (field: string, value: any) => {
     setFormData(prevData => {
-      const newData = { ...prevData };
-      
-      // Special handling for crew_size to ensure proper type conversion
-      if (field === 'crew_size') {
-        if (value === '' || value === null || value === undefined) {
-          newData.crew_size = undefined;
-        } else if (typeof value === 'string') {
-          const parsed = parseInt(value, 10);
-          newData.crew_size = isNaN(parsed) ? undefined : parsed;
-        } else if (typeof value === 'number') {
-          newData.crew_size = value;
-        } else {
-          newData.crew_size = undefined;
-        }
-        return newData;
-      }
-      
-      // Validation for stakeholder_type to ensure it's never undefined
-      if (field === 'stakeholder_type') {
-        if (!value || !['client', 'subcontractor', 'employee', 'vendor'].includes(value)) {
-          // Don't update if invalid value
-          return prevData;
-        }
-        newData.stakeholder_type = value;
-        return newData;
-      }
-      
-      // Standard field updates with type safety
-      (newData as any)[field] = value;
-      return newData;
+      const coercedValue = coerceFieldValue(field, value);
+      return { ...prevData, [field]: coercedValue };
     });
   };
 
@@ -95,13 +66,8 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
         throw new Error('Form validation failed');
       }
 
-      // Ensure crew_size is properly typed as number | undefined
-      const validatedData = {
-        ...validation.data,
-        crew_size: typeof validation.data.crew_size === 'number' ? validation.data.crew_size : undefined
-      };
-
-      const stakeholderData = transformStakeholderData(validatedData);
+      // Use the validated data directly - Zod preprocessing handles all transformations
+      const stakeholderData = transformStakeholderData(validation.data);
 
       const { error } = await createStakeholder(stakeholderData);
 
@@ -114,7 +80,7 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
       } else {
         toast({
           title: "Stakeholder created successfully",
-          description: `${validatedData.company_name || validatedData.contact_person} has been added with enhanced security validation`
+          description: `${validation.data.company_name || validation.data.contact_person} has been added successfully`
         });
         
         resetForm();

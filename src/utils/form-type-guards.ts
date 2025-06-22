@@ -36,15 +36,18 @@ export function isDateField(field: string): boolean {
 }
 
 export function coerceFieldValue(field: string, value: any): any {
+  // Handle empty values consistently
   if (value === '' || value === null || value === undefined) {
     return isNumericField(field) ? undefined : value;
   }
 
+  // Handle numeric fields (crew_size, etc.) - let Zod preprocessing handle the conversion
   if (isNumericField(field)) {
-    const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
-    return isNaN(numValue) ? undefined : numValue;
+    // Return the value as-is for numeric fields - Zod preprocessing will handle conversion
+    return value;
   }
 
+  // Handle array fields (specialties)
   if (isArrayField(field)) {
     if (typeof value === 'string') {
       return value.split(',').map(v => v.trim()).filter(v => v.length > 0);
@@ -52,9 +55,11 @@ export function coerceFieldValue(field: string, value: any): any {
     return Array.isArray(value) ? value : [];
   }
 
+  // Handle date fields
   if (isDateField(field)) {
     return typeof value === 'string' ? value : '';
   }
 
+  // Handle string fields with basic sanitization
   return typeof value === 'string' ? value.trim() : value;
 }
