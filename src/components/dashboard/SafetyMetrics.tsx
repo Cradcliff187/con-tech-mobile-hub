@@ -1,31 +1,12 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, ShieldAlert, ShieldX, HardHat, ClipboardCheck } from 'lucide-react';
 import { MetricCardSkeleton } from './skeletons/MetricCardSkeleton';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
-
-interface SafetyData {
-  daysWithoutIncident: number;
-  safetyComplianceRate: number;
-  toolboxTalksCompleted: number;
-  toolboxTalksTotal: number;
-  ppeComplianceRate: number;
-  lastIncidentDate?: Date;
-  lastSafetyAudit?: Date;
-}
-
-// Mock data - in a real app, this would come from props or a hook
-const mockSafetyData: SafetyData = {
-  daysWithoutIncident: 47,
-  safetyComplianceRate: 94,
-  toolboxTalksCompleted: 8,
-  toolboxTalksTotal: 10,
-  ppeComplianceRate: 89,
-  lastIncidentDate: new Date('2024-05-06'),
-  lastSafetyAudit: new Date('2024-06-15')
-};
+import { useSafetyMetrics } from '@/hooks/useSafetyMetrics';
 
 const getStatusColor = (value: number, thresholds: { good: number; warning: number }) => {
   if (value >= thresholds.good) {
@@ -53,14 +34,7 @@ const getStatusColor = (value: number, thresholds: { good: number; warning: numb
 };
 
 export const SafetyMetrics = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Simulate loading state (in real app, this would come from a hook)
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 100);
-    return () => clearTimeout(timer);
-  }, []);
+  const { metrics, loading, error } = useSafetyMetrics();
 
   if (loading) {
     return (
@@ -82,7 +56,7 @@ export const SafetyMetrics = () => {
     );
   }
 
-  if (error) {
+  if (error || !metrics) {
     return (
       <Card className="w-full">
         <CardHeader className="pb-4">
@@ -94,8 +68,7 @@ export const SafetyMetrics = () => {
         <CardContent>
           <ErrorFallback 
             title="Safety Data Unavailable"
-            description={error}
-            resetError={() => setError(null)}
+            description={error || "Failed to load safety metrics"}
             className="max-w-none"
           />
         </CardContent>
@@ -103,16 +76,16 @@ export const SafetyMetrics = () => {
     );
   }
 
-  const data = mockSafetyData;
-
   // Calculate derived values
-  const toolboxCompletionRate = Math.round((data.toolboxTalksCompleted / data.toolboxTalksTotal) * 100);
+  const toolboxCompletionRate = metrics.toolboxTalksTotal > 0 
+    ? Math.round((metrics.toolboxTalksCompleted / metrics.toolboxTalksTotal) * 100)
+    : 0;
 
   // Status calculations
-  const incidentStatus = getStatusColor(data.daysWithoutIncident, { good: 30, warning: 15 });
-  const complianceStatus = getStatusColor(data.safetyComplianceRate, { good: 90, warning: 70 });
+  const incidentStatus = getStatusColor(metrics.daysWithoutIncident, { good: 30, warning: 15 });
+  const complianceStatus = getStatusColor(metrics.safetyComplianceRate, { good: 90, warning: 70 });
   const toolboxStatus = getStatusColor(toolboxCompletionRate, { good: 80, warning: 60 });
-  const ppeStatus = getStatusColor(data.ppeComplianceRate, { good: 95, warning: 85 });
+  const ppeStatus = getStatusColor(metrics.ppeComplianceRate, { good: 95, warning: 85 });
 
   return (
     <Card className="w-full">
@@ -132,12 +105,12 @@ export const SafetyMetrics = () => {
             </div>
             <div className="flex items-baseline gap-2">
               <span className={`text-3xl font-bold ${incidentStatus.text}`}>
-                {data.daysWithoutIncident}
+                {metrics.daysWithoutIncident}
               </span>
               <span className="text-sm text-slate-500">days</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Last incident: {data.lastIncidentDate?.toLocaleDateString() || 'None on record'}
+              Last incident: {metrics.lastIncidentDate?.toLocaleDateString() || 'None on record'}
             </p>
           </div>
 
@@ -149,15 +122,15 @@ export const SafetyMetrics = () => {
             </div>
             <div className="flex items-baseline gap-2 mb-2">
               <span className={`text-2xl font-bold ${complianceStatus.text}`}>
-                {data.safetyComplianceRate}%
+                {metrics.safetyComplianceRate}%
               </span>
             </div>
             <Progress 
-              value={data.safetyComplianceRate} 
+              value={metrics.safetyComplianceRate} 
               className="h-2 mb-1"
             />
             <p className="text-xs text-slate-500">
-              Last audit: {data.lastSafetyAudit?.toLocaleDateString() || 'Pending'}
+              Last audit: {metrics.lastSafetyAudit?.toLocaleDateString() || 'Pending'}
             </p>
           </div>
 
@@ -169,7 +142,7 @@ export const SafetyMetrics = () => {
             </div>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xl font-bold ${toolboxStatus.text}`}>
-                {data.toolboxTalksCompleted}/{data.toolboxTalksTotal}
+                {metrics.toolboxTalksCompleted}/{metrics.toolboxTalksTotal}
               </span>
               <Badge 
                 variant={toolboxCompletionRate >= 80 ? 'default' : 'secondary'}
@@ -193,17 +166,17 @@ export const SafetyMetrics = () => {
             </div>
             <div className="flex items-baseline gap-2 mb-2">
               <span className={`text-2xl font-bold ${ppeStatus.text}`}>
-                {data.ppeComplianceRate}%
+                {metrics.ppeComplianceRate}%
               </span>
             </div>
             <Progress 
-              value={data.ppeComplianceRate} 
+              value={metrics.ppeComplianceRate} 
               className="h-2 mb-1"
             />
             <p className="text-xs text-slate-500">
-              {data.ppeComplianceRate >= 95 
+              {metrics.ppeComplianceRate >= 95 
                 ? 'Excellent compliance' 
-                : data.ppeComplianceRate >= 85 
+                : metrics.ppeComplianceRate >= 85 
                   ? 'Needs improvement' 
                   : 'Action required'
               }

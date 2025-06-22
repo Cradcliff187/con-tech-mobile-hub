@@ -1,27 +1,12 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, CheckCircle, AlertTriangle, XCircle, TrendingUp } from 'lucide-react';
 import { MetricCardSkeleton } from './skeletons/MetricCardSkeleton';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
-
-interface BudgetData {
-  totalBudget: number;
-  currentSpend: number;
-  projectedTotal: number;
-  variance: number;
-  lastUpdated?: Date;
-}
-
-// Mock data - in a real app, this would come from props or a hook
-const mockBudgetData: BudgetData = {
-  totalBudget: 2500000, // $2.5M
-  currentSpend: 1875000, // $1.875M (75% spent)
-  projectedTotal: 2450000, // $2.45M (under budget)
-  variance: 50000, // $50k under budget (2% variance)
-  lastUpdated: new Date('2024-06-20')
-};
+import { useBudgetTracking } from '@/hooks/useBudgetTracking';
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
@@ -33,6 +18,17 @@ const formatCurrency = (amount: number): string => {
 };
 
 const getBudgetStatus = (variance: number, totalBudget: number) => {
+  if (totalBudget === 0) {
+    return {
+      status: 'unknown',
+      color: 'text-slate-600',
+      bg: 'bg-slate-50',
+      border: 'border-slate-200',
+      icon: AlertTriangle,
+      label: 'No Budget Set'
+    };
+  }
+
   const variancePercentage = (variance / totalBudget) * 100;
   
   if (variancePercentage > 5) {
@@ -66,14 +62,7 @@ const getBudgetStatus = (variance: number, totalBudget: number) => {
 };
 
 export const BudgetTracker = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Simulate loading state (in real app, this would come from a hook)
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 100);
-    return () => clearTimeout(timer);
-  }, []);
+  const { metrics, loading, error } = useBudgetTracking();
 
   if (loading) {
     return (
@@ -95,7 +84,7 @@ export const BudgetTracker = () => {
     );
   }
 
-  if (error) {
+  if (error || !metrics) {
     return (
       <Card className="w-full">
         <CardHeader className="pb-4">
@@ -107,8 +96,7 @@ export const BudgetTracker = () => {
         <CardContent>
           <ErrorFallback 
             title="Budget Data Unavailable"
-            description={error}
-            resetError={() => setError(null)}
+            description={error || "Failed to load budget data"}
             className="max-w-none"
           />
         </CardContent>
@@ -116,12 +104,14 @@ export const BudgetTracker = () => {
     );
   }
 
-  const data = mockBudgetData;
-
   // Calculate derived values
-  const spentPercentage = Math.round((data.currentSpend / data.totalBudget) * 100);
-  const variancePercentage = Math.round((data.variance / data.totalBudget) * 100);
-  const budgetStatus = getBudgetStatus(data.variance, data.totalBudget);
+  const spentPercentage = metrics.totalBudget > 0 
+    ? Math.round((metrics.currentSpend / metrics.totalBudget) * 100) 
+    : 0;
+  const variancePercentage = metrics.totalBudget > 0 
+    ? Math.round((metrics.variance / metrics.totalBudget) * 100) 
+    : 0;
+  const budgetStatus = getBudgetStatus(metrics.variance, metrics.totalBudget);
 
   return (
     <Card className="w-full">
@@ -144,11 +134,11 @@ export const BudgetTracker = () => {
             <div className="space-y-2">
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-slate-800">
-                  {formatCurrency(data.currentSpend)}
+                  {formatCurrency(metrics.currentSpend)}
                 </span>
               </div>
               <div className="text-sm text-slate-500">
-                of {formatCurrency(data.totalBudget)} total budget
+                of {formatCurrency(metrics.totalBudget)} total budget
               </div>
             </div>
           </div>
@@ -171,7 +161,7 @@ export const BudgetTracker = () => {
                 className="h-3"
               />
               <p className="text-xs text-slate-500">
-                Last updated: {data.lastUpdated?.toLocaleDateString() || 'N/A'}
+                Last updated: {metrics.lastUpdated?.toLocaleDateString() || 'N/A'}
               </p>
             </div>
           </div>
@@ -185,7 +175,7 @@ export const BudgetTracker = () => {
             <div className="space-y-2">
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-slate-800">
-                  {formatCurrency(data.projectedTotal)}
+                  {formatCurrency(metrics.projectedTotal)}
                 </span>
               </div>
               <div className="text-sm text-slate-500">
@@ -203,7 +193,7 @@ export const BudgetTracker = () => {
             <div className="space-y-2">
               <div className="flex items-baseline gap-2">
                 <span className={`text-2xl font-bold ${budgetStatus.color}`}>
-                  {data.variance >= 0 ? '+' : ''}{formatCurrency(data.variance)}
+                  {metrics.variance >= 0 ? '+' : ''}{formatCurrency(metrics.variance)}
                 </span>
               </div>
               <div className="flex items-center gap-2">

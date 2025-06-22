@@ -57,6 +57,133 @@ export type Database = {
           },
         ]
       }
+      budget_line_items: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          category: string
+          created_at: string | null
+          created_by: string | null
+          date: string
+          description: string
+          id: string
+          invoice_number: string | null
+          project_id: string
+          status: string | null
+          updated_at: string | null
+          vendor: string | null
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          description: string
+          id?: string
+          invoice_number?: string | null
+          project_id: string
+          status?: string | null
+          updated_at?: string | null
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string
+          id?: string
+          invoice_number?: string | null
+          project_id?: string
+          status?: string | null
+          updated_at?: string | null
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_line_items_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_line_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_line_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_tracking: {
+        Row: {
+          committed_amount: number | null
+          created_at: string | null
+          id: string
+          last_updated: string | null
+          notes: string | null
+          project_id: string
+          projected_total: number | null
+          spent_amount: number | null
+          updated_by: string | null
+          variance_amount: number | null
+          variance_percentage: number | null
+        }
+        Insert: {
+          committed_amount?: number | null
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          notes?: string | null
+          project_id: string
+          projected_total?: number | null
+          spent_amount?: number | null
+          updated_by?: string | null
+          variance_amount?: number | null
+          variance_percentage?: number | null
+        }
+        Update: {
+          committed_amount?: number | null
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          notes?: string | null
+          project_id?: string
+          projected_total?: number | null
+          spent_amount?: number | null
+          updated_by?: string | null
+          variance_amount?: number | null
+          variance_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_tracking_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string | null
@@ -811,6 +938,171 @@ export type Database = {
           },
         ]
       }
+      safety_compliance: {
+        Row: {
+          auditor_id: string | null
+          compliance_rate: number
+          compliance_type: string
+          created_at: string | null
+          id: string
+          last_audit_date: string | null
+          next_audit_date: string | null
+          notes: string | null
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          auditor_id?: string | null
+          compliance_rate: number
+          compliance_type: string
+          created_at?: string | null
+          id?: string
+          last_audit_date?: string | null
+          next_audit_date?: string | null
+          notes?: string | null
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          auditor_id?: string | null
+          compliance_rate?: number
+          compliance_type?: string
+          created_at?: string | null
+          id?: string
+          last_audit_date?: string | null
+          next_audit_date?: string | null
+          notes?: string | null
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_compliance_auditor_id_fkey"
+            columns: ["auditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_compliance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_incidents: {
+        Row: {
+          corrective_actions: string | null
+          created_at: string | null
+          description: string
+          id: string
+          incident_date: string
+          project_id: string
+          reported_by: string | null
+          severity: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          corrective_actions?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          incident_date: string
+          project_id: string
+          reported_by?: string | null
+          severity: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          corrective_actions?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          incident_date?: string
+          project_id?: string
+          reported_by?: string | null
+          severity?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_incidents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_incidents_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_toolbox_talks: {
+        Row: {
+          attendance_count: number | null
+          completed_count: number | null
+          conducted_by: string | null
+          created_at: string | null
+          id: string
+          month: number
+          project_id: string
+          topic: string | null
+          total_required: number | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          attendance_count?: number | null
+          completed_count?: number | null
+          conducted_by?: string | null
+          created_at?: string | null
+          id?: string
+          month: number
+          project_id: string
+          topic?: string | null
+          total_required?: number | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          attendance_count?: number | null
+          completed_count?: number | null
+          conducted_by?: string | null
+          created_at?: string | null
+          id?: string
+          month?: number
+          project_id?: string
+          topic?: string | null
+          total_required?: number | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_toolbox_talks_conducted_by_fkey"
+            columns: ["conducted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_toolbox_talks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stakeholder_assignments: {
         Row: {
           created_at: string | null
@@ -1529,6 +1821,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_budget_variance: {
+        Args: { p_project_id: string }
+        Returns: {
+          variance_amount: number
+          variance_percentage: number
+        }[]
+      }
+      calculate_days_without_incident: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
       check_equipment_availability: {
         Args: {
           p_equipment_id: string
