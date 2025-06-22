@@ -4,13 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSearchParams } from 'react-router-dom';
 
 interface SafetyMetrics {
-  daysWithoutIncident: number;
-  safetyComplianceRate: number;
+  daysWithoutIncident: number | null;
+  safetyComplianceRate: number | null;
   toolboxTalksCompleted: number;
   toolboxTalksTotal: number;
-  ppeComplianceRate: number;
+  ppeComplianceRate: number | null;
   lastIncidentDate?: Date;
   lastSafetyAudit?: Date;
+  hasIncidentData: boolean;
+  hasComplianceData: boolean;
+  hasToolboxData: boolean;
 }
 
 export const useSafetyMetrics = () => {
@@ -29,41 +32,40 @@ export const useSafetyMetrics = () => {
         // If no specific project, get data for all projects
         const projectFilter = projectId ? { project_id: projectId } : {};
 
-        // Get days without incident
-        let daysWithoutIncident = 0;
-        if (projectId) {
-          const { data: daysData } = await supabase.rpc('calculate_days_without_incident', {
-            p_project_id: projectId
-          });
-          daysWithoutIncident = daysData || 0;
-        } else {
-          // For all projects, get the minimum days without incident
-          const { data: incidentsData } = await supabase
-            .from('safety_incidents')
-            .select('incident_date')
-            .order('incident_date', { ascending: false })
-            .limit(1);
-          
-          if (incidentsData && incidentsData.length > 0) {
-            const lastIncident = new Date(incidentsData[0].incident_date);
-            const today = new Date();
-            daysWithoutIncident = Math.floor((today.getTime() - lastIncident.getTime()) / (1000 * 60 * 60 * 24));
-          } else {
-            daysWithoutIncident = 365; // No incidents on record
-          }
+        // Check if we have any incident data
+        const { data: incidentsData, error: incidentsError } = await supabase
+          .from('safety_incidents')
+          .select('incident_date')
+          .match(projectFilter)
+          .order('incident_date', { ascending: false });
+
+        if (incidentsError) throw incidentsError;
+
+        const hasIncidentData = incidentsData && incidentsData.length > 0;
+        let daysWithoutIncident: number | null = null;
+        let lastIncidentDate: Date | undefined;
+
+        if (hasIncidentData) {
+          const lastIncident = new Date(incidentsData[0].incident_date);
+          const today = new Date();
+          daysWithoutIncident = Math.floor((today.getTime() - lastIncident.getTime()) / (1000 * 60 * 60 * 24));
+          lastIncidentDate = lastIncident;
         }
 
-        // Get safety compliance rates
-        const { data: complianceData } = await supabase
+        // Check if we have any compliance data
+        const { data: complianceData, error: complianceError } = await supabase
           .from('safety_compliance')
           .select('compliance_rate, compliance_type, last_audit_date')
           .match(projectFilter);
 
-        let safetyComplianceRate = 0;
-        let ppeComplianceRate = 0;
+        if (complianceError) throw complianceError;
+
+        const hasComplianceData = complianceData && complianceData.length > 0;
+        let safetyComplianceRate: number | null = null;
+        let ppeComplianceRate: number | null = null;
         let lastSafetyAudit: Date | undefined;
 
-        if (complianceData && complianceData.length > 0) {
+        if (hasComplianceData) {
           // Calculate average compliance rate
           safetyComplianceRate = Math.round(
             complianceData.reduce((sum, item) => sum + item.compliance_rate, 0) / complianceData.length
@@ -80,40 +82,27 @@ export const useSafetyMetrics = () => {
             .sort((a, b) => b.getTime() - a.getTime());
           
           lastSafetyAudit = auditDates[0];
-        } else {
-          // Default values if no compliance data
-          safetyComplianceRate = 85;
-          ppeComplianceRate = 89;
         }
 
-        // Get toolbox talks data
+        // Check if we have any toolbox talks data
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
 
-        const { data: toolboxData } = await supabase
+        const { data: toolboxData, error: toolboxError } = await supabase
           .from('safety_toolbox_talks')
           .select('completed_count, total_required')
           .match({ ...projectFilter, month: currentMonth, year: currentYear });
 
-        let toolboxTalksCompleted = 0;
-        let toolboxTalksTotal = 10; // Default requirement
+        if (toolboxError) throw toolboxError;
 
-        if (toolboxData && toolboxData.length > 0) {
+        const hasToolboxData = toolboxData && toolboxData.length > 0;
+        let toolboxTalksCompleted = 0;
+        let toolboxTalksTotal = 0;
+
+        if (hasToolboxData) {
           toolboxTalksCompleted = toolboxData.reduce((sum, item) => sum + item.completed_count, 0);
           toolboxTalksTotal = toolboxData.reduce((sum, item) => sum + item.total_required, 0);
         }
-
-        // Get last incident date
-        const { data: lastIncidentData } = await supabase
-          .from('safety_incidents')
-          .select('incident_date')
-          .match(projectFilter)
-          .order('incident_date', { ascending: false })
-          .limit(1);
-
-        const lastIncidentDate = lastIncidentData && lastIncidentData.length > 0 
-          ? new Date(lastIncidentData[0].incident_date)
-          : undefined;
 
         setMetrics({
           daysWithoutIncident,
@@ -122,7 +111,10 @@ export const useSafetyMetrics = () => {
           toolboxTalksTotal,
           ppeComplianceRate,
           lastIncidentDate,
-          lastSafetyAudit
+          lastSafetyAudit,
+          hasIncidentData,
+          hasComplianceData,
+          hasToolboxData
         });
 
       } catch (err) {
