@@ -85,7 +85,19 @@ export const validateStatusTransition = async (
     };
   }
 
-  return data?.[0] || {
+  // Fix type mismatch by ensuring proper type conversion
+  const result = data?.[0];
+  if (result) {
+    return {
+      is_valid: result.is_valid,
+      error_message: result.error_message,
+      required_conditions: typeof result.required_conditions === 'object' 
+        ? result.required_conditions as Record<string, any>
+        : {}
+    };
+  }
+
+  return {
     is_valid: false,
     error_message: 'No validation result',
     required_conditions: {}
@@ -110,7 +122,13 @@ export const getAvailableTransitions = async (
     return [];
   }
 
-  return data || [];
+  // Fix type mismatch by ensuring proper type conversion
+  return (data || []).map(item => ({
+    ...item,
+    required_conditions: typeof item.required_conditions === 'object' 
+      ? item.required_conditions as Record<string, any>
+      : {}
+  }));
 };
 
 /**

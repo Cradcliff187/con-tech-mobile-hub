@@ -4,7 +4,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Info, ArrowRight } from 'lucide-react';
 import { Project } from '@/types/database';
-import { getUnifiedLifecycleStatus, getStatusLabel, getStatusMetadata } from '@/types/unified-lifecycle';
+import { UnifiedLifecycleStatus, ProjectWithUnifiedStatus } from '@/types/unified-lifecycle';
+import { 
+  getUnifiedLifecycleStatus, 
+  getStatusLabel, 
+  getStatusMetadata 
+} from '@/utils/unified-lifecycle-utils';
 import { getLifecycleStatus, getLifecycleStatusLabel } from '@/utils/lifecycle-status';
 
 interface UnifiedStatusMigrationHelperProps {

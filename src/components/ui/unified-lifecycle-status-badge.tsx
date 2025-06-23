@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { UnifiedLifecycleStatus, getStatusMetadata } from '@/types/unified-lifecycle';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
+import { getStatusMetadata } from '@/utils/unified-lifecycle-utils';
 import { cn } from '@/lib/utils';
 
 interface UnifiedLifecycleStatusBadgeProps {

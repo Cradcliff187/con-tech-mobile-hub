@@ -1,14 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { 
   UnifiedLifecycleStatus,
   StatusTransition,
+  ProjectWithUnifiedStatus
+} from '@/types/unified-lifecycle';
+import { 
   getUnifiedLifecycleStatus,
   getAvailableTransitions,
   validateStatusTransition,
-  updateProjectStatus,
-  ProjectWithUnifiedStatus
-} from '@/types/unified-lifecycle';
+  updateProjectStatus
+} from '@/utils/unified-lifecycle-utils';
 
 interface UseUnifiedLifecycleStatusProps {
   project: ProjectWithUnifiedStatus;

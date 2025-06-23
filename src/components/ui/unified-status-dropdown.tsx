@@ -4,13 +4,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
 import { 
-  UnifiedLifecycleStatus, 
-  getStatusMetadata, 
+  getStatusMetadata,
   validateStatusTransition,
   updateProjectStatus,
   getAvailableTransitions
-} from '@/types/unified-lifecycle';
+} from '@/utils/unified-lifecycle-utils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
