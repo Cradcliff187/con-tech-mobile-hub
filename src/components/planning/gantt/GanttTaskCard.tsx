@@ -1,3 +1,4 @@
+
 import { User, AlertTriangle, Clock } from 'lucide-react';
 import { Task } from '@/types/database';
 import { CardContent } from '@/components/ui/card';
@@ -45,8 +46,12 @@ const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) =
 };
 
 export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, isCollapsed = false }: GanttTaskCardProps) => {
+  // Add debugging log
+  console.log(`📋 Task Card (${task.title}): isCollapsed=${isCollapsed}, isSelected=${isSelected}`);
+
   // If collapsed, render the collapsed version
   if (isCollapsed) {
+    console.log(`📋 Task Card (${task.title}): Rendering collapsed version`);
     return (
       <GanttCollapsedTaskCard
         task={task}
@@ -55,6 +60,8 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
       />
     );
   }
+
+  console.log(`📋 Task Card (${task.title}): Rendering expanded version`);
 
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
   const dateInfo = formatCalculatedDateRange(calculatedStartDate, calculatedEndDate, task);

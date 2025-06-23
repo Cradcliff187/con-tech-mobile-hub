@@ -20,6 +20,8 @@ const getPriorityIcon = (priority: string) => {
 };
 
 export const GanttCollapsedTaskCard = ({ task, isSelected = false, onSelect }: GanttCollapsedTaskCardProps) => {
+  console.log(`📋 Collapsed Task Card (${task.title}): Rendering collapsed view, isSelected=${isSelected}`);
+
   const handleClick = () => {
     if (onSelect) {
       onSelect(task.id);

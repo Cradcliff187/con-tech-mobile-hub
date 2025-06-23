@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GanttLoadingState } from './gantt/components/GanttLoadingState';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -29,6 +28,9 @@ const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
   
   // Add collapse functionality
   const { isCollapsed, toggleCollapse } = useGanttCollapse();
+  
+  // Add debugging log
+  console.log('📊 GanttChart: isCollapsed=', isCollapsed, 'toggleCollapse=', !!toggleCollapse);
   
   const {
     projectTasks,

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -39,6 +38,9 @@ export const GanttControls = ({
   onToggleCollapse
 }: GanttControlsProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Add debugging log for collapse controls
+  console.log('🎛️ GanttControls: isCollapsed=', isCollapsed, 'onToggleCollapse=', !!onToggleCollapse);
 
   const statusOptions = [
     { value: 'not-started', label: 'Not Started' },
@@ -205,7 +207,10 @@ export const GanttControls = ({
         {onToggleCollapse && (
           <Button
             variant="outline"
-            onClick={onToggleCollapse}
+            onClick={() => {
+              console.log('🔄 GanttControls: Collapse toggle clicked, current state:', isCollapsed);
+              onToggleCollapse();
+            }}
             className="flex items-center gap-2"
             title={isCollapsed ? "Expand task cards" : "Collapse task cards"}
           >
