@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
@@ -93,7 +94,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
     openDialog('edit');
   };
 
-  const handleStatusChange = async (taskId: string, newStatus: string) => {
+  const handleStatusChange = async (taskId: string, newStatus: 'not-started' | 'in-progress' | 'completed' | 'blocked') => {
     try {
       const result = await updateTask(taskId, { status: newStatus });
       if (result.error) {
