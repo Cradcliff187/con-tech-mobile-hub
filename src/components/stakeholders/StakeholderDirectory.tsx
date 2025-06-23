@@ -1,15 +1,20 @@
+
 import { useState, useMemo } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { StakeholderCard } from './StakeholderCard';
 import { StakeholderListView } from './StakeholderListView';
 import { StakeholderFilters } from './StakeholderFilters';
 import { ViewToggle } from './ViewToggle';
+import { EditStakeholderDialog } from './EditStakeholderDialog';
+import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
+import { CreateStakeholderDialog } from './CreateStakeholderDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, SortAsc, SortDesc } from 'lucide-react';
+import { Search, SortAsc, SortDesc, Plus } from 'lucide-react';
+import type { Stakeholder } from '@/hooks/useStakeholders';
 
 export const StakeholderDirectory = () => {
-  const { stakeholders, loading } = useStakeholders();
+  const { stakeholders, loading, updateStakeholder, deleteStakeholder, createStakeholder, refetch } = useStakeholders();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -19,9 +24,41 @@ export const StakeholderDirectory = () => {
     return (localStorage.getItem('stakeholder-view') as 'grid' | 'list') || 'grid';
   });
 
+  // Dialog states
+  const [editStakeholder, setEditStakeholder] = useState<Stakeholder | null>(null);
+  const [deleteStakeholder, setDeleteStakeholder] = useState<Stakeholder | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
   const handleViewChange = (newView: 'grid' | 'list') => {
     setView(newView);
     localStorage.setItem('stakeholder-view', newView);
+  };
+
+  const handleEdit = (stakeholder: Stakeholder) => {
+    setEditStakeholder(stakeholder);
+  };
+
+  const handleDelete = (stakeholder: Stakeholder) => {
+    setDeleteStakeholder(stakeholder);
+  };
+
+  const handleCreate = () => {
+    setShowCreateDialog(true);
+  };
+
+  const handleStakeholderUpdated = () => {
+    refetch();
+    setEditStakeholder(null);
+  };
+
+  const handleStakeholderDeleted = () => {
+    refetch();
+    setDeleteStakeholder(null);
+  };
+
+  const handleStakeholderCreated = () => {
+    refetch();
+    setShowCreateDialog(false);
   };
 
   const filteredAndSortedStakeholders = useMemo(() => {
@@ -100,6 +137,15 @@ export const StakeholderDirectory = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-900">Stakeholder Directory</h2>
+        <Button onClick={handleCreate} className="gap-2">
+          <Plus size={16} />
+          Add Stakeholder
+        </Button>
+      </div>
+
       {/* Search and Filters */}
       <div className="space-y-4">
         <div className="relative">
@@ -165,9 +211,9 @@ export const StakeholderDirectory = () => {
         <StakeholderListView 
           stakeholders={filteredAndSortedStakeholders} 
           loading={loading}
-          onEdit={(stakeholder) => console.log('Edit:', stakeholder)}
-          onDelete={(stakeholder) => console.log('Delete:', stakeholder)}
-          onCreate={() => console.log('Create stakeholder')}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onCreate={handleCreate}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -194,6 +240,27 @@ export const StakeholderDirectory = () => {
           </div>
         </div>
       )}
+
+      {/* Dialogs */}
+      <EditStakeholderDialog
+        open={!!editStakeholder}
+        onOpenChange={(open) => !open && setEditStakeholder(null)}
+        stakeholder={editStakeholder}
+        onStakeholderUpdated={handleStakeholderUpdated}
+      />
+
+      <DeleteStakeholderDialog
+        open={!!deleteStakeholder}
+        onOpenChange={(open) => !open && setDeleteStakeholder(null)}
+        stakeholder={deleteStakeholder}
+        onDeleted={handleStakeholderDeleted}
+      />
+
+      <CreateStakeholderDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onStakeholderCreated={handleStakeholderCreated}
+      />
     </div>
   );
 };

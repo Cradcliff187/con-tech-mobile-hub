@@ -29,7 +29,8 @@ export const StakeholderListView = ({
     const variants = {
       'active': 'default',
       'inactive': 'secondary',
-      'pending': 'outline'
+      'pending': 'outline',
+      'suspended': 'destructive'
     } as const;
     
     return (
@@ -39,20 +40,17 @@ export const StakeholderListView = ({
     );
   };
 
-  const getRoleBadge = (role: string) => {
+  const getStakeholderTypeBadge = (type: string) => {
     const colors = {
-      'admin': 'bg-red-100 text-red-800',
-      'project_manager': 'bg-blue-100 text-blue-800',
-      'site_supervisor': 'bg-green-100 text-green-800',
-      'worker': 'bg-yellow-100 text-yellow-800',
       'client': 'bg-purple-100 text-purple-800',
-      'stakeholder': 'bg-gray-100 text-gray-800',
-      'vendor': 'bg-orange-100 text-orange-800'
+      'vendor': 'bg-orange-100 text-orange-800',
+      'subcontractor': 'bg-blue-100 text-blue-800',
+      'employee': 'bg-green-100 text-green-800'
     } as const;
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[role as keyof typeof colors] || colors.stakeholder}`}>
-        {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
+        {type.charAt(0).toUpperCase() + type.slice(1)}
       </span>
     );
   };
@@ -84,16 +82,16 @@ export const StakeholderListView = ({
       mobileLabel: 'Contact'
     },
     {
-      key: 'role',
-      header: 'Role',
-      accessor: (stakeholder) => getRoleBadge(stakeholder.role || 'stakeholder'),
+      key: 'stakeholder_type',
+      header: 'Type',
+      accessor: (stakeholder) => getStakeholderTypeBadge(stakeholder.stakeholder_type),
       filterable: true,
-      mobileLabel: 'Role'
+      mobileLabel: 'Type'
     },
     {
-      key: 'account_status',
+      key: 'status',
       header: 'Status',
-      accessor: (stakeholder) => getStatusBadge(stakeholder.account_status || 'pending'),
+      accessor: (stakeholder) => getStatusBadge(stakeholder.status),
       filterable: true,
       mobileLabel: 'Status'
     },
@@ -156,11 +154,11 @@ export const StakeholderListView = ({
       <EmptyState
         variant="card"
         icon={<Users size={48} className="text-slate-400" />}
-        title="No Team Members Yet"
-        description="Add your first team member to start collaborating on construction projects."
+        title="No Stakeholders Yet"
+        description="Add your first stakeholder to start managing your project collaborators."
         actions={[
           {
-            label: "Add Team Member",
+            label: "Add Stakeholder",
             onClick: onCreate,
             icon: <UserPlus size={16} />
           }
