@@ -3,6 +3,7 @@ import React from 'react';
 import { FileText, Camera, Receipt, Shield, Building, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CategoryOption {
   value: string;
@@ -27,9 +28,15 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   projectPhase,
   disabled = false
 }) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className={`grid gap-3 ${
+        isMobile 
+          ? 'grid-cols-1' 
+          : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+      }`}>
         {categories.map((category) => {
           const Icon = category.icon;
           const isSelected = selectedCategory === category.value;
@@ -38,39 +45,52 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             <Button
               key={category.value}
               variant={isSelected ? 'default' : 'outline'}
-              className={`h-auto p-4 flex flex-col items-center gap-2 text-center transition-all duration-200 hover:scale-105 ${
-                isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-              } ${category.isPriority ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' : ''}`}
+              className={`
+                ${isMobile ? 'min-h-[64px] p-4' : 'h-auto p-4'} 
+                flex flex-col items-center gap-2 text-center transition-all duration-200 
+                hover:scale-105 active:scale-95 touch-manipulation
+                ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''} 
+                ${category.isPriority ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' : ''}
+              `}
               onClick={() => onCategorySelect(category.value)}
               disabled={disabled}
             >
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center w-full">
                 <Icon 
-                  size={24} 
+                  size={isMobile ? 28 : 24} 
                   className={isSelected ? 'text-white' : category.isPriority ? 'text-blue-600' : 'text-slate-600'} 
                 />
-                {category.isPriority && (
+                {category.isPriority && !isMobile && (
                   <Badge variant="secondary" className="ml-2 text-xs bg-blue-100 text-blue-700">
                     Recommended
                   </Badge>
                 )}
               </div>
-              <div>
-                <div className={`font-medium text-sm ${isSelected ? 'text-white' : 'text-slate-800'}`}>
+              <div className="w-full">
+                <div className={`font-medium ${isMobile ? 'text-base' : 'text-sm'} ${
+                  isSelected ? 'text-white' : 'text-slate-800'
+                }`}>
                   {category.label}
                 </div>
-                <div className={`text-xs mt-1 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                  {category.description}
-                </div>
+                {!isMobile && (
+                  <div className={`text-xs mt-1 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                    {category.description}
+                  </div>
+                )}
               </div>
+              {category.isPriority && isMobile && (
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 mt-1">
+                  Recommended
+                </Badge>
+              )}
             </Button>
           );
         })}
       </div>
       
       {projectPhase && (
-        <div className="text-xs text-slate-600 text-center">
-          Categories are optimized for the <span className="font-medium capitalize">{projectPhase}</span> phase
+        <div className={`text-center ${isMobile ? 'text-sm' : 'text-xs'} text-slate-600`}>
+          Categories optimized for <span className="font-medium capitalize">{projectPhase}</span> phase
         </div>
       )}
     </div>

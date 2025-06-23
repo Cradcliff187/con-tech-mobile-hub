@@ -1,35 +1,31 @@
 
-import { memo } from 'react';
+import React from 'react';
+import { X, FileText, Image, Receipt, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  X, 
-  AlertCircle,
-  Sparkles,
-  Image,
-  Receipt,
-  FileText
-} from 'lucide-react';
-import { formatFileSize } from '@/utils/fileTypeHelpers';
-import { FileAnalysis } from '@/utils/smartFileAnalysis';
+import { Progress } from '@/components/ui/progress';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface SmartFileData {
-  file: File;
-  analysis: FileAnalysis;
-  preview?: string;
   id: string;
-  uploadProgress?: number;
-  error?: string;
+  file: File;
+  preview?: string;
   category: string;
   description: string;
+  analysis: {
+    category: string;
+    confidence: number;
+    isReceipt: boolean;
+    isPhoto: boolean;
+  };
   expenseAmount?: string;
   expenseVendor?: string;
-  expenseType?: string;
+  expenseType?: 'materials' | 'labor' | 'equipment' | 'other';
+  uploadProgress?: number;
+  error?: string;
 }
 
 interface FilePreviewCardProps {
@@ -39,173 +35,173 @@ interface FilePreviewCardProps {
   isUploading: boolean;
 }
 
-export const FilePreviewCard = memo(({
+const DOCUMENT_CATEGORIES = [
+  { value: 'plans', label: 'Plans & Drawings' },
+  { value: 'photos', label: 'Progress Photos' },
+  { value: 'receipts', label: 'Receipts & Expenses' },
+  { value: 'permits', label: 'Permits & Approvals' },
+  { value: 'contracts', label: 'Contracts & Agreements' },
+  { value: 'reports', label: 'Reports & Documentation' },
+  { value: 'safety', label: 'Safety Documents' },
+  { value: 'other', label: 'Other Documents' }
+];
+
+export const FilePreviewCard: React.FC<FilePreviewCardProps> = ({
   fileData,
   onRemove,
   onUpdate,
   isUploading
-}: FilePreviewCardProps) => {
-  const getFileIcon = (analysis: FileAnalysis) => {
-    if (analysis.isPhoto) return <Image size={20} className="text-blue-500" />;
-    if (analysis.isReceipt) return <Receipt size={20} className="text-green-500" />;
-    return <FileText size={20} className="text-slate-500" />;
+}) => {
+  const isMobile = useIsMobile();
+  const { file, preview, category, description, analysis, uploadProgress, error } = fileData;
+
+  const getFileIcon = () => {
+    if (analysis.isPhoto) return <Image size={isMobile ? 20 : 16} className="text-blue-500" />;
+    if (analysis.isReceipt) return <Receipt size={isMobile ? 20 : 16} className="text-green-500" />;
+    return <FileText size={isMobile ? 20 : 16} className="text-slate-500" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
-    <TooltipProvider>
-      <div className="border border-slate-200 rounded-lg p-3 sm:p-4 space-y-3 transition-all duration-200 hover:shadow-md hover:border-slate-300 animate-fade-in">
-        <div className="flex items-start gap-3">
-          {fileData.preview ? (
-            <div className="relative group flex-shrink-0">
-              <img 
-                src={fileData.preview} 
-                alt="File preview" 
-                className="w-12 h-12 object-cover rounded border transition-transform duration-200 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 rounded" />
-            </div>
+    <div className={`bg-white border border-slate-200 rounded-lg transition-all duration-200 hover:shadow-md
+      ${isMobile ? 'p-4' : 'p-3'}`}>
+      {/* File Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {preview ? (
+            <img 
+              src={preview} 
+              alt="Preview" 
+              className={`object-cover rounded ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}`}
+            />
           ) : (
-            <div className="w-12 h-12 bg-slate-100 rounded border flex items-center justify-center transition-all duration-200 hover:bg-slate-200 hover:scale-105 flex-shrink-0">
-              {getFileIcon(fileData.analysis)}
+            <div className={`bg-slate-100 rounded flex items-center justify-center flex-shrink-0
+              ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}`}>
+              {getFileIcon()}
             </div>
           )}
-          
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <p className="font-medium text-slate-800 truncate text-sm sm:text-base">
-                {fileData.file.name}
+            <div className="flex items-center gap-2">
+              <p className={`font-medium text-slate-800 truncate ${isMobile ? 'text-base' : 'text-sm'}`}>
+                {file.name}
               </p>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="flex items-center gap-1 text-xs transition-all duration-200 hover:scale-105">
-                    <Sparkles size={10} />
-                    {Math.round(fileData.analysis.confidence * 100)}%
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>AI Confidence Score</p>
-                </TooltipContent>
-              </Tooltip>
+              {analysis.confidence > 0.7 && (
+                <Badge variant="secondary" className="text-xs">
+                  AI: {Math.round(analysis.confidence * 100)}%
+                </Badge>
+              )}
             </div>
-            <p className="text-xs sm:text-sm text-slate-500">
-              {formatFileSize(fileData.file.size)}
+            <p className={`text-slate-500 ${isMobile ? 'text-sm' : 'text-xs'}`}>
+              {formatFileSize(file.size)}
             </p>
-            
-            {fileData.uploadProgress !== undefined && (
-              <div className="mt-2">
-                <Progress 
-                  value={fileData.uploadProgress} 
-                  className="h-2 transition-all duration-300" 
-                />
-              </div>
-            )}
-            
-            {fileData.error && (
-              <div className="flex items-center gap-1 mt-2 text-xs sm:text-sm text-red-600 animate-fade-in">
-                <AlertCircle size={12} />
-                <span className="truncate">{fileData.error}</span>
-              </div>
-            )}
           </div>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemove(fileData.id)}
-                className="text-red-600 hover:text-red-700 p-1 transition-all duration-200 hover:scale-110 hover:bg-red-50 min-h-[44px] min-w-[44px] flex-shrink-0"
-                disabled={isUploading}
-                aria-label="Remove file"
-              >
-                <X size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Remove file</p>
-            </TooltipContent>
-          </Tooltip>
         </div>
-        
-        <div className="grid grid-cols-1 gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs sm:text-sm font-medium">Category</Label>
-              <Select 
-                value={fileData.category}
-                onValueChange={(value) => onUpdate(fileData.id, { category: value })}
-                disabled={isUploading}
-              >
-                <SelectTrigger className="h-9 transition-all duration-200 hover:border-slate-400 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {fileData.analysis.suggestedCategories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      <div className="flex items-center justify-between w-full">
-                        {cat.label}
-                        {cat.confidence > 0.7 && (
-                          <Badge variant="secondary" className="ml-2 text-xs">
-                            Suggested
-                          </Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="plans">Plans & Drawings</SelectItem>
-                  <SelectItem value="permits">Permits</SelectItem>
-                  <SelectItem value="contracts">Contracts</SelectItem>
-                  <SelectItem value="photos">Photos</SelectItem>
-                  <SelectItem value="reports">Reports</SelectItem>
-                  <SelectItem value="safety">Safety Documents</SelectItem>
-                  <SelectItem value="receipts">Receipts</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-xs sm:text-sm font-medium">Description</Label>
-              <Input
-                value={fileData.description}
-                onChange={(e) => onUpdate(fileData.id, { description: e.target.value })}
-                placeholder="Document description"
-                disabled={isUploading}
-                className="h-9 transition-all duration-200 hover:border-slate-400 focus:ring-2 focus:ring-blue-200 text-sm"
-              />
-            </div>
-          </div>
-        
-          {fileData.analysis.requiresExpenseFields && (
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 animate-fade-in">
-              <div>
-                <Label className="text-xs sm:text-sm font-medium">Amount ($)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={fileData.expenseAmount || ''}
-                  onChange={(e) => onUpdate(fileData.id, { expenseAmount: e.target.value })}
-                  placeholder="0.00"
-                  disabled={isUploading}
-                  className="h-9 transition-all duration-200 hover:border-slate-400 focus:ring-2 focus:ring-green-200 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs sm:text-sm font-medium">Vendor</Label>
-                <Input
-                  value={fileData.expenseVendor || ''}
-                  onChange={(e) => onUpdate(fileData.id, { expenseVendor: e.target.value })}
-                  placeholder="Vendor name"
-                  disabled={isUploading}
-                  className="h-9 transition-all duration-200 hover:border-slate-400 focus:ring-2 focus:ring-green-200 text-sm"
-                />
-              </div>
-            </div>
-          )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onRemove(fileData.id)}
+          disabled={isUploading}
+          className={`text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0
+            ${isMobile ? 'p-2' : 'p-1'} touch-manipulation`}
+        >
+          <X size={isMobile ? 18 : 16} />
+        </Button>
+      </div>
+
+      {/* Category Selection */}
+      <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        <div>
+          <Label className={`text-slate-700 font-medium ${isMobile ? 'text-sm' : 'text-xs'}`}>
+            Category
+          </Label>
+          <Select 
+            value={category} 
+            onValueChange={(value) => onUpdate(fileData.id, { category: value })}
+            disabled={isUploading}
+          >
+            <SelectTrigger className={`mt-1 ${isMobile ? 'min-h-[44px]' : ''}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="z-50 bg-white">
+              {DOCUMENT_CATEGORIES.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className={`text-slate-700 font-medium ${isMobile ? 'text-sm' : 'text-xs'}`}>
+            Description
+          </Label>
+          <Input
+            value={description}
+            onChange={(e) => onUpdate(fileData.id, { description: e.target.value })}
+            placeholder="File description"
+            disabled={isUploading}
+            className={`mt-1 ${isMobile ? 'min-h-[44px]' : ''}`}
+          />
         </div>
       </div>
-    </TooltipProvider>
-  );
-});
 
-FilePreviewCard.displayName = 'FilePreviewCard';
+      {/* Expense Fields for Receipts */}
+      {analysis.isReceipt && (
+        <div className={`mt-3 p-3 bg-green-50 rounded-lg border border-green-200`}>
+          <p className={`text-green-700 font-medium mb-2 ${isMobile ? 'text-sm' : 'text-xs'}`}>
+            Expense Information
+          </p>
+          <div className={`grid gap-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            <Input
+              placeholder="Vendor name"
+              value={fileData.expenseVendor || ''}
+              onChange={(e) => onUpdate(fileData.id, { expenseVendor: e.target.value })}
+              disabled={isUploading}
+              className={isMobile ? 'min-h-[44px]' : ''}
+            />
+            <Input
+              placeholder="Amount"
+              type="number"
+              step="0.01"
+              value={fileData.expenseAmount || ''}
+              onChange={(e) => onUpdate(fileData.id, { expenseAmount: e.target.value })}
+              disabled={isUploading}
+              className={isMobile ? 'min-h-[44px]' : ''}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Upload Progress */}
+      {uploadProgress !== undefined && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-slate-600 ${isMobile ? 'text-sm' : 'text-xs'}`}>
+              Uploading...
+            </span>
+            <span className={`text-slate-600 ${isMobile ? 'text-sm' : 'text-xs'}`}>
+              {uploadProgress}%
+            </span>
+          </div>
+          <Progress value={uploadProgress} className="h-2" />
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="mt-3 flex items-center gap-2 text-red-600 bg-red-50 p-2 rounded border border-red-200">
+          <AlertCircle size={16} />
+          <span className={isMobile ? 'text-sm' : 'text-xs'}>{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
