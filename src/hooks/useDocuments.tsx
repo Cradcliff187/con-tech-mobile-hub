@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -70,13 +70,8 @@ export const useDocuments = (projectId?: string) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  
-  // Use refs to prevent infinite loops
-  const fetchingRef = useRef(false);
-  const lastFetchRef = useRef<string>('');
-  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Stable fetch function that doesn't depend on toast
+  // Simplified fetch function with proper error handling
   const fetchDocuments = useCallback(async () => {
     if (!user) {
       setDocuments([]);
@@ -84,23 +79,11 @@ export const useDocuments = (projectId?: string) => {
       return;
     }
 
-    // Prevent concurrent fetches
-    if (fetchingRef.current) {
-      return;
-    }
-
-    // Create fetch key to prevent duplicate fetches
-    const fetchKey = `${user.id}-${projectId || 'all'}`;
-    if (lastFetchRef.current === fetchKey) {
-      return;
-    }
-
-    fetchingRef.current = true;
-    lastFetchRef.current = fetchKey;
-
     setLoading(true);
     
     try {
+      console.log('Fetching documents for user:', user.id, 'project:', projectId);
+      
       let query = supabase
         .from('documents')
         .select(`
@@ -117,57 +100,29 @@ export const useDocuments = (projectId?: string) => {
       const { data, error } = await query;
 
       if (error) {
+        console.error('Documents fetch error:', error);
         throw new Error(`Failed to fetch documents: ${error.message}`);
       }
       
+      console.log('Documents fetched successfully:', data?.length || 0, 'documents');
       setDocuments(data || []);
     } catch (error) {
+      console.error('Error in fetchDocuments:', error);
       setDocuments([]);
-      // Show error toast without including it in dependencies
-      setTimeout(() => {
-        toast({
-          title: "Error loading documents",
-          description: error instanceof Error ? error.message : "Failed to load documents",
-          variant: "destructive"
-        });
-      }, 0);
+      toast({
+        title: "Error loading documents",
+        description: error instanceof Error ? error.message : "Failed to load documents",
+        variant: "destructive"
+      });
     } finally {
-      fetchingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, projectId]); // Only depend on primitive values
+  }, [user?.id, projectId, toast]);
 
-  // Effect that only runs when user or project changes
+  // Simple useEffect with clear dependencies
   useEffect(() => {
-    // Clear any existing cooldown
-    if (cooldownRef.current) {
-      clearTimeout(cooldownRef.current);
-    }
-
-    // Reset fetch tracking when context changes
-    lastFetchRef.current = '';
-    
-    // Add small delay to prevent rapid successive calls
-    cooldownRef.current = setTimeout(() => {
-      fetchDocuments();
-    }, 100);
-
-    return () => {
-      if (cooldownRef.current) {
-        clearTimeout(cooldownRef.current);
-      }
-    };
-  }, [user?.id, projectId]); // Only depend on primitive values, not fetchDocuments
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (cooldownRef.current) {
-        clearTimeout(cooldownRef.current);
-      }
-      fetchingRef.current = false;
-    };
-  }, []);
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   const uploadDocument = useCallback(async (
     file: File, 
@@ -193,6 +148,8 @@ export const useDocuments = (projectId?: string) => {
       const projectPath = targetProjectId || projectId || 'general';
       
       const filePath = `${projectPath}/${timestamp}_${sanitizedFileName}`;
+
+      console.log('Uploading document:', filePath);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
@@ -234,8 +191,10 @@ export const useDocuments = (projectId?: string) => {
         setDocuments(prev => [data, ...prev]);
       }
 
+      console.log('Document uploaded successfully:', data);
       return { data, error: null };
     } catch (error) {
+      console.error('Upload error:', error);
       throw error;
     } finally {
       setUploading(false);
@@ -245,12 +204,14 @@ export const useDocuments = (projectId?: string) => {
 
   const deleteDocument = useCallback(async (id: string, filePath: string) => {
     try {
+      console.log('Deleting document:', id, filePath);
+      
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([filePath]);
 
       if (storageError) {
-        // Storage deletion warning - not critical
+        console.warn('Storage deletion warning:', storageError);
       }
 
       const { error } = await supabase
@@ -263,14 +224,18 @@ export const useDocuments = (projectId?: string) => {
       }
 
       setDocuments(prev => prev.filter(doc => doc.id !== id));
+      console.log('Document deleted successfully');
       return { error: null };
     } catch (error) {
+      console.error('Delete error:', error);
       throw error;
     }
   }, []);
 
   const downloadDocument = useCallback(async (doc: DocumentRecord) => {
     try {
+      console.log('Downloading document:', doc.name);
+      
       const cleanPath = doc.file_path.startsWith('documents/') 
         ? doc.file_path.substring('documents/'.length)
         : doc.file_path;
@@ -312,12 +277,15 @@ export const useDocuments = (projectId?: string) => {
 
       return { error: null };
     } catch (error) {
+      console.error('Download error:', error);
       throw error;
     }
   }, []);
 
   const shareDocument = useCallback(async (doc: DocumentRecord) => {
     try {
+      console.log('Generating share link for:', doc.name);
+      
       const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(doc.file_path, 604800); // 7 days
@@ -343,12 +311,15 @@ export const useDocuments = (projectId?: string) => {
 
       return { error: null, url: data.signedUrl };
     } catch (error) {
+      console.error('Share error:', error);
       throw error;
     }
   }, []);
 
   const previewDocument = useCallback(async (doc: DocumentRecord) => {
     try {
+      console.log('Generating preview link for:', doc.name);
+      
       const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(doc.file_path, 3600);
@@ -363,6 +334,7 @@ export const useDocuments = (projectId?: string) => {
 
       return { data: { signedUrl: data.signedUrl }, error: null };
     } catch (error) {
+      console.error('Preview error:', error);
       throw error;
     }
   }, []);
@@ -370,7 +342,6 @@ export const useDocuments = (projectId?: string) => {
   const canUpload = useCallback(() => {
     const hasUser = !!user;
     const hasProfile = !!profile;
-    const isCompanyUser = profile?.is_company_user;
     const isApproved = profile?.account_status === 'approved';
     
     const result = hasUser && hasProfile && isApproved;
@@ -378,7 +349,6 @@ export const useDocuments = (projectId?: string) => {
     console.log('useDocuments canUpload check:', {
       hasUser,
       hasProfile,
-      isCompanyUser,
       isApproved,
       result,
       userEmail: user?.email,
@@ -399,8 +369,7 @@ export const useDocuments = (projectId?: string) => {
   }, [user, profile]);
 
   const refetch = useCallback(() => {
-    // Reset fetch tracking to force a new fetch
-    lastFetchRef.current = '';
+    console.log('Refetching documents...');
     fetchDocuments();
   }, [fetchDocuments]);
 
