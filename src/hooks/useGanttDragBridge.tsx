@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
 import { Task } from '@/types/database';
 import { getDateFromPosition } from '@/components/planning/gantt/utils/dragUtils';
+import { validateTaskDrag, getSnapDate } from '@/components/planning/gantt/utils/dragValidation';
 
 interface UseGanttDragBridgeProps {
   timelineStart: Date;
@@ -16,6 +17,7 @@ interface GanttDragBridgeReturn {
   dropPreviewDate: Date | null;
   currentValidity: 'valid' | 'warning' | 'invalid';
   violationMessages: string[];
+  dragPosition: { x: number; y: number } | null;
   handleDragStart: (e: React.DragEvent, task: Task) => void;
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
@@ -35,7 +37,7 @@ export const useGanttDragBridge = ({
     cancelDrag
   } = useGanttContext();
 
-  const { dragState } = state;
+  const { dragState, tasks } = state;
 
   // Handle drag start
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
@@ -61,7 +63,7 @@ export const useGanttDragBridge = ({
     const relativeX = e.clientX - rect.left;
     const timelineWidth = rect.width;
     
-    const previewDate = getDateFromPosition(
+    const rawDate = getDateFromPosition(
       relativeX,
       timelineWidth,
       timelineStart,
@@ -69,14 +71,27 @@ export const useGanttDragBridge = ({
       viewMode
     );
 
-    // Simple validation (can be enhanced later)
-    const isValid = previewDate >= timelineStart && previewDate <= timelineEnd;
-    const validity: 'valid' | 'warning' | 'invalid' = isValid ? 'valid' : 'invalid';
-    const messages = isValid ? [] : ['Date is outside timeline range'];
+    // Apply snapping
+    const previewDate = getSnapDate(rawDate, viewMode);
+
+    // Validate the drag
+    const validation = validateTaskDrag(
+      dragState.draggedTask,
+      previewDate,
+      timelineStart,
+      timelineEnd,
+      tasks
+    );
+
+    // Store drag position for visual feedback
+    const dragPosition = { x: e.clientX, y: e.clientY };
 
     // Update drag preview in context
-    updateDragPreview(previewDate, validity, messages);
-  }, [dragState.isDragging, dragState.draggedTask, timelineStart, timelineEnd, viewMode, updateDragPreview]);
+    updateDragPreview(previewDate, validation.validity, validation.messages);
+    
+    // Store position (we'll need to enhance context to handle this)
+    console.log('🎯 Drag position:', dragPosition, 'Preview date:', previewDate, 'Validity:', validation.validity);
+  }, [dragState.isDragging, dragState.draggedTask, timelineStart, timelineEnd, viewMode, updateDragPreview, tasks]);
 
   // Handle drop with date calculation and task update
   const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -84,6 +99,13 @@ export const useGanttDragBridge = ({
     
     if (!dragState.isDragging || !dragState.draggedTask || !dragState.dropPreviewDate) {
       console.warn('Invalid drop state');
+      return;
+    }
+
+    // Only allow valid drops
+    if (dragState.currentValidity === 'invalid') {
+      console.warn('Drop prevented due to validation errors');
+      cancelDrag();
       return;
     }
 
@@ -133,6 +155,7 @@ export const useGanttDragBridge = ({
     dropPreviewDate: dragState.dropPreviewDate,
     currentValidity: dragState.currentValidity,
     violationMessages: dragState.violationMessages,
+    dragPosition: null, // We'll need to enhance context to store this
     
     // Handlers
     handleDragStart,

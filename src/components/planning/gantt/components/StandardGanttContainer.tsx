@@ -4,6 +4,8 @@ import { Task } from '@/types/database';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttTaskRow } from '../GanttTaskRow';
 import { TaskListHeader } from './TaskListHeader';
+import { DragPreviewIndicator } from './DragPreviewIndicator';
+import { DragSnapGrid } from './DragSnapGrid';
 import { useScrollSync } from '../hooks/useScrollSync';
 
 interface StandardGanttContainerProps {
@@ -21,6 +23,11 @@ interface StandardGanttContainerProps {
   onDrop?: (e: React.DragEvent) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  // Drag state for visual feedback
+  dropPreviewDate?: Date | null;
+  currentValidity?: 'valid' | 'warning' | 'invalid';
+  violationMessages?: string[];
+  dragPosition?: { x: number; y: number } | null;
 }
 
 export const StandardGanttContainer = ({
@@ -37,25 +44,26 @@ export const StandardGanttContainer = ({
   onDragOver,
   onDrop,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  dropPreviewDate,
+  currentValidity = 'valid',
+  violationMessages = [],
+  dragPosition
 }: StandardGanttContainerProps) => {
-  // Use the scroll sync hook and get the refs it returns
   const { headerScrollRef, contentScrollRef } = useScrollSync();
 
-  console.log('🎯 StandardGanttContainer: Drag handlers available:', {
-    onDragStart: !!onDragStart,
-    onDragEnd: !!onDragEnd,
-    onDragOver: !!onDragOver,
-    onDrop: !!onDrop,
+  console.log('🎯 StandardGanttContainer: Render with drag state:', {
     isDragging,
-    draggedTaskId
+    draggedTaskId,
+    hasDropPreview: !!dropPreviewDate,
+    validity: currentValidity
   });
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
       {/* Header with Timeline */}
       <div className="flex border-b border-slate-200">
-        {/* Task List Header - Fixed/Frozen Column - Reduced Width */}
+        {/* Task List Header - Fixed/Frozen Column */}
         <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
           {onToggleCollapse && (
             <TaskListHeader
@@ -67,7 +75,7 @@ export const StandardGanttContainer = ({
         </div>
 
         {/* Timeline Header - Scrollable */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           <div 
             ref={headerScrollRef}
             className="overflow-x-auto scrollbar-none"
@@ -78,16 +86,32 @@ export const StandardGanttContainer = ({
               viewMode={viewMode}
             />
           </div>
+          
+          {/* Snap grid overlay for timeline header */}
+          <DragSnapGrid
+            isVisible={isDragging}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            viewMode={viewMode}
+          />
         </div>
       </div>
 
-      {/* Content - Add drag event handlers to the container */}
+      {/* Content with drag handlers */}
       <div 
         ref={contentScrollRef}
-        className="max-h-96 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+        className="max-h-96 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 relative"
         onDragOver={onDragOver}
         onDrop={onDrop}
       >
+        {/* Snap grid overlay for content area */}
+        <DragSnapGrid
+          isVisible={isDragging}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          viewMode={viewMode}
+        />
+        
         {displayTasks.map((task, index) => (
           <GanttTaskRow
             key={task.id}
@@ -106,6 +130,15 @@ export const StandardGanttContainer = ({
           />
         ))}
       </div>
+
+      {/* Global drag preview indicator */}
+      <DragPreviewIndicator
+        isVisible={isDragging}
+        position={dragPosition}
+        previewDate={dropPreviewDate}
+        validity={currentValidity}
+        violationMessages={violationMessages}
+      />
     </div>
   );
 };

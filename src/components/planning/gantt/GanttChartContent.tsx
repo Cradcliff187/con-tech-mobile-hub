@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Task } from '@/types/database';
 import { StandardGanttContainer } from './components/StandardGanttContainer';
@@ -26,8 +25,8 @@ interface GanttChartContentProps {
   onToggleCollapse?: () => void;
 }
 
-const LARGE_TASK_THRESHOLD = 100;
-const ENABLE_VIRTUAL_SCROLLING = false; // Feature flag
+const LARGE_TASK_THRESHOLD = 50; // Lowered threshold for better performance
+const ENABLE_VIRTUAL_SCROLLING = true; // Enable virtual scrolling
 
 export const GanttChartContent = ({
   displayTasks,
@@ -49,6 +48,13 @@ export const GanttChartContent = ({
   onToggleCollapse
 }: GanttChartContentProps) => {
   const shouldUseVirtualScrolling = ENABLE_VIRTUAL_SCROLLING && displayTasks.length > LARGE_TASK_THRESHOLD;
+
+  console.log('🎯 GanttChartContent: Render decision:', {
+    taskCount: displayTasks.length,
+    threshold: LARGE_TASK_THRESHOLD,
+    useVirtual: shouldUseVirtualScrolling,
+    isDragging
+  });
 
   return (
     <div 
@@ -96,6 +102,10 @@ export const GanttChartContent = ({
           onDragEnd={onDragEnd}
           isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
+          dropPreviewDate={dragState?.dropPreviewDate}
+          currentValidity={dragState?.currentValidity || 'valid'}
+          violationMessages={dragState?.violationMessages || []}
+          dragPosition={dragState?.dragPosition}
         />
       )}
 

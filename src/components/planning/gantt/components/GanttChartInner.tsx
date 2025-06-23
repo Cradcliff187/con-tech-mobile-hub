@@ -54,7 +54,8 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     projectId,
     isCollapsed,
     isDragging: dragBridge.isDragging,
-    draggedTaskId: dragBridge.draggedTask?.id || null
+    draggedTaskId: dragBridge.draggedTask?.id || null,
+    hasDropPreview: !!dragBridge.dropPreviewDate
   });
 
   // Get filtered tasks from context - memoize to create stable reference
@@ -163,6 +164,10 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
         onDrop={dragBridge.handleDrop}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggleCollapse}
+        dropPreviewDate={dragBridge.dropPreviewDate}
+        currentValidity={dragBridge.currentValidity}
+        violationMessages={dragBridge.violationMessages}
+        dragPosition={dragBridge.dragPosition}
       />
     </div>
   );
