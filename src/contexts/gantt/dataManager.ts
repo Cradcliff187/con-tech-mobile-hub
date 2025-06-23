@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 import { applyTaskFilters } from './utils';
 import { GanttState, GanttAction } from './types';
 import { subDays, addDays, subWeeks, addWeeks, subMonths, addMonths } from 'date-fns';
@@ -19,15 +20,19 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
     projectId: projectId && projectId !== 'all' ? projectId : undefined 
   });
 
+  // Fetch projects for lifecycle status filtering
+  const { projects } = useProjects();
+
   // Memoize filtered tasks calculation for performance
   const filteredTasks = useMemo(() => {
     return applyTaskFilters(
       state.tasks,
       state.optimisticUpdates,
       state.searchQuery,
-      state.filters
+      state.filters,
+      projects
     );
-  }, [state.tasks, state.optimisticUpdates, state.searchQuery, state.filters]);
+  }, [state.tasks, state.optimisticUpdates, state.searchQuery, state.filters, projects]);
 
   // Update tasks in state when fetched tasks change
   useEffect(() => {

@@ -1,6 +1,8 @@
 
 import { Task } from '@/types/database';
+import { LifecycleStatus } from '@/types/database';
 import { getAssigneeName } from '@/components/planning/gantt/utils/taskUtils';
+import { getLifecycleStatus } from '@/utils/lifecycle-status';
 import { startOfMonth, endOfMonth, addMonths, subDays, addDays, min, max } from 'date-fns';
 
 // Helper function to check if task matches search query
@@ -39,7 +41,7 @@ export const calculateTimelineBounds = (tasks: Task[]) => {
   };
 };
 
-// Apply filters to tasks
+// Apply filters to tasks - updated to use lifecycle_status
 export const applyTaskFilters = (
   tasks: Task[],
   optimisticUpdates: Map<string, Partial<Task>>,
@@ -48,8 +50,9 @@ export const applyTaskFilters = (
     status: string[];
     priority: string[];
     category: string[];
-    phase: string[];
-  }
+    lifecycle_status: LifecycleStatus[];
+  },
+  projects?: Array<{ id: string; [key: string]: any }>
 ): Task[] => {
   return tasks
     .map(task => {
@@ -78,6 +81,17 @@ export const applyTaskFilters = (
           task.category!.toLowerCase().includes(cat.toLowerCase())
         );
         if (!hasMatchingCategory) return false;
+      }
+      
+      // Apply lifecycle status filter - filter by project's lifecycle status
+      if (filters.lifecycle_status.length > 0 && projects) {
+        const project = projects.find(p => p.id === task.project_id);
+        if (project) {
+          const projectLifecycleStatus = getLifecycleStatus(project);
+          if (!filters.lifecycle_status.includes(projectLifecycleStatus)) {
+            return false;
+          }
+        }
       }
       
       return true;
