@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Edit, Eye, Calendar, Clock } from 'lucide-react';
 import { TaskDocumentAttachments } from './TaskDocumentAttachments';
 import { format } from 'date-fns';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { useTasks } from '@/hooks/useTasks';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskItemProps {
   task: Task;
@@ -20,14 +23,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onViewDetails, 
   isSelected = false 
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'blocked': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-slate-100 text-slate-800 border-slate-200';
-    }
-  };
+  const { updateTask } = useTasks();
+  const { toast } = useToast();
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -35,6 +32,23 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       case 'high': return 'bg-orange-500';
       case 'medium': return 'bg-yellow-500';
       default: return 'bg-slate-400';
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateTask(task.id, { status: newStatus });
+      toast({
+        title: "Success",
+        description: "Task status updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -89,9 +103,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         {/* Status and Progress */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge className={getStatusColor(task.status)}>
-              {task.status.replace('-', ' ')}
-            </Badge>
+            <GlobalStatusDropdown
+              entityType="task"
+              currentStatus={task.status}
+              onStatusChange={handleStatusChange}
+              size="sm"
+              confirmCriticalChanges={true}
+            />
             {task.progress !== undefined && task.progress > 0 && (
               <div className="flex items-center gap-1 text-sm text-slate-600">
                 <span>{task.progress}%</span>

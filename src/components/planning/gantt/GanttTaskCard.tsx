@@ -8,6 +8,9 @@ import { getAssigneeName } from './utils/taskUtils';
 import { getCategoryBadgeColor } from './utils/colorUtils';
 import { calculateTaskDatesFromEstimate } from './utils/dateUtils';
 import { GanttCollapsedTaskCard } from './GanttCollapsedTaskCard';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { useTasks } from '@/hooks/useTasks';
+import { useToast } from '@/hooks/use-toast';
 
 interface GanttTaskCardProps {
   task: Task;
@@ -46,6 +49,9 @@ const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) =
 };
 
 export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, isCollapsed = false }: GanttTaskCardProps) => {
+  const { updateTask } = useTasks();
+  const { toast } = useToast();
+  
   console.log('📋 GanttTaskCard: Rendering task', task.title, 'collapsed:', isCollapsed);
 
   // If collapsed, render the collapsed version
@@ -65,6 +71,23 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
   const handleClick = () => {
     if (onSelect) {
       onSelect(task.id);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateTask(task.id, { status: newStatus });
+      toast({
+        title: "Success",
+        description: "Task status updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -92,8 +115,15 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
           </div>
         </div>
         
-        {/* Category + Type Badges */}
+        {/* Status + Category + Type Badges */}
         <div className="flex flex-wrap gap-1 mb-1">
+          <GlobalStatusDropdown
+            entityType="task"
+            currentStatus={task.status}
+            onStatusChange={handleStatusChange}
+            size="sm"
+            showAsDropdown={false}
+          />
           {task.category && (
             <Badge className={`text-xs px-1 py-0.5 ${getCategoryBadgeColor(task.category)}`}>
               {task.category}

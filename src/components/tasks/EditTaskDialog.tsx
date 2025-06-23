@@ -15,6 +15,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { TaskStatusField } from './forms/TaskStatusField';
 
 interface EditTaskDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('medium');
+  const [status, setStatus] = useState<string>('not-started');
   const [dueDate, setDueDate] = useState<Date | undefined>();
   
   const { updateTask } = useTasks();
@@ -47,6 +49,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       setTitle(task.title);
       setDescription(task.description || '');
       setPriority(task.priority);
+      setStatus(task.status);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
     }
   }, [task, open]);
@@ -55,6 +58,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     setTitle('');
     setDescription('');
     setPriority('medium');
+    setStatus('not-started');
     setDueDate(undefined);
   }, []);
 
@@ -77,10 +81,11 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
+        status,
         due_date: dueDate?.toISOString(),
       })
     );
-  }, [task, title, description, priority, dueDate, updateTask, updateOperation, toast, isViewMode]);
+  }, [task, title, description, priority, status, dueDate, updateTask, updateOperation, toast, isViewMode]);
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && !updateOperation.loading) {
@@ -96,6 +101,10 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
 
   const formatPriority = (priority: string) => {
     return priority.charAt(0).toUpperCase() + priority.slice(1);
+  };
+
+  const formatStatus = (status: string) => {
+    return status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   return (
@@ -123,7 +132,19 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Status
+                </label>
+                <TaskStatusField
+                  value={status}
+                  onChange={() => {}}
+                  showAsDropdown={false}
+                  size="sm"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Priority
@@ -182,7 +203,18 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Status
+                </label>
+                <TaskStatusField
+                  value={status}
+                  onChange={setStatus}
+                  disabled={updateOperation.loading}
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Priority
