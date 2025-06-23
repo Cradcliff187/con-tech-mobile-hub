@@ -4,7 +4,7 @@ import { Task } from '@/types/database';
 
 interface UseTaskProcessingProps {
   projectId: string;
-  tasks?: Task[]; // Accept tasks from context instead of fetching independently
+  tasks?: Task[];
 }
 
 interface TaskProcessingStats {
@@ -25,7 +25,7 @@ export const useTaskProcessing = ({ projectId, tasks = [] }: UseTaskProcessingPr
       : tasks;
     
     setProjectTasks(filtered);
-  }, [tasks, projectId]);
+  }, [tasks.length, projectId]);
 
   // Calculate processing stats with stable dependencies
   const processingStats: TaskProcessingStats = useMemo(() => {
@@ -50,13 +50,13 @@ export const useTaskProcessing = ({ projectId, tasks = [] }: UseTaskProcessingPr
       blockedTasks,
       completionPercentage
     };
-  }, [projectTasks.length, projectTasks.map(t => t.status).join(',')]);
+  }, [projectTasks.length, projectTasks.map(t => t.status).join('-')]);
 
   return {
     projectTasks,
-    processedTasks: projectTasks, // Alias for compatibility
-    loading: false, // No longer doing independent loading
-    error: null, // No longer doing independent error handling
+    processedTasks: projectTasks,
+    loading: false,
+    error: null,
     completedTasks: processingStats.completedTasks,
     processingStats
   };

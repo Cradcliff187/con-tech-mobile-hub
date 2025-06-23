@@ -44,6 +44,19 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
 
   // Get filtered tasks from context
   const displayTasks = getFilteredTasks();
+  
+  // Create stable references for counts to prevent dependency instability
+  const taskCounts = useMemo(() => {
+    const total = displayTasks.length;
+    const punchList = displayTasks.filter(task => task.task_type === 'punch_list').length;
+    const completed = displayTasks.filter(task => task.status === 'completed').length;
+    
+    console.log('📊 Calculating task counts:', { total, punchList, completed });
+    
+    return { total, punchList, completed };
+  }, [displayTasks.length, 
+      displayTasks.map(t => t.task_type).join(','),
+      displayTasks.map(t => t.status).join(',')]);
 
   // Loading state
   if (loading) {
@@ -73,28 +86,14 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   const totalDays = useMemo(() => {
     if (!timelineStart || !timelineEnd) return 0;
     return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
-  }, [timelineStart, timelineEnd]);
-
-  // Calculate punch list tasks - use stable reference based on task count and types
-  const punchListTasks = useMemo(() => {
-    const punchListCount = displayTasks.filter(task => task.task_type === 'punch_list').length;
-    console.log('📊 Calculating punch list tasks:', punchListCount);
-    return punchListCount;
-  }, [displayTasks.length, displayTasks]);
-
-  // Calculate completed tasks - use stable reference based on task count and statuses
-  const completedTasks = useMemo(() => {
-    const completedCount = displayTasks.filter(task => task.status === 'completed').length;
-    console.log('📊 Calculating completed tasks:', completedCount);
-    return completedCount;
-  }, [displayTasks.length, displayTasks]);
+  }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
 
   return (
     <div className="w-full">
       <GanttEnhancedHeader 
         totalDays={totalDays}
-        completedTasks={completedTasks}
-        punchListTasks={punchListTasks}
+        completedTasks={taskCounts.completed}
+        punchListTasks={taskCounts.punchList}
         localUpdatesCount={0}
         onResetUpdates={() => {}}
         tasks={displayTasks}
