@@ -1,16 +1,28 @@
 
 import { Project, LifecycleStatus } from '@/types/database';
+import { 
+  UnifiedLifecycleStatus, 
+  getUnifiedLifecycleStatus as getUnified,
+  ProjectWithUnifiedStatus 
+} from '@/types/unified-lifecycle';
 
 /**
- * Compatibility utilities for the unified lifecycle status system
- * Provides mapping between old status/phase combinations and new lifecycle_status
+ * DEPRECATED: Legacy lifecycle status utilities
+ * These functions maintain backward compatibility with the old lifecycle_status system
+ * while the codebase transitions to the new unified_lifecycle_status system
  */
 
-// Legacy status/phase to lifecycle_status mapping
+// Legacy status/phase to lifecycle_status mapping (DEPRECATED - use unified system)
 export const getLifecycleStatus = (project: Project): LifecycleStatus => {
   // If lifecycle_status is already set, use it
   if (project.lifecycle_status) {
     return project.lifecycle_status;
+  }
+
+  // Map from unified status if available
+  const projectWithUnified = project as ProjectWithUnifiedStatus;
+  if (projectWithUnified.unified_lifecycle_status) {
+    return mapUnifiedToLegacyLifecycle(projectWithUnified.unified_lifecycle_status);
   }
 
   // Fallback to legacy mapping logic
@@ -44,7 +56,33 @@ export const getLifecycleStatus = (project: Project): LifecycleStatus => {
   return 'pre_planning';
 };
 
-// Lifecycle status to legacy status/phase mapping (for backward compatibility)
+// Map unified lifecycle status to legacy lifecycle status
+const mapUnifiedToLegacyLifecycle = (unifiedStatus: UnifiedLifecycleStatus): LifecycleStatus => {
+  switch (unifiedStatus) {
+    case 'pre_construction':
+      return 'pre_planning';
+    case 'mobilization':
+      return 'planning_active';
+    case 'construction':
+      return 'construction_active';
+    case 'punch_list':
+      return 'punch_list_phase';
+    case 'final_inspection':
+      return 'punch_list_phase';
+    case 'closeout':
+      return 'project_closeout';
+    case 'warranty':
+      return 'project_completed';
+    case 'on_hold':
+      return 'construction_hold';
+    case 'cancelled':
+      return 'project_cancelled';
+    default:
+      return 'pre_planning';
+  }
+};
+
+// DEPRECATED: Use unified system instead
 export const getLegacyStatusFromLifecycle = (lifecycleStatus: LifecycleStatus): { status: Project['status'], phase: Project['phase'] } => {
   switch (lifecycleStatus) {
     case 'pre_planning':
@@ -68,7 +106,7 @@ export const getLegacyStatusFromLifecycle = (lifecycleStatus: LifecycleStatus): 
   }
 };
 
-// Human-readable labels for lifecycle statuses
+// DEPRECATED: Use unified system getStatusLabel instead
 export const getLifecycleStatusLabel = (lifecycleStatus: LifecycleStatus): string => {
   switch (lifecycleStatus) {
     case 'pre_planning':
@@ -92,7 +130,7 @@ export const getLifecycleStatusLabel = (lifecycleStatus: LifecycleStatus): strin
   }
 };
 
-// Get color scheme for lifecycle status
+// DEPRECATED: Use unified system getStatusColor instead
 export const getLifecycleStatusColor = (lifecycleStatus: LifecycleStatus): string => {
   switch (lifecycleStatus) {
     case 'pre_planning':
@@ -116,22 +154,24 @@ export const getLifecycleStatusColor = (lifecycleStatus: LifecycleStatus): strin
   }
 };
 
-// Check if project should show punch list functionality
+// DEPRECATED: Use unified system shouldShowPunchList
 export const shouldShowPunchList = (project: Project): boolean => {
-  const lifecycleStatus = getLifecycleStatus(project);
-  return ['punch_list_phase', 'project_closeout', 'project_completed'].includes(lifecycleStatus);
+  const projectWithUnified = project as ProjectWithUnifiedStatus;
+  const unifiedStatus = getUnified(projectWithUnified);
+  return ['punch_list', 'final_inspection', 'closeout', 'warranty'].includes(unifiedStatus);
 };
 
-// Check if task can be converted to punch list
+// DEPRECATED: Use unified system canConvertToPunchList  
 export const canConvertToPunchList = (task: any, project: Project): boolean => {
-  const lifecycleStatus = getLifecycleStatus(project);
+  const projectWithUnified = project as ProjectWithUnifiedStatus;
+  const unifiedStatus = getUnified(projectWithUnified);
   return task.task_type === 'regular' && 
          task.status !== 'completed' &&
          (task.progress ?? 0) > 80 &&
-         ['construction_active', 'punch_list_phase'].includes(lifecycleStatus);
+         ['construction', 'punch_list'].includes(unifiedStatus);
 };
 
-// Get next lifecycle status for phase transitions
+// DEPRECATED: Use unified system getNextStatus
 export const getNextLifecycleStatus = (currentLifecycleStatus: LifecycleStatus): LifecycleStatus | null => {
   switch (currentLifecycleStatus) {
     case 'pre_planning':
@@ -145,13 +185,13 @@ export const getNextLifecycleStatus = (currentLifecycleStatus: LifecycleStatus):
     case 'project_closeout':
       return 'project_completed';
     case 'construction_hold':
-      return 'construction_active'; // Resume from hold
+      return 'construction_active';
     default:
-      return null; // No next status for completed/cancelled
+      return null;
   }
 };
 
-// Check if lifecycle status can advance
+// DEPRECATED: Use unified system validation functions
 export const canAdvanceLifecycleStatus = (project: Project, tasks: any[]): boolean => {
   const lifecycleStatus = getLifecycleStatus(project);
   const totalTasks = tasks.length;
@@ -162,20 +202,20 @@ export const canAdvanceLifecycleStatus = (project: Project, tasks: any[]): boole
     case 'pre_planning':
       return totalTasks > 0 && project.budget && project.budget > 0;
     case 'planning_active':
-      return completionRate >= 0.1; // At least 10% tasks created and some started
+      return completionRate >= 0.1;
     case 'construction_active':
-      return completionRate >= 0.9; // 90% of tasks completed
+      return completionRate >= 0.9;
     case 'punch_list_phase':
       const punchListTasks = tasks.filter(t => t.task_type === 'punch_list');
       return punchListTasks.every(t => t.status === 'completed') && completionRate >= 0.95;
     case 'project_closeout':
-      return completionRate >= 1.0; // All tasks completed
+      return completionRate >= 1.0;
     default:
       return false;
   }
 };
 
-// Get task defaults based on lifecycle status
+// DEPRECATED: Use unified system task defaults
 export const getTaskDefaultsForLifecycleStatus = (lifecycleStatus: LifecycleStatus): Partial<any> => {
   switch (lifecycleStatus) {
     case 'punch_list_phase':
@@ -209,3 +249,11 @@ export const getTaskDefaultsForLifecycleStatus = (lifecycleStatus: LifecycleStat
       };
   }
 };
+
+/**
+ * MIGRATION HELPER FUNCTIONS
+ * These help transition existing code to use the new unified system
+ */
+
+// Get unified status for any project (new primary function)
+export const getUnifiedLifecycleStatus = getUnified;

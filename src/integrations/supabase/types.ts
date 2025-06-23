@@ -49,6 +49,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "activity_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "activity_log_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -125,6 +132,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "budget_line_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
         ]
       }
       budget_tracking: {
@@ -173,6 +187,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
           {
@@ -227,6 +248,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
           {
@@ -300,6 +328,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipment_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_allocations: {
@@ -358,6 +393,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
           {
@@ -440,6 +482,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_assignment_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
         ]
@@ -704,6 +753,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
@@ -841,6 +897,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_stakeholders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_stakeholders_stakeholder_id_fkey"
             columns: ["stakeholder_id"]
             isOneToOne: false
@@ -848,6 +911,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_status_transitions: {
+        Row: {
+          created_at: string
+          description: string | null
+          from_status: Database["public"]["Enums"]["project_lifecycle_status"]
+          id: string
+          is_active: boolean | null
+          min_progress_threshold: number | null
+          required_conditions: Json | null
+          requires_approval: boolean | null
+          to_status: Database["public"]["Enums"]["project_lifecycle_status"]
+          transition_name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          from_status: Database["public"]["Enums"]["project_lifecycle_status"]
+          id?: string
+          is_active?: boolean | null
+          min_progress_threshold?: number | null
+          required_conditions?: Json | null
+          requires_approval?: boolean | null
+          to_status: Database["public"]["Enums"]["project_lifecycle_status"]
+          transition_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          from_status?: Database["public"]["Enums"]["project_lifecycle_status"]
+          id?: string
+          is_active?: boolean | null
+          min_progress_threshold?: number | null
+          required_conditions?: Json | null
+          requires_approval?: boolean | null
+          to_status?: Database["public"]["Enums"]["project_lifecycle_status"]
+          transition_name?: string
+        }
+        Relationships: []
       }
       projects: {
         Row: {
@@ -871,6 +973,9 @@ export type Database = {
           state: string | null
           status: Database["public"]["Enums"]["project_status"] | null
           street_address: string | null
+          unified_lifecycle_status:
+            | Database["public"]["Enums"]["project_lifecycle_status"]
+            | null
           updated_at: string | null
           zip_code: string | null
         }
@@ -895,6 +1000,9 @@ export type Database = {
           state?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           street_address?: string | null
+          unified_lifecycle_status?:
+            | Database["public"]["Enums"]["project_lifecycle_status"]
+            | null
           updated_at?: string | null
           zip_code?: string | null
         }
@@ -919,6 +1027,9 @@ export type Database = {
           state?: string | null
           status?: Database["public"]["Enums"]["project_status"] | null
           street_address?: string | null
+          unified_lifecycle_status?:
+            | Database["public"]["Enums"]["project_lifecycle_status"]
+            | null
           updated_at?: string | null
           zip_code?: string | null
         }
@@ -981,6 +1092,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "resource_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
         ]
       }
       safety_compliance: {
@@ -1035,6 +1153,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "safety_compliance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
         ]
       }
       safety_incidents: {
@@ -1080,6 +1205,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_incidents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
           {
@@ -1144,6 +1276,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_toolbox_talks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
         ]
@@ -1219,6 +1358,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
           {
@@ -1391,6 +1537,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_performance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
             referencedColumns: ["id"]
           },
           {
@@ -1721,6 +1874,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
         ]
       }
       team_members: {
@@ -1883,6 +2043,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
         ]
       }
       weather_data: {
@@ -1951,6 +2118,118 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stakeholder_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects_legacy_status: {
+        Row: {
+          budget: number | null
+          city: string | null
+          client_id: string | null
+          computed_phase: string | null
+          computed_status: Database["public"]["Enums"]["project_status"] | null
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string | null
+          lifecycle_status:
+            | Database["public"]["Enums"]["lifecycle_status"]
+            | null
+          location: string | null
+          name: string | null
+          phase: string | null
+          progress: number | null
+          project_manager_id: string | null
+          spent: number | null
+          start_date: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          street_address: string | null
+          unified_lifecycle_status:
+            | Database["public"]["Enums"]["project_lifecycle_status"]
+            | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          budget?: number | null
+          city?: string | null
+          client_id?: string | null
+          computed_phase?: never
+          computed_status?: never
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string | null
+          lifecycle_status?:
+            | Database["public"]["Enums"]["lifecycle_status"]
+            | null
+          location?: string | null
+          name?: string | null
+          phase?: string | null
+          progress?: number | null
+          project_manager_id?: string | null
+          spent?: number | null
+          start_date?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          street_address?: string | null
+          unified_lifecycle_status?:
+            | Database["public"]["Enums"]["project_lifecycle_status"]
+            | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          budget?: number | null
+          city?: string | null
+          client_id?: string | null
+          computed_phase?: never
+          computed_status?: never
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string | null
+          lifecycle_status?:
+            | Database["public"]["Enums"]["lifecycle_status"]
+            | null
+          location?: string | null
+          name?: string | null
+          phase?: string | null
+          progress?: number | null
+          project_manager_id?: string | null
+          spent?: number | null
+          start_date?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          street_address?: string | null
+          unified_lifecycle_status?:
+            | Database["public"]["Enums"]["project_lifecycle_status"]
+            | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_project_manager_id_fkey"
+            columns: ["project_manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2056,6 +2335,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      migrate_to_unified_lifecycle_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      rollback_unified_lifecycle_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_project_labor_costs: {
         Args: { target_project_id: string }
         Returns: undefined
@@ -2079,6 +2366,26 @@ export type Database = {
           suggested_lifecycle_status: string
         }[]
       }
+      validate_project_status_transition: {
+        Args: {
+          project_id: string
+          new_status: Database["public"]["Enums"]["project_lifecycle_status"]
+        }
+        Returns: {
+          is_valid: boolean
+          error_message: string
+          required_conditions: Json
+        }[]
+      }
+      verify_unified_lifecycle_migration: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_projects: number
+          migrated_projects: number
+          migration_complete: boolean
+          status_distribution: Json
+        }[]
+      }
     }
     Enums: {
       lifecycle_status:
@@ -2090,6 +2397,16 @@ export type Database = {
         | "project_closeout"
         | "project_completed"
         | "project_cancelled"
+      project_lifecycle_status:
+        | "pre_construction"
+        | "mobilization"
+        | "construction"
+        | "punch_list"
+        | "final_inspection"
+        | "closeout"
+        | "warranty"
+        | "on_hold"
+        | "cancelled"
       project_status:
         | "planning"
         | "active"
@@ -2232,6 +2549,17 @@ export const Constants = {
         "project_closeout",
         "project_completed",
         "project_cancelled",
+      ],
+      project_lifecycle_status: [
+        "pre_construction",
+        "mobilization",
+        "construction",
+        "punch_list",
+        "final_inspection",
+        "closeout",
+        "warranty",
+        "on_hold",
+        "cancelled",
       ],
       project_status: [
         "planning",
