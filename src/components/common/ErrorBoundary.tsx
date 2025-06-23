@@ -28,10 +28,23 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Additional debugging for React error #310
+    if (error.message.includes('310')) {
+      console.error('React Error #310 detected - useMemo dependency issue');
+      console.error('Component stack:', errorInfo.componentStack);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    
     this.setState({ errorInfo });
   }
 
   private handleReset = () => {
+    console.log('ErrorBoundary reset triggered');
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
     this.props.onReset?.();
   };

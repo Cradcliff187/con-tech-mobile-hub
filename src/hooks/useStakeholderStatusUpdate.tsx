@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
 import { Stakeholder } from '@/hooks/useStakeholders';
@@ -11,13 +11,12 @@ export const useStakeholderStatusUpdate = () => {
   const { updateStakeholder } = useStakeholders();
   const { toast } = useToast();
 
-  const updateStakeholderStatus = async (
+  const updateStakeholderStatus = useCallback(async (
     stakeholder: Stakeholder, 
     newStatus: StakeholderStatus,
     showConfirmation: boolean = false
   ) => {
     const stakeholderId = stakeholder.id;
-    const previousStatus = stakeholder.status;
 
     // Check if confirmation is needed for sensitive status changes
     if (showConfirmation && (newStatus === 'suspended' || newStatus === 'inactive')) {
@@ -48,8 +47,12 @@ export const useStakeholderStatusUpdate = () => {
 
       return true;
     } catch (error: any) {
-      // Error toast and rollback would be handled by the updateStakeholder function
       console.error('Failed to update stakeholder status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update stakeholder status",
+        variant: "destructive"
+      });
       return false;
     } finally {
       // Remove from updating set
@@ -59,11 +62,11 @@ export const useStakeholderStatusUpdate = () => {
         return newSet;
       });
     }
-  };
+  }, [updateStakeholder, toast]);
 
-  const isUpdating = (stakeholderId: string) => {
+  const isUpdating = useCallback((stakeholderId: string) => {
     return updatingStakeholders.has(stakeholderId);
-  };
+  }, [updatingStakeholders]);
 
   return {
     updateStakeholderStatus,

@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+
+import { useState, useMemo, useCallback } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { StakeholderCard } from './StakeholderCard';
 import { StakeholderListView } from './StakeholderListView';
@@ -30,60 +31,71 @@ export const StakeholderDirectory = () => {
   const [stakeholderToAssign, setStakeholderToAssign] = useState<Stakeholder | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const handleViewChange = (newView: 'grid' | 'list') => {
+  const handleViewChange = useCallback((newView: 'grid' | 'list') => {
     setView(newView);
     localStorage.setItem('stakeholder-view', newView);
-  };
+  }, []);
 
-  const handleEdit = (stakeholder: Stakeholder) => {
+  const handleEdit = useCallback((stakeholder: Stakeholder) => {
     setEditStakeholder(stakeholder);
-  };
+  }, []);
 
-  const handleDelete = (stakeholder: Stakeholder) => {
+  const handleDelete = useCallback((stakeholder: Stakeholder) => {
     setStakeholderToDelete(stakeholder);
-  };
+  }, []);
 
-  const handleAssign = (stakeholder: Stakeholder) => {
+  const handleAssign = useCallback((stakeholder: Stakeholder) => {
     setStakeholderToAssign(stakeholder);
-  };
+  }, []);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setShowCreateDialog(true);
-  };
+  }, []);
 
-  const handleStakeholderUpdated = () => {
+  const handleStakeholderUpdated = useCallback(() => {
     refetch();
     setEditStakeholder(null);
-  };
+  }, [refetch]);
 
-  const handleStakeholderDeleted = () => {
+  const handleStakeholderDeleted = useCallback(() => {
     refetch();
     setStakeholderToDelete(null);
-  };
+  }, [refetch]);
 
-  const handleStakeholderCreated = () => {
+  const handleStakeholderCreated = useCallback(() => {
     refetch();
     setShowCreateDialog(false);
-  };
+  }, [refetch]);
 
-  const handleStakeholderAssigned = () => {
+  const handleStakeholderAssigned = useCallback(() => {
     refetch();
     setStakeholderToAssign(null);
-  };
+  }, [refetch]);
+
+  // Stabilize filter and sort dependencies
+  const filterConfig = useMemo(() => ({
+    searchTerm: searchTerm.toLowerCase(),
+    typeFilter,
+    statusFilter,
+    sortBy,
+    sortOrder
+  }), [searchTerm, typeFilter, statusFilter, sortBy, sortOrder]);
 
   const filteredAndSortedStakeholders = useMemo(() => {
+    console.log('Filtering stakeholders, count:', stakeholders.length);
+    
     let filtered = stakeholders.filter(stakeholder => {
       const matchesSearch = 
-        stakeholder.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stakeholder.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stakeholder.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stakeholder.company_name?.toLowerCase().includes(filterConfig.searchTerm) ||
+        stakeholder.contact_person?.toLowerCase().includes(filterConfig.searchTerm) ||
+        stakeholder.email?.toLowerCase().includes(filterConfig.searchTerm) ||
         stakeholder.phone?.includes(searchTerm) ||
         stakeholder.specialties?.some(specialty => 
-          specialty.toLowerCase().includes(searchTerm.toLowerCase())
+          specialty.toLowerCase().includes(filterConfig.searchTerm)
         );
       
-      const matchesType = typeFilter === 'all' || stakeholder.stakeholder_type === typeFilter;
-      const matchesStatus = statusFilter === 'all' || stakeholder.status === statusFilter;
+      const matchesType = filterConfig.typeFilter === 'all' || stakeholder.stakeholder_type === filterConfig.typeFilter;
+      const matchesStatus = filterConfig.statusFilter === 'all' || stakeholder.status === filterConfig.statusFilter;
       
       return matchesSearch && matchesType && matchesStatus;
     });
@@ -92,7 +104,7 @@ export const StakeholderDirectory = () => {
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
       
-      switch (sortBy) {
+      switch (filterConfig.sortBy) {
         case 'name':
           aValue = a.company_name?.toLowerCase() || '';
           bValue = b.company_name?.toLowerCase() || '';
@@ -113,22 +125,22 @@ export const StakeholderDirectory = () => {
           return 0;
       }
       
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      if (aValue < bValue) return filterConfig.sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return filterConfig.sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
 
     return filtered;
-  }, [stakeholders, searchTerm, typeFilter, statusFilter, sortBy, sortOrder]);
+  }, [stakeholders, filterConfig, searchTerm]);
 
-  const toggleSort = (newSortBy: typeof sortBy) => {
+  const toggleSort = useCallback((newSortBy: typeof sortBy) => {
     if (sortBy === newSortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(newSortBy);
       setSortOrder('asc');
     }
-  };
+  }, [sortBy, sortOrder]);
 
   if (loading) {
     return (

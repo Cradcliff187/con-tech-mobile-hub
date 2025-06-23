@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,7 +32,8 @@ export const useStakeholders = (projectId?: string) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchStakeholders = async () => {
+  const fetchStakeholders = useCallback(async () => {
+    console.log('Fetching stakeholders, projectId:', projectId);
     try {
       let query = supabase
         .from('stakeholders')
@@ -63,9 +64,9 @@ export const useStakeholders = (projectId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
-  const createStakeholder = async (stakeholderData: Omit<Stakeholder, 'id' | 'created_at' | 'updated_at' | 'rating'>) => {
+  const createStakeholder = useCallback(async (stakeholderData: Omit<Stakeholder, 'id' | 'created_at' | 'updated_at' | 'rating'>) => {
     try {
       const { data, error } = await supabase
         .from('stakeholders')
@@ -84,9 +85,9 @@ export const useStakeholders = (projectId?: string) => {
       console.error('Error creating stakeholder:', error);
       return { data: null, error };
     }
-  };
+  }, []);
 
-  const updateStakeholder = async (id: string, updates: Partial<Stakeholder>) => {
+  const updateStakeholder = useCallback(async (id: string, updates: Partial<Stakeholder>) => {
     try {
       const { data, error } = await supabase
         .from('stakeholders')
@@ -103,9 +104,9 @@ export const useStakeholders = (projectId?: string) => {
       console.error('Error updating stakeholder:', error);
       return { data: null, error };
     }
-  };
+  }, []);
 
-  const deleteStakeholder = async (id: string) => {
+  const deleteStakeholder = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('stakeholders')
@@ -129,11 +130,11 @@ export const useStakeholders = (projectId?: string) => {
       });
       return { error };
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchStakeholders();
-  }, [projectId]);
+  }, [fetchStakeholders]);
 
   return { 
     stakeholders, 
