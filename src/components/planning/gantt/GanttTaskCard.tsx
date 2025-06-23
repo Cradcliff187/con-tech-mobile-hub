@@ -1,4 +1,3 @@
-
 import { User, AlertTriangle, Clock } from 'lucide-react';
 import { Task } from '@/types/database';
 import { CardContent } from '@/components/ui/card';
@@ -7,12 +6,14 @@ import { Progress } from '@/components/ui/progress';
 import { getAssigneeName } from './utils/taskUtils';
 import { getCategoryBadgeColor } from './utils/colorUtils';
 import { calculateTaskDatesFromEstimate } from './utils/dateUtils';
+import { GanttCollapsedTaskCard } from './GanttCollapsedTaskCard';
 
 interface GanttTaskCardProps {
   task: Task;
   isSelected?: boolean;
   onSelect?: (taskId: string) => void;
   viewMode: 'days' | 'weeks' | 'months';
+  isCollapsed?: boolean;
 }
 
 const getPriorityIcon = (priority: string) => {
@@ -43,7 +44,18 @@ const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) =
   };
 };
 
-export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: GanttTaskCardProps) => {
+export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, isCollapsed = false }: GanttTaskCardProps) => {
+  // If collapsed, render the collapsed version
+  if (isCollapsed) {
+    return (
+      <GanttCollapsedTaskCard
+        task={task}
+        isSelected={isSelected}
+        onSelect={onSelect}
+      />
+    );
+  }
+
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
   const dateInfo = formatCalculatedDateRange(calculatedStartDate, calculatedEndDate, task);
   

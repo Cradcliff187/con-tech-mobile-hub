@@ -24,6 +24,8 @@ interface GanttHeaderSectionProps {
   isDebugMode: boolean;
   onToggleDebugMode: () => void;
   isDevelopment: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const GanttHeaderSection = ({
@@ -45,7 +47,9 @@ export const GanttHeaderSection = ({
   onViewModeChange,
   isDebugMode,
   onToggleDebugMode,
-  isDevelopment
+  isDevelopment,
+  isCollapsed = false,
+  onToggleCollapse
 }: GanttHeaderSectionProps) => {
   return (
     <>
@@ -75,6 +79,8 @@ export const GanttHeaderSection = ({
         isDebugMode={isDebugMode}
         onToggleDebugMode={onToggleDebugMode}
         isDevelopment={isDevelopment}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
       />
     </>
   );

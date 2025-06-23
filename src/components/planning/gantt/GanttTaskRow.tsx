@@ -16,6 +16,7 @@ interface GanttTaskRowProps {
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
   isFirstRow?: boolean;
+  isCollapsed?: boolean;
 }
 
 export const GanttTaskRow = ({
@@ -29,8 +30,12 @@ export const GanttTaskRow = ({
   draggedTaskId,
   onDragStart,
   onDragEnd,
-  isFirstRow = false
+  isFirstRow = false,
+  isCollapsed = false
 }: GanttTaskRowProps) => {
+  // Dynamic height based on collapse state
+  const rowHeight = isCollapsed ? '30px' : '60px';
+
   return (
     <div className="flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
       {/* Task Card */}
@@ -40,11 +45,12 @@ export const GanttTaskRow = ({
           isSelected={selectedTaskId === task.id}
           onSelect={onTaskSelect}
           viewMode={viewMode}
+          isCollapsed={isCollapsed}
         />
       </div>
 
       {/* Timeline Area - No individual scrolling */}
-      <div className="flex-1 relative" style={{ minHeight: '60px' }}>
+      <div className="flex-1 relative" style={{ minHeight: rowHeight }}>
         {/* Timeline Grid Background - Only render for first row to avoid duplication */}
         {isFirstRow && (
           <GanttTimelineGrid
@@ -65,7 +71,7 @@ export const GanttTaskRow = ({
             viewMode={viewMode}
             isDragging={draggedTaskId === task.id}
             onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
+            onDragEnd={onDrag End}
           />
         </div>
       </div>

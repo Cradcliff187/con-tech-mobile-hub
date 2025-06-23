@@ -17,9 +17,11 @@ interface VirtualScrollGanttProps {
   onDragEnd?: () => void;
   draggedTaskId?: string;
   headerScrollRef?: React.RefObject<HTMLDivElement>;
+  isCollapsed?: boolean;
 }
 
-const ITEM_HEIGHT = 60; // Reduced from 80px to 60px
+const EXPANDED_HEIGHT = 60; // Height when expanded
+const COLLAPSED_HEIGHT = 30; // Height when collapsed
 const BUFFER_SIZE = 5; // Number of items to render outside visible area
 
 export const VirtualScrollGantt = ({
@@ -30,20 +32,24 @@ export const VirtualScrollGantt = ({
   onTaskSelect,
   viewMode,
   containerHeight = 400,
-  itemHeight = ITEM_HEIGHT,
+  itemHeight,
   onDragStart,
   onDragEnd,
   draggedTaskId,
-  headerScrollRef
+  headerScrollRef,
+  isCollapsed = false
 }: VirtualScrollGanttProps) => {
   const [scrollTop, setScrollTop] = useState(0);
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
 
-  const totalHeight = tasks.length * itemHeight;
-  const visibleItemCount = Math.ceil(containerHeight / itemHeight);
+  // Use dynamic height based on collapse state
+  const currentItemHeight = itemHeight || (isCollapsed ? COLLAPSED_HEIGHT : EXPANDED_HEIGHT);
   
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - BUFFER_SIZE);
+  const totalHeight = tasks.length * currentItemHeight;
+  const visibleItemCount = Math.ceil(containerHeight / currentItemHeight);
+  
+  const startIndex = Math.max(0, Math.floor(scrollTop / currentItemHeight) - BUFFER_SIZE);
   const endIndex = Math.min(tasks.length - 1, startIndex + visibleItemCount + BUFFER_SIZE * 2);
   
   const visibleTasks = useMemo(() => {
@@ -83,14 +89,14 @@ export const VirtualScrollGantt = ({
     if (selectedTaskId && scrollElementRef.current) {
       const taskIndex = tasks.findIndex(task => task.id === selectedTaskId);
       if (taskIndex !== -1) {
-        const targetScrollTop = taskIndex * itemHeight - containerHeight / 2;
+        const targetScrollTop = taskIndex * currentItemHeight - containerHeight / 2;
         scrollElementRef.current.scrollTo({
           top: Math.max(0, targetScrollTop),
           behavior: 'smooth'
         });
       }
     }
-  }, [selectedTaskId, tasks, itemHeight, containerHeight]);
+  }, [selectedTaskId, tasks, currentItemHeight, containerHeight]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -113,7 +119,7 @@ export const VirtualScrollGantt = ({
             <div className="min-w-max">
               {visibleTasks.map((task, index) => {
                 const taskIndex = startIndex + index;
-                const top = taskIndex * itemHeight;
+                const top = taskIndex * currentItemHeight;
                 
                 return (
                   <div
@@ -121,7 +127,7 @@ export const VirtualScrollGantt = ({
                     className="absolute left-0 right-0 flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150"
                     style={{
                       top,
-                      height: itemHeight
+                      height: currentItemHeight
                     }}
                   >
                     {/* Task Card */}
@@ -131,6 +137,7 @@ export const VirtualScrollGantt = ({
                         isSelected={selectedTaskId === task.id}
                         onSelect={onTaskSelect}
                         viewMode={viewMode}
+                        isCollapsed={isCollapsed}
                       />
                     </div>
 
@@ -163,6 +170,7 @@ export const VirtualScrollGantt = ({
         <div className="flex justify-between items-center px-4 py-2 bg-slate-50 border-t text-xs text-slate-500">
           <span>
             Showing {startIndex + 1}-{Math.min(endIndex + 1, tasks.length)} of {tasks.length} tasks
+            {isCollapsed && <span className="ml-2 text-blue-600">(Collapsed View)</span>}
           </span>
           <div className="flex items-center gap-2">
             <div className="w-20 h-1 bg-slate-200 rounded">
