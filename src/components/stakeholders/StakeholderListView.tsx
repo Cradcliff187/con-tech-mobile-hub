@@ -21,7 +21,7 @@ interface StakeholderListViewProps {
   loading: boolean;
   onEdit: (stakeholder: Stakeholder) => void;
   onDelete: (stakeholder: Stakeholder) => void;
-  onCreate: () => void;
+  onCreate?: () => void; // Made optional since creation is now handled by parent
   onAssign?: (stakeholder: Stakeholder) => void;
 }
 
@@ -212,13 +212,13 @@ export const StakeholderListView = ({
         icon={<Users size={48} className="text-slate-400" />}
         title="No Stakeholders Yet"
         description="Add your first stakeholder to start managing your project collaborators."
-        actions={[
+        actions={onCreate ? [
           {
             label: "Add Stakeholder",
             onClick: onCreate,
             icon: <UserPlus size={16} />
           }
-        ]}
+        ] : []}
       />
     );
   }
