@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
-import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { AddCategoryDialog } from './AddCategoryDialog';
 import { AddTaskDialog } from './AddTaskDialog';
 import { useDialogState } from '@/hooks/useDialogState';
-import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { useToast } from '@/hooks/use-toast';
+import { TaskHierarchyRow } from './TaskHierarchyRow';
+import { TaskHierarchySummary } from './TaskHierarchySummary';
+import { TaskHierarchyEmptyState } from './TaskHierarchyEmptyState';
+import { TaskHierarchyHeader } from './TaskHierarchyHeader';
 
 interface TaskHierarchyProps {
   projectId: string;
@@ -113,147 +115,22 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100';
-      case 'in-progress': return 'text-blue-600 bg-blue-100';
-      case 'blocked': return 'text-red-600 bg-red-100';
-      case 'category': return 'text-slate-700 bg-slate-100';
-      default: return 'text-slate-600 bg-slate-50';
-    }
-  };
-
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'critical': return <AlertTriangle size={14} className="text-red-600" />;
-      case 'high': return <AlertTriangle size={14} className="text-orange-600" />;
-      default: return null;
-    }
-  };
-
-  const TaskRow = ({ task, level = 0 }: { task: HierarchyTask; level?: number }) => (
-    <>
-      <div 
-        className={`flex items-center gap-3 py-3 px-4 border-b border-slate-200 hover:bg-slate-50 ${
-          level > 0 ? 'bg-slate-25' : ''
-        }`}
-        style={{ paddingLeft: `${16 + level * 24}px` }}
-      >
-        {/* Expand/Collapse */}
-        {task.children.length > 0 ? (
-          <button
-            onClick={() => toggleExpanded(task.id)}
-            className="text-slate-500 hover:text-slate-700"
-          >
-            {task.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
-        ) : (
-          <div className="w-4" />
-        )}
-
-        {/* Task Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {getPriorityIcon(task.priority)}
-            <span className={`text-sm font-medium ${level === 0 ? 'text-slate-800' : 'text-slate-700'}`}>
-              {task.title}
-            </span>
-            {task.status !== 'category' && (
-              <GlobalStatusDropdown
-                entityType="task"
-                currentStatus={task.status}
-                onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus as 'not-started' | 'in-progress' | 'completed' | 'blocked')}
-                size="sm"
-                confirmCriticalChanges={true}
-              />
-            )}
-          </div>
-          {task.dueDate && (
-            <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
-              <Calendar size={12} />
-              <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Progress */}
-        <div className="flex items-center gap-3">
-          <div className="w-20">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-slate-200 rounded-full h-2">
-                <div 
-                  className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${task.progress}%` }}
-                />
-              </div>
-              <span className="text-xs text-slate-600 w-8">{task.progress}%</span>
-            </div>
-          </div>
-
-          {/* Assignee */}
-          {task.assignee && task.status !== 'category' && (
-            <div className="flex items-center gap-1 text-xs text-slate-500">
-              <User size={12} />
-              <span>Assigned</span>
-            </div>
-          )}
-
-          {/* Actions */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-slate-500 hover:text-slate-700"
-            onClick={() => handleAddTask(task.status === 'category' ? task.title : task.category)}
-            title={task.status === 'category' ? 'Add task to this category' : 'Add task to same category'}
-          >
-            <Plus size={14} />
-          </Button>
-        </div>
-      </div>
-
-      {/* Children */}
-      {task.expanded && task.children.map(child => (
-        <TaskRow key={child.id} task={child} level={level + 1} />
-      ))}
-    </>
-  );
-
   if (hierarchyTasks.length === 0) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle size={48} className="mx-auto mb-4 text-slate-400" />
-        <h3 className="text-lg font-medium text-slate-600 mb-2">No Tasks Found</h3>
-        <p className="text-slate-500 mb-4">Add tasks to this project to see the hierarchy view.</p>
-        <Button 
-          onClick={handleAddCategory}
-          className="bg-orange-600 hover:bg-orange-700"
-        >
-          <Plus size={16} className="mr-2" />
-          Create First Category
-        </Button>
-        
+      <>
+        <TaskHierarchyEmptyState onAddCategory={handleAddCategory} />
         <AddCategoryDialog
           open={isDialogOpen('edit')}
           onOpenChange={(open) => !open && closeDialog()}
           projectId={projectId}
         />
-      </div>
+      </>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-800">Task Hierarchy</h3>
-        <Button 
-          size="sm" 
-          className="bg-orange-600 hover:bg-orange-700"
-          onClick={handleAddCategory}
-        >
-          <Plus size={16} className="mr-2" />
-          Add Category
-        </Button>
-      </div>
+      <TaskHierarchyHeader onAddCategory={handleAddCategory} />
 
       <div className="border border-slate-200 rounded-lg overflow-hidden">
         {/* Header */}
@@ -270,38 +147,18 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         {/* Tasks */}
         <div className="max-h-96 overflow-y-auto">
           {hierarchyTasks.map(task => (
-            <TaskRow key={task.id} task={task} />
+            <TaskHierarchyRow 
+              key={task.id} 
+              task={task}
+              onToggleExpanded={toggleExpanded}
+              onStatusChange={handleStatusChange}
+              onAddTask={handleAddTask}
+            />
           ))}
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-blue-600">
-            {hierarchyTasks.reduce((sum, cat) => sum + cat.children.length, 0)}
-          </div>
-          <div className="text-sm text-blue-800">Total Tasks</div>
-        </div>
-        <div className="bg-green-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-green-600">
-            {hierarchyTasks.reduce((sum, cat) => sum + cat.children.filter(t => t.status === 'completed').length, 0)}
-          </div>
-          <div className="text-sm text-green-800">Completed</div>
-        </div>
-        <div className="bg-orange-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-orange-600">
-            {hierarchyTasks.reduce((sum, cat) => sum + cat.children.filter(t => t.status === 'in-progress').length, 0)}
-          </div>
-          <div className="text-sm text-orange-800">In Progress</div>
-        </div>
-        <div className="bg-red-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-red-600">
-            {hierarchyTasks.reduce((sum, cat) => sum + cat.children.filter(t => t.status === 'blocked').length, 0)}
-          </div>
-          <div className="text-sm text-red-800">Blocked</div>
-        </div>
-      </div>
+      <TaskHierarchySummary hierarchyTasks={hierarchyTasks} />
 
       {/* Dialogs */}
       <AddCategoryDialog
