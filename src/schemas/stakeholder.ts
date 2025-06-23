@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { requiredString, optionalString, emailSchema, phoneSchema, dateStringSchema, sanitizedArraySchema } from './common';
 
 export const stakeholderSchema = z.object({
-  stakeholder_type: z.enum(['client', 'subcontractor', 'employee', 'vendor']),
+  stakeholder_type: z.enum(['client', 'subcontractor', 'employee', 'vendor'], {
+    required_error: "Please select a stakeholder type",
+    invalid_type_error: "Please select a valid stakeholder type"
+  }),
   
   company_name: optionalString(200)
     .refine(name => !name || !/[<>]/g.test(name), 'Company name contains invalid characters'),

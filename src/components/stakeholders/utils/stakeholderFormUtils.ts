@@ -2,8 +2,8 @@
 import { type StakeholderFormData } from '@/schemas';
 import { validateFormData, stakeholderSchema } from '@/schemas';
 
-export const getInitialFormData = (defaultType: 'client' | 'subcontractor' | 'employee' | 'vendor'): StakeholderFormData => ({
-  stakeholder_type: defaultType,
+export const getInitialFormData = (defaultType?: 'client' | 'subcontractor' | 'employee' | 'vendor'): StakeholderFormData => ({
+  stakeholder_type: '' as any, // Start with empty selection to force user choice
   company_name: '',
   contact_person: '',
   email: '',

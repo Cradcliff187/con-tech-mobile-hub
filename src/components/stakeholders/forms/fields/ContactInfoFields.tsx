@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -50,18 +49,17 @@ export const ContactInfoFields = ({
         <div className="space-y-2">
           <Label htmlFor="stakeholder_type">Type *</Label>
           <Select 
-            value={formData.stakeholder_type} 
+            value={formData.stakeholder_type || ''} 
             onValueChange={(value) => onInputChange('stakeholder_type', value)}
-            disabled={!!defaultType}
           >
             <SelectTrigger className={getFieldError('stakeholder_type') ? 'border-red-500' : ''}>
-              <SelectValue />
+              <SelectValue placeholder="Select stakeholder type" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="client">Client</SelectItem>
               <SelectItem value="subcontractor">Subcontractor</SelectItem>
               <SelectItem value="employee">Employee</SelectItem>
               <SelectItem value="vendor">Vendor</SelectItem>
-              <SelectItem value="client">Client</SelectItem>
             </SelectContent>
           </Select>
           {getFieldError('stakeholder_type') && (
