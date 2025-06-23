@@ -6,6 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { Filter, X } from 'lucide-react';
 import { FilterSection } from './FilterSection';
+import { getStatusMetadata } from '@/types/projectStatus';
+import { LifecycleStatus } from '@/types/database';
 import type { FilterState, FilterChangeHandler } from '../types/ganttTypes';
 
 interface FilterPopoverProps {
@@ -40,12 +42,16 @@ const categoryOptions = [
   { value: 'landscaping', label: 'Landscaping' }
 ];
 
-const phaseOptions = [
-  { value: 'planning', label: 'Planning' },
-  { value: 'active', label: 'Active' },
-  { value: 'punch_list', label: 'Punch List' },
-  { value: 'closeout', label: 'Closeout' },
-  { value: 'completed', label: 'Completed' }
+// Lifecycle status options with proper labels
+const lifecycleStatusOptions = [
+  { value: 'pre_planning', label: 'Pre-Planning' },
+  { value: 'planning_active', label: 'Active Planning' },
+  { value: 'construction_active', label: 'Construction Active' },
+  { value: 'construction_hold', label: 'Construction Hold' },
+  { value: 'punch_list_phase', label: 'Punch List' },
+  { value: 'project_closeout', label: 'Project Closeout' },
+  { value: 'project_completed', label: 'Completed' },
+  { value: 'project_cancelled', label: 'Cancelled' }
 ];
 
 export const FilterPopover = ({ filters, onFilterChange }: FilterPopoverProps) => {
@@ -68,7 +74,7 @@ export const FilterPopover = ({ filters, onFilterChange }: FilterPopoverProps) =
     onFilterChange('status', []);
     onFilterChange('priority', []);
     onFilterChange('category', []);
-    onFilterChange('phase', []);
+    onFilterChange('lifecycle_status', []);
   };
 
   const activeFilterCount = Object.values(filters).flat().length;
@@ -107,7 +113,7 @@ export const FilterPopover = ({ filters, onFilterChange }: FilterPopoverProps) =
           
           <div className="grid gap-4 max-h-96 overflow-y-auto">
             <FilterSection
-              title="Status"
+              title="Task Status"
               options={statusOptions}
               selectedValues={filters.status}
               onFilterChange={(value, checked) => handleFilterChange('status', value, checked)}
@@ -128,10 +134,10 @@ export const FilterPopover = ({ filters, onFilterChange }: FilterPopoverProps) =
             />
             <Separator />
             <FilterSection
-              title="Phase"
-              options={phaseOptions}
-              selectedValues={filters.phase}
-              onFilterChange={(value, checked) => handleFilterChange('phase', value, checked)}
+              title="Project Lifecycle Status"
+              options={lifecycleStatusOptions}
+              selectedValues={filters.lifecycle_status}
+              onFilterChange={(value, checked) => handleFilterChange('lifecycle_status', value, checked)}
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
-
 import { Task } from '@/types/database';
+import { LifecycleStatus } from '@/types/database';
 
-// State Interface
+// State Interface - updated to use lifecycle_status
 export interface GanttState {
   // Task Data
   tasks: Task[];
@@ -12,12 +12,12 @@ export interface GanttState {
   searchQuery: string;
   viewMode: 'days' | 'weeks' | 'months';
   
-  // Filter State
+  // Filter State - updated to use lifecycle_status
   filters: {
     status: string[];
     priority: string[];
     category: string[];
-    phase: string[];
+    lifecycle_status: LifecycleStatus[]; // Replaced phase with lifecycle_status
   };
   
   // Timeline State

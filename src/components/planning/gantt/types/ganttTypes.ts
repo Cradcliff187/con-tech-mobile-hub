@@ -1,12 +1,12 @@
-
 import { Task } from '@/types/database';
+import { LifecycleStatus } from '@/types/database';
 
-// Filter state interface for Gantt filters
+// Filter state interface for Gantt filters - updated to use lifecycle_status
 export interface FilterState {
   status: string[];
   priority: string[];
   category: string[];
-  phase: string[];
+  lifecycle_status: LifecycleStatus[]; // New lifecycle status filter
 }
 
 // Filter change handler type
@@ -78,8 +78,7 @@ export interface ProjectData {
   id: string;
   name: string;
   description?: string;
-  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
-  phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
+  lifecycle_status?: LifecycleStatus; // Updated to use lifecycle_status
   start_date?: string;
   end_date?: string;
   budget?: number;

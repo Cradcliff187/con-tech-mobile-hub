@@ -1,8 +1,7 @@
-
 import { GanttState, GanttAction } from './types';
 import { startOfMonth, endOfMonth, addMonths } from 'date-fns';
 
-// Initial State - renamed from createInitialState to initialGanttState
+// Initial State - updated to use lifecycle_status
 export const initialGanttState = (): GanttState => {
   const now = new Date();
   const defaultStart = startOfMonth(now);
@@ -18,7 +17,7 @@ export const initialGanttState = (): GanttState => {
       status: [],
       priority: [],
       category: [],
-      phase: []
+      lifecycle_status: [] // Updated to use lifecycle_status instead of phase
     },
     timelineStart: defaultStart,
     timelineEnd: defaultEnd,
