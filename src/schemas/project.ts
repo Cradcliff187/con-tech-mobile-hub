@@ -1,6 +1,7 @@
 
 import { z } from 'zod';
 import { requiredString, optionalString, numericFieldSchema, dateStringSchema } from './common';
+import { LifecycleStatus } from '@/types/database';
 
 export const projectSchema = z.object({
   name: requiredString(100)
@@ -26,7 +27,16 @@ export const projectSchema = z.object({
   client_id: requiredString(36)
     .refine(id => id.length > 0, 'Please select a client'),
   
-  status: z.enum(['planning', 'active', 'on-hold', 'completed', 'cancelled']),
+  lifecycle_status: z.enum([
+    'pre_planning',
+    'planning_active', 
+    'construction_active',
+    'construction_hold',
+    'punch_list_phase',
+    'project_closeout',
+    'project_completed',
+    'project_cancelled'
+  ] as const).default('pre_planning'),
   
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   

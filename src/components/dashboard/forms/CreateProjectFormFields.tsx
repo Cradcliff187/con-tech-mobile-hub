@@ -1,12 +1,13 @@
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { AddressFormFields } from '@/components/common/AddressFormFields';
 import { Stakeholder } from '@/hooks/useStakeholders';
+import { LifecycleStatusSelector } from '@/components/ui/lifecycle-status-selector';
 
 interface CreateProjectFormFieldsProps {
   formData: any;
@@ -30,33 +31,34 @@ export const CreateProjectFormFields = ({
   };
 
   return (
-    <>
+    <div className="space-y-4 sm:space-y-6">
       <div className="space-y-2">
         <Label htmlFor="client_id">Client *</Label>
-        <div className="flex gap-2">
-          <Select 
-            value={formData.client_id || ''} 
-            onValueChange={(value) => onInputChange('client_id', value)}
-            disabled={disabled}
-          >
-            <SelectTrigger className={getFieldError('client_id') ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select a client" />
-            </SelectTrigger>
-            <SelectContent>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 min-w-0">
+            <select
+              value={formData.client_id || ''}
+              onChange={(e) => onInputChange('client_id', e.target.value)}
+              disabled={disabled}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                getFieldError('client_id') ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value="">Select a client</option>
               {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
+                <option key={client.id} value={client.id}>
                   {client.company_name || client.contact_person}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
           <Button
             type="button"
             variant="outline"
             size="icon"
             onClick={onCreateClient}
             disabled={disabled}
-            className="flex-shrink-0"
+            className="shrink-0"
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -83,7 +85,7 @@ export const CreateProjectFormFields = ({
           placeholder="Enter project name"
           required
           disabled={disabled}
-          className={getFieldError('name') ? 'border-red-500' : ''}
+          className={`w-full ${getFieldError('name') ? 'border-red-500' : ''}`}
         />
         {getFieldError('name') && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -102,7 +104,7 @@ export const CreateProjectFormFields = ({
           placeholder="Describe the project"
           rows={3}
           disabled={disabled}
-          className={getFieldError('description') ? 'border-red-500' : ''}
+          className={`w-full resize-none ${getFieldError('description') ? 'border-red-500' : ''}`}
         />
         {getFieldError('description') && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -112,46 +114,14 @@ export const CreateProjectFormFields = ({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select 
-            value={formData.status || 'planning'} 
-            onValueChange={(value) => onInputChange('status', value)}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="planning">Planning</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="on-hold">On Hold</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="phase">Phase</Label>
-          <Select 
-            value={formData.phase || 'planning'} 
-            onValueChange={(value) => onInputChange('phase', value)}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="planning">Planning</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="punch_list">Punch List</SelectItem>
-              <SelectItem value="closeout">Closeout</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="lifecycle_status">Project Status</Label>
+        <LifecycleStatusSelector
+          value={formData.lifecycle_status || 'pre_planning'}
+          onValueChange={(value) => onInputChange('lifecycle_status', value)}
+          disabled={disabled}
+          className="w-full"
+        />
       </div>
 
       <div className="space-y-2">
@@ -166,7 +136,7 @@ export const CreateProjectFormFields = ({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="start_date">Start Date</Label>
           <Input
@@ -175,7 +145,7 @@ export const CreateProjectFormFields = ({
             value={formData.start_date || ''}
             onChange={(e) => onInputChange('start_date', e.target.value)}
             disabled={disabled}
-            className={getFieldError('start_date') ? 'border-red-500' : ''}
+            className={`w-full ${getFieldError('start_date') ? 'border-red-500' : ''}`}
           />
           {getFieldError('start_date') && (
             <p className="text-sm text-red-600 flex items-center gap-1">
@@ -193,7 +163,7 @@ export const CreateProjectFormFields = ({
             value={formData.end_date || ''}
             onChange={(e) => onInputChange('end_date', e.target.value)}
             disabled={disabled}
-            className={getFieldError('end_date') ? 'border-red-500' : ''}
+            className={`w-full ${getFieldError('end_date') ? 'border-red-500' : ''}`}
           />
           {getFieldError('end_date') && (
             <p className="text-sm text-red-600 flex items-center gap-1">
@@ -214,7 +184,7 @@ export const CreateProjectFormFields = ({
           placeholder="0"
           min="0"
           disabled={disabled}
-          className={getFieldError('budget') ? 'border-red-500' : ''}
+          className={`w-full ${getFieldError('budget') ? 'border-red-500' : ''}`}
         />
         {getFieldError('budget') && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -232,6 +202,6 @@ export const CreateProjectFormFields = ({
           </AlertDescription>
         </Alert>
       )}
-    </>
+    </div>
   );
 };

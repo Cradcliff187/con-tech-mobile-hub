@@ -2,12 +2,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getLifecycleStatus } from '@/utils/lifecycle-status';
+import { getStatusMetadata } from '@/types/projectStatus';
 
 export interface ProjectProgressData {
   name: string;
   progress: number;
   budget: number;
   spent: number;
+  lifecycle_status: string;
+  status_label: string;
 }
 
 export interface TaskStatusData {
@@ -15,9 +19,17 @@ export interface TaskStatusData {
   count: number;
 }
 
+export interface LifecycleStatusData {
+  status: string;
+  label: string;
+  count: number;
+  color: string;
+}
+
 export const useChartData = () => {
   const [projectProgress, setProjectProgress] = useState<ProjectProgressData[]>([]);
   const [taskStatus, setTaskStatus] = useState<TaskStatusData[]>([]);
+  const [lifecycleStatusData, setLifecycleStatusData] = useState<LifecycleStatusData[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -26,22 +38,47 @@ export const useChartData = () => {
 
     setLoading(true);
     try {
-      // Fetch project progress data
+      // Fetch project progress data with lifecycle status
       const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select('name, progress, budget, spent')
+        .select('name, progress, budget, spent, lifecycle_status, status, phase')
         .order('name');
 
       if (projectError) {
         console.error('Error fetching project data:', projectError);
       } else {
-        const progressData: ProjectProgressData[] = (projects || []).map(project => ({
-          name: project.name,
-          progress: project.progress || 0,
-          budget: Number(project.budget) || 0,
-          spent: Number(project.spent) || 0
-        }));
+        const progressData: ProjectProgressData[] = (projects || []).map(project => {
+          const lifecycleStatus = getLifecycleStatus(project);
+          const statusMetadata = getStatusMetadata(lifecycleStatus);
+          
+          return {
+            name: project.name,
+            progress: project.progress || 0,
+            budget: Number(project.budget) || 0,
+            spent: Number(project.spent) || 0,
+            lifecycle_status: lifecycleStatus,
+            status_label: statusMetadata.label
+          };
+        });
         setProjectProgress(progressData);
+
+        // Calculate lifecycle status distribution
+        const statusCounts = progressData.reduce((acc, project) => {
+          const status = project.lifecycle_status;
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const lifecycleData: LifecycleStatusData[] = Object.entries(statusCounts).map(([status, count]) => {
+          const metadata = getStatusMetadata(status as any);
+          return {
+            status,
+            label: metadata.label,
+            count,
+            color: metadata.color
+          };
+        });
+        setLifecycleStatusData(lifecycleData);
       }
 
       // Fetch task status data
@@ -78,6 +115,7 @@ export const useChartData = () => {
   return {
     projectProgress,
     taskStatus,
+    lifecycleStatusData,
     loading,
     refetch: fetchChartData
   };
