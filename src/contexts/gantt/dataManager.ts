@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/types/database';
 import { GanttState, GanttAction } from './types';
 import { useGanttFilters } from '@/components/planning/gantt/hooks/useGanttFilters';
+import { mapTaskFromDb } from '@/hooks/tasks/taskMapping';
 
 interface UseGanttDataManagerProps {
   projectId?: string;
@@ -20,7 +21,7 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
       dispatch({ type: 'SET_LOADING', payload: true });
       
       try {
-        const { data: tasks, error } = await supabase
+        const { data: tasksData, error } = await supabase
           .from('tasks')
           .select('*')
           .eq('project_id', projectId)
@@ -30,7 +31,9 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
           console.error('Error fetching tasks:', error);
           dispatch({ type: 'SET_ERROR', payload: error.message });
         } else {
-          dispatch({ type: 'SET_TASKS', payload: tasks || [] });
+          // Map the database response to properly typed Task objects
+          const mappedTasks = (tasksData || []).map(mapTaskFromDb);
+          dispatch({ type: 'SET_TASKS', payload: mappedTasks });
         }
       } catch (error) {
         console.error('Error fetching tasks:', error);
