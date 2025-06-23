@@ -18,22 +18,30 @@ export type EntityType =
 // Status configurations for each entity type
 const STATUS_CONFIGS = {
   project: {
-    statuses: ['planning', 'active', 'on-hold', 'completed', 'cancelled'],
+    statuses: ['pre_construction', 'mobilization', 'construction', 'punch_list', 'final_inspection', 'closeout', 'warranty', 'on_hold', 'cancelled'],
     colors: {
-      planning: 'bg-blue-100 text-blue-800',
-      active: 'bg-green-100 text-green-800',
-      'on-hold': 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-emerald-100 text-emerald-800',
-      cancelled: 'bg-slate-100 text-slate-800'
+      pre_construction: 'bg-slate-100 text-slate-800',
+      mobilization: 'bg-blue-100 text-blue-800',
+      construction: 'bg-orange-100 text-orange-800',
+      punch_list: 'bg-purple-100 text-purple-800',
+      final_inspection: 'bg-indigo-100 text-indigo-800',
+      closeout: 'bg-green-100 text-green-800',
+      warranty: 'bg-emerald-100 text-emerald-800',
+      on_hold: 'bg-yellow-100 text-yellow-800',
+      cancelled: 'bg-red-100 text-red-800'
     },
     labels: {
-      planning: 'Planning',
-      active: 'Active',
-      'on-hold': 'On Hold',
-      completed: 'Completed',
+      pre_construction: 'Pre-Construction',
+      mobilization: 'Mobilization',
+      construction: 'Construction',
+      punch_list: 'Punch List',
+      final_inspection: 'Final Inspection',
+      closeout: 'Project Closeout',
+      warranty: 'Warranty Period',
+      on_hold: 'On Hold',
       cancelled: 'Cancelled'
     },
-    criticalChanges: ['cancelled', 'on-hold']
+    criticalChanges: ['cancelled', 'on_hold']
   },
   task: {
     statuses: ['not-started', 'in-progress', 'completed', 'blocked'],

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Project } from '@/types/database';
 import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
-import { EnhancedUnifiedStatusBadge } from '@/components/ui/enhanced-unified-status-badge';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { UNIFIED_STATUS_CONFIG } from '@/types/unified-lifecycle';
 
 interface ProjectStatusDisplayProps {
@@ -11,6 +11,7 @@ interface ProjectStatusDisplayProps {
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   interactive?: boolean;
+  onStatusChange?: (newStatus: string) => void;
 }
 
 export const ProjectStatusDisplay: React.FC<ProjectStatusDisplayProps> = ({ 
@@ -18,7 +19,8 @@ export const ProjectStatusDisplay: React.FC<ProjectStatusDisplayProps> = ({
   showProgression = false,
   size = 'md',
   showIcon = true,
-  interactive = false
+  interactive = false,
+  onStatusChange
 }) => {
   const unifiedStatus = getUnifiedLifecycleStatus(project);
   const statusConfig = UNIFIED_STATUS_CONFIG[unifiedStatus];
@@ -26,13 +28,21 @@ export const ProjectStatusDisplay: React.FC<ProjectStatusDisplayProps> = ({
   // Calculate progression percentage based on status order
   const progressionPercentage = Math.round((statusConfig.order / 7) * 100);
 
+  const handleStatusChange = (newStatus: string) => {
+    if (onStatusChange) {
+      onStatusChange(newStatus);
+    }
+  };
+
   return (
     <div className="flex items-center space-x-2">
-      <EnhancedUnifiedStatusBadge 
-        status={unifiedStatus} 
+      <GlobalStatusDropdown
+        entityType="project"
+        currentStatus={unifiedStatus}
+        onStatusChange={handleStatusChange}
+        showAsDropdown={interactive}
         size={size}
-        showIcon={showIcon}
-        interactive={interactive}
+        disabled={!interactive}
       />
       {showProgression && (
         <span className="text-xs text-slate-500 whitespace-nowrap">

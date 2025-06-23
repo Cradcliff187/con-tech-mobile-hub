@@ -2,7 +2,7 @@
 import { MapPin, Calendar, User } from 'lucide-react';
 import { formatAddress } from '@/utils/addressFormatting';
 import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
-import { EnhancedUnifiedStatusBadge } from '@/components/ui/enhanced-unified-status-badge';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 
 interface ProjectCardProps {
   project: {
@@ -74,10 +74,12 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
           {project.name}
         </h3>
         <div className="shrink-0">
-          <EnhancedUnifiedStatusBadge 
-            status={unifiedStatus} 
+          <GlobalStatusDropdown
+            entityType="project"
+            currentStatus={unifiedStatus}
+            onStatusChange={() => {}} // Read-only in card view
+            showAsDropdown={false}
             size="sm"
-            showIcon={true}
           />
         </div>
       </div>

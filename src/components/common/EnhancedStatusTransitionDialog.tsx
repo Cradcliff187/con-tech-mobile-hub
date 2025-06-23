@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
 import { getStatusMetadata, validateStatusTransition } from '@/utils/unified-lifecycle-utils';
-import { EnhancedUnifiedStatusBadge } from '@/components/ui/enhanced-unified-status-badge';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { cn } from '@/lib/utils';
 
 interface EnhancedStatusTransitionDialogProps {
@@ -70,16 +70,20 @@ export const EnhancedStatusTransitionDialog: React.FC<EnhancedStatusTransitionDi
       <div className="space-y-6">
         {/* Status Transition Visual */}
         <div className="flex items-center justify-center space-x-4 py-4 bg-slate-50 rounded-lg">
-          <EnhancedUnifiedStatusBadge 
-            status={currentStatus} 
+          <GlobalStatusDropdown
+            entityType="project"
+            currentStatus={currentStatus}
+            onStatusChange={() => {}}
+            showAsDropdown={false}
             size="lg"
-            showTooltip={false}
           />
           <ArrowRight className="h-6 w-6 text-slate-400" />
-          <EnhancedUnifiedStatusBadge 
-            status={targetStatus} 
+          <GlobalStatusDropdown
+            entityType="project"
+            currentStatus={targetStatus}
+            onStatusChange={() => {}}
+            showAsDropdown={false}
             size="lg"
-            showTooltip={false}
           />
         </div>
 

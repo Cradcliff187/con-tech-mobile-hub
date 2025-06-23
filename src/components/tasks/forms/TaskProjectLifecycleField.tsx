@@ -2,7 +2,7 @@
 import React from 'react';
 import { Project } from '@/types/database';
 import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
-import { EnhancedUnifiedStatusBadge } from '@/components/ui/enhanced-unified-status-badge';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, AlertTriangle } from 'lucide-react';
 
@@ -59,10 +59,12 @@ export const TaskProjectLifecycleField: React.FC<TaskProjectLifecycleFieldProps>
       <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-slate-700">Project Status:</span>
-          <EnhancedUnifiedStatusBadge 
-            status={unifiedStatus} 
+          <GlobalStatusDropdown
+            entityType="project"
+            currentStatus={unifiedStatus}
+            onStatusChange={() => {}} // Read-only in task form
+            showAsDropdown={false}
             size="sm"
-            showIcon={true}
           />
         </div>
       </div>

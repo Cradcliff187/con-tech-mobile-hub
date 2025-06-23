@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus } from 'lucide-react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { AddressFormFields } from '@/components/common/AddressFormFields';
-import { UnifiedLifecycleStatusSelector } from '@/components/ui/unified-lifecycle-status-selector';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
 
 interface ProjectFormData {
@@ -37,6 +37,10 @@ export const ProjectFormFields = ({
   clients, 
   onCreateClient 
 }: ProjectFormFieldsProps) => {
+  const handleStatusChange = (newStatus: string) => {
+    onInputChange('unified_lifecycle_status', newStatus as UnifiedLifecycleStatus);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="space-y-2">
@@ -126,9 +130,11 @@ export const ProjectFormFields = ({
         
         <div className="space-y-2">
           <Label htmlFor="unified_lifecycle_status">Project Status</Label>
-          <UnifiedLifecycleStatusSelector
-            value={formData.unified_lifecycle_status}
-            onValueChange={(value) => onInputChange('unified_lifecycle_status', value)}
+          <GlobalStatusDropdown
+            entityType="project"
+            currentStatus={formData.unified_lifecycle_status}
+            onStatusChange={handleStatusChange}
+            size="md"
             className="w-full"
           />
         </div>
