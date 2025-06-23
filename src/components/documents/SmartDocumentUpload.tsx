@@ -407,7 +407,7 @@ export const SmartDocumentUpload = ({
   const DialogOrSheetTitle = isMobile ? SheetTitle : DialogTitle;
 
   const uploadContent = (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Category Selection Panel */}
       <CategorySelectionPanel
         uploadTemplates={uploadTemplates}
@@ -465,21 +465,19 @@ export const SmartDocumentUpload = ({
       />
 
       {/* Upload Actions */}
-      <div className="animate-fade-in">
-        <UploadProgress
-          selectedFilesCount={selectedFiles.length}
-          isUploading={isUploading}
-          onUpload={handleUpload}
-          onCancel={variant === 'dialog' ? () => handleOpenChange(false) : undefined}
-          variant={variant}
-        />
-      </div>
+      <UploadProgress
+        selectedFilesCount={selectedFiles.length}
+        isUploading={isUploading}
+        onUpload={handleUpload}
+        onCancel={variant === 'dialog' ? () => handleOpenChange(false) : undefined}
+        variant={variant}
+      />
     </div>
   );
 
   if (variant === 'inline') {
     return (
-      <div className={`bg-white rounded-lg border border-slate-200 p-6 transition-all duration-200 hover:shadow-lg ${className}`}>
+      <div className={`bg-white rounded-lg border border-slate-200 p-4 transition-all duration-200 hover:shadow-lg ${className}`}>
         {uploadContent}
       </div>
     );
@@ -487,14 +485,18 @@ export const SmartDocumentUpload = ({
 
   return (
     <DialogOrSheet open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogOrSheetContent className={`${isMobile ? "h-[90vh]" : "sm:max-w-4xl max-h-[90vh]"} animate-scale-in`}>
-        <DialogOrSheetHeader>
-          <DialogOrSheetTitle className="flex items-center gap-2">
-            <Sparkles className="text-blue-500" size={24} />
-            Smart Document Upload
+      <DialogOrSheetContent className={`${
+        isMobile 
+          ? "h-[95vh] w-full max-w-full" 
+          : "sm:max-w-2xl max-h-[90vh] w-full"
+      } animate-scale-in`}>
+        <DialogOrSheetHeader className="flex-shrink-0 pb-2">
+          <DialogOrSheetTitle className="flex items-center gap-2 text-lg">
+            <Sparkles className="text-blue-500 flex-shrink-0" size={20} />
+            <span className="truncate">Smart Document Upload</span>
           </DialogOrSheetTitle>
         </DialogOrSheetHeader>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-1">
           {uploadContent}
         </div>
       </DialogOrSheetContent>

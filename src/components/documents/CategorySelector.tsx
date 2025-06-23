@@ -31,12 +31,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="space-y-3">
-      <div className={`grid gap-3 ${
-        isMobile 
-          ? 'grid-cols-1' 
-          : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-      }`}>
+    <div className="space-y-2">
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
         {categories.map((category) => {
           const Icon = category.icon;
           const isSelected = selectedCategory === category.value;
@@ -46,41 +42,40 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
               key={category.value}
               variant={isSelected ? 'default' : 'outline'}
               className={`
-                ${isMobile ? 'min-h-[64px] p-4' : 'h-auto p-4'} 
-                flex flex-col items-center gap-2 text-center transition-all duration-200 
-                hover:scale-105 active:scale-95 touch-manipulation
-                ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''} 
+                h-auto p-3 flex items-center justify-start gap-3 text-left transition-all duration-200 
+                hover:scale-[1.02] active:scale-95 touch-manipulation w-full
+                ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : ''} 
                 ${category.isPriority ? 'border-blue-300 bg-blue-50 hover:bg-blue-100' : ''}
               `}
               onClick={() => onCategorySelect(category.value)}
               disabled={disabled}
             >
-              <div className="flex items-center justify-center w-full">
-                <Icon 
-                  size={isMobile ? 28 : 24} 
-                  className={isSelected ? 'text-white' : category.isPriority ? 'text-blue-600' : 'text-slate-600'} 
-                />
-                {category.isPriority && !isMobile && (
-                  <Badge variant="secondary" className="ml-2 text-xs bg-blue-100 text-blue-700">
-                    Recommended
-                  </Badge>
-                )}
-              </div>
-              <div className="w-full">
-                <div className={`font-medium ${isMobile ? 'text-base' : 'text-sm'} ${
-                  isSelected ? 'text-white' : 'text-slate-800'
-                }`}>
+              <Icon 
+                size={isMobile ? 20 : 18} 
+                className={`flex-shrink-0 ${
+                  isSelected ? 'text-white' : category.isPriority ? 'text-blue-600' : 'text-slate-600'
+                }`} 
+              />
+              <div className="flex-1 min-w-0 text-left">
+                <div className={`font-medium truncate ${
+                  isMobile ? 'text-sm' : 'text-xs'
+                } ${isSelected ? 'text-white' : 'text-slate-800'}`}>
                   {category.label}
                 </div>
-                {!isMobile && (
-                  <div className={`text-xs mt-1 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                {!isMobile && !isSelected && (
+                  <div className="text-xs text-slate-500 truncate mt-0.5">
                     {category.description}
                   </div>
                 )}
               </div>
-              {category.isPriority && isMobile && (
-                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 mt-1">
-                  Recommended
+              {category.isPriority && (
+                <Badge 
+                  variant="secondary" 
+                  className={`text-xs flex-shrink-0 ${
+                    isSelected ? 'bg-white/20 text-white border-white/30' : 'bg-blue-100 text-blue-700'
+                  }`}
+                >
+                  {isMobile ? 'Rec' : 'Recommended'}
                 </Badge>
               )}
             </Button>
@@ -89,8 +84,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
       </div>
       
       {projectPhase && (
-        <div className={`text-center ${isMobile ? 'text-sm' : 'text-xs'} text-slate-600`}>
-          Categories optimized for <span className="font-medium capitalize">{projectPhase}</span> phase
+        <div className="text-center text-xs text-slate-600">
+          Optimized for <span className="font-medium capitalize">{projectPhase}</span> phase
         </div>
       )}
     </div>

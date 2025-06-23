@@ -36,20 +36,17 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="animate-fade-in bg-slate-50 rounded-lg border border-slate-200" 
-         style={{ padding: isMobile ? '16px' : '24px' }}>
-      <div className="space-y-4">
+    <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+      <div className="space-y-3">
         <div>
-          <h3 className={`font-semibold text-slate-800 flex items-center gap-2 ${
-            isMobile ? 'text-base' : 'text-lg'
-          }`}>
-            <Sparkles className="text-blue-500" size={isMobile ? 18 : 20} />
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+            <Sparkles className="text-blue-500 flex-shrink-0" size={16} />
             Smart Document Upload
           </h3>
-          <p className={`text-slate-600 mt-1 ${isMobile ? 'text-sm' : 'text-sm'}`}>
+          <p className="text-slate-600 mt-1 text-xs">
             {isMobile 
-              ? 'Select document type for smart processing'
-              : 'Select a document type to enable intelligent categorization and processing'
+              ? 'Select document type for processing'
+              : 'Select a document type for intelligent categorization'
             }
           </p>
         </div>
@@ -57,17 +54,15 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
         {/* Upload Templates */}
         {uploadTemplates.length > 0 && (
           <div>
-            <Label className="text-slate-700 font-medium">Quick Templates</Label>
+            <Label className="text-slate-700 font-medium text-xs">Quick Templates</Label>
             <Select value={uploadTemplate} onValueChange={onTemplateSelect} disabled={isUploading}>
-              <SelectTrigger className={`mt-1 ${isMobile ? 'min-h-[48px]' : ''}`}>
-                <SelectValue placeholder={
-                  isMobile ? 'Choose template' : 'Choose a template for faster upload'
-                } />
+              <SelectTrigger className="mt-1 h-9">
+                <SelectValue placeholder="Choose template" />
               </SelectTrigger>
               <SelectContent className="z-50 bg-white">
                 {uploadTemplates.map((template) => (
-                  <SelectItem key={template.value} value={template.value}>
-                    {template.label}
+                  <SelectItem key={template.value} value={template.value} className="text-sm">
+                    <span className="truncate">{template.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -77,12 +72,13 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
 
         {/* Document Category Selection */}
         <div>
-          <Label className="text-slate-700 font-medium">
-            Document Type {!isMobile && projectPhase !== 'planning' && (
-              <span className="text-xs text-blue-600">({projectPhase} phase)</span>
+          <Label className="text-slate-700 font-medium text-xs">
+            Document Type
+            {!isMobile && projectPhase !== 'planning' && (
+              <span className="text-xs text-blue-600 ml-1">({projectPhase})</span>
             )}
           </Label>
-          <div className="mt-3">
+          <div className="mt-2">
             <CategorySelector
               categories={prioritizedCategories}
               selectedCategory={preSelectedCategory}
@@ -94,23 +90,15 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
         </div>
 
         {preSelectedCategory && (
-          <div className={`text-blue-700 bg-blue-50 rounded-lg border border-blue-200 ${
-            isMobile ? 'p-3 text-sm' : 'p-3 text-sm'
-          }`}>
+          <div className="text-blue-700 bg-blue-50 rounded-lg border border-blue-200 p-2">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} />
-              <span className="font-medium">Smart Processing Enabled</span>
+              <Sparkles size={14} className="flex-shrink-0" />
+              <span className="font-medium text-xs">Smart Processing Enabled</span>
             </div>
-            <p className="mt-1">
-              {isMobile ? (
-                `Files will be categorized as "${prioritizedCategories.find(c => c.value === preSelectedCategory)?.label}"`
-              ) : (
-                <>
-                  All uploaded files will be categorized as "{prioritizedCategories.find(c => c.value === preSelectedCategory)?.label}".
-                  {preSelectedCategory === 'receipts' && " Expense tracking fields will be automatically added."}
-                  {preSelectedCategory === 'photos' && " Location and timestamp metadata will be captured."}
-                </>
-              )}
+            <p className="mt-1 text-xs">
+              Files will be categorized as "{prioritizedCategories.find(c => c.value === preSelectedCategory)?.label}".
+              {!isMobile && preSelectedCategory === 'receipts' && " Expense fields will be added."}
+              {!isMobile && preSelectedCategory === 'photos' && " Metadata will be captured."}
             </p>
           </div>
         )}

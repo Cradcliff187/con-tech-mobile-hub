@@ -34,10 +34,9 @@ export const FileDropZone = memo(({
       onDragLeave={onDragLeave}
       className={`
         border-2 border-dashed rounded-lg text-center transition-all duration-300 ease-in-out
-        touch-manipulation
-        ${isMobile ? 'p-6 min-h-[200px]' : 'p-4 sm:p-8'}
+        touch-manipulation p-4 min-h-[140px]
         ${isDragOver 
-          ? 'border-blue-500 bg-blue-50 scale-[1.02] shadow-lg ring-2 ring-blue-200' 
+          ? 'border-blue-500 bg-blue-50 scale-[1.01] shadow-md ring-1 ring-blue-200' 
           : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
         }
         ${selectedFilesCount > 0 ? 'border-green-500 bg-green-50' : ''}
@@ -52,12 +51,12 @@ export const FileDropZone = memo(({
         }
       }}
     >
-      <div className={`space-y-4 ${isMobile ? 'space-y-4' : 'space-y-3 sm:space-y-4'}`}>
+      <div className="space-y-3">
         <div className={`mx-auto bg-slate-100 rounded-full flex items-center justify-center transition-all duration-300 ${
-          isMobile ? 'w-16 h-16' : 'w-12 h-12 sm:w-16 sm:h-16'
+          isMobile ? 'w-12 h-12' : 'w-10 h-10'
         } ${isDragOver ? 'bg-blue-100 scale-110' : 'hover:bg-slate-200'}`}>
           <Upload 
-            size={isMobile ? 32 : 24} 
+            size={isMobile ? 24 : 20} 
             className={`transition-all duration-300 ${
               isDragOver ? 'text-blue-500 scale-110' : 'text-slate-400'
             }`} 
@@ -65,39 +64,40 @@ export const FileDropZone = memo(({
         </div>
         <div>
           <p className={`font-medium transition-colors duration-200 ${
-            isMobile ? 'text-lg' : 'text-base sm:text-lg'
+            isMobile ? 'text-sm' : 'text-sm'
           } ${isDragOver ? 'text-blue-700' : 'text-slate-700'}`}>
-            {isDragOver ? 'Drop files here' : (isMobile ? 'Tap to upload files' : 'Drag files here to upload')}
+            {isDragOver ? 'Drop files here' : (isMobile ? 'Tap to upload' : 'Drag files here')}
           </p>
-          <p className={`text-slate-500 ${isMobile ? 'text-sm mt-2' : 'text-xs sm:text-sm'}`}>
-            {isMobile ? 'Or use buttons below' : 'Or click to browse files'}
+          <p className="text-slate-500 text-xs mt-1">
+            {isMobile ? 'Or use buttons below' : 'Or click to browse'}
           </p>
         </div>
-        <div className={`flex gap-3 justify-center ${
-          isMobile ? 'flex-col' : 'flex-col sm:flex-row'
+        <div className={`flex gap-2 justify-center ${
+          isMobile ? 'flex-col' : 'flex-row'
         }`}>
           <Button
             type="button"
             onClick={onBrowseFiles}
             variant="outline"
-            className={`flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-md 
-              ${isMobile ? 'min-h-[48px] text-base' : 'min-h-[44px] text-sm'} 
-              touch-manipulation active:scale-95`}
+            size="sm"
+            className="flex items-center gap-2 transition-all duration-200 hover:scale-105 
+              touch-manipulation active:scale-95 text-xs"
             aria-label="Browse files"
           >
-            <FolderOpen size={isMobile ? 20 : 16} />
-            {isMobile ? 'Browse Files' : 'Browse Files'}
+            <FolderOpen size={14} />
+            Browse Files
           </Button>
           {isMobile && (
             <Button
               type="button"
               onClick={onCameraCapture}
               variant="outline"
-              className="flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-md 
-                min-h-[48px] text-base touch-manipulation active:scale-95"
+              size="sm"
+              className="flex items-center gap-2 transition-all duration-200 hover:scale-105 
+                touch-manipulation active:scale-95 text-xs"
               aria-label="Take photo with camera"
             >
-              <Camera size={20} />
+              <Camera size={14} />
               Take Photo
             </Button>
           )}
