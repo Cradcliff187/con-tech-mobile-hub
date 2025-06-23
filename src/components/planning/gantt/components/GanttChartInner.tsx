@@ -7,6 +7,7 @@ import { GanttErrorState } from './GanttErrorState';
 import { GanttEmptyState } from '../GanttEmptyState';
 import { StandardGanttContainer } from './StandardGanttContainer';
 import { GanttEnhancedHeader } from './GanttEnhancedHeader';
+import { GanttControls } from '../GanttControls';
 
 interface GanttChartInnerProps {
   projectId: string;
@@ -21,7 +22,10 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   const {
     state,
     getFilteredTasks,
-    selectTask
+    selectTask,
+    setSearchQuery,
+    setFilters,
+    setViewMode
   } = context;
 
   // Access state properties correctly
@@ -32,7 +36,9 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     timelineEnd,
     selectedTaskId,
     viewMode,
-    dragState
+    dragState,
+    searchQuery,
+    filters
   } = state;
 
   console.log('🎯 GanttChartInner: Render with state:', {
@@ -96,8 +102,12 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
+  const handleFilterChange = (filterType: string, values: string[]) => {
+    setFilters({ [filterType]: values });
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
       <GanttEnhancedHeader 
         totalDays={totalDays}
         completedTasks={taskCounts.completed}
@@ -105,6 +115,16 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
         localUpdatesCount={0}
         onResetUpdates={() => {}}
         tasks={displayTasks}
+      />
+
+      <GanttControls
+        searchQuery={searchQuery || ''}
+        onSearchChange={setSearchQuery}
+        filters={filters || {}}
+        onFilterChange={handleFilterChange}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        isDevelopment={process.env.NODE_ENV === 'development'}
       />
       
       <StandardGanttContainer
