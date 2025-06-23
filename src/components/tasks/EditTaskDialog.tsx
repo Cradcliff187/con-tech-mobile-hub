@@ -28,7 +28,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('medium');
-  const [status, setStatus] = useState<string>('not-started');
+  const [status, setStatus] = useState<Task['status']>('not-started');
   const [dueDate, setDueDate] = useState<Date | undefined>();
   
   const { updateTask } = useTasks();
@@ -93,6 +93,10 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     }
     onOpenChange(newOpen);
   }, [updateOperation.loading, resetForm, onOpenChange]);
+
+  const handleStatusChange = (newStatus: string) => {
+    setStatus(newStatus as Task['status']);
+  };
 
   const formatDate = (date?: Date) => {
     if (!date) return 'No due date';
@@ -210,7 +214,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 </label>
                 <TaskStatusField
                   value={status}
-                  onChange={setStatus}
+                  onChange={handleStatusChange}
                   disabled={updateOperation.loading}
                 />
               </div>

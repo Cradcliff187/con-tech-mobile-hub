@@ -37,7 +37,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateTask(task.id, { status: newStatus });
+      await updateTask(task.id, { status: newStatus as Task['status'] });
       toast({
         title: "Success",
         description: "Task status updated successfully"

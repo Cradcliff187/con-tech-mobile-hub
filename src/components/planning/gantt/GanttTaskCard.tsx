@@ -76,7 +76,7 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateTask(task.id, { status: newStatus });
+      await updateTask(task.id, { status: newStatus as Task['status'] });
       toast({
         title: "Success",
         description: "Task status updated successfully"
