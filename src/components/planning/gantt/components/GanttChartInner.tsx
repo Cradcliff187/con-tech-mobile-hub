@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
 import { useGanttCollapse } from '../hooks/useGanttCollapse';
@@ -54,7 +53,8 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     error: error || 'No error',
     projectId,
     isCollapsed,
-    isDragging: dragBridge.isDragging
+    isDragging: dragBridge.isDragging,
+    draggedTaskId: dragBridge.draggedTask?.id || null
   });
 
   // Get filtered tasks from context - memoize to create stable reference
@@ -133,7 +133,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
         totalDays={totalDays}
         completedTasks={taskCounts.completed}
         punchListTasks={taskCounts.punchList}
-        localUpdatesCount={dragBridge.optimisticTasks.size}
+        localUpdatesCount={0}
         onResetUpdates={() => {}}
         tasks={displayTasks}
       />

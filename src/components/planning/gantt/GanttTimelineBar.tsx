@@ -19,6 +19,7 @@ interface GanttTimelineBarProps {
   onSelect: (taskId: string) => void;
   viewMode: 'days' | 'weeks' | 'months';
   isDragging?: boolean;
+  draggedTaskId?: string;
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
 }
@@ -31,6 +32,7 @@ export const GanttTimelineBar = ({
   onSelect,
   viewMode,
   isDragging = false,
+  draggedTaskId = null,
   onDragStart,
   onDragEnd
 }: GanttTimelineBarProps) => {
@@ -46,9 +48,11 @@ export const GanttTimelineBar = ({
   const timelineRangeEnd = new Date(timelineUnits[timelineUnits.length - 1].key);
   
   // Check if this specific task is being dragged
-  const isTaskBeingDragged = isDragging && task.id;
+  const isThisTaskBeingDragged = isDragging && draggedTaskId === task.id;
   
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't trigger selection during drag operations
+    if (isDragging) return;
     onSelect(task.id);
   };
 
@@ -70,11 +74,20 @@ export const GanttTimelineBar = ({
   const isOverdue = calculatedEndDate < new Date() && task.status !== 'completed';
   const actualWidth = gridPosition.columnSpan * columnWidth;
 
+  // Determine draggable state and cursor
+  const canDrag = !!onDragStart && !isThisTaskBeingDragged;
+  const cursorClass = isThisTaskBeingDragged 
+    ? 'cursor-grabbing' 
+    : canDrag 
+      ? 'cursor-grab hover:cursor-grab' 
+      : 'cursor-pointer';
+
   console.log('🎯 GanttTimelineBar: Render task bar', {
     taskId: task.id,
     title: task.title,
     isDragging,
-    isTaskBeingDragged,
+    isThisTaskBeingDragged,
+    canDrag,
     hasHandlers: { onDragStart: !!onDragStart, onDragEnd: !!onDragEnd }
   });
 
@@ -103,9 +116,13 @@ export const GanttTimelineBar = ({
 
       <TaskBarTooltip task={task} viewMode={viewMode}>
         <div
-          className={`absolute ${config.topOffset} ${config.height} rounded-md transition-all duration-200 hover:shadow-md ${
+          className={`absolute ${config.topOffset} ${config.height} rounded-md transition-all duration-200 ${
             isSelected ? 'ring-2 ring-orange-500 shadow-lg scale-105' : ''
-          } ${isTaskBeingDragged ? 'opacity-50 z-20 cursor-grabbing' : 'cursor-grab hover:opacity-80'} ${
+          } ${
+            isThisTaskBeingDragged 
+              ? 'opacity-50 z-20 scale-105 shadow-2xl ring-2 ring-blue-500' 
+              : 'hover:opacity-90 hover:shadow-md'
+          } ${cursorClass} ${
             isOverdue ? 'ring-1 ring-red-400' : ''
           } ${phaseColor} ${
             !hasActualDates ? 'border-2 border-dashed border-white border-opacity-50' : ''
@@ -116,7 +133,7 @@ export const GanttTimelineBar = ({
             minWidth: config.minWidth
           }}
           onClick={handleClick}
-          draggable={!isTaskBeingDragged && !!onDragStart}
+          draggable={canDrag}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
@@ -131,29 +148,33 @@ export const GanttTimelineBar = ({
             isSelected={isSelected} 
             viewMode={viewMode} 
           />
+
+          {/* Visual drag feedback */}
+          {isThisTaskBeingDragged && (
+            <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded-md pointer-events-none" />
+          )}
         </div>
       </TaskBarTooltip>
 
       {/* Debug overlay - development only */}
       {process.env.NODE_ENV === 'development' && (
-        <div 
-          className="absolute top-0 h-full border-2 border-red-500 bg-red-100 opacity-30 pointer-events-none"
-          style={{
-            left: `${gridPosition.startColumnIndex * columnWidth}px`,
-            width: `${gridPosition.columnSpan * columnWidth}px`,
-          }}
-        >
-          <div className="text-xs bg-white p-1 rounded shadow-sm">
-            {format(calculatedStartDate, 'MMM d')} | Col: {gridPosition.startColumnIndex}
+        <>
+          <div 
+            className="absolute top-0 h-full border-2 border-red-500 bg-red-100 opacity-30 pointer-events-none"
+            style={{
+              left: `${gridPosition.startColumnIndex * columnWidth}px`,
+              width: `${gridPosition.columnSpan * columnWidth}px`,
+            }}
+          >
+            <div className="text-xs bg-white p-1 rounded shadow-sm">
+              {format(calculatedStartDate, 'MMM d')} | Col: {gridPosition.startColumnIndex}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Debug info - remove after verification */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute -top-6 left-0 text-xs bg-yellow-200 px-1 rounded">
-          Col: {gridPosition.startColumnIndex} | Span: {gridPosition.columnSpan} | Draggable: {(!isTaskBeingDragged && !!onDragStart).toString()}
-        </div>
+          
+          <div className="absolute -top-6 left-0 text-xs bg-yellow-200 px-1 rounded">
+            Draggable: {canDrag.toString()} | Dragging: {isThisTaskBeingDragged.toString()}
+          </div>
+        </>
       )}
     </div>
   );

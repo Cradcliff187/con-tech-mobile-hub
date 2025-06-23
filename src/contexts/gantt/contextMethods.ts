@@ -2,14 +2,19 @@
 import { useCallback, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { GanttState, GanttAction } from './types';
+import { useTasks } from '@/hooks/useTasks';
 
 interface UseGanttContextMethodsProps {
   state: GanttState;
   dispatch: React.Dispatch<GanttAction>;
   filteredTasks: Task[];
+  projectId?: string;
 }
 
-export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGanttContextMethodsProps) => {
+export const useGanttContextMethods = ({ state, dispatch, filteredTasks, projectId }: UseGanttContextMethodsProps) => {
+  // Get task operations for database updates
+  const { updateTask: updateTaskMutation } = useTasks({ projectId });
+
   // Create stable task signature for dependency tracking
   const taskSignature = useMemo(() => {
     return `${filteredTasks.length}-${filteredTasks.map(t => `${t.id}-${t.status}-${t.priority}`).join('|')}`;
@@ -111,11 +116,39 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
   }, [dispatch]);
 
   const completeDrag = useCallback(async (updates: Partial<Task>) => {
-    if (state.dragState.draggedTask) {
+    if (!state.dragState.draggedTask) {
+      console.warn('No dragged task found when completing drag');
+      return;
+    }
+
+    const taskId = state.dragState.draggedTask.id;
+    
+    try {
       // Apply optimistic update first
-      updateTaskOptimistic(state.dragState.draggedTask.id, updates);
+      updateTaskOptimistic(taskId, updates);
       
-      // Reset drag state
+      // Attempt database update
+      console.log('🎯 Saving drag changes to database:', { taskId, updates });
+      const result = await updateTaskMutation(taskId, updates);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Clear optimistic update on success (real data will come from subscription)
+      clearOptimisticUpdate(taskId);
+      
+      console.log('✅ Drag changes saved successfully');
+      
+    } catch (error) {
+      // Rollback optimistic update on failure
+      console.error('❌ Failed to save drag changes:', error);
+      clearOptimisticUpdate(taskId);
+      
+      // Re-throw to allow UI error handling
+      throw error;
+    } finally {
+      // Reset drag state regardless of success/failure
       dispatch({ 
         type: 'SET_DRAG_STATE', 
         payload: { 
@@ -127,7 +160,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
         } 
       });
     }
-  }, [state.dragState.draggedTask?.id, updateTaskOptimistic, dispatch]);
+  }, [state.dragState.draggedTask, updateTaskOptimistic, updateTaskMutation, clearOptimisticUpdate, dispatch]);
 
   const cancelDrag = useCallback(() => {
     dispatch({ 

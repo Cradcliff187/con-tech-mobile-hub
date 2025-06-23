@@ -1,8 +1,9 @@
 
+import React from 'react';
 import { Task } from '@/types/database';
 import { GanttTaskCard } from './GanttTaskCard';
 import { GanttTimelineBar } from './GanttTimelineBar';
-import { GanttTimelineGrid } from './GanttTimelineGrid';
+import { GanttCollapsedTaskCard } from './GanttCollapsedTaskCard';
 
 interface GanttTaskRowProps {
   task: Task;
@@ -33,47 +34,41 @@ export const GanttTaskRow = ({
   isFirstRow = false,
   isCollapsed = false
 }: GanttTaskRowProps) => {
-  // Dynamic height based on collapse state - Optimized heights
-  const rowHeight = isCollapsed ? '24px' : '48px'; // Reduced from 30px/60px
+  const isSelected = selectedTaskId === task.id;
 
   return (
-    <div className="flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
-      {/* Task Card - Reduced Width */}
-      <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0">
-        <GanttTaskCard
-          task={task}
-          isSelected={selectedTaskId === task.id}
-          onSelect={onTaskSelect}
-          viewMode={viewMode}
-          isCollapsed={isCollapsed}
-        />
-      </div>
-
-      {/* Timeline Area - No individual scrolling */}
-      <div className="flex-1 relative" style={{ minHeight: rowHeight }}>
-        {/* Timeline Grid Background - Only render for first row to avoid duplication */}
-        {isFirstRow && (
-          <GanttTimelineGrid
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            viewMode={viewMode}
+    <div className={`flex border-b border-slate-100 ${isFirstRow ? 'border-t' : ''}`}>
+      {/* Task List Column - Fixed/Frozen */}
+      <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
+        {isCollapsed ? (
+          <GanttCollapsedTaskCard 
+            task={task} 
+            isSelected={isSelected}
+            onSelect={onTaskSelect}
+          />
+        ) : (
+          <GanttTaskCard
+            task={task}
+            isSelected={isSelected}
+            onSelect={onTaskSelect}
           />
         )}
+      </div>
 
-        {/* Timeline content - let parent handle scrolling */}
-        <div className="min-w-max relative">
-          <GanttTimelineBar
-            task={task}
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            isSelected={selectedTaskId === task.id}
-            onSelect={onTaskSelect}
-            viewMode={viewMode}
-            isDragging={draggedTaskId === task.id}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          />
-        </div>
+      {/* Timeline Column - Scrollable */}
+      <div className="flex-1 relative">
+        <GanttTimelineBar
+          task={task}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          isSelected={isSelected}
+          onSelect={onTaskSelect}
+          viewMode={viewMode}
+          isDragging={isDragging}
+          draggedTaskId={draggedTaskId}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        />
       </div>
     </div>
   );

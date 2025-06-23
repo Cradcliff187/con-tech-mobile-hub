@@ -25,8 +25,13 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({
   // Use data manager for task fetching and timeline calculations
   const { filteredTasks } = useGanttDataManager({ projectId, state, dispatch });
 
-  // Get all context methods with stable dependencies
-  const contextMethods = useGanttContextMethods({ state, dispatch, filteredTasks });
+  // Get all context methods with stable dependencies and projectId
+  const contextMethods = useGanttContextMethods({ 
+    state, 
+    dispatch, 
+    filteredTasks, 
+    projectId 
+  });
 
   const value: GanttContextValue = {
     state,
