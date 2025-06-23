@@ -27,6 +27,7 @@ interface VirtualGanttContainerProps {
     suggestedDropDate: Date | null;
     affectedMarkerIds: string[];
   };
+  isCollapsed?: boolean;
 }
 
 export const VirtualGanttContainer = ({
@@ -41,7 +42,8 @@ export const VirtualGanttContainer = ({
   draggedTaskId,
   projectId,
   isDragging,
-  dragState
+  dragState,
+  isCollapsed = false
 }: VirtualGanttContainerProps) => {
   const headerScrollRef = useRef<HTMLDivElement>(null);
 
@@ -71,6 +73,7 @@ export const VirtualGanttContainer = ({
           onDragEnd={onDragEnd}
           draggedTaskId={draggedTaskId}
           headerScrollRef={headerScrollRef}
+          isCollapsed={isCollapsed}
         />
 
         {/* Enhanced Overlay Manager for virtual scroll with drag integration */}

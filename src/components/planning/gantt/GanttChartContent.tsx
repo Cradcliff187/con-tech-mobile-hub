@@ -23,6 +23,7 @@ interface GanttChartContentProps {
   projectId?: string;
   // Simplified drag state props - only essential properties
   dragState?: SimplifiedDragState;
+  isCollapsed?: boolean;
 }
 
 export const GanttChartContent = ({
@@ -40,7 +41,8 @@ export const GanttChartContent = ({
   onDragEnd,
   draggedTaskId,
   projectId,
-  dragState
+  dragState,
+  isCollapsed = false
 }: GanttChartContentProps): JSX.Element => {
   const [useVirtualScroll, setUseVirtualScroll] = useState<boolean>(false);
 
@@ -83,6 +85,7 @@ export const GanttChartContent = ({
         projectId={projectId}
         isDragging={isDragging}
         dragState={completeDragState}
+        isCollapsed={isCollapsed}
       />
     );
   }
@@ -104,6 +107,7 @@ export const GanttChartContent = ({
       draggedTaskId={draggedTaskId}
       projectId={projectId}
       dragState={completeDragState}
+      isCollapsed={isCollapsed}
     />
   );
 };

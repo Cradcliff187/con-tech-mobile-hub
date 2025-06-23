@@ -31,6 +31,7 @@ interface StandardGanttContainerProps {
     suggestedDropDate: Date | null;
     affectedMarkerIds: string[];
   };
+  isCollapsed?: boolean;
 }
 
 export const StandardGanttContainer = ({
@@ -48,7 +49,8 @@ export const StandardGanttContainer = ({
   onDragEnd,
   draggedTaskId,
   projectId,
-  dragState
+  dragState,
+  isCollapsed = false
 }: StandardGanttContainerProps) => {
   const { headerScrollRef, contentScrollRef } = useScrollSync();
 
@@ -92,6 +94,7 @@ export const StandardGanttContainer = ({
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
               isFirstRow={index === 0}
+              isCollapsed={isCollapsed}
             />
           ))}
 

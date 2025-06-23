@@ -14,6 +14,7 @@ import { GanttEnhancedHeader } from './gantt/components/GanttEnhancedHeader';
 import { GanttStatusIndicators } from './gantt/components/GanttStatusIndicators';
 import { GanttErrorState } from './gantt/components/GanttErrorState';
 import { useGanttState } from './gantt/hooks/useGanttState';
+import { useGanttCollapse } from './gantt/hooks/useGanttCollapse';
 import { GanttProjectOverview } from './gantt/GanttProjectOverview';
 import { useProjects } from '@/hooks/useProjects';
 import { GanttProvider } from '@/contexts/gantt';
@@ -25,6 +26,10 @@ interface GanttChartProps {
 
 const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
   const { projects } = useProjects();
+  
+  // Add collapse functionality
+  const { isCollapsed, toggleCollapse } = useGanttCollapse();
+  
   const {
     projectTasks,
     displayTasks,
@@ -147,7 +152,7 @@ const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
           onToggleMiniMap={() => setShowMiniMap(!showMiniMap)}
         />
 
-        {/* Interactive Controls */}
+        {/* Interactive Controls with Collapse Toggle */}
         <GanttControls
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -155,6 +160,8 @@ const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
           onFilterChange={handleFilterChange}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={toggleCollapse}
         />
 
         {/* Timeline Mini-map for navigation */}
@@ -208,6 +215,7 @@ const GanttChartInner = ({ projectId }: GanttChartProps): JSX.Element => {
             draggedTaskId={dragAndDrop.draggedTask?.id}
             projectId={projectId}
             dragState={dragState}
+            isCollapsed={isCollapsed}
           />
         </div>
 
