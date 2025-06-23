@@ -11,6 +11,7 @@ interface UseQuickActionsProps {
   onCreateTask: () => void;
   onAssignStakeholder: () => void;
   onAssignEquipment?: () => void;
+  onAdvanceStatus?: () => void;
 }
 
 export const useQuickActions = ({ 
@@ -18,7 +19,8 @@ export const useQuickActions = ({
   context, 
   onCreateTask, 
   onAssignStakeholder,
-  onAssignEquipment 
+  onAssignEquipment,
+  onAdvanceStatus
 }: UseQuickActionsProps) => {
   const navigate = useNavigate();
 
@@ -49,6 +51,18 @@ export const useQuickActions = ({
         icon: Wrench,
         action: onAssignEquipment,
         shortcut: 'Ctrl+E'
+      });
+    }
+
+    // Add advance status action if available
+    if (onAdvanceStatus) {
+      baseActions.push({
+        id: 'advance-status',
+        label: 'Advance Status',
+        icon: CheckCircle,
+        action: onAdvanceStatus,
+        shortcut: 'Ctrl+A',
+        primary: context === 'dashboard'
       });
     }
 
@@ -189,7 +203,7 @@ export const useQuickActions = ({
     }
 
     return [...baseActions, ...phaseActions, ...contextActions];
-  }, [project, context, navigate, onCreateTask, onAssignStakeholder, onAssignEquipment]);
+  }, [project, context, navigate, onCreateTask, onAssignStakeholder, onAssignEquipment, onAdvanceStatus]);
 
   const primaryAction = actions.find(a => a.primary);
   const secondaryActions = actions.filter(a => !a.primary);
