@@ -1,3 +1,4 @@
+
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,8 @@ import { StakeholderDetail } from './StakeholderDetail';
 import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
 import { useToast } from '@/hooks/use-toast';
 import { useDialogState } from '@/hooks/useDialogState';
-import { StakeholderQuickStatusDropdown } from './StakeholderQuickStatusDropdown';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { useStakeholderStatusUpdate } from '@/hooks/useStakeholderStatusUpdate';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
@@ -20,22 +22,13 @@ interface StakeholderCardProps {
 export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
   const { toast } = useToast();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
+  const { updateStakeholderStatus, isUpdating } = useStakeholderStatusUpdate();
 
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'subcontractor': return 'bg-blue-100 text-blue-800';
       case 'employee': return 'bg-green-100 text-green-800';
       case 'vendor': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-slate-100 text-slate-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'suspended': return 'bg-red-100 text-red-800';
       default: return 'bg-slate-100 text-slate-800';
     }
   };
@@ -116,6 +109,13 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    await updateStakeholderStatus(
+      stakeholder, 
+      newStatus as 'active' | 'inactive' | 'pending' | 'suspended'
+    );
+  };
+
   const formattedAddress = formatAddress(stakeholder);
   const formattedPhone = formatPhoneNumber(stakeholder.phone);
 
@@ -172,7 +172,14 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
             <Badge className={getTypeColor(stakeholder.stakeholder_type)}>
               {stakeholder.stakeholder_type}
             </Badge>
-            <StakeholderQuickStatusDropdown stakeholder={stakeholder} />
+            <GlobalStatusDropdown
+              entityType="stakeholder"
+              currentStatus={stakeholder.status}
+              onStatusChange={handleStatusChange}
+              isUpdating={isUpdating(stakeholder.id)}
+              size="sm"
+              confirmCriticalChanges={true}
+            />
           </div>
         </CardHeader>
         

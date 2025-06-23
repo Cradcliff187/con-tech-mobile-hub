@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Equipment } from '@/hooks/useEquipment';
 import { MaintenanceTask } from '@/types/maintenance';
 import { format, isAfter, isBefore, addDays } from 'date-fns';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 
 interface EquipmentStatusCardProps {
   equipment: Equipment;
@@ -26,16 +27,6 @@ export const EquipmentStatusCard = ({
 }: EquipmentStatusCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available': return 'bg-green-100 text-green-800';
-      case 'in-use': return 'bg-blue-100 text-blue-800';
-      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'repair': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getMaintenanceStatus = () => {
     if (!equipment.maintenance_due) return null;
 
@@ -52,6 +43,10 @@ export const EquipmentStatusCard = ({
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    await onStatusUpdate(equipment.id, newStatus);
+  };
+
   const maintenanceStatus = getMaintenanceStatus();
   const activeTasks = maintenanceTasks.filter(task => 
     task.status === 'scheduled' || task.status === 'in_progress'
@@ -64,9 +59,13 @@ export const EquipmentStatusCard = ({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="text-lg font-medium text-slate-900">{equipment.name}</h3>
-            <Badge className={getStatusColor(equipment.status || 'available')}>
-              {equipment.status || 'available'}
-            </Badge>
+            <GlobalStatusDropdown
+              entityType="equipment"
+              currentStatus={equipment.status || 'available'}
+              onStatusChange={handleStatusChange}
+              size="sm"
+              confirmCriticalChanges={true}
+            />
             {equipment.type && (
               <Badge variant="outline">{equipment.type}</Badge>
             )}
