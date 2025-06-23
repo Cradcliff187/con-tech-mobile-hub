@@ -1,6 +1,7 @@
+
 import { Task } from '@/types/database';
 import { calculateTaskDatesFromEstimate } from './dateUtils';
-import { startOfDay, isSameDay, startOfWeek, isSameWeek, startOfMonth, isSameMonth, addWeeks, addMonths } from 'date-fns';
+import { startOfDay, isSameDay, startOfWeek, isSameWeek, startOfMonth, isSameMonth, addDays, addWeeks, addMonths, differenceInDays, differenceInWeeks, differenceInMonths } from 'date-fns';
 
 export interface TaskGridPosition {
   startColumnIndex: number;
@@ -13,18 +14,21 @@ export interface TimelineUnit {
   isWeekend: boolean;
 }
 
-// Generate timeline units based on view mode (same logic as used in components)
+// Generate timeline units based on view mode with consistent date normalization
 export const generateTimelineUnits = (
   timelineStart: Date,
   timelineEnd: Date,
   viewMode: 'days' | 'weeks' | 'months'
 ): TimelineUnit[] => {
   const units: TimelineUnit[] = [];
-  const current = new Date(timelineStart);
+  // Normalize start date to ensure consistent comparison
+  const normalizedStart = startOfDay(timelineStart);
+  const normalizedEnd = startOfDay(timelineEnd);
   
-  while (current <= timelineEnd) {
-    switch (viewMode) {
-      case 'days':
+  switch (viewMode) {
+    case 'days': {
+      let current = normalizedStart;
+      while (current <= normalizedEnd) {
         units.push({
           key: current.getTime(),
           label: current.toLocaleDateString('en-US', { 
@@ -33,25 +37,35 @@ export const generateTimelineUnits = (
           }),
           isWeekend: current.getDay() === 0 || current.getDay() === 6
         });
-        current.setDate(current.getDate() + 1);
-        break;
-        
-      case 'weeks':
-        // Start of week (Sunday)
-        const weekStart = new Date(current);
-        weekStart.setDate(current.getDate() - current.getDay());
+        current = addDays(current, 1);
+      }
+      break;
+    }
+    
+    case 'weeks': {
+      // Use consistent week boundary calculation with startOfWeek
+      let current = startOfWeek(normalizedStart, { weekStartsOn: 0 }); // Sunday-based weeks
+      const endWeek = startOfWeek(normalizedEnd, { weekStartsOn: 0 });
+      
+      while (current <= endWeek) {
         units.push({
-          key: weekStart.getTime(),
-          label: weekStart.toLocaleDateString('en-US', { 
+          key: current.getTime(),
+          label: current.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric'
           }),
           isWeekend: false
         });
-        current.setDate(current.getDate() + 7);
-        break;
-        
-      case 'months':
+        current = addWeeks(current, 1);
+      }
+      break;
+    }
+    
+    case 'months': {
+      let current = startOfMonth(normalizedStart);
+      const endMonth = startOfMonth(normalizedEnd);
+      
+      while (current <= endMonth) {
         units.push({
           key: current.getTime(),
           label: current.toLocaleDateString('en-US', { 
@@ -60,15 +74,16 @@ export const generateTimelineUnits = (
           }),
           isWeekend: false
         });
-        current.setMonth(current.getMonth() + 1);
-        break;
+        current = addMonths(current, 1);
+      }
+      break;
     }
   }
   
   return units;
 };
 
-// Find which column index a date falls into
+// Find which column index a date falls into with improved edge case handling
 export const getColumnIndexForDate = (
   date: Date,
   timelineUnits: TimelineUnit[],
@@ -77,14 +92,16 @@ export const getColumnIndexForDate = (
   // Normalize the target date to start of day for consistent comparison
   const normalizedDate = startOfDay(date);
   
-  // Handle edge case: date before timeline start
+  // Handle edge case: empty timeline
   if (timelineUnits.length === 0) return 0;
   
   const firstUnitDate = startOfDay(new Date(timelineUnits[0].key));
+  const lastUnitDate = startOfDay(new Date(timelineUnits[timelineUnits.length - 1].key));
+  
+  // Handle edge case: date before timeline start
   if (normalizedDate < firstUnitDate) return 0;
   
-  // Handle edge case: date after timeline end
-  const lastUnitDate = startOfDay(new Date(timelineUnits[timelineUnits.length - 1].key));
+  // Handle edge case: date after timeline end - return last valid index
   if (viewMode === 'days' && normalizedDate > lastUnitDate) {
     return timelineUnits.length - 1;
   }
@@ -95,7 +112,7 @@ export const getColumnIndexForDate = (
     return timelineUnits.length - 1;
   }
 
-  // Find the correct column index
+  // Find the correct column index using consistent date logic
   for (let i = 0; i < timelineUnits.length; i++) {
     const unitDate = startOfDay(new Date(timelineUnits[i].key));
     
@@ -106,8 +123,8 @@ export const getColumnIndexForDate = (
         }
         break;
         
-      case 'weeks':
-        // Get the start of the week for this column (Sunday-based)
+      case 'weeks': {
+        // Use the same week boundary logic as timeline generation
         const columnWeekStart = startOfWeek(unitDate, { weekStartsOn: 0 });
         
         // Check if the target date falls within this week
@@ -115,6 +132,7 @@ export const getColumnIndexForDate = (
           return i;
         }
         break;
+      }
         
       case 'months':
         if (isSameMonth(normalizedDate, unitDate)) {
@@ -124,31 +142,65 @@ export const getColumnIndexForDate = (
     }
   }
   
-  // Fallback: return closest valid index
-  return Math.min(timelineUnits.length - 1, Math.max(0, timelineUnits.length - 1));
+  // Fallback: return closest valid index based on position
+  if (normalizedDate < firstUnitDate) return 0;
+  return timelineUnits.length - 1;
 };
 
-// Calculate duration in timeline units
+// Grid-aware duration calculation that counts actual timeline columns
 export const calculateDurationInUnits = (
   startDate: Date,
   endDate: Date,
-  viewMode: 'days' | 'weeks' | 'months'
+  viewMode: 'days' | 'weeks' | 'months',
+  timelineStart: Date,
+  timelineEnd: Date
 ): number => {
-  switch (viewMode) {
-    case 'days':
-      return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-    case 'weeks':
-      return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
-      
-    case 'months':
-      const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
-                        (endDate.getMonth() - startDate.getMonth());
-      return Math.max(1, Math.ceil(monthsDiff));
+  // Generate timeline units to match the actual grid
+  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
+  
+  // Get column indices for start and end dates
+  const startColumnIndex = getColumnIndexForDate(startDate, timelineUnits, viewMode);
+  const endColumnIndex = getColumnIndexForDate(endDate, timelineUnits, viewMode);
+  
+  // Calculate span as the difference in column indices, minimum 1
+  const columnSpan = Math.max(1, endColumnIndex - startColumnIndex + 1);
+  
+  // For validation, also calculate using date-fns for comparison
+  const dateFnsDuration = (() => {
+    const normalizedStart = startOfDay(startDate);
+    const normalizedEnd = startOfDay(endDate);
+    
+    switch (viewMode) {
+      case 'days':
+        return Math.max(1, differenceInDays(normalizedEnd, normalizedStart) + 1);
+      case 'weeks':
+        return Math.max(1, differenceInWeeks(normalizedEnd, normalizedStart) + 1);
+      case 'months':
+        return Math.max(1, differenceInMonths(normalizedEnd, normalizedStart) + 1);
+    }
+  })();
+  
+  // Use the grid-based calculation, but validate against date-fns result
+  const finalDuration = Math.max(1, Math.min(columnSpan, timelineUnits.length));
+  
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🎯 Duration calculation:', {
+      viewMode,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      startColumnIndex,
+      endColumnIndex,
+      columnSpan,
+      dateFnsDuration,
+      finalDuration
+    });
   }
+  
+  return finalDuration;
 };
 
-// Get task grid position based on timeline columns
+// Get task grid position with validation and improved calculations
 export const getTaskGridPosition = (
   task: Task,
   timelineStart: Date,
@@ -164,13 +216,35 @@ export const getTaskGridPosition = (
   // Calculate which column index the task starts in
   const startColumnIndex = getColumnIndexForDate(calculatedStartDate, timelineUnits, viewMode);
   
-  // Calculate how many columns it spans
-  const columnSpan = Math.max(1, calculateDurationInUnits(calculatedStartDate, calculatedEndDate, viewMode));
+  // Use grid-aware duration calculation
+  const columnSpan = calculateDurationInUnits(
+    calculatedStartDate, 
+    calculatedEndDate, 
+    viewMode,
+    timelineStart,
+    timelineEnd
+  );
   
-  // Clamp column indices to valid range
-  const clampedStartIndex = Math.max(0, startColumnIndex);
-  const clampedEndIndex = Math.min(timelineUnits.length - 1, startColumnIndex + columnSpan);
-  const clampedSpan = Math.max(1, clampedEndIndex - clampedStartIndex);
+  // Validate and clamp positions to valid grid bounds
+  const clampedStartIndex = Math.max(0, Math.min(startColumnIndex, timelineUnits.length - 1));
+  const maxAllowedSpan = timelineUnits.length - clampedStartIndex;
+  const clampedSpan = Math.max(1, Math.min(columnSpan, maxAllowedSpan));
+
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🎯 Task grid position:', {
+      taskId: task.id,
+      title: task.title,
+      viewMode,
+      calculatedStartDate: calculatedStartDate.toISOString(),
+      calculatedEndDate: calculatedEndDate.toISOString(),
+      timelineUnitsLength: timelineUnits.length,
+      startColumnIndex,
+      columnSpan,
+      clampedStartIndex,
+      clampedSpan
+    });
+  }
 
   return {
     startColumnIndex: clampedStartIndex,
