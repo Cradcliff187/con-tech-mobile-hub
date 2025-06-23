@@ -257,6 +257,7 @@ export const StakeholderDirectory = () => {
         open={!!editStakeholder}
         onOpenChange={(open) => !open && setEditStakeholder(null)}
         stakeholder={editStakeholder}
+        onSuccess={handleStakeholderUpdated}
       />
 
       <DeleteStakeholderDialog
@@ -276,7 +277,6 @@ export const StakeholderDirectory = () => {
         open={!!stakeholderToAssign}
         onOpenChange={(open) => !open && setStakeholderToAssign(null)}
         stakeholder={stakeholderToAssign}
-        onSuccess={handleStakeholderAssigned}
       />
     </div>
   );
