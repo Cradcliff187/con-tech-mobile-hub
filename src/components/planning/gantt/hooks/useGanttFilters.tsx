@@ -9,32 +9,38 @@ import type { FilterState } from '../types/ganttTypes';
 export const useGanttFilters = (tasks: Task[], filters: FilterState) => {
   const { projects } = useProjects();
 
+  // Create stable references for filter arrays
+  const statusFilters = useMemo(() => filters.status, [filters.status.join(',')]);
+  const priorityFilters = useMemo(() => filters.priority, [filters.priority.join(',')]);
+  const categoryFilters = useMemo(() => filters.category, [filters.category.join(',')]);
+  const lifecycleFilters = useMemo(() => filters.lifecycle_status, [filters.lifecycle_status.join(',')]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       // Status filter
-      if (filters.status.length > 0 && !filters.status.includes(task.status)) {
+      if (statusFilters.length > 0 && !statusFilters.includes(task.status)) {
         return false;
       }
       
       // Priority filter
-      if (filters.priority.length > 0 && !filters.priority.includes(task.priority)) {
+      if (priorityFilters.length > 0 && !priorityFilters.includes(task.priority)) {
         return false;
       }
       
       // Category filter
-      if (filters.category.length > 0 && task.category) {
-        const hasMatchingCategory = filters.category.some((cat: string) =>
+      if (categoryFilters.length > 0 && task.category) {
+        const hasMatchingCategory = categoryFilters.some((cat: string) =>
           task.category!.toLowerCase().includes(cat.toLowerCase())
         );
         if (!hasMatchingCategory) return false;
       }
       
       // Unified lifecycle status filter - filter by project's unified lifecycle status
-      if (filters.lifecycle_status.length > 0) {
+      if (lifecycleFilters.length > 0) {
         const project = projects.find(p => p.id === task.project_id);
         if (project) {
           const projectUnifiedStatus = getUnifiedLifecycleStatus(project);
-          if (!filters.lifecycle_status.includes(projectUnifiedStatus)) {
+          if (!lifecycleFilters.includes(projectUnifiedStatus)) {
             return false;
           }
         }
@@ -42,9 +48,9 @@ export const useGanttFilters = (tasks: Task[], filters: FilterState) => {
       
       return true;
     });
-  }, [tasks, filters, projects]);
+  }, [tasks, statusFilters, priorityFilters, categoryFilters, lifecycleFilters, projects]);
 
-  // Extract unique values for filter options
+  // Extract unique values for filter options with stable references
   const filterOptions = useMemo(() => {
     const statuses = [...new Set(tasks.map(task => task.status))];
     const priorities = [...new Set(tasks.map(task => task.priority))];
@@ -65,7 +71,7 @@ export const useGanttFilters = (tasks: Task[], filters: FilterState) => {
       assignees,
       lifecycleStatuses
     };
-  }, [tasks, projects]);
+  }, [tasks.length, projects.length]);
 
   return {
     filteredTasks,

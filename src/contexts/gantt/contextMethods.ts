@@ -10,6 +10,11 @@ interface UseGanttContextMethodsProps {
 }
 
 export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGanttContextMethodsProps) => {
+  // Core filtering method using the utility function - with stable dependencies
+  const getFilteredTasks = useCallback((): Task[] => {
+    return filteredTasks;
+  }, [filteredTasks.length, filteredTasks.map(t => `${t.id}-${t.status}-${t.priority}`).join('|')]);
+
   // Helper method to get a task with optimistic updates applied
   const getDisplayTask = useCallback((taskId: string): Task | undefined => {
     const task = state.tasks.find(t => t.id === taskId);
@@ -17,12 +22,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     
     const optimisticUpdate = state.optimisticUpdates.get(taskId);
     return optimisticUpdate ? { ...task, ...optimisticUpdate } : task;
-  }, [state.tasks, state.optimisticUpdates]);
-
-  // Core filtering method using the utility function - memoized with stable dependencies
-  const getFilteredTasks = useCallback((): Task[] => {
-    return filteredTasks;
-  }, [filteredTasks.length, filteredTasks.map(t => t.id).join(',')]);
+  }, [state.tasks.length, state.optimisticUpdates.size]);
 
   // Optimistic update methods with useCallback to prevent re-renders
   const updateTaskOptimistic = useCallback((id: string, updates: Partial<Task>) => {
@@ -119,7 +119,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
         } 
       });
     }
-  }, [state.dragState.draggedTask, updateTaskOptimistic, dispatch]);
+  }, [state.dragState.draggedTask?.id, updateTaskOptimistic, dispatch]);
 
   const cancelDrag = useCallback(() => {
     dispatch({ 

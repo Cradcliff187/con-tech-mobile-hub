@@ -1,7 +1,6 @@
 
 import React, { useMemo } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
-import { useTaskProcessing } from '../hooks/useTaskProcessing';
 import { useGanttCollapse } from '../hooks/useGanttCollapse';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
@@ -17,14 +16,8 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
   const context = useGanttContext();
   const { isCollapsed, toggleCollapse } = useGanttCollapse();
-  const { processedTasks, processingStats } = useTaskProcessing({ projectId });
 
-  // Handle context not available AFTER all hooks are called
-  if (!context) {
-    console.error('❌ GanttChartInner: Context not available');
-    return <GanttErrorState error="Gantt context not initialized" />;
-  }
-
+  // Access context properties
   const {
     state,
     getFilteredTasks,
@@ -33,7 +26,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
 
   // Access state properties correctly
   const {
-    tasks,
     loading,
     error,
     timelineStart,
@@ -46,10 +38,12 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   console.log('🎯 GanttChartInner: Render with state:', {
     loading,
     error: error || 'No error',
-    tasksCount: tasks?.length || 0,
     projectId,
     isCollapsed
   });
+
+  // Get filtered tasks from context
+  const displayTasks = getFilteredTasks();
 
   // Loading state
   if (loading) {
@@ -63,9 +57,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     return <GanttErrorState error={error} />;
   }
 
-  // Get filtered tasks from context
-  const displayTasks = getFilteredTasks();
-
   // Empty state
   if (!displayTasks || displayTasks.length === 0) {
     console.log('📭 GanttChartInner: Showing empty state');
@@ -78,22 +69,27 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
-  // Calculate timeline duration for header - use useMemo with stable dependencies
+  // Calculate timeline duration for header - use stable reference
   const totalDays = useMemo(() => {
     if (!timelineStart || !timelineEnd) return 0;
     return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
   }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
 
-  // Calculate punch list tasks - use useMemo with stable dependencies
+  // Calculate punch list tasks - use stable reference
   const punchListTasks = useMemo(() => {
     return displayTasks.filter(task => task.task_type === 'punch_list').length;
-  }, [displayTasks.length, displayTasks.map(t => t.task_type).join(',')]);
+  }, [displayTasks.filter(t => t.task_type === 'punch_list').length]);
+
+  // Calculate completed tasks - use stable reference
+  const completedTasks = useMemo(() => {
+    return displayTasks.filter(task => task.status === 'completed').length;
+  }, [displayTasks.filter(t => t.status === 'completed').length]);
 
   return (
     <div className="w-full">
       <GanttEnhancedHeader 
         totalDays={totalDays}
-        completedTasks={processingStats.completedTasks}
+        completedTasks={completedTasks}
         punchListTasks={punchListTasks}
         localUpdatesCount={0}
         onResetUpdates={() => {}}
