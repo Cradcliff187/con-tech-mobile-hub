@@ -1,5 +1,5 @@
 
-import { Task } from '@/types/database';
+import { Task, Project } from '@/types/database';
 import { LifecycleStatus } from '@/types/database';
 import { getAssigneeName } from '@/components/planning/gantt/utils/taskUtils';
 import { getLifecycleStatus } from '@/utils/lifecycle-status';
@@ -52,7 +52,7 @@ export const applyTaskFilters = (
     category: string[];
     lifecycle_status: LifecycleStatus[];
   },
-  projects?: Array<{ id: string; [key: string]: any }>
+  projects?: Project[]
 ): Task[] => {
   return tasks
     .map(task => {
