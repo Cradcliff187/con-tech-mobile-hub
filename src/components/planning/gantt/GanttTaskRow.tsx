@@ -44,7 +44,7 @@ export const GanttTaskRow = ({
       </div>
 
       {/* Timeline Area - No individual scrolling */}
-      <div className="flex-1 relative" style={{ minHeight: '80px' }}>
+      <div className="flex-1 relative" style={{ minHeight: '60px' }}>
         {/* Timeline Grid Background - Only render for first row to avoid duplication */}
         {isFirstRow && (
           <GanttTimelineGrid

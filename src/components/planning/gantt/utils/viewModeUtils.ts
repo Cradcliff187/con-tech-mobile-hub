@@ -15,8 +15,8 @@ export const getViewModeConfig = (viewMode: 'days' | 'weeks' | 'months'): ViewMo
         minWidth: '16px',
         textLength: 25,
         fontSize: 'text-xs',
-        height: 'h-8',
-        topOffset: 'top-4',
+        height: 'h-6', // Reduced from h-8
+        topOffset: 'top-3', // Adjusted for smaller container
         showText: true
       };
     case 'weeks':
@@ -24,8 +24,8 @@ export const getViewModeConfig = (viewMode: 'days' | 'weeks' | 'months'): ViewMo
         minWidth: '20px',
         textLength: 20,
         fontSize: 'text-xs',
-        height: 'h-10',
-        topOffset: 'top-3',
+        height: 'h-8', // Reduced from h-10
+        topOffset: 'top-2', // Adjusted for smaller container
         showText: true
       };
     case 'months':
@@ -33,8 +33,8 @@ export const getViewModeConfig = (viewMode: 'days' | 'weeks' | 'months'): ViewMo
         minWidth: '24px',
         textLength: 15,
         fontSize: 'text-sm',
-        height: 'h-12',
-        topOffset: 'top-2',
+        height: 'h-10', // Reduced from h-12
+        topOffset: 'top-1', // Adjusted for smaller container
         showText: true
       };
     default:
@@ -42,8 +42,8 @@ export const getViewModeConfig = (viewMode: 'days' | 'weeks' | 'months'): ViewMo
         minWidth: '20px',
         textLength: 20,
         fontSize: 'text-xs',
-        height: 'h-10',
-        topOffset: 'top-3',
+        height: 'h-8', // Reduced from h-10
+        topOffset: 'top-2', // Adjusted for smaller container
         showText: true
       };
   }
@@ -51,9 +51,9 @@ export const getViewModeConfig = (viewMode: 'days' | 'weeks' | 'months'): ViewMo
 
 export const getBarHeight = (viewMode: 'days' | 'weeks' | 'months'): string => {
   switch (viewMode) {
-    case 'days': return 'h-16';
-    case 'weeks': return 'h-16';
-    case 'months': return 'h-20';
-    default: return 'h-16';
+    case 'days': return 'h-12'; // Reduced from h-16
+    case 'weeks': return 'h-12'; // Reduced from h-16
+    case 'months': return 'h-16'; // Reduced from h-20
+    default: return 'h-12'; // Reduced from h-16
   }
 };

@@ -64,9 +64,9 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: 
       }`}
       onClick={handleClick}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3"> {/* Reduced from p-4 */}
         {/* Priority + Title */}
-        <div className="flex items-start gap-2 mb-3">
+        <div className="flex items-start gap-2 mb-2"> {/* Reduced from mb-3 */}
           {getPriorityIcon(task.priority)}
           <div className="flex-1 min-w-0">
             <h4 className={`text-sm font-semibold line-clamp-2 leading-tight ${
@@ -78,7 +78,7 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: 
         </div>
         
         {/* Category + Type Badges */}
-        <div className="flex flex-wrap gap-1 mb-3">
+        <div className="flex flex-wrap gap-1 mb-2"> {/* Reduced from mb-3 */}
           {task.category && (
             <Badge className={`text-xs px-2 py-1 ${getCategoryBadgeColor(task.category)}`}>
               {task.category}
@@ -92,7 +92,7 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: 
         </div>
         
         {/* Assignee + Progress */}
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-1.5"> {/* Reduced from mb-2 */}
           <div className="flex items-center gap-1 text-xs text-slate-600">
             <User size={12} className="flex-shrink-0" />
             <span className="truncate">{getAssigneeName(task)}</span>
@@ -103,10 +103,10 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode }: 
         </div>
         
         {/* Progress Bar */}
-        <Progress value={task.progress || 0} className="h-2 mb-3" />
+        <Progress value={task.progress || 0} className="h-1.5 mb-2" /> {/* Reduced from h-2 and mb-3 */}
         
         {/* Enhanced Dates with Duration */}
-        <div className="space-y-1 mb-2">
+        <div className="space-y-1 mb-1.5"> {/* Reduced from mb-2 */}
           <div className={`text-xs ${dateInfo.isCalculated ? 'text-slate-500' : 'text-slate-700'}`}>
             {dateInfo.dateRange}{dateInfo.indicator}
           </div>

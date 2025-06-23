@@ -19,7 +19,7 @@ interface VirtualScrollGanttProps {
   headerScrollRef?: React.RefObject<HTMLDivElement>;
 }
 
-const ITEM_HEIGHT = 80; // Height of each task row
+const ITEM_HEIGHT = 60; // Reduced from 80px to 60px
 const BUFFER_SIZE = 5; // Number of items to render outside visible area
 
 export const VirtualScrollGantt = ({
