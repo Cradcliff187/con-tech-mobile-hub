@@ -257,7 +257,6 @@ export const StakeholderDirectory = () => {
         open={!!editStakeholder}
         onOpenChange={(open) => !open && setEditStakeholder(null)}
         stakeholder={editStakeholder}
-        onSuccess={handleStakeholderUpdated}
       />
 
       <DeleteStakeholderDialog
