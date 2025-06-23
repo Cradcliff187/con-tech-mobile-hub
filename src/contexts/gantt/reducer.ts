@@ -1,3 +1,4 @@
+
 import { GanttState, GanttAction } from './types';
 
 export const initialGanttState = (): GanttState => {
@@ -9,12 +10,9 @@ export const initialGanttState = (): GanttState => {
     // Task Data
     tasks: [],
     optimisticUpdates: new Map(),
-    dependencies: [],
     
     // UI State
     selectedTaskId: null,
-    selectedTasks: [],
-    multiSelectMode: false,
     searchQuery: '',
     viewMode: 'weeks',
     
@@ -79,7 +77,6 @@ export const ganttReducer = (state: GanttState, action: GanttAction): GanttState
       return {
         ...state,
         tasks: state.tasks.filter(task => task.id !== action.payload),
-        selectedTasks: state.selectedTasks.filter(task => task.id !== action.payload),
         selectedTaskId: state.selectedTaskId === action.payload ? null : state.selectedTaskId,
       };
 
@@ -130,37 +127,6 @@ export const ganttReducer = (state: GanttState, action: GanttAction): GanttState
       return {
         ...state,
         selectedTaskId: action.payload,
-      };
-
-    case 'SET_SELECTED_TASKS':
-      return {
-        ...state,
-        selectedTasks: action.payload,
-      };
-
-    case 'SET_MULTI_SELECT_MODE':
-      return {
-        ...state,
-        multiSelectMode: action.payload,
-        selectedTasks: action.payload ? state.selectedTasks : [], // Clear selection when disabling
-      };
-
-    case 'SET_DEPENDENCIES':
-      return {
-        ...state,
-        dependencies: action.payload,
-      };
-
-    case 'ADD_DEPENDENCY':
-      return {
-        ...state,
-        dependencies: [...state.dependencies, action.payload],
-      };
-
-    case 'DELETE_DEPENDENCY':
-      return {
-        ...state,
-        dependencies: state.dependencies.filter(dep => dep.id !== action.payload),
       };
 
     case 'SET_TIMELINE_BOUNDS':

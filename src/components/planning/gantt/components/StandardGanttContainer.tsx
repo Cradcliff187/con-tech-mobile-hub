@@ -6,12 +6,7 @@ import { GanttTaskRow } from '../GanttTaskRow';
 import { TaskListHeader } from './TaskListHeader';
 import { DragPreviewIndicator } from './DragPreviewIndicator';
 import { DragSnapGrid } from './DragSnapGrid';
-import { DependencyArrows } from './DependencyArrows';
-import { MilestoneMarkers } from './MilestoneMarkers';
-import { ResourceVisualization } from './ResourceVisualization';
-import { EnhancedTaskOperations } from './EnhancedTaskOperations';
 import { useScrollSync } from '../hooks/useScrollSync';
-import { useGanttContext } from '@/contexts/gantt';
 
 interface StandardGanttContainerProps {
   displayTasks: Task[];
@@ -55,84 +50,9 @@ export const StandardGanttContainer = ({
   dragPosition
 }: StandardGanttContainerProps) => {
   const { headerScrollRef, contentScrollRef } = useScrollSync();
-  
-  // Get enhanced context data
-  const {
-    state: { dependencies, selectedTasks, multiSelectMode },
-    createDependency,
-    deleteDependency,
-    setSelectedTasks,
-    setMultiSelectMode
-  } = useGanttContext();
-
-  // Mock data for demonstration - in real implementation, these would come from context/props
-  const mockMilestones = [
-    {
-      id: '1',
-      name: 'Foundation Complete',
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      status: 'upcoming' as const,
-      linkedTaskIds: displayTasks.slice(0, 2).map(t => t.id),
-      critical: false
-    },
-    {
-      id: '2',
-      name: 'Framing Complete',
-      date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
-      status: 'current' as const,
-      linkedTaskIds: displayTasks.slice(2, 4).map(t => t.id),
-      critical: true
-    }
-  ];
-
-  const mockResourceAllocations = displayTasks.slice(0, 3).map(task => ({
-    id: `res-${task.id}`,
-    taskId: task.id,
-    resourceType: 'personnel' as const,
-    resourceName: 'Construction Crew',
-    allocation: Math.floor(Math.random() * 100) + 50,
-    isOverAllocated: Math.random() > 0.7,
-    color: '#3b82f6'
-  }));
-
-  const handleTaskUpdate = (taskId: string, updates: Partial<Task>) => {
-    // TODO: Implement via context
-    console.log('Update task:', taskId, updates);
-  };
-
-  const handleTaskDelete = (taskId: string) => {
-    // TODO: Implement via context
-    console.log('Delete task:', taskId);
-  };
-
-  const handleTaskDuplicate = (taskId: string) => {
-    // TODO: Implement via context
-    console.log('Duplicate task:', taskId);
-  };
-
-  const handleBulkUpdate = (taskIds: string[], updates: Partial<Task>) => {
-    // TODO: Implement via context
-    console.log('Bulk update:', taskIds, updates);
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
-      {/* Enhanced Task Operations Panel */}
-      {selectedTasks.length > 0 && (
-        <div className="border-b border-slate-200 p-4">
-          <EnhancedTaskOperations
-            selectedTasks={selectedTasks}
-            onTaskUpdate={handleTaskUpdate}
-            onTaskDelete={handleTaskDelete}
-            onTaskDuplicate={handleTaskDuplicate}
-            onBulkUpdate={handleBulkUpdate}
-            onCreateDependency={createDependency}
-            isMultiSelectMode={multiSelectMode}
-            onToggleMultiSelect={() => setMultiSelectMode(!multiSelectMode)}
-          />
-        </div>
-      )}
-
       {/* Header with Timeline */}
       <div className="flex border-b border-slate-200">
         {/* Task List Header - Fixed/Frozen Column */}
@@ -165,7 +85,7 @@ export const StandardGanttContainer = ({
         </div>
       </div>
 
-      {/* Content with drag handlers and enhanced features */}
+      {/* Content with drag handlers */}
       <div 
         ref={contentScrollRef}
         className="max-h-96 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 relative"
@@ -198,35 +118,6 @@ export const StandardGanttContainer = ({
             isCollapsed={isCollapsed}
           />
         ))}
-
-        {/* Dependency arrows overlay */}
-        <DependencyArrows
-          dependencies={dependencies}
-          tasks={displayTasks}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-          onDependencyDelete={deleteDependency}
-        />
-
-        {/* Milestone markers overlay */}
-        <MilestoneMarkers
-          milestones={mockMilestones}
-          tasks={displayTasks}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-        />
-
-        {/* Resource visualization overlay */}
-        <ResourceVisualization
-          tasks={displayTasks}
-          resourceAllocations={mockResourceAllocations}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-          showConflicts={true}
-        />
       </div>
 
       {/* Global drag preview indicator */}
