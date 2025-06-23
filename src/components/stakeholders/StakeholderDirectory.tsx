@@ -7,6 +7,7 @@ import { ViewToggle } from './ViewToggle';
 import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
 import { CreateStakeholderDialog } from './CreateStakeholderDialog';
+import { AssignStakeholderDialog } from './AssignStakeholderDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, SortAsc, SortDesc, Plus } from 'lucide-react';
@@ -26,6 +27,7 @@ export const StakeholderDirectory = () => {
   // Dialog states
   const [editStakeholder, setEditStakeholder] = useState<Stakeholder | null>(null);
   const [stakeholderToDelete, setStakeholderToDelete] = useState<Stakeholder | null>(null);
+  const [stakeholderToAssign, setStakeholderToAssign] = useState<Stakeholder | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleViewChange = (newView: 'grid' | 'list') => {
@@ -39,6 +41,10 @@ export const StakeholderDirectory = () => {
 
   const handleDelete = (stakeholder: Stakeholder) => {
     setStakeholderToDelete(stakeholder);
+  };
+
+  const handleAssign = (stakeholder: Stakeholder) => {
+    setStakeholderToAssign(stakeholder);
   };
 
   const handleCreate = () => {
@@ -58,6 +64,11 @@ export const StakeholderDirectory = () => {
   const handleStakeholderCreated = () => {
     refetch();
     setShowCreateDialog(false);
+  };
+
+  const handleStakeholderAssigned = () => {
+    refetch();
+    setStakeholderToAssign(null);
   };
 
   const filteredAndSortedStakeholders = useMemo(() => {
@@ -213,6 +224,7 @@ export const StakeholderDirectory = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onCreate={handleCreate}
+          onAssign={handleAssign}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -258,6 +270,13 @@ export const StakeholderDirectory = () => {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSuccess={handleStakeholderCreated}
+      />
+
+      <AssignStakeholderDialog
+        open={!!stakeholderToAssign}
+        onOpenChange={(open) => !open && setStakeholderToAssign(null)}
+        stakeholder={stakeholderToAssign}
+        onSuccess={handleStakeholderAssigned}
       />
     </div>
   );
