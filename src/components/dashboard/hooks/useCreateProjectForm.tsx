@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +21,7 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
     budget: undefined,
     client_id: defaultClientId || '',
     priority: 'medium',
-    status: 'planning',
+    lifecycle_status: 'pre_planning',
     start_date: '',
     end_date: ''
   });
@@ -132,7 +133,7 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
       budget: undefined,
       client_id: defaultClientId || '',
       priority: 'medium',
-      status: 'planning',
+      lifecycle_status: 'pre_planning',
       start_date: '',
       end_date: ''
     });

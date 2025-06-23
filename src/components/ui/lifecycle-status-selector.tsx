@@ -40,7 +40,7 @@ export const LifecycleStatusSelector = ({
     const metadata = getStatusMetadata(status);
     const isValidOption = !currentStatus || currentStatus === status || isValidTransition(currentStatus, status);
     
-    let validationResult = { canTransition: true, warning: undefined };
+    let validationResult = { canTransition: true, warning: undefined as string | undefined };
     if (showTransitionValidation && currentStatus && currentStatus !== status && projectData) {
       validationResult = checkTransitionPrerequisites(currentStatus, status, projectData, tasks);
     }

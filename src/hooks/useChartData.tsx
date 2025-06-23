@@ -41,7 +41,7 @@ export const useChartData = () => {
       // Fetch project progress data with lifecycle status
       const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select('name, progress, budget, spent, lifecycle_status, status, phase')
+        .select('id, name, progress, budget, spent, lifecycle_status, status, phase, created_at, updated_at')
         .order('name');
 
       if (projectError) {
