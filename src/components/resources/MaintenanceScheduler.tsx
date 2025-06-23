@@ -11,7 +11,7 @@ import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
 import { useMaintenanceSchedules } from '@/hooks/useMaintenanceSchedules';
 import { useMaintenanceHistory } from '@/hooks/useMaintenanceHistory';
 import { MaintenanceTaskCard } from './maintenance/MaintenanceTaskCard';
-import { getStatusColor, getPriorityColor } from './maintenance/utils';
+import { getPriorityColor } from './maintenance/utils';
 import { format, isAfter, isBefore, addDays } from 'date-fns';
 
 interface MaintenanceSchedulerProps {
