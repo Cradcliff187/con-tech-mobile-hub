@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +39,7 @@ export const useProjects = () => {
       const mappedProjects = (data || []).map(project => ({
         ...project,
         phase: (project.phase || 'planning') as Project['phase'],
-        lifecycle_status: project.lifecycle_status || undefined
+        unified_lifecycle_status: project.unified_lifecycle_status || undefined
       }));
       setProjects(mappedProjects as Project[]);
     }
@@ -63,7 +64,7 @@ export const useProjects = () => {
         description: projectData.description,
         status: projectData.status || 'planning',
         phase: projectData.phase || 'planning',
-        lifecycle_status: projectData.lifecycle_status || 'pre_planning',
+        unified_lifecycle_status: projectData.unified_lifecycle_status || 'pre_construction',
         start_date: projectData.start_date,
         end_date: projectData.end_date,
         budget: projectData.budget,
@@ -91,7 +92,7 @@ export const useProjects = () => {
       const newProject: Project = {
         ...data,
         phase: (data.phase || 'planning') as Project['phase'],
-        lifecycle_status: data.lifecycle_status || undefined
+        unified_lifecycle_status: data.unified_lifecycle_status || undefined
       };
       setProjects(prev => [newProject, ...prev]);
       toast({
@@ -119,7 +120,7 @@ export const useProjects = () => {
         description: projectData.description,
         status: projectData.status,
         phase: projectData.phase,
-        lifecycle_status: projectData.lifecycle_status,
+        unified_lifecycle_status: projectData.unified_lifecycle_status,
         start_date: projectData.start_date,
         end_date: projectData.end_date,
         budget: projectData.budget,
@@ -148,7 +149,7 @@ export const useProjects = () => {
       const updatedProject: Project = {
         ...data,
         phase: (data.phase || 'planning') as Project['phase'],
-        lifecycle_status: data.lifecycle_status || undefined
+        unified_lifecycle_status: data.unified_lifecycle_status || undefined
       };
       setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
       toast({
@@ -198,7 +199,7 @@ export const useProjects = () => {
       .from('projects')
       .update({ 
         status: 'cancelled',
-        lifecycle_status: 'project_cancelled',
+        unified_lifecycle_status: 'cancelled',
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -217,7 +218,7 @@ export const useProjects = () => {
       const updatedProject: Project = {
         ...data,
         phase: (data.phase || 'planning') as Project['phase'],
-        lifecycle_status: data.lifecycle_status || undefined
+        unified_lifecycle_status: data.unified_lifecycle_status || undefined
       };
       setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
       toast({
@@ -242,7 +243,7 @@ export const useProjects = () => {
       .from('projects')
       .update({ 
         status: 'active',
-        lifecycle_status: 'construction_active',
+        unified_lifecycle_status: 'construction',
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -261,7 +262,7 @@ export const useProjects = () => {
       const updatedProject: Project = {
         ...data,
         phase: (data.phase || 'planning') as Project['phase'],
-        lifecycle_status: data.lifecycle_status || undefined
+        unified_lifecycle_status: data.unified_lifecycle_status || undefined
       };
       setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
       toast({

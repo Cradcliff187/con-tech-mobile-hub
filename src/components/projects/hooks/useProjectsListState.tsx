@@ -4,7 +4,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { Project } from '@/types/database';
-import { getLifecycleStatus, getLifecycleStatusLabel } from '@/utils/lifecycle-status';
+import { getUnifiedLifecycleStatus, getStatusMetadata } from '@/utils/unified-lifecycle-utils';
+import { ProjectWithUnifiedStatus } from '@/types/unified-lifecycle';
 
 type ViewMode = 'grid' | 'table';
 
@@ -12,7 +13,7 @@ interface FilterState {
   status: string;
   phase: string;
   client: string;
-  lifecycle_status: string; // New unified filter
+  unified_lifecycle_status: string; // New unified filter
 }
 
 export const useProjectsListState = () => {
@@ -29,17 +30,17 @@ export const useProjectsListState = () => {
     status: 'all',
     phase: 'all',
     client: 'all',
-    lifecycle_status: 'all'
+    unified_lifecycle_status: 'all'
   });
 
   // Initialize filters from URL params
   useEffect(() => {
     const statusFromUrl = searchParams.get('status') || 'all';
-    const lifecycleStatusFromUrl = searchParams.get('lifecycle_status') || 'all';
+    const unifiedStatusFromUrl = searchParams.get('unified_lifecycle_status') || 'all';
     setFilters(prev => ({ 
       ...prev, 
       status: statusFromUrl, 
-      lifecycle_status: lifecycleStatusFromUrl 
+      unified_lifecycle_status: unifiedStatusFromUrl 
     }));
   }, [searchParams]);
 
@@ -49,39 +50,39 @@ export const useProjectsListState = () => {
                    profile?.account_status === 'approved' && 
                    (profile?.role === 'admin' || profile?.role === 'project_manager');
 
-  // Get unique values for filters - now includes lifecycle status
+  // Get unique values for filters - now includes unified lifecycle status
   const filterOptions = useMemo(() => {
     const statuses = [...new Set(projects.map(p => p.status))];
     const phases = [...new Set(projects.map(p => p.phase))];
-    const lifecycleStatuses = [...new Set(projects.map(p => getLifecycleStatus(p)))];
+    const unifiedStatuses = [...new Set(projects.map(p => getUnifiedLifecycleStatus(p as ProjectWithUnifiedStatus)))];
     const clients = [...new Set(projects.map(p => p.client?.company_name || p.client?.contact_person).filter(Boolean))];
     
-    return { statuses, phases, lifecycleStatuses, clients };
+    return { statuses, phases, unifiedStatuses, clients };
   }, [projects]);
 
-  // Calculate quick filter counts - updated to use lifecycle status
+  // Calculate quick filter counts - updated to use unified lifecycle status
   const quickFilterCounts = useMemo(() => {
-    const getCountByLifecycleStatus = (targetStatus: string) => {
+    const getCountByUnifiedStatus = (targetStatus: string) => {
       return projects.filter(p => {
-        const lifecycleStatus = getLifecycleStatus(p);
-        return lifecycleStatus === targetStatus;
+        const unifiedStatus = getUnifiedLifecycleStatus(p as ProjectWithUnifiedStatus);
+        return unifiedStatus === targetStatus;
       }).length;
     };
 
     return {
       all: projects.length,
-      active: getCountByLifecycleStatus('construction_active'),
-      planning: getCountByLifecycleStatus('pre_planning') + getCountByLifecycleStatus('planning_active'),
-      'on-hold': getCountByLifecycleStatus('construction_hold'),
-      completed: getCountByLifecycleStatus('project_completed'),
-      archived: getCountByLifecycleStatus('project_cancelled')
+      active: getCountByUnifiedStatus('construction'),
+      planning: getCountByUnifiedStatus('pre_construction') + getCountByUnifiedStatus('mobilization'),
+      'on-hold': getCountByUnifiedStatus('on_hold'),
+      completed: getCountByUnifiedStatus('warranty'),
+      archived: getCountByUnifiedStatus('cancelled')
     };
   }, [projects]);
 
-  // Apply filters and search - updated to include lifecycle status filtering
+  // Apply filters and search - updated to include unified lifecycle status filtering
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
-      const lifecycleStatus = getLifecycleStatus(project);
+      const unifiedStatus = getUnifiedLifecycleStatus(project as ProjectWithUnifiedStatus);
       
       // Search filter
       const matchesSearch = !searchQuery || 
@@ -89,27 +90,27 @@ export const useProjectsListState = () => {
         project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.location?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Legacy status filter - handle quick filter mapping
+      // Unified status filter - handle quick filter mapping
       let matchesStatus = true;
       if (filters.status !== 'all') {
         if (filters.status === 'archived') {
-          matchesStatus = lifecycleStatus === 'project_cancelled';
+          matchesStatus = unifiedStatus === 'cancelled';
         } else if (filters.status === 'planning') {
-          matchesStatus = ['pre_planning', 'planning_active'].includes(lifecycleStatus);
+          matchesStatus = ['pre_construction', 'mobilization'].includes(unifiedStatus);
         } else if (filters.status === 'active') {
-          matchesStatus = lifecycleStatus === 'construction_active';
+          matchesStatus = unifiedStatus === 'construction';
         } else if (filters.status === 'on-hold') {
-          matchesStatus = lifecycleStatus === 'construction_hold';
+          matchesStatus = unifiedStatus === 'on_hold';
         } else if (filters.status === 'completed') {
-          matchesStatus = lifecycleStatus === 'project_completed';
+          matchesStatus = unifiedStatus === 'warranty';
         } else {
           matchesStatus = project.status === filters.status;
         }
       }
 
-      // Lifecycle status filter (new unified filter)
-      const matchesLifecycleStatus = filters.lifecycle_status === 'all' || 
-        lifecycleStatus === filters.lifecycle_status;
+      // Unified lifecycle status filter (new unified filter)
+      const matchesUnifiedStatus = filters.unified_lifecycle_status === 'all' || 
+        unifiedStatus === filters.unified_lifecycle_status;
 
       // Phase filter (legacy)
       const matchesPhase = filters.phase === 'all' || project.phase === filters.phase;
@@ -119,7 +120,7 @@ export const useProjectsListState = () => {
         project.client?.company_name === filters.client ||
         project.client?.contact_person === filters.client;
 
-      return matchesSearch && matchesStatus && matchesLifecycleStatus && matchesPhase && matchesClient;
+      return matchesSearch && matchesStatus && matchesUnifiedStatus && matchesPhase && matchesClient;
     });
   }, [projects, searchQuery, filters]);
 
@@ -128,7 +129,7 @@ export const useProjectsListState = () => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
     
     // Update URL for status filter
-    if (filterType === 'status' || filterType === 'lifecycle_status') {
+    if (filterType === 'status' || filterType === 'unified_lifecycle_status') {
       const newParams = new URLSearchParams(searchParams);
       if (value === 'all') {
         newParams.delete(filterType);
@@ -146,11 +147,11 @@ export const useProjectsListState = () => {
 
   // Clear all filters
   const clearFilters = () => {
-    setFilters({ status: 'all', phase: 'all', client: 'all', lifecycle_status: 'all' });
+    setFilters({ status: 'all', phase: 'all', client: 'all', unified_lifecycle_status: 'all' });
     setSearchQuery('');
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('status');
-    newParams.delete('lifecycle_status');
+    newParams.delete('unified_lifecycle_status');
     setSearchParams(newParams);
   };
 
@@ -170,15 +171,15 @@ export const useProjectsListState = () => {
   };
 
   const handleArchiveProject = async (project: Project) => {
-    const lifecycleStatus = getLifecycleStatus(project);
-    if (lifecycleStatus === 'project_cancelled') {
+    const unifiedStatus = getUnifiedLifecycleStatus(project as ProjectWithUnifiedStatus);
+    if (unifiedStatus === 'cancelled') {
       await unarchiveProject(project.id);
     } else {
       await archiveProject(project.id);
     }
   };
 
-  // Active filters count - updated to include lifecycle status
+  // Active filters count - updated to include unified lifecycle status
   const activeFiltersCount = Object.entries(filters)
     .filter(([key, value]) => value !== 'all').length + (searchQuery ? 1 : 0);
 

@@ -7,8 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus } from 'lucide-react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { AddressFormFields } from '@/components/common/AddressFormFields';
-import { LifecycleStatusSelector } from '@/components/ui/lifecycle-status-selector';
-import { LifecycleStatus } from '@/types/database';
+import { UnifiedLifecycleStatusSelector } from '@/components/ui/unified-lifecycle-status-selector';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
 
 interface ProjectFormData {
   name: string;
@@ -19,7 +19,7 @@ interface ProjectFormData {
   zip_code: string;
   budget: string;
   clientId: string;
-  lifecycle_status: LifecycleStatus;
+  unified_lifecycle_status: UnifiedLifecycleStatus;
   startDate: string;
   endDate: string;
 }
@@ -125,10 +125,10 @@ export const ProjectFormFields = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="lifecycle_status">Project Status</Label>
-          <LifecycleStatusSelector
-            value={formData.lifecycle_status}
-            onValueChange={(value) => onInputChange('lifecycle_status', value)}
+          <Label htmlFor="unified_lifecycle_status">Project Status</Label>
+          <UnifiedLifecycleStatusSelector
+            value={formData.unified_lifecycle_status}
+            onValueChange={(value) => onInputChange('unified_lifecycle_status', value)}
             className="w-full"
           />
         </div>

@@ -2,16 +2,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { getLifecycleStatus } from '@/utils/lifecycle-status';
-import { getStatusMetadata } from '@/types/projectStatus';
+import { getUnifiedLifecycleStatus, getStatusMetadata } from '@/utils/unified-lifecycle-utils';
 import { Project } from '@/types/database';
+import { ProjectWithUnifiedStatus } from '@/types/unified-lifecycle';
 
 export interface ProjectProgressData {
   name: string;
   progress: number;
   budget: number;
   spent: number;
-  lifecycle_status: string;
+  unified_lifecycle_status: string;
   status_label: string;
 }
 
@@ -39,41 +39,42 @@ export const useChartData = () => {
 
     setLoading(true);
     try {
-      // Fetch project progress data with lifecycle status
+      // Fetch project progress data with unified lifecycle status
       const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select('id, name, progress, budget, spent, lifecycle_status, status, phase, created_at, updated_at')
+        .select('id, name, progress, budget, spent, unified_lifecycle_status, status, phase, created_at, updated_at')
         .order('name');
 
       if (projectError) {
         console.error('Error fetching project data:', projectError);
       } else {
         const progressData: ProjectProgressData[] = (projects || []).map(project => {
-          // Create a properly typed Project object for getLifecycleStatus
-          const projectData: Project = {
+          // Create a properly typed Project object for getUnifiedLifecycleStatus
+          const projectData: ProjectWithUnifiedStatus = {
             ...project,
             phase: project.phase as Project['phase'] || 'planning',
             progress: project.progress || 0,
-            spent: project.spent || 0
+            spent: project.spent || 0,
+            unified_lifecycle_status: project.unified_lifecycle_status
           };
           
-          const lifecycleStatus = getLifecycleStatus(projectData);
-          const statusMetadata = getStatusMetadata(lifecycleStatus);
+          const unifiedStatus = getUnifiedLifecycleStatus(projectData);
+          const statusMetadata = getStatusMetadata(unifiedStatus);
           
           return {
             name: project.name,
             progress: project.progress || 0,
             budget: Number(project.budget) || 0,
             spent: Number(project.spent) || 0,
-            lifecycle_status: lifecycleStatus,
+            unified_lifecycle_status: unifiedStatus,
             status_label: statusMetadata.label
           };
         });
         setProjectProgress(progressData);
 
-        // Calculate lifecycle status distribution
+        // Calculate unified lifecycle status distribution
         const statusCounts = progressData.reduce((acc, project) => {
-          const status = project.lifecycle_status;
+          const status = project.unified_lifecycle_status;
           acc[status] = (acc[status] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
