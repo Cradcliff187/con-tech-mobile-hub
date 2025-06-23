@@ -1,6 +1,7 @@
 
 import { Task } from '@/types/database';
 import { Dispatch } from 'react';
+import { TaskDependency } from '@/components/planning/gantt/types/dependencyTypes';
 
 export interface GanttContextValue {
   state: GanttState;
@@ -24,6 +25,14 @@ export interface GanttContextValue {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setSaving: (saving: boolean) => void;
+  // Enhanced features
+  dependencies: TaskDependency[];
+  selectedTasks: Task[];
+  setSelectedTasks: (tasks: Task[]) => void;
+  multiSelectMode: boolean;
+  setMultiSelectMode: (enabled: boolean) => void;
+  createDependency: (predecessorId: string, successorId: string, type?: string) => void;
+  deleteDependency: (dependencyId: string) => void;
 }
 
 export type GanttAction =
@@ -44,7 +53,13 @@ export type GanttAction =
   | { type: 'SET_DRAG_STATE'; payload: Partial<GanttState['dragState']> }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_SAVING'; payload: boolean };
+  | { type: 'SET_SAVING'; payload: boolean }
+  // Enhanced actions
+  | { type: 'SET_DEPENDENCIES'; payload: TaskDependency[] }
+  | { type: 'ADD_DEPENDENCY'; payload: TaskDependency }
+  | { type: 'DELETE_DEPENDENCY'; payload: string }
+  | { type: 'SET_SELECTED_TASKS'; payload: Task[] }
+  | { type: 'SET_MULTI_SELECT_MODE'; payload: boolean };
 
 export interface GanttState {
   // Timeline and Viewport
@@ -58,9 +73,12 @@ export interface GanttState {
   // Tasks and Data
   tasks: Task[];
   optimisticUpdates: Map<string, Partial<Task>>;
+  dependencies: TaskDependency[];
   
   // UI State
   selectedTaskId: string | null;
+  selectedTasks: Task[];
+  multiSelectMode: boolean;
   searchQuery: string;
   filters: {
     status: string[];
