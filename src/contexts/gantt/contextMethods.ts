@@ -10,10 +10,21 @@ interface UseGanttContextMethodsProps {
 }
 
 export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGanttContextMethodsProps) => {
+  // Create stable task signature for dependency tracking
+  const taskSignature = useMemo(() => {
+    return `${filteredTasks.length}-${filteredTasks.map(t => `${t.id}-${t.status}-${t.priority}`).join('|')}`;
+  }, [filteredTasks]);
+
+  // Create stable state signature for dependency tracking
+  const stateSignature = useMemo(() => {
+    return `${state.tasks.length}-${state.optimisticUpdates.size}-${state.currentViewStart.getTime()}-${state.currentViewEnd.getTime()}`;
+  }, [state.tasks.length, state.optimisticUpdates.size, state.currentViewStart, state.currentViewEnd]);
+
   // Core filtering method using the utility function - with stable dependencies
   const getFilteredTasks = useCallback((): Task[] => {
+    console.log('🎯 getFilteredTasks called with signature:', taskSignature);
     return filteredTasks;
-  }, [filteredTasks.length, filteredTasks.map(t => `${t.id}-${t.status}-${t.priority}`).join('|')]);
+  }, [taskSignature]);
 
   // Helper method to get a task with optimistic updates applied
   const getDisplayTask = useCallback((taskId: string): Task | undefined => {
@@ -22,7 +33,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     
     const optimisticUpdate = state.optimisticUpdates.get(taskId);
     return optimisticUpdate ? { ...task, ...optimisticUpdate } : task;
-  }, [state.tasks.length, state.optimisticUpdates.size]);
+  }, [stateSignature]);
 
   // Optimistic update methods with useCallback to prevent re-renders
   const updateTaskOptimistic = useCallback((id: string, updates: Partial<Task>) => {
@@ -64,18 +75,15 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
   }, [dispatch]);
 
   const navigateToDate = useCallback((date: Date) => {
-    // Calculate new viewport centered on the target date
-    const viewportDays = Math.ceil((state.currentViewEnd.getTime() - state.currentViewStart.getTime()) / (1000 * 60 * 60 * 24));
-    const halfViewport = Math.floor(viewportDays / 2);
+    // Calculate new viewport centered on the target date using current state
+    const viewportMs = state.currentViewEnd.getTime() - state.currentViewStart.getTime();
+    const halfViewportMs = Math.floor(viewportMs / 2);
     
-    const newStart = new Date(date);
-    newStart.setDate(newStart.getDate() - halfViewport);
-    
-    const newEnd = new Date(date);
-    newEnd.setDate(newEnd.getDate() + halfViewport);
+    const newStart = new Date(date.getTime() - halfViewportMs);
+    const newEnd = new Date(date.getTime() + halfViewportMs);
     
     setViewport(newStart, newEnd);
-  }, [state.currentViewStart.getTime(), state.currentViewEnd.getTime(), setViewport]);
+  }, [state.currentViewStart, state.currentViewEnd, setViewport]);
 
   // Drag operation methods with useCallback
   const startDrag = useCallback((task: Task) => {

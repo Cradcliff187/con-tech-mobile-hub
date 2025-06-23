@@ -1,10 +1,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Task } from '@/types/database';
-import { useTasks } from '@/hooks/useTasks';
 
 interface UseTaskProcessingProps {
   projectId: string;
+  tasks?: Task[]; // Accept tasks from context instead of fetching independently
 }
 
 interface TaskProcessingStats {
@@ -15,19 +15,17 @@ interface TaskProcessingStats {
   completionPercentage: number;
 }
 
-export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
-  // Use direct useTasks hook instead of context dependency
-  const { tasks: allTasks, loading, error } = useTasks();
+export const useTaskProcessing = ({ projectId, tasks = [] }: UseTaskProcessingProps) => {
   const [projectTasks, setProjectTasks] = useState<Task[]>([]);
 
   // Filter tasks for the selected project
   useEffect(() => {
     const filtered = projectId && projectId !== 'all' 
-      ? allTasks.filter(task => task.project_id === projectId)
-      : allTasks;
+      ? tasks.filter(task => task.project_id === projectId)
+      : tasks;
     
     setProjectTasks(filtered);
-  }, [allTasks, projectId]);
+  }, [tasks, projectId]);
 
   // Calculate processing stats with stable dependencies
   const processingStats: TaskProcessingStats = useMemo(() => {
@@ -36,6 +34,14 @@ export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
     const inProgressTasks = projectTasks.filter(t => t.status === 'in-progress').length;
     const blockedTasks = projectTasks.filter(t => t.status === 'blocked').length;
     const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+    console.log('📊 useTaskProcessing stats:', {
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      blockedTasks,
+      completionPercentage
+    });
 
     return {
       totalTasks,
@@ -49,8 +55,8 @@ export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
   return {
     projectTasks,
     processedTasks: projectTasks, // Alias for compatibility
-    loading,
-    error,
+    loading: false, // No longer doing independent loading
+    error: null, // No longer doing independent error handling
     completedTasks: processingStats.completedTasks,
     processingStats
   };

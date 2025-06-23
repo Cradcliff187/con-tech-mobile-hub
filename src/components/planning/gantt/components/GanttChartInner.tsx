@@ -73,17 +73,21 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   const totalDays = useMemo(() => {
     if (!timelineStart || !timelineEnd) return 0;
     return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
-  }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
+  }, [timelineStart, timelineEnd]);
 
-  // Calculate punch list tasks - use stable reference
+  // Calculate punch list tasks - use stable reference based on task count and types
   const punchListTasks = useMemo(() => {
-    return displayTasks.filter(task => task.task_type === 'punch_list').length;
-  }, [displayTasks.filter(t => t.task_type === 'punch_list').length]);
+    const punchListCount = displayTasks.filter(task => task.task_type === 'punch_list').length;
+    console.log('📊 Calculating punch list tasks:', punchListCount);
+    return punchListCount;
+  }, [displayTasks.length, displayTasks]);
 
-  // Calculate completed tasks - use stable reference
+  // Calculate completed tasks - use stable reference based on task count and statuses
   const completedTasks = useMemo(() => {
-    return displayTasks.filter(task => task.status === 'completed').length;
-  }, [displayTasks.filter(t => t.status === 'completed').length]);
+    const completedCount = displayTasks.filter(task => task.status === 'completed').length;
+    console.log('📊 Calculating completed tasks:', completedCount);
+    return completedCount;
+  }, [displayTasks.length, displayTasks]);
 
   return (
     <div className="w-full">
