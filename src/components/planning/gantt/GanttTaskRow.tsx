@@ -71,7 +71,7 @@ export const GanttTaskRow = ({
             viewMode={viewMode}
             isDragging={draggedTaskId === task.id}
             onDragStart={onDragStart}
-            onDragEnd={onDrag End}
+            onDragEnd={onDragEnd}
           />
         </div>
       </div>
