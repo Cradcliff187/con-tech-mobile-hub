@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { GanttState, GanttAction } from './types';
 
@@ -19,12 +19,12 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     return optimisticUpdate ? { ...task, ...optimisticUpdate } : task;
   }, [state.tasks, state.optimisticUpdates]);
 
-  // Core filtering method using the utility function
+  // Core filtering method using the utility function - memoized with stable dependencies
   const getFilteredTasks = useCallback((): Task[] => {
     return filteredTasks;
-  }, [filteredTasks]);
+  }, [filteredTasks.length, filteredTasks.map(t => t.id).join(',')]);
 
-  // Optimistic update methods
+  // Optimistic update methods with useCallback to prevent re-renders
   const updateTaskOptimistic = useCallback((id: string, updates: Partial<Task>) => {
     dispatch({ type: 'SET_OPTIMISTIC_UPDATE', payload: { id, updates } });
   }, [dispatch]);
@@ -37,7 +37,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     dispatch({ type: 'CLEAR_ALL_OPTIMISTIC_UPDATES' });
   }, [dispatch]);
 
-  // UI action methods
+  // UI action methods with useCallback
   const setSearchQuery = useCallback((query: string) => {
     dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
   }, [dispatch]);
@@ -54,7 +54,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     dispatch({ type: 'SET_SELECTED_TASK', payload: taskId });
   }, [dispatch]);
 
-  // Timeline action methods
+  // Timeline action methods with useCallback and stable dependencies
   const setViewport = useCallback((start: Date, end: Date) => {
     dispatch({ type: 'SET_VIEWPORT', payload: { start, end } });
   }, [dispatch]);
@@ -75,9 +75,9 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     newEnd.setDate(newEnd.getDate() + halfViewport);
     
     setViewport(newStart, newEnd);
-  }, [state.currentViewStart, state.currentViewEnd, setViewport]);
+  }, [state.currentViewStart.getTime(), state.currentViewEnd.getTime(), setViewport]);
 
-  // Drag operation methods
+  // Drag operation methods with useCallback
   const startDrag = useCallback((task: Task) => {
     dispatch({ 
       type: 'SET_DRAG_STATE', 
@@ -134,7 +134,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks }: UseGa
     });
   }, [dispatch]);
 
-  // State management methods
+  // State management methods with useCallback
   const setLoading = useCallback((loading: boolean) => {
     dispatch({ type: 'SET_LOADING', payload: loading });
   }, [dispatch]);

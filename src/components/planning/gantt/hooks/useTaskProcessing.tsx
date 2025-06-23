@@ -1,8 +1,7 @@
 
-import { useState, useEffect, useContext, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
-import { GanttContext } from '@/contexts/gantt';
 
 interface UseTaskProcessingProps {
   projectId: string;
@@ -17,34 +16,20 @@ interface TaskProcessingStats {
 }
 
 export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
-  // Try to use context if available
-  const context = useContext(GanttContext);
-  
-  // Fallback to direct useTasks for backward compatibility
-  const { tasks: fallbackTasks, loading: fallbackLoading, error: fallbackError } = useTasks();
+  // Use direct useTasks hook instead of context dependency
+  const { tasks: allTasks, loading, error } = useTasks();
   const [projectTasks, setProjectTasks] = useState<Task[]>([]);
 
-  // Use context data if available, otherwise use fallback
-  const tasks = context?.state.tasks || fallbackTasks;
-  const loading = context?.state.loading ?? fallbackLoading;
-  const error = context?.state.error || fallbackError;
-
-  // Filter tasks for the selected project (only needed when not using context)
+  // Filter tasks for the selected project
   useEffect(() => {
-    if (context) {
-      // Context handles project filtering internally
-      setProjectTasks(context.state.tasks);
-    } else {
-      // Manual filtering for backward compatibility
-      const filtered = projectId && projectId !== 'all' 
-        ? tasks.filter(task => task.project_id === projectId)
-        : tasks;
-      
-      setProjectTasks(filtered);
-    }
-  }, [tasks, projectId, context]);
+    const filtered = projectId && projectId !== 'all' 
+      ? allTasks.filter(task => task.project_id === projectId)
+      : allTasks;
+    
+    setProjectTasks(filtered);
+  }, [allTasks, projectId]);
 
-  // Calculate processing stats
+  // Calculate processing stats with stable dependencies
   const processingStats: TaskProcessingStats = useMemo(() => {
     const totalTasks = projectTasks.length;
     const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
@@ -59,7 +44,7 @@ export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
       blockedTasks,
       completionPercentage
     };
-  }, [projectTasks]);
+  }, [projectTasks.length, projectTasks.map(t => t.status).join(',')]);
 
   return {
     projectTasks,

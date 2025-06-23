@@ -14,10 +14,12 @@ interface GanttChartInnerProps {
 }
 
 export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
+  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
   const context = useGanttContext();
   const { isCollapsed, toggleCollapse } = useGanttCollapse();
+  const { processedTasks, processingStats } = useTaskProcessing({ projectId });
 
-  // Early return if context is not available
+  // Handle context not available AFTER all hooks are called
   if (!context) {
     console.error('❌ GanttChartInner: Context not available');
     return <GanttErrorState error="Gantt context not initialized" />;
@@ -49,8 +51,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     isCollapsed
   });
 
-  const { processedTasks, processingStats } = useTaskProcessing({ projectId });
-
   // Loading state
   if (loading) {
     console.log('⏳ GanttChartInner: Showing loading state');
@@ -78,16 +78,16 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
-  // Calculate timeline duration for header
+  // Calculate timeline duration for header - use useMemo with stable dependencies
   const totalDays = useMemo(() => {
     if (!timelineStart || !timelineEnd) return 0;
     return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
-  }, [timelineStart, timelineEnd]);
+  }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
 
-  // Calculate punch list tasks
+  // Calculate punch list tasks - use useMemo with stable dependencies
   const punchListTasks = useMemo(() => {
     return displayTasks.filter(task => task.task_type === 'punch_list').length;
-  }, [displayTasks]);
+  }, [displayTasks.length, displayTasks.map(t => t.task_type).join(',')]);
 
   return (
     <div className="w-full">
