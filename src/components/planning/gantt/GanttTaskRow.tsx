@@ -51,6 +51,8 @@ export const GanttTaskRow = ({
             task={task}
             isSelected={isSelected}
             onSelect={onTaskSelect}
+            viewMode={viewMode}
+            isCollapsed={isCollapsed}
           />
         )}
       </div>
