@@ -42,10 +42,20 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     isCollapsed
   });
 
-  // Get filtered tasks from context
-  const displayTasks = getFilteredTasks();
+  // Get filtered tasks from context - memoize to create stable reference
+  const displayTasks = useMemo(() => {
+    return getFilteredTasks();
+  }, [getFilteredTasks]);
   
-  // Create stable references for counts to prevent dependency instability
+  // Create stable task signature for dependencies
+  const taskSignature = useMemo(() => {
+    const taskIds = displayTasks.map(t => t.id).sort().join('|');
+    const taskTypes = displayTasks.map(t => t.task_type || 'none').sort().join('|');
+    const taskStatuses = displayTasks.map(t => t.status).sort().join('|');
+    return `${displayTasks.length}-${taskIds}-${taskTypes}-${taskStatuses}`;
+  }, [displayTasks.length, displayTasks]);
+
+  // Create stable references for counts using primitive dependencies
   const taskCounts = useMemo(() => {
     const total = displayTasks.length;
     const punchList = displayTasks.filter(task => task.task_type === 'punch_list').length;
@@ -54,9 +64,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     console.log('📊 Calculating task counts:', { total, punchList, completed });
     
     return { total, punchList, completed };
-  }, [displayTasks.length, 
-      displayTasks.map(t => t.task_type).join(','),
-      displayTasks.map(t => t.status).join(',')]);
+  }, [taskSignature]);
 
   // Loading state
   if (loading) {
