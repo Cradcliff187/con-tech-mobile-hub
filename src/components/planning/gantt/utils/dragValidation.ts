@@ -46,10 +46,11 @@ export const validateTaskDrag = (
   }
 
   // Check for task overlaps with same assignee (warning only)
-  if (task.assigned_to) {
+  // Use assigned_stakeholder_id which is the correct property from Task interface
+  if (task.assigned_stakeholder_id) {
     const overlappingTasks = allTasks.filter(t => 
       t.id !== task.id && 
-      t.assigned_to === task.assigned_to &&
+      t.assigned_stakeholder_id === task.assigned_stakeholder_id &&
       t.start_date && t.due_date
     );
 
