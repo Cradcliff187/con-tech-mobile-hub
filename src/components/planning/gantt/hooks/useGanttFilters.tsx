@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { Task } from '@/types/database';
 import { getAssigneeName } from '../utils/taskUtils';
-import { getLifecycleStatus } from '@/utils/lifecycle-status';
+import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
 import { useProjects } from '@/hooks/useProjects';
 import type { FilterState } from '../types/ganttTypes';
 
@@ -29,12 +29,12 @@ export const useGanttFilters = (tasks: Task[], filters: FilterState) => {
         if (!hasMatchingCategory) return false;
       }
       
-      // Lifecycle status filter - filter by project's lifecycle status
+      // Unified lifecycle status filter - filter by project's unified lifecycle status
       if (filters.lifecycle_status.length > 0) {
         const project = projects.find(p => p.id === task.project_id);
         if (project) {
-          const projectLifecycleStatus = getLifecycleStatus(project);
-          if (!filters.lifecycle_status.includes(projectLifecycleStatus)) {
+          const projectUnifiedStatus = getUnifiedLifecycleStatus(project);
+          if (!filters.lifecycle_status.includes(projectUnifiedStatus)) {
             return false;
           }
         }
@@ -51,11 +51,11 @@ export const useGanttFilters = (tasks: Task[], filters: FilterState) => {
     const categories = [...new Set(tasks.map(task => task.category).filter(Boolean))];
     const assignees = [...new Set(tasks.map(task => getAssigneeName(task)))];
     
-    // Get unique lifecycle statuses from projects
+    // Get unique unified lifecycle statuses from projects
     const lifecycleStatuses = [...new Set(
       projects
         .filter(p => tasks.some(t => t.project_id === p.id))
-        .map(p => getLifecycleStatus(p))
+        .map(p => getUnifiedLifecycleStatus(p))
     )];
     
     return {

@@ -1,12 +1,13 @@
-import { Task } from '@/types/database';
-import { LifecycleStatus } from '@/types/database';
 
-// Filter state interface for Gantt filters - updated to use lifecycle_status
+import { Task } from '@/types/database';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
+
+// Filter state interface for Gantt filters - updated to use unified lifecycle status
 export interface FilterState {
   status: string[];
   priority: string[];
   category: string[];
-  lifecycle_status: LifecycleStatus[]; // New lifecycle status filter
+  lifecycle_status: UnifiedLifecycleStatus[]; // Updated to use UnifiedLifecycleStatus
 }
 
 // Filter change handler type
@@ -73,12 +74,12 @@ export interface DragAndDropState {
   resetLocalUpdates: () => void;
 }
 
-// Project interface (imported from database types)
+// Project interface - updated to use unified lifecycle status
 export interface ProjectData {
   id: string;
   name: string;
   description?: string;
-  lifecycle_status?: LifecycleStatus; // Updated to use lifecycle_status
+  unified_lifecycle_status?: UnifiedLifecycleStatus; // Updated to use UnifiedLifecycleStatus
   start_date?: string;
   end_date?: string;
   budget?: number;

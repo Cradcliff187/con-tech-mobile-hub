@@ -1,7 +1,8 @@
-import { Task } from '@/types/database';
-import { LifecycleStatus } from '@/types/database';
 
-// State Interface - updated to use lifecycle_status
+import { Task } from '@/types/database';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
+
+// State Interface - updated to use unified lifecycle status
 export interface GanttState {
   // Task Data
   tasks: Task[];
@@ -12,12 +13,12 @@ export interface GanttState {
   searchQuery: string;
   viewMode: 'days' | 'weeks' | 'months';
   
-  // Filter State - updated to use lifecycle_status
+  // Filter State - updated to use unified lifecycle status
   filters: {
     status: string[];
     priority: string[];
     category: string[];
-    lifecycle_status: LifecycleStatus[]; // Replaced phase with lifecycle_status
+    lifecycle_status: UnifiedLifecycleStatus[]; // Updated to use UnifiedLifecycleStatus
   };
   
   // Timeline State

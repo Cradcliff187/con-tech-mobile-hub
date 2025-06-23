@@ -3,7 +3,6 @@ import { useContext } from 'react';
 import { GanttContext } from './GanttContext';
 import { GanttContextValue } from './types';
 
-// Custom hook to use the context
 export const useGanttContext = (): GanttContextValue => {
   const context = useContext(GanttContext);
   if (!context) {

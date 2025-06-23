@@ -6,8 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { Filter, X } from 'lucide-react';
 import { FilterSection } from './FilterSection';
-import { getStatusMetadata } from '@/types/projectStatus';
-import { LifecycleStatus } from '@/types/database';
+import { getStatusMetadata } from '@/utils/unified-lifecycle-utils';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
 import type { FilterState, FilterChangeHandler } from '../types/ganttTypes';
 
 interface FilterPopoverProps {
@@ -42,16 +42,17 @@ const categoryOptions = [
   { value: 'landscaping', label: 'Landscaping' }
 ];
 
-// Lifecycle status options with proper labels
+// Updated unified lifecycle status options
 const lifecycleStatusOptions = [
-  { value: 'pre_planning', label: 'Pre-Planning' },
-  { value: 'planning_active', label: 'Active Planning' },
-  { value: 'construction_active', label: 'Construction Active' },
-  { value: 'construction_hold', label: 'Construction Hold' },
-  { value: 'punch_list_phase', label: 'Punch List' },
-  { value: 'project_closeout', label: 'Project Closeout' },
-  { value: 'project_completed', label: 'Completed' },
-  { value: 'project_cancelled', label: 'Cancelled' }
+  { value: 'pre_construction', label: 'Pre-Construction' },
+  { value: 'mobilization', label: 'Mobilization' },
+  { value: 'construction', label: 'Construction' },
+  { value: 'punch_list', label: 'Punch List' },
+  { value: 'final_inspection', label: 'Final Inspection' },
+  { value: 'closeout', label: 'Project Closeout' },
+  { value: 'warranty', label: 'Warranty Period' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'cancelled', label: 'Cancelled' }
 ];
 
 export const FilterPopover = ({ filters, onFilterChange }: FilterPopoverProps) => {
@@ -92,7 +93,7 @@ export const FilterPopover = ({ filters, onFilterChange }: FilterPopoverProps) =
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-80 p-0 bg-white border border-gray-200 shadow-lg z-50" align="start">
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-slate-800">Filter Tasks</h3>
