@@ -57,14 +57,18 @@ export const GanttTimelineBar = ({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    console.log('🎯 GanttTimelineBar: Starting drag for task:', task.id, task.title);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎯 GanttTimelineBar: Starting drag for task:', task.id, task.title);
+    }
     if (onDragStart) {
       onDragStart(e, task);
     }
   };
 
   const handleDragEnd = () => {
-    console.log('🎯 GanttTimelineBar: Ending drag for task:', task.id);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎯 GanttTimelineBar: Ending drag for task:', task.id);
+    }
     if (onDragEnd) {
       onDragEnd();
     }
@@ -82,21 +86,12 @@ export const GanttTimelineBar = ({
       ? 'cursor-grab hover:cursor-grab' 
       : 'cursor-pointer';
 
-  console.log('🎯 GanttTimelineBar: Render task bar', {
-    taskId: task.id,
-    title: task.title,
-    isDragging,
-    isThisTaskBeingDragged,
-    canDrag,
-    hasHandlers: { onDragStart: !!onDragStart, onDragEnd: !!onDragEnd }
-  });
-
   return (
     <div className={`relative ${getBarHeight(viewMode)}`} style={{ width: `${timelineUnits.length * columnWidth}px` }}>
       {/* Off-timeline indicator for past tasks */}
       {gridPosition.startColumnIndex === 0 && calculatedStartDate < timelineRangeStart && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2">
-          <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-l flex items-center gap-1">
+          <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-l flex items-center gap-1 shadow-sm">
             <ChevronLeft size={12} />
             {format(calculatedStartDate, 'MMM d, yyyy')}
           </div>
@@ -107,7 +102,7 @@ export const GanttTimelineBar = ({
       {gridPosition.startColumnIndex + gridPosition.columnSpan >= timelineUnits.length - 1 && 
        calculatedEndDate > timelineRangeEnd && (
         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2">
-          <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-r flex items-center gap-1">
+          <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-r flex items-center gap-1 shadow-sm">
             {format(calculatedEndDate, 'MMM d, yyyy')}
             <ChevronRight size={12} />
           </div>
@@ -116,12 +111,14 @@ export const GanttTimelineBar = ({
 
       <TaskBarTooltip task={task} viewMode={viewMode}>
         <div
-          className={`absolute ${config.topOffset} ${config.height} rounded-md transition-all duration-200 ${
-            isSelected ? 'ring-2 ring-orange-500 shadow-lg scale-105' : ''
+          className={`absolute ${config.topOffset} ${config.height} rounded-md transition-all duration-300 ${
+            isSelected 
+              ? 'ring-2 ring-orange-500 ring-offset-1 shadow-lg scale-105 z-10' 
+              : 'hover:shadow-md hover:scale-[1.02]'
           } ${
             isThisTaskBeingDragged 
-              ? 'opacity-75 z-20 scale-105 shadow-2xl ring-2 ring-blue-500 animate-pulse' 
-              : 'hover:opacity-90 hover:shadow-md'
+              ? 'opacity-75 z-20 scale-105 shadow-xl ring-2 ring-blue-500 animate-pulse' 
+              : ''
           } ${cursorClass} ${
             isOverdue ? 'ring-1 ring-red-400' : ''
           } ${phaseColor} ${
@@ -153,7 +150,7 @@ export const GanttTimelineBar = ({
           {isThisTaskBeingDragged && (
             <>
               <div className="absolute inset-0 bg-blue-100 bg-opacity-30 rounded-md pointer-events-none" />
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-xs font-medium bg-blue-600 px-2 py-1 rounded">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-xs font-medium bg-blue-600 px-2 py-1 rounded shadow-sm">
                 Moving...
               </div>
             </>
@@ -163,23 +160,12 @@ export const GanttTimelineBar = ({
 
       {/* Debug overlay - development only */}
       {process.env.NODE_ENV === 'development' && (
-        <>
-          <div 
-            className="absolute top-0 h-full border-2 border-red-500 bg-red-100 opacity-30 pointer-events-none"
-            style={{
-              left: `${gridPosition.startColumnIndex * columnWidth}px`,
-              width: `${gridPosition.columnSpan * columnWidth}px`,
-            }}
-          >
-            <div className="text-xs bg-white p-1 rounded shadow-sm">
-              {format(calculatedStartDate, 'MMM d')} | Col: {gridPosition.startColumnIndex}
-            </div>
-          </div>
-          
-          <div className="absolute -top-6 left-0 text-xs bg-yellow-200 px-1 rounded">
-            Draggable: {canDrag.toString()} | Dragging: {isThisTaskBeingDragged.toString()}
-          </div>
-        </>
+        <div className="absolute -top-8 left-0 text-xs bg-yellow-200 px-2 py-1 rounded shadow-sm border">
+          <div>Task: {task.title.slice(0, 20)}...</div>
+          <div>Dates: {format(calculatedStartDate, 'MMM d')} - {format(calculatedEndDate, 'MMM d')}</div>
+          <div>Grid: Col {gridPosition.startColumnIndex}, Span {gridPosition.columnSpan}</div>
+          <div>Draggable: {canDrag ? 'Yes' : 'No'} | Dragging: {isThisTaskBeingDragged ? 'Yes' : 'No'}</div>
+        </div>
       )}
     </div>
   );

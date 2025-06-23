@@ -89,7 +89,7 @@ export const GanttTimelineHeader = ({
                 {timelineUnits.map((unit, index) => (
                   <div
                     key={unit.key}
-                    className={`flex-shrink-0 px-1 py-1 text-xs font-medium border-r border-slate-200 flex items-center justify-center ${
+                    className={`flex-shrink-0 px-1 py-1 text-xs font-medium border-r border-slate-200 flex items-center justify-center transition-colors hover:bg-slate-100 ${
                       unit.isWeekend ? 'bg-slate-100 text-slate-500' : 'text-slate-700'
                     } ${
                       viewMode === 'days' ? 'w-16' : viewMode === 'weeks' ? 'w-20' : 'w-24'

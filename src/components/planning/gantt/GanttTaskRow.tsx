@@ -37,7 +37,7 @@ export const GanttTaskRow = ({
   const isSelected = selectedTaskId === task.id;
 
   return (
-    <div className={`flex border-b border-slate-100 ${isFirstRow ? 'border-t' : ''}`}>
+    <div className={`flex border-b border-slate-200 hover:bg-slate-50 transition-colors ${isFirstRow ? 'border-t' : ''}`}>
       {/* Task List Column - Fixed/Frozen */}
       <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
         {isCollapsed ? (

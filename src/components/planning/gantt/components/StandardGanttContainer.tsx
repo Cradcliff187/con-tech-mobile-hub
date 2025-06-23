@@ -51,13 +51,6 @@ export const StandardGanttContainer = ({
 }: StandardGanttContainerProps) => {
   const { headerScrollRef, contentScrollRef } = useScrollSync();
 
-  console.log('🎯 StandardGanttContainer: Render with drag state:', {
-    isDragging,
-    draggedTaskId,
-    hasDropPreview: !!dropPreviewDate,
-    validity: currentValidity
-  });
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
       {/* Header with Timeline - Pass the shared scroll ref */}
