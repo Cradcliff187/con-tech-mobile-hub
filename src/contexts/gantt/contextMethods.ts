@@ -2,6 +2,7 @@
 import { useCallback, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { GanttState, GanttAction } from './types';
+import { TaskDependency, DependencyType } from '@/components/planning/gantt/types/dependencyTypes';
 import { useTasks } from '@/hooks/useTasks';
 
 interface UseGanttContextMethodsProps {
@@ -200,6 +201,35 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks, project
     dispatch({ type: 'SET_SAVING', payload: saving });
   }, [dispatch]);
 
+  // Enhanced features - Multi-select methods
+  const setSelectedTasks = useCallback((tasks: Task[]) => {
+    dispatch({ type: 'SET_SELECTED_TASKS', payload: tasks });
+  }, [dispatch]);
+
+  const setMultiSelectMode = useCallback((enabled: boolean) => {
+    dispatch({ type: 'SET_MULTI_SELECT_MODE', payload: enabled });
+  }, [dispatch]);
+
+  // Enhanced features - Dependency methods
+  const createDependency = useCallback((predecessorId: string, successorId: string, type: DependencyType = 'finish-to-start') => {
+    // Create a new dependency object
+    const newDependency: TaskDependency = {
+      id: `dep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      predecessor_id: predecessorId,
+      successor_id: successorId,
+      dependency_type: type,
+      lag_days: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    dispatch({ type: 'ADD_DEPENDENCY', payload: newDependency });
+  }, [dispatch]);
+
+  const deleteDependency = useCallback((dependencyId: string) => {
+    dispatch({ type: 'DELETE_DEPENDENCY', payload: dependencyId });
+  }, [dispatch]);
+
   return {
     // Helper methods
     getDisplayTask,
@@ -229,5 +259,14 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks, project
     setLoading,
     setError,
     setSaving,
+    
+    // Enhanced features
+    dependencies: state.dependencies,
+    selectedTasks: state.selectedTasks,
+    setSelectedTasks,
+    multiSelectMode: state.multiSelectMode,
+    setMultiSelectMode,
+    createDependency,
+    deleteDependency,
   };
 };
