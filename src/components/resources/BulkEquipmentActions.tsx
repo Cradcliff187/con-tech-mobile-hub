@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { Wrench, CheckSquare } from 'lucide-react';
 import { Equipment } from '@/hooks/useEquipment';
 
@@ -171,9 +172,13 @@ export const BulkEquipmentActions = ({
                   <div className="flex items-center gap-2">
                     <Wrench size={16} className="text-slate-500 flex-shrink-0" />
                     <span className="font-medium truncate">{item.name}</span>
-                    <Badge variant="outline" className="text-xs flex-shrink-0">
-                      {item.status.replace('-', ' ')}
-                    </Badge>
+                    <GlobalStatusDropdown
+                      entityType="equipment"
+                      currentStatus={item.status}
+                      onStatusChange={() => {}}
+                      showAsDropdown={false}
+                      size="sm"
+                    />
                   </div>
                   <p className="text-sm text-slate-500 truncate">{item.type}</p>
                 </div>
@@ -207,17 +212,13 @@ export const BulkEquipmentActions = ({
         {bulkAction === 'update_status' && (
           <div>
             <Label className="text-base font-semibold mb-3 block">New Status</Label>
-            <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select new status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="in-use">In Use</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="out-of-service">Out of Service</SelectItem>
-              </SelectContent>
-            </Select>
+            <GlobalStatusDropdown
+              entityType="equipment"
+              currentStatus={newStatus}
+              onStatusChange={setNewStatus}
+              size="md"
+              className="w-full"
+            />
           </div>
         )}
 
@@ -229,7 +230,7 @@ export const BulkEquipmentActions = ({
               <div>
                 <p className="font-medium text-slate-800">Confirm Bulk Action</p>
                 <p className="text-sm text-slate-600">
-                  {bulkAction === 'update_status' && `Update status to "${newStatus}" for ${selectedEquipment.length} equipment item(s)`}
+                  {bulkAction === 'update_status' && `Update status for ${selectedEquipment.length} equipment item(s)`}
                   {bulkAction === 'release_all' && `Release ${selectedEquipment.length} equipment item(s) from their current projects`}
                   {bulkAction === 'schedule_maintenance' && `Schedule maintenance for ${selectedEquipment.length} equipment item(s) in 30 days`}
                 </p>
@@ -250,7 +251,7 @@ export const BulkEquipmentActions = ({
           </TouchFriendlyButton>
           <TouchFriendlyButton
             onClick={handleSubmit}
-            disabled={isSubmitting || selectedEquipment.length === 0 || !bulkAction}
+            disabled={isSubmitting || selectedEquipment.length === 0 || !bulkAction || (bulkAction === 'update_status' && !newStatus)}
             className="order-1 sm:order-2"
           >
             {isSubmitting ? 'Processing...' : 'Apply Bulk Action'}

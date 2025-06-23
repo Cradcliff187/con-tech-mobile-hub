@@ -1,14 +1,23 @@
 
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertTriangle, CalendarDays } from 'lucide-react';
 import { MaintenanceTask } from '@/types/maintenance';
-import { getStatusColor, getPriorityColor } from './utils';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 
 interface MaintenanceTaskCardProps {
   task: MaintenanceTask;
   onStatusUpdate?: (taskId: string, newStatus: string) => void;
 }
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'critical': return 'bg-red-100 text-red-800';
+    case 'high': return 'bg-orange-100 text-orange-800';
+    case 'medium': return 'bg-yellow-100 text-yellow-800';
+    case 'low': return 'bg-green-100 text-green-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
 export const MaintenanceTaskCard = ({ task, onStatusUpdate }: MaintenanceTaskCardProps) => {
   const getStatusIcon = (status: string) => {
@@ -50,27 +59,12 @@ export const MaintenanceTaskCard = ({ task, onStatusUpdate }: MaintenanceTaskCar
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={getStatusColor(task.status)}>
-            {task.status.replace('_', ' ')}
-          </Badge>
-          {task.status === 'scheduled' && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleStatusChange('in_progress')}
-            >
-              Start
-            </Button>
-          )}
-          {task.status === 'in_progress' && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleStatusChange('completed')}
-            >
-              Complete
-            </Button>
-          )}
+          <GlobalStatusDropdown
+            entityType="maintenance_task"
+            currentStatus={task.status}
+            onStatusChange={handleStatusChange}
+            size="sm"
+          />
         </div>
       </div>
     </div>

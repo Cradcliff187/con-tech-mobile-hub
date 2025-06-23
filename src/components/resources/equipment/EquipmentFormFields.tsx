@@ -1,7 +1,7 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 
 interface EquipmentFormFieldsProps {
   name: string;
@@ -68,17 +68,14 @@ export const EquipmentFormFields = ({
 
       <div className="space-y-2">
         <Label htmlFor="edit-status">Status</Label>
-        <Select value={status} onValueChange={setStatus} disabled={disabled}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="available">Available</SelectItem>
-            <SelectItem value="in-use">In Use</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
-            <SelectItem value="out-of-service">Out of Service</SelectItem>
-          </SelectContent>
-        </Select>
+        <GlobalStatusDropdown
+          entityType="equipment"
+          currentStatus={status}
+          onStatusChange={setStatus}
+          disabled={disabled}
+          size="md"
+          className="w-full"
+        />
       </div>
 
       <div className="space-y-2">

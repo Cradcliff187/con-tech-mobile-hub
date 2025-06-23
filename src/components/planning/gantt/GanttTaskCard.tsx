@@ -5,7 +5,6 @@ import { CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getAssigneeName } from './utils/taskUtils';
-import { getCategoryBadgeColor } from './utils/colorUtils';
 import { calculateTaskDatesFromEstimate } from './utils/dateUtils';
 import { GanttCollapsedTaskCard } from './GanttCollapsedTaskCard';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
@@ -25,6 +24,23 @@ const getPriorityIcon = (priority: string) => {
     case 'critical': return <AlertTriangle size={12} className="text-red-600 flex-shrink-0" />;
     case 'high': return <AlertTriangle size={12} className="text-orange-600 flex-shrink-0" />;
     default: return null;
+  }
+};
+
+const getCategoryBadgeColor = (category: string) => {
+  // Using standard construction industry category colors
+  switch (category?.toLowerCase()) {
+    case 'foundation': return 'bg-stone-100 text-stone-800';
+    case 'framing': return 'bg-amber-100 text-amber-800';
+    case 'electrical': return 'bg-yellow-100 text-yellow-800';
+    case 'plumbing': return 'bg-blue-100 text-blue-800';
+    case 'hvac': return 'bg-cyan-100 text-cyan-800';
+    case 'roofing': return 'bg-slate-100 text-slate-800';
+    case 'flooring': return 'bg-orange-100 text-orange-800';
+    case 'painting': return 'bg-purple-100 text-purple-800';
+    case 'inspection': return 'bg-green-100 text-green-800';
+    case 'cleanup': return 'bg-gray-100 text-gray-800';
+    default: return 'bg-slate-100 text-slate-700';
   }
 };
 
