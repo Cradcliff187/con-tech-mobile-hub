@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Plus, Wrench, User, Calendar, AlertTriangle } from 'lucide-react';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { TouchFriendlyButton } from '@/components/common/TouchFriendlyButton';
 import { useDialogState } from '@/hooks/useDialogState';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import type { Project } from '@/types/database';
 
 interface ProjectEquipmentSectionProps {
@@ -58,16 +58,6 @@ export const ProjectEquipmentSection = ({ project }: ProjectEquipmentSectionProp
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'available': return 'bg-green-100 text-green-800';
-      case 'in-use': return 'bg-blue-100 text-blue-800';
-      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'out-of-service': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const columns = [
     {
       key: 'name',
@@ -88,9 +78,13 @@ export const ProjectEquipmentSection = ({ project }: ProjectEquipmentSectionProp
       key: 'status',
       label: 'Status',
       render: (value: string) => (
-        <Badge className={getStatusBadgeColor(value)}>
-          {value.replace('-', ' ')}
-        </Badge>
+        <GlobalStatusDropdown
+          entityType="equipment"
+          currentStatus={value}
+          onStatusChange={() => {}}
+          showAsDropdown={false}
+          size="sm"
+        />
       )
     },
     {

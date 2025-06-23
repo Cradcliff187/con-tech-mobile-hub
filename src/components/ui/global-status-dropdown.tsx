@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -76,36 +75,38 @@ const STATUS_CONFIGS = {
     criticalChanges: ['suspended', 'inactive']
   },
   equipment: {
-    statuses: ['available', 'in-use', 'maintenance', 'broken'],
+    statuses: ['available', 'in-use', 'maintenance', 'out-of-service'],
     colors: {
       available: 'bg-green-100 text-green-800',
       'in-use': 'bg-blue-100 text-blue-800',
       maintenance: 'bg-orange-100 text-orange-800',
-      broken: 'bg-red-100 text-red-800'
+      'out-of-service': 'bg-red-100 text-red-800'
     },
     labels: {
       available: 'Available',
       'in-use': 'In Use',
       maintenance: 'Maintenance',
-      broken: 'Broken'
+      'out-of-service': 'Out of Service'
     },
-    criticalChanges: ['broken', 'maintenance']
+    criticalChanges: ['out-of-service', 'maintenance']
   },
   maintenance_task: {
-    statuses: ['scheduled', 'in_progress', 'completed', 'overdue'],
+    statuses: ['scheduled', 'in_progress', 'completed', 'cancelled', 'overdue'],
     colors: {
       scheduled: 'bg-blue-100 text-blue-800',
       in_progress: 'bg-orange-100 text-orange-800',
       completed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-gray-100 text-gray-800',
       overdue: 'bg-red-100 text-red-800'
     },
     labels: {
       scheduled: 'Scheduled',
       in_progress: 'In Progress',
       completed: 'Completed',
+      cancelled: 'Cancelled',
       overdue: 'Overdue'
     },
-    criticalChanges: ['overdue']
+    criticalChanges: ['overdue', 'cancelled']
   },
   profile: {
     statuses: ['pending', 'approved', 'inactive'],
