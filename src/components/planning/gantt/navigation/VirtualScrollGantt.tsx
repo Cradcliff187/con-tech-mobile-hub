@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { GanttTaskCard } from '../GanttTaskCard';
 import { GanttTimelineBar } from '../GanttTimelineBar';
+import { TaskListHeader } from '../components/TaskListHeader';
 
 interface VirtualScrollGanttProps {
   tasks: Task[];
@@ -18,6 +19,7 @@ interface VirtualScrollGanttProps {
   draggedTaskId?: string;
   headerScrollRef?: React.RefObject<HTMLDivElement>;
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const EXPANDED_HEIGHT = 60; // Height when expanded
@@ -37,7 +39,8 @@ export const VirtualScrollGantt = ({
   onDragEnd,
   draggedTaskId,
   headerScrollRef,
-  isCollapsed = false
+  isCollapsed = false,
+  onToggleCollapse
 }: VirtualScrollGanttProps) => {
   const [scrollTop, setScrollTop] = useState(0);
   const scrollElementRef = useRef<HTMLDivElement>(null);
@@ -100,6 +103,19 @@ export const VirtualScrollGantt = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      {/* Header */}
+      <div className="flex border-b border-slate-200">
+        <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0">
+          {onToggleCollapse && (
+            <TaskListHeader
+              isCollapsed={isCollapsed}
+              onToggleCollapse={onToggleCollapse}
+              taskCount={tasks.length}
+            />
+          )}
+        </div>
+      </div>
+
       <div 
         ref={scrollElementRef}
         className="overflow-y-auto"

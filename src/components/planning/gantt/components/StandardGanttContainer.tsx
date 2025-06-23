@@ -1,9 +1,9 @@
 
+import React, { useRef } from 'react';
 import { Task } from '@/types/database';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttTaskRow } from '../GanttTaskRow';
-import { GanttProgressIndicator } from '../GanttProgressIndicator';
-import { GanttOverlayManager } from '../overlays/GanttOverlayManager';
+import { TaskListHeader } from './TaskListHeader';
 import { useScrollSync } from '../hooks/useScrollSync';
 
 interface StandardGanttContainerProps {
@@ -13,25 +13,12 @@ interface StandardGanttContainerProps {
   selectedTaskId: string | null;
   onTaskSelect: (taskId: string) => void;
   viewMode: 'days' | 'weeks' | 'months';
-  isDragging: boolean;
-  timelineRef: React.RefObject<HTMLDivElement>;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
-  onDragStart: (e: React.DragEvent, task: Task) => void;
-  onDragEnd: () => void;
+  isDragging?: boolean;
   draggedTaskId?: string;
-  projectId?: string;
-  dragState?: {
-    dropPreviewDate: Date | null;
-    dragPosition: { x: number; y: number } | null;
-    currentValidity: 'valid' | 'warning' | 'invalid';
-    validDropZones: Array<{ start: Date; end: Date; validity: 'valid' | 'warning' | 'invalid' }>;
-    showDropZones: boolean;
-    violationMessages: string[];
-    suggestedDropDate: Date | null;
-    affectedMarkerIds: string[];
-  };
+  onDragStart?: (e: React.DragEvent, task: Task) => void;
+  onDragEnd?: () => void;
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const StandardGanttContainer = ({
@@ -41,85 +28,70 @@ export const StandardGanttContainer = ({
   selectedTaskId,
   onTaskSelect,
   viewMode,
-  isDragging,
-  timelineRef,
-  onDragOver,
-  onDrop,
+  isDragging = false,
+  draggedTaskId,
   onDragStart,
   onDragEnd,
-  draggedTaskId,
-  projectId,
-  dragState,
-  isCollapsed = false
+  isCollapsed = false,
+  onToggleCollapse
 }: StandardGanttContainerProps) => {
-  const { headerScrollRef, contentScrollRef } = useScrollSync();
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+
+  useScrollSync(headerScrollRef, contentScrollRef);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-      {/* Timeline Header */}
-      <GanttTimelineHeader
-        timelineStart={timelineStart}
-        timelineEnd={timelineEnd}
-        viewMode={viewMode}
-        scrollRef={headerScrollRef}
-      />
+      {/* Header with Timeline */}
+      <div className="flex border-b border-slate-200">
+        {/* Task List Header */}
+        <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0">
+          {onToggleCollapse && (
+            <TaskListHeader
+              isCollapsed={isCollapsed}
+              onToggleCollapse={onToggleCollapse}
+              taskCount={displayTasks.length}
+            />
+          )}
+        </div>
 
-      {/* Master Scroll Container - Single scrollbar for entire chart */}
-      <div 
-        ref={contentScrollRef}
-        className="overflow-x-auto scrollbar-none md:scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 touch-pan-x"
-        style={{ 
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'thin'
-        }}
-      >
-        {/* Gantt Chart Body */}
-        <div 
-          ref={timelineRef}
-          className="min-w-max relative"
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-        >
-          {displayTasks.map((task, index) => (
-            <GanttTaskRow
-              key={task.id}
-              task={task}
-              selectedTaskId={selectedTaskId}
-              onTaskSelect={onTaskSelect}
-              viewMode={viewMode}
+        {/* Timeline Header */}
+        <div className="flex-1 overflow-hidden">
+          <div 
+            ref={headerScrollRef}
+            className="overflow-x-auto scrollbar-none"
+          >
+            <GanttTimelineHeader
               timelineStart={timelineStart}
               timelineEnd={timelineEnd}
-              isDragging={isDragging}
-              draggedTaskId={draggedTaskId}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              isFirstRow={index === 0}
-              isCollapsed={isCollapsed}
+              viewMode={viewMode}
             />
-          ))}
+          </div>
+        </div>
+      </div>
 
-          {/* Construction Project Progress Indicator */}
-          <GanttProgressIndicator tasks={displayTasks} />
-
-          {/* Enhanced Overlay Manager with full drag integration */}
-          <GanttOverlayManager
-            tasks={displayTasks}
+      {/* Content */}
+      <div 
+        ref={contentScrollRef}
+        className="max-h-96 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+      >
+        {displayTasks.map((task, index) => (
+          <GanttTaskRow
+            key={task.id}
+            task={task}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={onTaskSelect}
+            viewMode={viewMode}
             timelineStart={timelineStart}
             timelineEnd={timelineEnd}
-            viewMode={viewMode}
-            projectId={projectId}
             isDragging={isDragging}
             draggedTaskId={draggedTaskId}
-            affectedMarkerIds={dragState?.affectedMarkerIds || []}
-            dropPreviewDate={dragState?.dropPreviewDate}
-            dragPosition={dragState?.dragPosition}
-            currentValidity={dragState?.currentValidity || 'valid'}
-            validDropZones={dragState?.validDropZones || []}
-            showDropZones={dragState?.showDropZones || false}
-            violationMessages={dragState?.violationMessages || []}
-            suggestedDropDate={dragState?.suggestedDropDate}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            isFirstRow={index === 0}
+            isCollapsed={isCollapsed}
           />
-        </div>
+        ))}
       </div>
     </div>
   );

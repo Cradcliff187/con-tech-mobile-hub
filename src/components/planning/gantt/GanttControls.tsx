@@ -1,7 +1,6 @@
 
 import { SearchInput } from './components/SearchInput';
 import { FilterPopover } from './components/FilterPopover';
-import { CollapseToggle } from './components/CollapseToggle';
 import { ViewModeSelector } from './components/ViewModeSelector';
 import { DebugModeToggle } from './components/DebugModeToggle';
 import type { FilterState, FilterChangeHandler } from './types/ganttTypes';
@@ -16,8 +15,6 @@ interface GanttControlsProps {
   isDebugMode?: boolean;
   onToggleDebugMode?: () => void;
   isDevelopment?: boolean;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 export const GanttControls = ({
@@ -29,9 +26,7 @@ export const GanttControls = ({
   onViewModeChange,
   isDebugMode = false,
   onToggleDebugMode,
-  isDevelopment = false,
-  isCollapsed = false,
-  onToggleCollapse
+  isDevelopment = false
 }: GanttControlsProps) => {
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
@@ -45,13 +40,6 @@ export const GanttControls = ({
           filters={filters}
           onFilterChange={onFilterChange}
         />
-
-        {onToggleCollapse && (
-          <CollapseToggle
-            isCollapsed={isCollapsed}
-            onToggle={onToggleCollapse}
-          />
-        )}
       </div>
 
       <div className="flex gap-3 items-center">

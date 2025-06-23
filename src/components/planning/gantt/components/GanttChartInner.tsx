@@ -30,9 +30,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps): JSX.Elemen
   // Add collapse functionality
   const { isCollapsed, toggleCollapse } = useGanttCollapse();
   
-  // Add debugging log
-  console.log('📊 GanttChart: isCollapsed=', isCollapsed, 'toggleCollapse=', !!toggleCollapse);
-  
   const {
     projectTasks,
     displayTasks,
@@ -129,7 +126,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps): JSX.Elemen
           onToggleMiniMap={() => setShowMiniMap(!showMiniMap)}
         />
 
-        {/* Interactive Controls with Collapse Toggle */}
+        {/* Interactive Controls */}
         <GanttControls
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -137,8 +134,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps): JSX.Elemen
           onFilterChange={handleFilterChange}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={toggleCollapse}
         />
 
         {/* Timeline Mini-map for navigation */}
@@ -197,6 +192,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps): JSX.Elemen
             projectId={projectId}
             dragState={dragState}
             isCollapsed={isCollapsed}
+            onToggleCollapse={toggleCollapse}
           />
         </div>
 

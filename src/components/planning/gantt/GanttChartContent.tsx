@@ -1,9 +1,9 @@
 
+import React from 'react';
 import { Task } from '@/types/database';
-import { GanttEmptyState } from './GanttEmptyState';
-import { VirtualGanttContainer } from './components/VirtualGanttContainer';
 import { StandardGanttContainer } from './components/StandardGanttContainer';
-import { useState, useEffect } from 'react';
+import { VirtualGanttContainer } from './components/VirtualGanttContainer';
+import { GanttOverlayManager } from './overlays/GanttOverlayManager';
 import type { SimplifiedDragState } from './types/ganttTypes';
 
 interface GanttChartContentProps {
@@ -13,18 +13,21 @@ interface GanttChartContentProps {
   selectedTaskId: string | null;
   onTaskSelect: (taskId: string) => void;
   viewMode: 'days' | 'weeks' | 'months';
-  isDragging: boolean;
+  isDragging?: boolean;
   timelineRef: React.RefObject<HTMLDivElement>;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
-  onDragStart: (e: React.DragEvent, task: Task) => void;
-  onDragEnd: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragStart?: (e: React.DragEvent, task: Task) => void;
+  onDragEnd?: () => void;
   draggedTaskId?: string;
-  projectId?: string;
-  // Simplified drag state props - only essential properties
+  projectId: string;
   dragState?: SimplifiedDragState;
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
+
+const LARGE_TASK_THRESHOLD = 100;
+const ENABLE_VIRTUAL_SCROLLING = false; // Feature flag
 
 export const GanttChartContent = ({
   displayTasks,
@@ -33,7 +36,7 @@ export const GanttChartContent = ({
   selectedTaskId,
   onTaskSelect,
   viewMode,
-  isDragging,
+  isDragging = false,
   timelineRef,
   onDragOver,
   onDrop,
@@ -42,72 +45,59 @@ export const GanttChartContent = ({
   draggedTaskId,
   projectId,
   dragState,
-  isCollapsed = false
-}: GanttChartContentProps): JSX.Element => {
-  const [useVirtualScroll, setUseVirtualScroll] = useState<boolean>(false);
-
-  // Use virtual scrolling for large task lists (>50 tasks)
-  useEffect(() => {
-    setUseVirtualScroll(displayTasks.length > 50);
-  }, [displayTasks.length]);
-
-  // Handle empty state
-  if (displayTasks.length === 0) {
-    return <GanttEmptyState projectId={projectId || 'all'} />;
-  }
-
-  // Create complete drag state with defaults for compatibility
-  const completeDragState = dragState ? {
-    dropPreviewDate: dragState.dropPreviewDate,
-    dragPosition: dragState.dragPosition,
-    currentValidity: dragState.currentValidity,
-    violationMessages: dragState.violationMessages,
-    suggestedDropDate: dragState.suggestedDropDate,
-    // Add compatibility properties with defaults
-    validDropZones: [],
-    showDropZones: false,
-    affectedMarkerIds: []
-  } : undefined;
-
-  // Use virtual scrolling for performance with large task lists
-  if (useVirtualScroll) {
-    return (
-      <VirtualGanttContainer
-        displayTasks={displayTasks}
-        timelineStart={timelineStart}
-        timelineEnd={timelineEnd}
-        selectedTaskId={selectedTaskId}
-        onTaskSelect={onTaskSelect}
-        viewMode={viewMode}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        draggedTaskId={draggedTaskId}
-        projectId={projectId}
-        isDragging={isDragging}
-        dragState={completeDragState}
-        isCollapsed={isCollapsed}
-      />
-    );
-  }
+  isCollapsed = false,
+  onToggleCollapse
+}: GanttChartContentProps) => {
+  const shouldUseVirtualScrolling = ENABLE_VIRTUAL_SCROLLING && displayTasks.length > LARGE_TASK_THRESHOLD;
 
   return (
-    <StandardGanttContainer
-      displayTasks={displayTasks}
-      timelineStart={timelineStart}
-      timelineEnd={timelineEnd}
-      selectedTaskId={selectedTaskId}
-      onTaskSelect={onTaskSelect}
-      viewMode={viewMode}
-      isDragging={isDragging}
-      timelineRef={timelineRef}
+    <div 
+      ref={timelineRef}
+      className="relative"
       onDragOver={onDragOver}
       onDrop={onDrop}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      draggedTaskId={draggedTaskId}
-      projectId={projectId}
-      dragState={completeDragState}
-      isCollapsed={isCollapsed}
-    />
+    >
+      {shouldUseVirtualScrolling ? (
+        <VirtualGanttContainer
+          displayTasks={displayTasks}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          selectedTaskId={selectedTaskId}
+          onTaskSelect={onTaskSelect}
+          viewMode={viewMode}
+          isDragging={isDragging}
+          draggedTaskId={draggedTaskId}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
+        />
+      ) : (
+        <StandardGanttContainer
+          displayTasks={displayTasks}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          selectedTaskId={selectedTaskId}
+          onTaskSelect={onTaskSelect}
+          viewMode={viewMode}
+          isDragging={isDragging}
+          draggedTaskId={draggedTaskId}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
+        />
+      )}
+
+      {/* Overlay Manager for advanced features */}
+      <GanttOverlayManager
+        tasks={displayTasks}
+        timelineStart={timelineStart}
+        timelineEnd={timelineEnd}
+        viewMode={viewMode}
+        isDragging={isDragging}
+        dragState={dragState}
+      />
+    </div>
   );
 };
