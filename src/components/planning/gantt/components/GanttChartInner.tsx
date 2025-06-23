@@ -66,6 +66,12 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     return { total, punchList, completed };
   }, [taskSignature]);
 
+  // Calculate timeline duration for header - use stable reference - MOVED UP BEFORE EARLY RETURNS
+  const totalDays = useMemo(() => {
+    if (!timelineStart || !timelineEnd) return 0;
+    return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+  }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
+
   // Loading state
   if (loading) {
     console.log('⏳ GanttChartInner: Showing loading state');
@@ -89,12 +95,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   const handleTaskSelect = (taskId: string) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
-
-  // Calculate timeline duration for header - use stable reference
-  const totalDays = useMemo(() => {
-    if (!timelineStart || !timelineEnd) return 0;
-    return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
-  }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
 
   return (
     <div className="w-full">
