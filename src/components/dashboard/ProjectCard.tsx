@@ -1,9 +1,8 @@
 
-import { MapPin, Calendar, Clock, User } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { MapPin, Calendar, User } from 'lucide-react';
 import { formatAddress } from '@/utils/addressFormatting';
-import { LifecycleStatusBadge } from '@/components/ui/lifecycle-status-badge';
-import { getLifecycleStatus } from '@/utils/lifecycle-status';
+import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
+import { EnhancedUnifiedStatusBadge } from '@/components/ui/enhanced-unified-status-badge';
 
 interface ProjectCardProps {
   project: {
@@ -16,6 +15,7 @@ interface ProjectCardProps {
     status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
     phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
     lifecycle_status?: string;
+    unified_lifecycle_status?: string;
     location?: string;
     street_address?: string;
     city?: string;
@@ -31,7 +31,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
-  const lifecycleStatus = getLifecycleStatus(project as any);
+  const unifiedStatus = getUnifiedLifecycleStatus(project as any);
 
   const progressColor = project.progress >= 75 ? 'bg-green-500' : 
                        project.progress >= 50 ? 'bg-orange-500' : 'bg-blue-500';
@@ -70,34 +70,38 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-800 line-clamp-2">
+        <h3 className="text-lg font-semibold text-slate-800 line-clamp-2 flex-1 mr-3">
           {project.name}
         </h3>
-        <div className="flex items-center gap-2">
-          <LifecycleStatusBadge status={lifecycleStatus} size="sm" />
+        <div className="shrink-0">
+          <EnhancedUnifiedStatusBadge 
+            status={unifiedStatus} 
+            size="sm"
+            showIcon={true}
+          />
         </div>
       </div>
 
       <div className="space-y-3">
         {project.client && (
           <div className="flex items-center text-sm text-slate-600">
-            <User size={16} className="mr-2" />
+            <User size={16} className="mr-2 shrink-0" />
             <span className="font-medium text-slate-700">Client:</span>
-            <span className="ml-1">{getClientDisplayName()}</span>
+            <span className="ml-1 truncate">{getClientDisplayName()}</span>
           </div>
         )}
 
         {formattedLocation && (
           <div className="flex items-center text-sm text-slate-600">
-            <MapPin size={16} className="mr-2" />
-            {formattedLocation}
+            <MapPin size={16} className="mr-2 shrink-0" />
+            <span className="truncate">{formattedLocation}</span>
           </div>
         )}
 
         {project.end_date && (
           <div className="flex items-center text-sm text-slate-600">
-            <Calendar size={16} className="mr-2" />
-            Due: {formatDate(project.end_date)}
+            <Calendar size={16} className="mr-2 shrink-0" />
+            <span>Due: {formatDate(project.end_date)}</span>
           </div>
         )}
 
