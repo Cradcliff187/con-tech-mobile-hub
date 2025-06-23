@@ -35,7 +35,8 @@ export const FileDropZone = memo(({
       className={`
         w-full max-w-full box-border
         border-2 border-dashed rounded-lg text-center transition-all duration-300 ease-in-out
-        touch-manipulation p-3 min-h-[120px]
+        touch-manipulation p-4
+        ${isMobile ? 'min-h-[100px]' : 'min-h-[120px]'}
         ${isDragOver 
           ? 'border-blue-500 bg-blue-50 scale-[1.01] shadow-md ring-1 ring-blue-200' 
           : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
@@ -52,12 +53,12 @@ export const FileDropZone = memo(({
         }
       }}
     >
-      <div className="space-y-2 w-full max-w-full">
+      <div className="space-y-3 w-full max-w-full">
         <div className={`mx-auto bg-slate-100 rounded-full flex items-center justify-center transition-all duration-300 ${
-          isMobile ? 'w-10 h-10' : 'w-8 h-8'
+          isMobile ? 'w-12 h-12' : 'w-10 h-10'
         } ${isDragOver ? 'bg-blue-100 scale-110' : 'hover:bg-slate-200'}`}>
           <Upload 
-            size={isMobile ? 20 : 16} 
+            size={isMobile ? 24 : 20} 
             className={`transition-all duration-300 ${
               isDragOver ? 'text-blue-500 scale-110' : 'text-slate-400'
             }`} 
@@ -65,12 +66,12 @@ export const FileDropZone = memo(({
         </div>
         <div className="w-full max-w-full">
           <p className={`font-medium transition-colors duration-200 truncate ${
-            isMobile ? 'text-sm' : 'text-xs'
+            isMobile ? 'text-base' : 'text-sm'
           } ${isDragOver ? 'text-blue-700' : 'text-slate-700'}`}>
-            {isDragOver ? 'Drop files here' : (isMobile ? 'Tap to upload' : 'Drag files here')}
+            {isDragOver ? 'Drop files here' : (isMobile ? 'Tap to upload files' : 'Drag files here or click below')}
           </p>
-          <p className="text-slate-500 text-xs mt-1 truncate">
-            {isMobile ? 'Or use buttons below' : 'Or click to browse'}
+          <p className={`text-slate-500 mt-1 truncate ${isMobile ? 'text-sm' : 'text-xs'}`}>
+            {isMobile ? 'Photos, PDFs, documents' : 'Support for images, PDFs, and documents'}
           </p>
         </div>
         <div className={`flex gap-2 justify-center w-full max-w-full ${
@@ -80,12 +81,14 @@ export const FileDropZone = memo(({
             type="button"
             onClick={onBrowseFiles}
             variant="outline"
-            size="sm"
-            className="flex items-center gap-2 transition-all duration-200 hover:scale-105 
-              touch-manipulation active:scale-95 text-xs flex-shrink-0"
+            size={isMobile ? "default" : "sm"}
+            className={`flex items-center gap-2 transition-all duration-200 hover:scale-105 
+              touch-manipulation active:scale-95 flex-shrink-0 ${
+              isMobile ? 'text-sm min-h-[44px]' : 'text-xs'
+            }`}
             aria-label="Browse files"
           >
-            <FolderOpen size={12} />
+            <FolderOpen size={isMobile ? 16 : 14} />
             <span className="truncate">Browse Files</span>
           </Button>
           {isMobile && (
@@ -93,12 +96,12 @@ export const FileDropZone = memo(({
               type="button"
               onClick={onCameraCapture}
               variant="outline"
-              size="sm"
+              size="default"
               className="flex items-center gap-2 transition-all duration-200 hover:scale-105 
-                touch-manipulation active:scale-95 text-xs flex-shrink-0"
+                touch-manipulation active:scale-95 text-sm flex-shrink-0 min-h-[44px]"
               aria-label="Take photo with camera"
             >
-              <Camera size={12} />
+              <Camera size={16} />
               <span className="truncate">Take Photo</span>
             </Button>
           )}

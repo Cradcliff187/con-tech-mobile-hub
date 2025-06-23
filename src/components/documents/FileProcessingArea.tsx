@@ -36,9 +36,9 @@ export const FileProcessingArea: React.FC<FileProcessingAreaProps> = ({
   isUploading
 }) => {
   return (
-    <div className="space-y-4 w-full max-w-full">
+    <div className="space-y-4 w-full">
       {/* File Upload Interface */}
-      <div className="animate-fade-in w-full max-w-full">
+      <div className="animate-fade-in w-full">
         <FileUploadTabs
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -54,7 +54,7 @@ export const FileProcessingArea: React.FC<FileProcessingAreaProps> = ({
 
       {/* Selected Files */}
       {selectedFiles.length > 0 && (
-        <div className="space-y-4 animate-fade-in w-full max-w-full">
+        <div className="space-y-4 animate-fade-in w-full">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800 truncate">
               Selected Files ({selectedFiles.length})
@@ -69,11 +69,11 @@ export const FileProcessingArea: React.FC<FileProcessingAreaProps> = ({
             </Button>
           </div>
           
-          <div className="space-y-3 max-h-64 overflow-y-auto w-full max-w-full">
+          <div className="space-y-3 max-h-48 overflow-y-auto w-full border border-slate-200 rounded-lg p-3 bg-slate-50">
             {selectedFiles.map((fileData, index) => (
               <div 
                 key={fileData.id}
-                className="animate-stagger-fade-in w-full max-w-full"
+                className="animate-stagger-fade-in w-full"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <FilePreviewCard
