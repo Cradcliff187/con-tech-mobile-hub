@@ -71,6 +71,16 @@ export const GanttChartContent = ({
           onDragEnd={onDragEnd}
           isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
+          dragState={{
+            dropPreviewDate: dragState?.dropPreviewDate || null,
+            dragPosition: dragState?.dragPosition || null,
+            currentValidity: dragState?.currentValidity || 'valid',
+            validDropZones: [],
+            showDropZones: false,
+            violationMessages: dragState?.violationMessages || [],
+            suggestedDropDate: dragState?.suggestedDropDate || null,
+            affectedMarkerIds: []
+          }}
         />
       ) : (
         <StandardGanttContainer
@@ -96,7 +106,11 @@ export const GanttChartContent = ({
         timelineEnd={timelineEnd}
         viewMode={viewMode}
         isDragging={isDragging}
-        dragState={dragState}
+        dropPreviewDate={dragState?.dropPreviewDate}
+        dragPosition={dragState?.dragPosition}
+        currentValidity={dragState?.currentValidity || 'valid'}
+        violationMessages={dragState?.violationMessages || []}
+        suggestedDropDate={dragState?.suggestedDropDate}
       />
     </div>
   );

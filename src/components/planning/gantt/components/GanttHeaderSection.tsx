@@ -24,8 +24,6 @@ interface GanttHeaderSectionProps {
   isDebugMode: boolean;
   onToggleDebugMode: () => void;
   isDevelopment: boolean;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 export const GanttHeaderSection = ({
@@ -47,9 +45,7 @@ export const GanttHeaderSection = ({
   onViewModeChange,
   isDebugMode,
   onToggleDebugMode,
-  isDevelopment,
-  isCollapsed = false,
-  onToggleCollapse
+  isDevelopment
 }: GanttHeaderSectionProps) => {
   return (
     <>
@@ -59,6 +55,7 @@ export const GanttHeaderSection = ({
         punchListTasks={punchListTasks}
         localUpdatesCount={localUpdatesCount}
         onResetUpdates={onResetUpdates}
+        tasks={[]}
       />
 
       <GanttStatusIndicators
@@ -79,8 +76,6 @@ export const GanttHeaderSection = ({
         isDebugMode={isDebugMode}
         onToggleDebugMode={onToggleDebugMode}
         isDevelopment={isDevelopment}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={onToggleCollapse}
       />
     </>
   );

@@ -15,6 +15,8 @@ interface GanttControlsProps {
   isDebugMode?: boolean;
   onToggleDebugMode?: () => void;
   isDevelopment?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const GanttControls = ({
