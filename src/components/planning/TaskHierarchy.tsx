@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
@@ -163,7 +162,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
               <GlobalStatusDropdown
                 entityType="task"
                 currentStatus={task.status}
-                onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
+                onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus as 'not-started' | 'in-progress' | 'completed' | 'blocked')}
                 size="sm"
                 confirmCriticalChanges={true}
               />
