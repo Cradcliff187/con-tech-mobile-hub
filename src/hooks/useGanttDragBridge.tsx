@@ -4,6 +4,7 @@ import { useGanttContext } from '@/contexts/gantt';
 import { Task } from '@/types/database';
 import { getDateFromPosition } from '@/components/planning/gantt/utils/dragUtils';
 import { validateTaskDrag, getSnapDate } from '@/components/planning/gantt/utils/dragValidation';
+import { toast } from '@/hooks/use-toast';
 
 interface UseGanttDragBridgeProps {
   timelineStart: Date;
@@ -18,6 +19,7 @@ interface GanttDragBridgeReturn {
   currentValidity: 'valid' | 'warning' | 'invalid';
   violationMessages: string[];
   dragPosition: { x: number; y: number } | null;
+  isSaving: boolean;
   handleDragStart: (e: React.DragEvent, task: Task) => void;
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
@@ -34,10 +36,11 @@ export const useGanttDragBridge = ({
     startDrag,
     updateDragPreview,
     completeDrag,
-    cancelDrag
+    cancelDrag,
+    setSaving
   } = useGanttContext();
 
-  const { dragState, tasks } = state;
+  const { dragState, tasks, saving } = state;
 
   // Handle drag start
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
@@ -83,14 +86,8 @@ export const useGanttDragBridge = ({
       tasks
     );
 
-    // Store drag position for visual feedback
-    const dragPosition = { x: e.clientX, y: e.clientY };
-
     // Update drag preview in context
     updateDragPreview(previewDate, validation.validity, validation.messages);
-    
-    // Store position (we'll need to enhance context to handle this)
-    console.log('🎯 Drag position:', dragPosition, 'Preview date:', previewDate, 'Validity:', validation.validity);
   }, [dragState.isDragging, dragState.draggedTask, timelineStart, timelineEnd, viewMode, updateDragPreview, tasks]);
 
   // Handle drop with date calculation and task update
@@ -105,6 +102,11 @@ export const useGanttDragBridge = ({
     // Only allow valid drops
     if (dragState.currentValidity === 'invalid') {
       console.warn('Drop prevented due to validation errors');
+      toast({
+        title: "Drop Failed",
+        description: dragState.violationMessages[0] || "Invalid drop position",
+        variant: "destructive"
+      });
       cancelDrag();
       return;
     }
@@ -113,13 +115,14 @@ export const useGanttDragBridge = ({
     const newStartDate = dragState.dropPreviewDate;
     
     try {
+      setSaving(true);
+      
       // Calculate new end date maintaining duration
       const currentStart = task.start_date ? new Date(task.start_date) : new Date();
       const currentEnd = task.due_date ? new Date(task.due_date) : new Date();
-      const duration = Math.max(1, Math.ceil((currentEnd.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24)));
+      const durationMs = currentEnd.getTime() - currentStart.getTime();
       
-      const newEndDate = new Date(newStartDate);
-      newEndDate.setDate(newEndDate.getDate() + duration);
+      const newEndDate = new Date(newStartDate.getTime() + durationMs);
 
       const updates: Partial<Task> = {
         start_date: newStartDate.toISOString(),
@@ -131,12 +134,29 @@ export const useGanttDragBridge = ({
       // This will handle optimistic updates and database save
       await completeDrag(updates);
       
+      // Show success feedback
+      toast({
+        title: "Task Updated",
+        description: `"${task.title}" moved successfully`,
+        variant: "default"
+      });
+      
     } catch (error) {
       console.error('❌ Drop failed:', error);
+      
+      // Show error feedback
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update task position",
+        variant: "destructive"
+      });
+      
       // Error is already handled in completeDrag, just ensure drag state is reset
       cancelDrag();
+    } finally {
+      setSaving(false);
     }
-  }, [dragState, completeDrag, cancelDrag]);
+  }, [dragState, completeDrag, cancelDrag, setSaving]);
 
   // Handle drag end (cleanup)
   const handleDragEnd = useCallback(() => {
@@ -155,7 +175,8 @@ export const useGanttDragBridge = ({
     dropPreviewDate: dragState.dropPreviewDate,
     currentValidity: dragState.currentValidity,
     violationMessages: dragState.violationMessages,
-    dragPosition: null, // We'll need to enhance context to store this
+    dragPosition: null, // Not implementing position tracking for simplicity
+    isSaving: saving || false,
     
     // Handlers
     handleDragStart,

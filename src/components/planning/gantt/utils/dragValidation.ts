@@ -20,7 +20,7 @@ export const validateTaskDrag = (
 
   // Check if date is within timeline bounds
   if (newStartDate < timelineStart || newStartDate > timelineEnd) {
-    messages.push('Date is outside project timeline');
+    messages.push('Task cannot be moved outside the project timeline');
     validity = 'invalid';
   }
 
@@ -31,22 +31,19 @@ export const validateTaskDrag = (
     if (validity === 'valid') validity = 'warning';
   }
 
-  // Calculate new end date
+  // Calculate new end date based on original duration
   const currentStart = task.start_date ? new Date(task.start_date) : new Date();
   const currentEnd = task.due_date ? new Date(task.due_date) : new Date();
-  const duration = Math.max(1, getDaysBetween(currentStart, currentEnd));
-  
-  const newEndDate = new Date(newStartDate);
-  newEndDate.setDate(newEndDate.getDate() + duration);
+  const durationMs = currentEnd.getTime() - currentStart.getTime();
+  const newEndDate = new Date(newStartDate.getTime() + durationMs);
 
   // Check if new end date exceeds timeline
   if (newEndDate > timelineEnd) {
-    messages.push('Task duration extends beyond project timeline');
+    messages.push('Task duration would extend beyond project timeline');
     validity = 'invalid';
   }
 
   // Check for task overlaps with same assignee (warning only)
-  // Use assigned_stakeholder_id which is the correct property from Task interface
   if (task.assigned_stakeholder_id) {
     const overlappingTasks = allTasks.filter(t => 
       t.id !== task.id && 
@@ -61,7 +58,7 @@ export const validateTaskDrag = (
       if ((newStartDate >= otherStart && newStartDate <= otherEnd) ||
           (newEndDate >= otherStart && newEndDate <= otherEnd) ||
           (newStartDate <= otherStart && newEndDate >= otherEnd)) {
-        messages.push(`Conflicts with "${otherTask.title}"`);
+        messages.push(`Would overlap with "${otherTask.title}"`);
         if (validity === 'valid') validity = 'warning';
         break;
       }
@@ -72,9 +69,15 @@ export const validateTaskDrag = (
   if (task.priority === 'critical' && validity === 'valid') {
     const isMovingEarlier = newStartDate < currentStart;
     if (isMovingEarlier) {
-      messages.push('Moving critical task earlier may affect dependencies');
+      messages.push('Moving critical task earlier may affect project timeline');
       validity = 'warning';
     }
+  }
+
+  // Provide helpful success message
+  if (validity === 'valid' && messages.length === 0) {
+    const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
+    messages.push(`Move task to ${newStartDate.toLocaleDateString()} (${durationDays} day${durationDays !== 1 ? 's' : ''})`);
   }
 
   return {

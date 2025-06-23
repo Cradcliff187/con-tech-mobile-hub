@@ -120,7 +120,7 @@ export const GanttTimelineBar = ({
             isSelected ? 'ring-2 ring-orange-500 shadow-lg scale-105' : ''
           } ${
             isThisTaskBeingDragged 
-              ? 'opacity-50 z-20 scale-105 shadow-2xl ring-2 ring-blue-500' 
+              ? 'opacity-75 z-20 scale-105 shadow-2xl ring-2 ring-blue-500 animate-pulse' 
               : 'hover:opacity-90 hover:shadow-md'
           } ${cursorClass} ${
             isOverdue ? 'ring-1 ring-red-400' : ''
@@ -149,9 +149,14 @@ export const GanttTimelineBar = ({
             viewMode={viewMode} 
           />
 
-          {/* Visual drag feedback */}
+          {/* Enhanced visual drag feedback */}
           {isThisTaskBeingDragged && (
-            <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded-md pointer-events-none" />
+            <>
+              <div className="absolute inset-0 bg-blue-100 bg-opacity-30 rounded-md pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-xs font-medium bg-blue-600 px-2 py-1 rounded">
+                Moving...
+              </div>
+            </>
           )}
         </div>
       </TaskBarTooltip>

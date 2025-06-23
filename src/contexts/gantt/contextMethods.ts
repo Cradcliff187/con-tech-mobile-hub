@@ -118,7 +118,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks, project
   const completeDrag = useCallback(async (updates: Partial<Task>) => {
     if (!state.dragState.draggedTask) {
       console.warn('No dragged task found when completing drag');
-      return;
+      throw new Error('No task being dragged');
     }
 
     const taskId = state.dragState.draggedTask.id;
@@ -140,15 +140,7 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks, project
       
       console.log('✅ Drag changes saved successfully');
       
-    } catch (error) {
-      // Rollback optimistic update on failure
-      console.error('❌ Failed to save drag changes:', error);
-      clearOptimisticUpdate(taskId);
-      
-      // Re-throw to allow UI error handling
-      throw error;
-    } finally {
-      // Reset drag state regardless of success/failure
+      // Reset drag state on success
       dispatch({ 
         type: 'SET_DRAG_STATE', 
         payload: { 
@@ -159,6 +151,26 @@ export const useGanttContextMethods = ({ state, dispatch, filteredTasks, project
           violationMessages: []
         } 
       });
+      
+    } catch (error) {
+      // Rollback optimistic update on failure
+      console.error('❌ Failed to save drag changes:', error);
+      clearOptimisticUpdate(taskId);
+      
+      // Reset drag state
+      dispatch({ 
+        type: 'SET_DRAG_STATE', 
+        payload: { 
+          isDragging: false, 
+          draggedTask: null,
+          dropPreviewDate: null,
+          currentValidity: 'valid',
+          violationMessages: []
+        } 
+      });
+      
+      // Re-throw to allow UI error handling
+      throw error;
     }
   }, [state.dragState.draggedTask, updateTaskOptimistic, updateTaskMutation, clearOptimisticUpdate, dispatch]);
 
