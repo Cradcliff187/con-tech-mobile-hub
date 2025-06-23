@@ -78,6 +78,18 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
   }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
 
+  // Ensure filters has proper FilterState structure
+  const safeFilters = useMemo(() => {
+    return filters && typeof filters === 'object' && 'status' in filters 
+      ? filters 
+      : {
+          status: [],
+          priority: [],
+          category: [],
+          lifecycle_status: []
+        };
+  }, [filters]);
+
   // Loading state
   if (loading) {
     console.log('⏳ GanttChartInner: Showing loading state');
@@ -120,7 +132,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
       <GanttControls
         searchQuery={searchQuery || ''}
         onSearchChange={setSearchQuery}
-        filters={filters || {}}
+        filters={safeFilters}
         onFilterChange={handleFilterChange}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
