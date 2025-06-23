@@ -85,16 +85,14 @@ export const GanttControls = ({
       ? [...currentValues, value]
       : currentValues.filter(v => v !== value);
     
-    onFilterChange({ [filterType]: newValues });
+    onFilterChange(filterType, newValues);
   };
 
   const clearFilters = () => {
-    onFilterChange({
-      status: [],
-      priority: [],
-      category: [],
-      phase: []
-    });
+    onFilterChange('status', []);
+    onFilterChange('priority', []);
+    onFilterChange('category', []);
+    onFilterChange('phase', []);
   };
 
   const activeFilterCount = Object.values(filters).flat().length;
