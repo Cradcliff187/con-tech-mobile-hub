@@ -7,15 +7,18 @@ import { StakeholderFilters } from './StakeholderFilters';
 import { ViewToggle } from './ViewToggle';
 import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
-import { CreateStakeholderDialog } from './CreateStakeholderDialog';
 import { AssignStakeholderDialog } from './AssignStakeholderDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, SortAsc, SortDesc, Plus } from 'lucide-react';
+import { Search, SortAsc, SortDesc } from 'lucide-react';
 import type { Stakeholder } from '@/hooks/useStakeholders';
 
-export const StakeholderDirectory = () => {
-  const { stakeholders, loading, updateStakeholder, deleteStakeholder: deleteStakeholderFn, createStakeholder, refetch } = useStakeholders();
+interface StakeholderDirectoryProps {
+  onRefetch?: () => void;
+}
+
+export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) => {
+  const { stakeholders, loading, updateStakeholder, deleteStakeholder: deleteStakeholderFn, refetch } = useStakeholders();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -29,7 +32,6 @@ export const StakeholderDirectory = () => {
   const [editStakeholder, setEditStakeholder] = useState<Stakeholder | null>(null);
   const [stakeholderToDelete, setStakeholderToDelete] = useState<Stakeholder | null>(null);
   const [stakeholderToAssign, setStakeholderToAssign] = useState<Stakeholder | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleViewChange = useCallback((newView: 'grid' | 'list') => {
     setView(newView);
@@ -48,29 +50,23 @@ export const StakeholderDirectory = () => {
     setStakeholderToAssign(stakeholder);
   }, []);
 
-  const handleCreate = useCallback(() => {
-    setShowCreateDialog(true);
-  }, []);
-
   const handleStakeholderUpdated = useCallback(() => {
     refetch();
+    onRefetch?.();
     setEditStakeholder(null);
-  }, [refetch]);
+  }, [refetch, onRefetch]);
 
   const handleStakeholderDeleted = useCallback(() => {
     refetch();
+    onRefetch?.();
     setStakeholderToDelete(null);
-  }, [refetch]);
-
-  const handleStakeholderCreated = useCallback(() => {
-    refetch();
-    setShowCreateDialog(false);
-  }, [refetch]);
+  }, [refetch, onRefetch]);
 
   const handleStakeholderAssigned = useCallback(() => {
     refetch();
+    onRefetch?.();
     setStakeholderToAssign(null);
-  }, [refetch]);
+  }, [refetch, onRefetch]);
 
   // Stabilize filter and sort dependencies
   const filterConfig = useMemo(() => ({
@@ -159,13 +155,9 @@ export const StakeholderDirectory = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Create Button */}
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div>
         <h2 className="text-2xl font-bold text-slate-900">Stakeholder Directory</h2>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus size={16} />
-          Add Stakeholder
-        </Button>
       </div>
 
       {/* Search and Filters */}
@@ -235,7 +227,6 @@ export const StakeholderDirectory = () => {
           loading={loading}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onCreate={handleCreate}
           onAssign={handleAssign}
         />
       ) : (
@@ -276,12 +267,6 @@ export const StakeholderDirectory = () => {
         onOpenChange={(open) => !open && setStakeholderToDelete(null)}
         stakeholder={stakeholderToDelete}
         onDeleted={handleStakeholderDeleted}
-      />
-
-      <CreateStakeholderDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSuccess={handleStakeholderCreated}
       />
 
       <AssignStakeholderDialog

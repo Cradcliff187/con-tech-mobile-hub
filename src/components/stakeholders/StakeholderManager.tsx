@@ -17,6 +17,11 @@ export const StakeholderManager = () => {
     { id: 'performance', label: 'Performance' }
   ];
 
+  const handleStakeholderCreated = () => {
+    setShowCreateDialog(false);
+    // The dialog will handle the success callback to refresh data
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -41,7 +46,7 @@ export const StakeholderManager = () => {
           
           <Button 
             onClick={() => setShowCreateDialog(true)}
-            className="bg-orange-600 hover:bg-orange-700"
+            className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
           >
             <Plus size={20} />
             Add Stakeholder
@@ -55,7 +60,8 @@ export const StakeholderManager = () => {
 
       <CreateStakeholderDialog 
         open={showCreateDialog} 
-        onOpenChange={setShowCreateDialog} 
+        onOpenChange={setShowCreateDialog}
+        onSuccess={handleStakeholderCreated}
       />
     </div>
   );
