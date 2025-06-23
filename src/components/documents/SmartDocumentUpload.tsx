@@ -60,7 +60,6 @@ export const SmartDocumentUpload = ({
   const [selectedProjectId, setSelectedProjectId] = useState(currentProjectId);
   const [activeTab, setActiveTab] = useState('drop');
   const [preSelectedCategory, setPreSelectedCategory] = useState<string>('');
-  const [uploadTemplate, setUploadTemplate] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -83,36 +82,6 @@ export const SmartDocumentUpload = ({
     return [...prioritized, ...others];
   }, [projectPhase]);
 
-  // Upload templates based on project phase
-  const getUploadTemplates = useCallback(() => {
-    const templates = [];
-    
-    switch (projectPhase) {
-      case 'planning':
-        templates.push(
-          { value: 'plans-batch', label: 'Architectural Plans Package', category: 'plans' },
-          { value: 'permits-batch', label: 'Permit Documentation', category: 'permits' }
-        );
-        break;
-      case 'active':
-        templates.push(
-          { value: 'daily-photos', label: 'Daily Progress Photos', category: 'photos' },
-          { value: 'expense-receipts', label: 'Expense Receipts', category: 'receipts' },
-          { value: 'safety-checklist', label: 'Safety Documentation', category: 'safety' }
-        );
-        break;
-      case 'punch_list':
-        templates.push(
-          { value: 'punch-photos', label: 'Punch List Items', category: 'photos' },
-          { value: 'completion-docs', label: 'Completion Documentation', category: 'reports' }
-        );
-        break;
-    }
-    
-    return templates;
-  }, [projectPhase]);
-
-  const uploadTemplates = getUploadTemplates();
   const prioritizedCategories = getPrioritizedCategories();
 
   // Debug logging
@@ -217,6 +186,7 @@ export const SmartDocumentUpload = ({
     }
   };
 
+  // Handle drag handlers
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
@@ -341,21 +311,8 @@ export const SmartDocumentUpload = ({
     setSelectedProjectId(currentProjectId);
     setActiveTab('drop');
     setPreSelectedCategory('');
-    setUploadTemplate('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
-  };
-
-  const handleTemplateSelect = (templateValue: string) => {
-    const template = uploadTemplates.find(t => t.value === templateValue);
-    if (template) {
-      setPreSelectedCategory(template.category);
-      setUploadTemplate(templateValue);
-      toast.info("Template Applied", {
-        description: `Files will be categorized as ${DOCUMENT_CATEGORIES.find(c => c.value === template.category)?.label}`,
-        duration: 3000,
-      });
-    }
   };
 
   // Enhanced permission checking
@@ -407,14 +364,11 @@ export const SmartDocumentUpload = ({
   const DialogOrSheetTitle = isMobile ? SheetTitle : DialogTitle;
 
   const uploadContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto space-y-4 px-1">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 px-1">
         {/* Category Selection Panel */}
         <CategorySelectionPanel
-          uploadTemplates={uploadTemplates}
-          uploadTemplate={uploadTemplate}
-          onTemplateSelect={handleTemplateSelect}
           preSelectedCategory={preSelectedCategory}
           onCategorySelect={setPreSelectedCategory}
           prioritizedCategories={prioritizedCategories}
@@ -492,8 +446,8 @@ export const SmartDocumentUpload = ({
     <DialogOrSheet open={isOpen} onOpenChange={handleOpenChange}>
       <DialogOrSheetContent className={`${
         isMobile 
-          ? "h-[90vh] w-full max-w-full overflow-hidden flex flex-col" 
-          : "sm:max-w-2xl max-h-[85vh] w-full overflow-hidden flex flex-col"
+          ? "h-[88vh] w-full max-w-full overflow-hidden flex flex-col" 
+          : "sm:max-w-3xl max-h-[88vh] w-full overflow-hidden flex flex-col"
       } animate-scale-in`}>
         <DialogOrSheetHeader className="flex-shrink-0 pb-4 border-b border-slate-200">
           <DialogOrSheetTitle className="flex items-center gap-2 text-lg">
@@ -501,7 +455,7 @@ export const SmartDocumentUpload = ({
             <span className="truncate">Smart Document Upload</span>
           </DialogOrSheetTitle>
         </DialogOrSheetHeader>
-        <div className="flex-1 overflow-hidden p-4">
+        <div className="flex-1 min-h-0 overflow-hidden p-4">
           {uploadContent}
         </div>
       </DialogOrSheetContent>
