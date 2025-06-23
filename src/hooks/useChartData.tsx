@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getLifecycleStatus } from '@/utils/lifecycle-status';
 import { getStatusMetadata } from '@/types/projectStatus';
+import { Project } from '@/types/database';
 
 export interface ProjectProgressData {
   name: string;
@@ -48,7 +49,15 @@ export const useChartData = () => {
         console.error('Error fetching project data:', projectError);
       } else {
         const progressData: ProjectProgressData[] = (projects || []).map(project => {
-          const lifecycleStatus = getLifecycleStatus(project);
+          // Create a properly typed Project object for getLifecycleStatus
+          const projectData: Project = {
+            ...project,
+            phase: project.phase as Project['phase'] || 'planning',
+            progress: project.progress || 0,
+            spent: project.spent || 0
+          };
+          
+          const lifecycleStatus = getLifecycleStatus(projectData);
           const statusMetadata = getStatusMetadata(lifecycleStatus);
           
           return {
