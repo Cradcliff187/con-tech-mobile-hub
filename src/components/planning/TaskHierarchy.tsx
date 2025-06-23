@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
@@ -6,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { AddCategoryDialog } from './AddCategoryDialog';
 import { AddTaskDialog } from './AddTaskDialog';
 import { useDialogState } from '@/hooks/useDialogState';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskHierarchyProps {
   projectId: string;
@@ -25,10 +26,11 @@ interface HierarchyTask {
 }
 
 export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
-  const { tasks } = useTasks();
+  const { tasks, updateTask } = useTasks();
   const [hierarchyTasks, setHierarchyTasks] = useState<HierarchyTask[]>([]);
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Filter and organize tasks into hierarchy
@@ -91,6 +93,26 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
     openDialog('edit');
   };
 
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    try {
+      const result = await updateTask(taskId, { status: newStatus });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      toast({
+        title: "Success",
+        description: "Task status updated successfully"
+      });
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-100';
@@ -137,9 +159,13 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
               {task.title}
             </span>
             {task.status !== 'category' && (
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                {task.status.replace('-', ' ')}
-              </span>
+              <GlobalStatusDropdown
+                entityType="task"
+                currentStatus={task.status}
+                onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
+                size="sm"
+                confirmCriticalChanges={true}
+              />
             )}
           </div>
           {task.dueDate && (
