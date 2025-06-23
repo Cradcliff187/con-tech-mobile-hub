@@ -31,19 +31,19 @@ export const FileUploadTabs = ({
   const isMobile = useIsMobile();
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="drop" className="flex items-center gap-2">
-          <Upload size={16} />
-          Drag & Drop
+        <TabsTrigger value="drop" className="flex items-center gap-2 text-xs">
+          <Upload size={14} />
+          <span className="truncate">Drag & Drop</span>
         </TabsTrigger>
-        <TabsTrigger value="browse" className="flex items-center gap-2">
-          <FolderOpen size={16} />
-          Browse Files
+        <TabsTrigger value="browse" className="flex items-center gap-2 text-xs">
+          <FolderOpen size={14} />
+          <span className="truncate">Browse Files</span>
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="drop" className="space-y-4">
+      <TabsContent value="drop" className="space-y-4 w-full max-w-full">
         <FileDropZone
           isDragOver={isDragOver}
           selectedFilesCount={selectedFilesCount}
@@ -55,25 +55,25 @@ export const FileUploadTabs = ({
         />
       </TabsContent>
       
-      <TabsContent value="browse" className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <TabsContent value="browse" className="space-y-4 w-full max-w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-full">
           <Button
             type="button"
             onClick={onBrowseFiles}
-            className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
+            className="h-20 flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 w-full"
           >
-            <FolderOpen size={32} />
-            <span>Browse Files</span>
+            <FolderOpen size={24} />
+            <span className="text-sm">Browse Files</span>
           </Button>
           {isMobile && (
             <Button
               type="button"
               onClick={onCameraCapture}
               variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2"
+              className="h-20 flex flex-col items-center justify-center gap-2 w-full"
             >
-              <Camera size={32} />
-              <span>Take Photo</span>
+              <Camera size={24} />
+              <span className="text-sm">Take Photo</span>
             </Button>
           )}
         </div>

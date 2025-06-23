@@ -407,7 +407,7 @@ export const SmartDocumentUpload = ({
   const DialogOrSheetTitle = isMobile ? SheetTitle : DialogTitle;
 
   const uploadContent = (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full">
       {/* Category Selection Panel */}
       <CategorySelectionPanel
         uploadTemplates={uploadTemplates}
@@ -487,8 +487,8 @@ export const SmartDocumentUpload = ({
     <DialogOrSheet open={isOpen} onOpenChange={handleOpenChange}>
       <DialogOrSheetContent className={`${
         isMobile 
-          ? "h-[95vh] w-full max-w-full" 
-          : "sm:max-w-2xl max-h-[90vh] w-full"
+          ? "h-[95vh] w-full max-w-full overflow-hidden" 
+          : "sm:max-w-xl max-h-[90vh] w-full overflow-hidden"
       } animate-scale-in`}>
         <DialogOrSheetHeader className="flex-shrink-0 pb-2">
           <DialogOrSheetTitle className="flex items-center gap-2 text-lg">
@@ -496,7 +496,7 @@ export const SmartDocumentUpload = ({
             <span className="truncate">Smart Document Upload</span>
           </DialogOrSheetTitle>
         </DialogOrSheetHeader>
-        <div className="flex-1 overflow-y-auto px-1">
+        <div className="flex-1 overflow-y-auto px-4 py-2">
           {uploadContent}
         </div>
       </DialogOrSheetContent>
