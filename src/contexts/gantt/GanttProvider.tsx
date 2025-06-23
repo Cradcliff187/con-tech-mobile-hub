@@ -10,16 +10,22 @@ interface GanttProviderProps {
   children: ReactNode;
   initialState?: Partial<GanttState>;
   projectId?: string;
+  initialViewMode?: 'days' | 'weeks' | 'months';
 }
 
 export const GanttProvider: React.FC<GanttProviderProps> = ({ 
   children, 
   initialState,
-  projectId
+  projectId,
+  initialViewMode
 }) => {
   const [state, dispatch] = useReducer(
     ganttReducer, 
-    { ...initialGanttState(), ...initialState }
+    { 
+      ...initialGanttState(), 
+      ...initialState,
+      ...(initialViewMode && { viewMode: initialViewMode })
+    }
   );
 
   // Use data manager for task fetching and timeline calculations
@@ -32,6 +38,13 @@ export const GanttProvider: React.FC<GanttProviderProps> = ({
     filteredTasks, 
     projectId 
   });
+
+  // Update view mode when external prop changes
+  useEffect(() => {
+    if (initialViewMode && initialViewMode !== state.viewMode) {
+      contextMethods.setViewMode(initialViewMode);
+    }
+  }, [initialViewMode, state.viewMode, contextMethods.setViewMode]);
 
   const value: GanttContextValue = {
     state,

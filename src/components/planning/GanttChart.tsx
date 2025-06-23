@@ -5,11 +5,12 @@ import { GanttChartInner } from './gantt/components/GanttChartInner';
 
 interface GanttChartProps {
   projectId: string;
+  viewMode?: 'days' | 'weeks' | 'months';
 }
 
-export const GanttChart = ({ projectId }: GanttChartProps): JSX.Element => {
+export const GanttChart = ({ projectId, viewMode }: GanttChartProps): JSX.Element => {
   return (
-    <GanttProvider projectId={projectId}>
+    <GanttProvider projectId={projectId} initialViewMode={viewMode}>
       <GanttChartInner projectId={projectId} />
     </GanttProvider>
   );

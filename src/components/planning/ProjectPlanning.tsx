@@ -9,7 +9,8 @@ import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Target, BarChart3, Shield, Lock } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Calendar, Users, Target, BarChart3, Shield, Lock, Clock, CalendarDays, CalendarRange } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'react-router-dom';
@@ -24,6 +25,7 @@ export const ProjectPlanning = () => {
   const [activeView, setActiveView] = useState<'gantt' | 'hierarchy' | 'resources' | 'milestones'>('gantt');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
+  const [viewMode, setViewMode] = useState<'days' | 'weeks' | 'months'>('weeks');
   const { projects, loading } = useProjects();
   const { profile } = useAuth();
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
@@ -69,6 +71,12 @@ export const ProjectPlanning = () => {
     openDialog('export');
   };
 
+  const handleViewModeChange = (newViewMode: string) => {
+    if (newViewMode === 'days' || newViewMode === 'weeks' || newViewMode === 'months') {
+      setViewMode(newViewMode);
+    }
+  };
+
   // Show access denied for unauthorized users
   if (!canViewPlanning) {
     return (
@@ -99,6 +107,33 @@ export const ProjectPlanning = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* View Mode Selector - Only show for Gantt view */}
+          {activeView === 'gantt' && selectedProjectId && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">View:</span>
+              <ToggleGroup 
+                value={viewMode} 
+                onValueChange={handleViewModeChange} 
+                type="single"
+                size="sm"
+                disabled={!canEditPlanning}
+              >
+                <ToggleGroupItem value="days" className="flex items-center gap-1">
+                  <Clock size={14} />
+                  Days
+                </ToggleGroupItem>
+                <ToggleGroupItem value="weeks" className="flex items-center gap-1">
+                  <CalendarDays size={14} />
+                  Weeks
+                </ToggleGroupItem>
+                <ToggleGroupItem value="months" className="flex items-center gap-1">
+                  <CalendarRange size={14} />
+                  Months
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          )}
+          
           {selectedProject && (
             <ProjectQuickActions
               project={selectedProject}
@@ -191,7 +226,7 @@ export const ProjectPlanning = () => {
         <div className="p-6">
           {selectedProjectId ? (
             <>
-              {activeView === 'gantt' && <GanttChart projectId={selectedProjectId} />}
+              {activeView === 'gantt' && <GanttChart projectId={selectedProjectId} viewMode={viewMode} />}
               {activeView === 'hierarchy' && <TaskHierarchy projectId={selectedProjectId} />}
               {activeView === 'resources' && <ResourcePlanning projectId={selectedProjectId} />}
               {activeView === 'milestones' && <MilestonePlanning projectId={selectedProjectId} />}
