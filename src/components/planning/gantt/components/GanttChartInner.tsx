@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
 import { useGanttCollapse } from '../hooks/useGanttCollapse';
+import { useGanttDragBridge } from '../hooks/useGanttDragBridge';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
 import { GanttEmptyState } from '../GanttEmptyState';
@@ -41,11 +42,19 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     filters
   } = state;
 
+  // Initialize drag bridge with proper configuration
+  const dragBridge = useGanttDragBridge({
+    timelineStart,
+    timelineEnd,
+    viewMode
+  });
+
   console.log('🎯 GanttChartInner: Render with state:', {
     loading,
     error: error || 'No error',
     projectId,
-    isCollapsed
+    isCollapsed,
+    isDragging: dragBridge.isDragging
   });
 
   // Get filtered tasks from context - memoize to create stable reference
@@ -108,7 +117,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     return <GanttEmptyState projectId={projectId} />;
   }
 
-  console.log('✅ GanttChartInner: Rendering Gantt chart with', displayTasks.length, 'tasks, collapsed:', isCollapsed);
+  console.log('✅ GanttChartInner: Rendering Gantt chart with', displayTasks.length, 'tasks, collapsed:', isCollapsed, 'isDragging:', dragBridge.isDragging);
 
   const handleTaskSelect = (taskId: string) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
@@ -124,7 +133,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
         totalDays={totalDays}
         completedTasks={taskCounts.completed}
         punchListTasks={taskCounts.punchList}
-        localUpdatesCount={0}
+        localUpdatesCount={dragBridge.optimisticTasks.size}
         onResetUpdates={() => {}}
         tasks={displayTasks}
       />
@@ -146,10 +155,12 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
         selectedTaskId={selectedTaskId}
         onTaskSelect={handleTaskSelect}
         viewMode={viewMode}
-        isDragging={dragState.isDragging}
-        draggedTaskId={dragState.draggedTask?.id || null}
-        onDragStart={() => {}} // These will be handled by drag bridge
-        onDragEnd={() => {}}
+        isDragging={dragBridge.isDragging}
+        draggedTaskId={dragBridge.draggedTask?.id || null}
+        onDragStart={dragBridge.handleDragStart}
+        onDragEnd={dragBridge.handleDragEnd}
+        onDragOver={dragBridge.handleDragOver}
+        onDrop={dragBridge.handleDrop}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggleCollapse}
       />

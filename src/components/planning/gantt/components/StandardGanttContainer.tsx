@@ -17,6 +17,8 @@ interface StandardGanttContainerProps {
   draggedTaskId?: string;
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -32,11 +34,22 @@ export const StandardGanttContainer = ({
   draggedTaskId,
   onDragStart,
   onDragEnd,
+  onDragOver,
+  onDrop,
   isCollapsed = false,
   onToggleCollapse
 }: StandardGanttContainerProps) => {
   // Use the scroll sync hook and get the refs it returns
   const { headerScrollRef, contentScrollRef } = useScrollSync();
+
+  console.log('🎯 StandardGanttContainer: Drag handlers available:', {
+    onDragStart: !!onDragStart,
+    onDragEnd: !!onDragEnd,
+    onDragOver: !!onDragOver,
+    onDrop: !!onDrop,
+    isDragging,
+    draggedTaskId
+  });
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -68,10 +81,12 @@ export const StandardGanttContainer = ({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - Add drag event handlers to the container */}
       <div 
         ref={contentScrollRef}
         className="max-h-96 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+        onDragOver={onDragOver}
+        onDrop={onDrop}
       >
         {displayTasks.map((task, index) => (
           <GanttTaskRow

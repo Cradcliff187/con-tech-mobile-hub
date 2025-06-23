@@ -45,19 +45,38 @@ export const GanttTimelineBar = ({
   const timelineRangeStart = new Date(timelineUnits[0].key);
   const timelineRangeEnd = new Date(timelineUnits[timelineUnits.length - 1].key);
   
+  // Check if this specific task is being dragged
+  const isTaskBeingDragged = isDragging && task.id;
+  
   const handleClick = () => {
     onSelect(task.id);
   };
 
   const handleDragStart = (e: React.DragEvent) => {
+    console.log('🎯 GanttTimelineBar: Starting drag for task:', task.id, task.title);
     if (onDragStart) {
       onDragStart(e, task);
+    }
+  };
+
+  const handleDragEnd = () => {
+    console.log('🎯 GanttTimelineBar: Ending drag for task:', task.id);
+    if (onDragEnd) {
+      onDragEnd();
     }
   };
 
   const hasActualDates = task.start_date && task.due_date;
   const isOverdue = calculatedEndDate < new Date() && task.status !== 'completed';
   const actualWidth = gridPosition.columnSpan * columnWidth;
+
+  console.log('🎯 GanttTimelineBar: Render task bar', {
+    taskId: task.id,
+    title: task.title,
+    isDragging,
+    isTaskBeingDragged,
+    hasHandlers: { onDragStart: !!onDragStart, onDragEnd: !!onDragEnd }
+  });
 
   return (
     <div className={`relative ${getBarHeight(viewMode)}`} style={{ width: `${timelineUnits.length * columnWidth}px` }}>
@@ -84,9 +103,9 @@ export const GanttTimelineBar = ({
 
       <TaskBarTooltip task={task} viewMode={viewMode}>
         <div
-          className={`absolute ${config.topOffset} ${config.height} rounded-md cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md ${
+          className={`absolute ${config.topOffset} ${config.height} rounded-md transition-all duration-200 hover:shadow-md ${
             isSelected ? 'ring-2 ring-orange-500 shadow-lg scale-105' : ''
-          } ${isDragging ? 'opacity-50 z-10' : ''} ${
+          } ${isTaskBeingDragged ? 'opacity-50 z-20 cursor-grabbing' : 'cursor-grab hover:opacity-80'} ${
             isOverdue ? 'ring-1 ring-red-400' : ''
           } ${phaseColor} ${
             !hasActualDates ? 'border-2 border-dashed border-white border-opacity-50' : ''
@@ -97,9 +116,9 @@ export const GanttTimelineBar = ({
             minWidth: config.minWidth
           }}
           onClick={handleClick}
-          draggable
+          draggable={!isTaskBeingDragged && !!onDragStart}
           onDragStart={handleDragStart}
-          onDragEnd={onDragEnd}
+          onDragEnd={handleDragEnd}
         >
           <TaskBarContent 
             task={task} 
@@ -133,7 +152,7 @@ export const GanttTimelineBar = ({
       {/* Debug info - remove after verification */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute -top-6 left-0 text-xs bg-yellow-200 px-1 rounded">
-          Col: {gridPosition.startColumnIndex} | Span: {gridPosition.columnSpan}
+          Col: {gridPosition.startColumnIndex} | Span: {gridPosition.columnSpan} | Draggable: {(!isTaskBeingDragged && !!onDragStart).toString()}
         </div>
       )}
     </div>
