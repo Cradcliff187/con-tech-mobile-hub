@@ -33,13 +33,13 @@ export const GanttTaskRow = ({
   isFirstRow = false,
   isCollapsed = false
 }: GanttTaskRowProps) => {
-  // Dynamic height based on collapse state
-  const rowHeight = isCollapsed ? '30px' : '60px';
+  // Dynamic height based on collapse state - Optimized heights
+  const rowHeight = isCollapsed ? '24px' : '48px'; // Reduced from 30px/60px
 
   return (
     <div className="flex border-b border-slate-200 hover:bg-slate-50 transition-colors duration-150">
-      {/* Task Card */}
-      <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0">
+      {/* Task Card - Reduced Width */}
+      <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0">
         <GanttTaskCard
           task={task}
           isSelected={selectedTaskId === task.id}

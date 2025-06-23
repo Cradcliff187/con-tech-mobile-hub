@@ -60,8 +60,8 @@ export const GanttTimelineHeader = ({
   return (
     <div className="border-b border-slate-200 bg-slate-50">
       <div className="flex">
-        {/* Left side - Navigation controls */}
-        <div className="w-80 lg:w-96 border-r border-slate-200 bg-white flex-shrink-0">
+        {/* Left side - Navigation controls - Reduced Width */}
+        <div className="w-64 lg:w-72 border-r border-slate-200 bg-white flex-shrink-0">
           <GanttTimelineNavigation
             onGoToToday={scrollToToday}
             onScrollLeft={scrollLeft}
@@ -85,15 +85,15 @@ export const GanttTimelineHeader = ({
             }}
           >
             <div className="min-w-max relative">
-              {/* Timeline units */}
-              <div className="flex h-12 bg-slate-50">
+              {/* Timeline units - Optimized widths */}
+              <div className="flex h-8 bg-slate-50"> {/* Reduced from h-12 to h-8 */}
                 {timelineUnits.map((unit, index) => (
                   <div
                     key={unit.key}
-                    className={`flex-shrink-0 px-2 py-2 text-xs font-medium border-r border-slate-200 flex items-center justify-center ${
+                    className={`flex-shrink-0 px-1 py-1 text-xs font-medium border-r border-slate-200 flex items-center justify-center ${
                       unit.isWeekend ? 'bg-slate-100 text-slate-500' : 'text-slate-700'
                     } ${
-                      viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
+                      viewMode === 'days' ? 'w-16' : viewMode === 'weeks' ? 'w-20' : 'w-24'
                     }`}
                   >
                     {unit.label}

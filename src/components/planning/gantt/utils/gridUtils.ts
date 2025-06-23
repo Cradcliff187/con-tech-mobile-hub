@@ -178,14 +178,14 @@ export const getTaskGridPosition = (
   };
 };
 
-// Get column width in pixels for each view mode
+// Get column width in pixels for each view mode - Optimized smaller widths
 export const getColumnWidth = (viewMode: 'days' | 'weeks' | 'months'): number => {
   switch (viewMode) {
     case 'days': 
-      return 96; // w-24 = 6rem = 96px
+      return 64; // Reduced from 96px to 64px (w-16)
     case 'weeks': 
-      return 128; // w-32 = 8rem = 128px
+      return 80; // Reduced from 128px to 80px (w-20)
     case 'months': 
-      return 160; // w-40 = 10rem = 160px
+      return 96; // Reduced from 160px to 96px (w-24)
   }
 };

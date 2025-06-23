@@ -34,7 +34,7 @@ export const GanttTimelineGrid = ({
             <div
               key={unit.key}
               className={`flex-shrink-0 border-r border-slate-100 h-full ${
-                viewMode === 'days' ? 'w-24' : viewMode === 'weeks' ? 'w-32' : 'w-40'
+                viewMode === 'days' ? 'w-16' : viewMode === 'weeks' ? 'w-20' : 'w-24'
               } ${
                 isCurrentColumn ? 'bg-blue-50 bg-opacity-50' : ''
               } ${

@@ -42,8 +42,8 @@ export const StandardGanttContainer = ({
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
       {/* Header with Timeline */}
       <div className="flex border-b border-slate-200">
-        {/* Task List Header - Fixed/Frozen Column */}
-        <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
+        {/* Task List Header - Fixed/Frozen Column - Reduced Width */}
+        <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
           {onToggleCollapse && (
             <TaskListHeader
               isCollapsed={isCollapsed}
