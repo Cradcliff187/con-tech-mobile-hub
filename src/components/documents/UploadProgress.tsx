@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -7,8 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UploadProgressProps {
   selectedFilesCount: number;
-  isU
-
+  isUploading: boolean;
   onUpload: () => void;
   onCancel?: () => void;
   variant?: 'dialog' | 'inline';
