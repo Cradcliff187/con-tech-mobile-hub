@@ -21,7 +21,7 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
     budget: undefined,
     client_id: defaultClientId || '',
     priority: 'medium',
-    lifecycle_status: 'pre_planning',
+    unified_lifecycle_status: 'pre_construction',
     start_date: '',
     end_date: ''
   });
@@ -133,7 +133,7 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
       budget: undefined,
       client_id: defaultClientId || '',
       priority: 'medium',
-      lifecycle_status: 'pre_planning',
+      unified_lifecycle_status: 'pre_construction',
       start_date: '',
       end_date: ''
     });
