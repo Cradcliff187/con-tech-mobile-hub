@@ -1,10 +1,11 @@
-
 import { Project, LifecycleStatus } from '@/types/database';
 import { 
   UnifiedLifecycleStatus, 
-  getUnifiedLifecycleStatus as getUnified,
   ProjectWithUnifiedStatus 
 } from '@/types/unified-lifecycle';
+import { 
+  getUnifiedLifecycleStatus as getUnified
+} from '@/utils/unified-lifecycle-utils';
 
 /**
  * DEPRECATED: Legacy lifecycle status utilities
