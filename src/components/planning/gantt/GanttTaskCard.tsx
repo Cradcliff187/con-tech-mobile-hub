@@ -46,6 +46,8 @@ const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) =
 };
 
 export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, isCollapsed = false }: GanttTaskCardProps) => {
+  console.log('📋 GanttTaskCard: Rendering task', task.title, 'collapsed:', isCollapsed);
+
   // If collapsed, render the collapsed version
   if (isCollapsed) {
     return (

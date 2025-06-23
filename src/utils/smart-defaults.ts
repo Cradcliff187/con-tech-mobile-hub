@@ -1,4 +1,3 @@
-
 import { Project, Task, TeamMember, LifecycleStatus } from '@/types/database';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { getLifecycleStatus, getTaskDefaultsForLifecycleStatus } from './lifecycle-status';
@@ -38,6 +37,51 @@ export const getDefaultHourlyRate = (stakeholderType: string): number => {
   };
   
   return rateMap[stakeholderType] || 60;
+};
+
+/**
+ * Get default required skills based on category and project phase
+ */
+export const getDefaultRequiredSkills = (category?: string, phase?: string): string[] => {
+  if (!category) return [];
+
+  const categorySkills: Record<string, string[]> = {
+    'Safety': ['safety protocols', 'hazmat handling', 'first aid'],
+    'Quality Control': ['inspection', 'quality assurance', 'documentation'],
+    'Installation': ['installation', 'assembly', 'technical skills'],
+    'Electrical': ['electrical work', 'wiring', 'circuit testing'],
+    'Plumbing': ['plumbing', 'pipe fitting', 'water systems'],
+    'HVAC': ['hvac systems', 'ventilation', 'climate control'],
+    'Carpentry': ['carpentry', 'woodwork', 'framing'],
+    'Concrete': ['concrete work', 'masonry', 'foundation'],
+    'Painting': ['painting', 'surface preparation', 'finishing'],
+    'Roofing': ['roofing', 'weatherproofing', 'height work']
+  };
+
+  return categorySkills[category] || [];
+};
+
+/**
+ * Get default priority based on project phase and category
+ */
+export const getDefaultPriority = (phase?: string, category?: string): 'low' | 'medium' | 'high' | 'critical' => {
+  // High priority for safety and quality control
+  if (category === 'Safety' || category === 'Quality Control') {
+    return 'high';
+  }
+
+  // Phase-based priorities
+  switch (phase) {
+    case 'punch_list':
+    case 'closeout':
+      return 'high';
+    case 'active':
+      return category === 'Installation' || category === 'Electrical' || category === 'Plumbing' ? 'high' : 'medium';
+    case 'planning':
+      return 'medium';
+    default:
+      return 'medium';
+  }
 };
 
 /**
