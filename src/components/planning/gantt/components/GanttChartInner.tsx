@@ -25,32 +25,31 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
 
   const {
     state,
+    getFilteredTasks,
+    selectTask
+  } = context;
+
+  // Access state properties correctly
+  const {
     tasks,
     loading,
     error,
     timelineStart,
     timelineEnd,
-    displayTasks,
     selectedTaskId,
-    setSelectedTaskId,
     viewMode,
-    isDragging,
-    draggedTaskId,
-    handleDragStart,
-    handleDragEnd,
-    onTaskUpdate
-  } = context;
+    dragState
+  } = state;
 
   console.log('🎯 GanttChartInner: Render with state:', {
     loading,
     error: error?.message,
     tasksCount: tasks?.length || 0,
-    displayTasksCount: displayTasks?.length || 0,
     projectId,
     isCollapsed
   });
 
-  const { processedTasks, processingStats } = useTaskProcessing(displayTasks || []);
+  const { processedTasks, processingStats } = useTaskProcessing({ projectId });
 
   // Loading state
   if (loading) {
@@ -61,36 +60,42 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   // Error state
   if (error) {
     console.error('❌ GanttChartInner: Showing error state:', error);
-    return <GanttErrorState error={error.message} />;
+    return <GanttErrorState error={error} />;
   }
 
+  // Get filtered tasks from context
+  const displayTasks = getFilteredTasks();
+
   // Empty state
-  if (!processedTasks || processedTasks.length === 0) {
+  if (!displayTasks || displayTasks.length === 0) {
     console.log('📭 GanttChartInner: Showing empty state');
     return <GanttEmptyState projectId={projectId} />;
   }
 
-  console.log('✅ GanttChartInner: Rendering Gantt chart with', processedTasks.length, 'tasks, collapsed:', isCollapsed);
+  console.log('✅ GanttChartInner: Rendering Gantt chart with', displayTasks.length, 'tasks, collapsed:', isCollapsed);
+
+  const handleTaskSelect = (taskId: string) => {
+    selectTask(selectedTaskId === taskId ? null : taskId);
+  };
 
   return (
     <div className="w-full">
       <GanttEnhancedHeader 
-        projectId={projectId}
-        taskCount={processedTasks.length}
+        taskCount={displayTasks.length}
         processingStats={processingStats}
       />
       
       <StandardGanttContainer
-        displayTasks={processedTasks}
+        displayTasks={displayTasks}
         timelineStart={timelineStart}
         timelineEnd={timelineEnd}
         selectedTaskId={selectedTaskId}
-        onTaskSelect={setSelectedTaskId}
+        onTaskSelect={handleTaskSelect}
         viewMode={viewMode}
-        isDragging={isDragging}
-        draggedTaskId={draggedTaskId}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
+        isDragging={dragState.isDragging}
+        draggedTaskId={dragState.draggedTask?.id || null}
+        onDragStart={() => {}} // These will be handled by drag bridge
+        onDragEnd={() => {}}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggleCollapse}
       />

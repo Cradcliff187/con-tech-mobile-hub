@@ -1,11 +1,19 @@
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttContext } from '@/contexts/gantt';
 
 interface UseTaskProcessingProps {
   projectId: string;
+}
+
+interface TaskProcessingStats {
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  blockedTasks: number;
+  completionPercentage: number;
 }
 
 export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
@@ -36,12 +44,29 @@ export const useTaskProcessing = ({ projectId }: UseTaskProcessingProps) => {
     }
   }, [tasks, projectId, context]);
 
-  const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+  // Calculate processing stats
+  const processingStats: TaskProcessingStats = useMemo(() => {
+    const totalTasks = projectTasks.length;
+    const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+    const inProgressTasks = projectTasks.filter(t => t.status === 'in-progress').length;
+    const blockedTasks = projectTasks.filter(t => t.status === 'blocked').length;
+    const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+    return {
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      blockedTasks,
+      completionPercentage
+    };
+  }, [projectTasks]);
 
   return {
     projectTasks,
+    processedTasks: projectTasks, // Alias for compatibility
     loading,
     error,
-    completedTasks
+    completedTasks: processingStats.completedTasks,
+    processingStats
   };
 };

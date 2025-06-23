@@ -100,7 +100,11 @@ const TaskManagerContent = memo(() => {
   }, []);
 
   const handleConvertToPunchList = useCallback(async () => {
-    const tasksToConvert = regularTasks.filter(canConvertToPunchList);
+    // Fix: Properly filter tasks that can be converted
+    const tasksToConvert = regularTasks.filter(task => {
+      if (!selectedProject) return false;
+      return canConvertToPunchList(task, selectedProject);
+    });
 
     if (tasksToConvert.length === 0) {
       toast({
@@ -131,7 +135,7 @@ const TaskManagerContent = memo(() => {
         throw new Error('Failed to convert some tasks');
       }
     });
-  }, [regularTasks, updateTask, convertOperation, toast]);
+  }, [regularTasks, selectedProject, updateTask, convertOperation, toast]);
 
   const handleEditTask = useCallback((task: Task) => {
     setSelectedTaskForEdit(task);
