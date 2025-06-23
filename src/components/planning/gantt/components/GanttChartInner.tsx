@@ -43,7 +43,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
 
   console.log('🎯 GanttChartInner: Render with state:', {
     loading,
-    error: typeof error === 'string' ? error : error?.message || 'Unknown error',
+    error: error || 'No error',
     tasksCount: tasks?.length || 0,
     projectId,
     isCollapsed
@@ -57,11 +57,10 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     return <GanttLoadingState />;
   }
 
-  // Error state - handle both string and Error object types
+  // Error state - error is a string | null
   if (error) {
-    const errorMessage = typeof error === 'string' ? error : error.message || 'Unknown error occurred';
-    console.error('❌ GanttChartInner: Showing error state:', errorMessage);
-    return <GanttErrorState error={errorMessage} />;
+    console.error('❌ GanttChartInner: Showing error state:', error);
+    return <GanttErrorState error={error} />;
   }
 
   // Get filtered tasks from context
