@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { Task } from '@/types/database';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttTaskRow } from '../GanttTaskRow';
@@ -35,18 +35,15 @@ export const StandardGanttContainer = ({
   isCollapsed = false,
   onToggleCollapse
 }: StandardGanttContainerProps) => {
-  const headerScrollRef = useRef<HTMLDivElement>(null);
-  const contentScrollRef = useRef<HTMLDivElement>(null);
-
-  // Use the scroll sync hook without arguments - it likely uses refs internally
-  useScrollSync();
+  // Use the scroll sync hook and get the refs it returns
+  const { headerScrollRef, contentScrollRef } = useScrollSync();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
       {/* Header with Timeline */}
       <div className="flex border-b border-slate-200">
-        {/* Task List Header */}
-        <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0">
+        {/* Task List Header - Fixed/Frozen Column */}
+        <div className="w-80 lg:w-96 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
           {onToggleCollapse && (
             <TaskListHeader
               isCollapsed={isCollapsed}
@@ -56,7 +53,7 @@ export const StandardGanttContainer = ({
           )}
         </div>
 
-        {/* Timeline Header */}
+        {/* Timeline Header - Scrollable */}
         <div className="flex-1 overflow-hidden">
           <div 
             ref={headerScrollRef}
