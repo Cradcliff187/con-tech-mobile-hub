@@ -23,7 +23,6 @@ interface StandardGanttContainerProps {
   onDrop?: (e: React.DragEvent) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  // Drag state for visual feedback
   dropPreviewDate?: Date | null;
   currentValidity?: 'valid' | 'warning' | 'invalid';
   violationMessages?: string[];
@@ -61,7 +60,7 @@ export const StandardGanttContainer = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
-      {/* Header with Timeline */}
+      {/* Header with Timeline - Pass the shared scroll ref */}
       <div className="flex border-b border-slate-200">
         {/* Task List Header - Fixed/Frozen Column */}
         <div className="w-64 lg:w-72 border-r border-slate-200 flex-shrink-0 bg-white sticky left-0 z-10">
@@ -74,18 +73,14 @@ export const StandardGanttContainer = ({
           )}
         </div>
 
-        {/* Timeline Header - Scrollable */}
+        {/* Timeline Header - Scrollable with shared scroll ref */}
         <div className="flex-1 overflow-hidden relative">
-          <div 
-            ref={headerScrollRef}
-            className="overflow-x-auto scrollbar-none"
-          >
-            <GanttTimelineHeader
-              timelineStart={timelineStart}
-              timelineEnd={timelineEnd}
-              viewMode={viewMode}
-            />
-          </div>
+          <GanttTimelineHeader
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            viewMode={viewMode}
+            scrollRef={headerScrollRef}
+          />
           
           {/* Snap grid overlay for timeline header */}
           <DragSnapGrid

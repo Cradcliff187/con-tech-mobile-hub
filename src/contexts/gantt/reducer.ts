@@ -16,7 +16,7 @@ export const initialGanttState = (): GanttState => {
     searchQuery: '',
     viewMode: 'weeks',
     
-    // Filter State - updated with unified lifecycle status
+    // Filter State
     filters: {
       status: [],
       priority: [],

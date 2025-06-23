@@ -36,7 +36,6 @@ export const GanttTimelineHeader = ({
     scrollContainerRef: headerScrollRef
   });
 
-  // Use the centralized timeline units hook
   const timelineUnits = useTimelineUnits(timelineStart, timelineEnd, viewMode);
 
   // Update scroll info when scrolling
@@ -47,7 +46,7 @@ export const GanttTimelineHeader = ({
 
     if (headerScrollRef.current) {
       headerScrollRef.current.addEventListener('scroll', handleScroll, { passive: true });
-      updateScrollInfo(); // Initial update
+      updateScrollInfo();
     }
 
     return () => {
@@ -55,12 +54,12 @@ export const GanttTimelineHeader = ({
         headerScrollRef.current.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [updateScrollInfo]);
+  }, [updateScrollInfo, headerScrollRef]);
 
   return (
     <div className="border-b border-slate-200 bg-slate-50">
       <div className="flex">
-        {/* Left side - Navigation controls - Reduced Width */}
+        {/* Left side - Navigation controls */}
         <div className="w-64 lg:w-72 border-r border-slate-200 bg-white flex-shrink-0">
           <GanttTimelineNavigation
             onGoToToday={scrollToToday}
@@ -85,8 +84,8 @@ export const GanttTimelineHeader = ({
             }}
           >
             <div className="min-w-max relative">
-              {/* Timeline units - Optimized widths */}
-              <div className="flex h-8 bg-slate-50"> {/* Reduced from h-12 to h-8 */}
+              {/* Timeline units */}
+              <div className="flex h-8 bg-slate-50">
                 {timelineUnits.map((unit, index) => (
                   <div
                     key={unit.key}
