@@ -77,57 +77,57 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
       }`}
       onClick={handleClick}
     >
-      <CardContent className="p-2 py-1.5"> {/* Reduced padding from p-3 to p-2 py-1.5 */}
+      <CardContent className="p-2 py-1.5">
         {/* Priority + Title */}
-        <div className="flex items-start gap-1 mb-1"> {/* Reduced gap and margin */}
+        <div className="flex items-start gap-1 mb-1">
           {getPriorityIcon(task.priority)}
           <div className="flex-1 min-w-0">
             <h4 className={`text-xs font-semibold line-clamp-2 leading-tight ${
               isSelected ? 'text-blue-800' : 'text-slate-800'
-            }`}> {/* Reduced from text-sm to text-xs */}
+            }`}>
               {task.title}
             </h4>
           </div>
         </div>
         
         {/* Category + Type Badges */}
-        <div className="flex flex-wrap gap-1 mb-1"> {/* Reduced margin */}
+        <div className="flex flex-wrap gap-1 mb-1">
           {task.category && (
-            <Badge className={`text-xs px-1 py-0.5 ${getCategoryBadgeColor(task.category)}`}> {/* Reduced padding */}
+            <Badge className={`text-xs px-1 py-0.5 ${getCategoryBadgeColor(task.category)}`}>
               {task.category}
             </Badge>
           )}
           {task.task_type === 'punch_list' && (
-            <Badge className="bg-purple-100 text-purple-700 text-xs px-1 py-0.5"> {/* Reduced padding */}
+            <Badge className="bg-purple-100 text-purple-700 text-xs px-1 py-0.5">
               Punch
             </Badge>
           )}
         </div>
         
         {/* Assignee + Progress */}
-        <div className="flex justify-between items-center mb-1"> {/* Reduced margin */}
+        <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-1 text-xs text-slate-600">
-            <User size={10} className="flex-shrink-0" /> {/* Reduced icon size */}
-            <span className="truncate text-xs">{getAssigneeName(task)}</span> {/* Reduced text size */}
+            <User size={10} className="flex-shrink-0" />
+            <span className="truncate text-xs">{getAssigneeName(task)}</span>
           </div>
           <span className={`text-xs font-semibold ${
             isSelected ? 'text-blue-800' : 'text-slate-800'
-          }`}>{task.progress || 0}%</span> {/* Reduced text size */}
+          }`}>{task.progress || 0}%</span>
         </div>
         
         {/* Progress Bar */}
-        <Progress value={task.progress || 0} className="h-1 mb-1" /> {/* Reduced margin */}
+        <Progress value={task.progress || 0} className="h-1 mb-1" />
         
         {/* Compact Dates with Duration */}
-        <div className="space-y-0.5 mb-1"> {/* Reduced spacing and margin */}
+        <div className="space-y-0.5 mb-1">
           <div className={`text-xs ${dateInfo.isCalculated ? 'text-slate-500' : 'text-slate-700'}`}>
             {dateInfo.dateRange}{dateInfo.indicator}
           </div>
           <div className="flex items-center gap-1 text-xs text-slate-500">
-            <Clock size={10} className="flex-shrink-0" /> {/* Reduced icon size */}
-            <span className="text-xs">{dateInfo.duration}</span> {/* Reduced text size */}
+            <Clock size={10} className="flex-shrink-0" />
+            <span className="text-xs">{dateInfo.duration}</span>
             {task.estimated_hours && (
-              <span className="ml-1 text-xs">• {task.estimated_hours}h</span> {/* Reduced spacing and text */}
+              <span className="ml-1 text-xs">• {task.estimated_hours}h</span>
             )}
           </div>
         </div>
@@ -135,13 +135,13 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
         {/* Required Skills - More compact */}
         {task.required_skills && task.required_skills.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {task.required_skills.slice(0, 1).map((skill, i) => ( // Show only 1 skill instead of 2
-              <span key={i} className="text-xs bg-slate-100 text-slate-600 px-1 py-0.5 rounded"> {/* Reduced padding */}
+            {task.required_skills.slice(0, 1).map((skill, i) => (
+              <span key={i} className="text-xs bg-slate-100 text-slate-600 px-1 py-0.5 rounded">
                 {skill}
               </span>
             ))}
             {task.required_skills.length > 1 && (
-              <span className="text-xs text-slate-500">+{task.required_skills.length - 1}</span> {/* Adjusted count */}
+              <span className="text-xs text-slate-500">+{task.required_skills.length - 1}</span>
             )}
           </div>
         )}
