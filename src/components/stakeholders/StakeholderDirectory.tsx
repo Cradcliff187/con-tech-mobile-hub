@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { StakeholderCard } from './StakeholderCard';
@@ -14,7 +13,7 @@ import { Search, SortAsc, SortDesc, Plus } from 'lucide-react';
 import type { Stakeholder } from '@/hooks/useStakeholders';
 
 export const StakeholderDirectory = () => {
-  const { stakeholders, loading, updateStakeholder, deleteStakeholder, createStakeholder, refetch } = useStakeholders();
+  const { stakeholders, loading, updateStakeholder, deleteStakeholder: deleteStakeholderFn, createStakeholder, refetch } = useStakeholders();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -26,7 +25,7 @@ export const StakeholderDirectory = () => {
 
   // Dialog states
   const [editStakeholder, setEditStakeholder] = useState<Stakeholder | null>(null);
-  const [deleteStakeholder, setDeleteStakeholder] = useState<Stakeholder | null>(null);
+  const [stakeholderToDelete, setStakeholderToDelete] = useState<Stakeholder | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleViewChange = (newView: 'grid' | 'list') => {
@@ -39,7 +38,7 @@ export const StakeholderDirectory = () => {
   };
 
   const handleDelete = (stakeholder: Stakeholder) => {
-    setDeleteStakeholder(stakeholder);
+    setStakeholderToDelete(stakeholder);
   };
 
   const handleCreate = () => {
@@ -53,7 +52,7 @@ export const StakeholderDirectory = () => {
 
   const handleStakeholderDeleted = () => {
     refetch();
-    setDeleteStakeholder(null);
+    setStakeholderToDelete(null);
   };
 
   const handleStakeholderCreated = () => {
@@ -246,20 +245,19 @@ export const StakeholderDirectory = () => {
         open={!!editStakeholder}
         onOpenChange={(open) => !open && setEditStakeholder(null)}
         stakeholder={editStakeholder}
-        onStakeholderUpdated={handleStakeholderUpdated}
       />
 
       <DeleteStakeholderDialog
-        open={!!deleteStakeholder}
-        onOpenChange={(open) => !open && setDeleteStakeholder(null)}
-        stakeholder={deleteStakeholder}
+        open={!!stakeholderToDelete}
+        onOpenChange={(open) => !open && setStakeholderToDelete(null)}
+        stakeholder={stakeholderToDelete}
         onDeleted={handleStakeholderDeleted}
       />
 
       <CreateStakeholderDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        onStakeholderCreated={handleStakeholderCreated}
+        onSuccess={handleStakeholderCreated}
       />
     </div>
   );
