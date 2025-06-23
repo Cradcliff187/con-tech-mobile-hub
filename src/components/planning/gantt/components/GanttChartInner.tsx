@@ -43,7 +43,7 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
 
   console.log('🎯 GanttChartInner: Render with state:', {
     loading,
-    error: error?.message,
+    error: typeof error === 'string' ? error : error?.message || 'Unknown error',
     tasksCount: tasks?.length || 0,
     projectId,
     isCollapsed
@@ -57,10 +57,11 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     return <GanttLoadingState />;
   }
 
-  // Error state
+  // Error state - handle both string and Error object types
   if (error) {
-    console.error('❌ GanttChartInner: Showing error state:', error);
-    return <GanttErrorState error={error} />;
+    const errorMessage = typeof error === 'string' ? error : error.message || 'Unknown error occurred';
+    console.error('❌ GanttChartInner: Showing error state:', errorMessage);
+    return <GanttErrorState error={errorMessage} />;
   }
 
   // Get filtered tasks from context
@@ -78,11 +79,26 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
+  // Calculate timeline duration for header
+  const totalDays = useMemo(() => {
+    if (!timelineStart || !timelineEnd) return 0;
+    return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+  }, [timelineStart, timelineEnd]);
+
+  // Calculate punch list tasks
+  const punchListTasks = useMemo(() => {
+    return displayTasks.filter(task => task.task_type === 'punch_list').length;
+  }, [displayTasks]);
+
   return (
     <div className="w-full">
       <GanttEnhancedHeader 
-        taskCount={displayTasks.length}
-        processingStats={processingStats}
+        totalDays={totalDays}
+        completedTasks={processingStats.completedTasks}
+        punchListTasks={punchListTasks}
+        localUpdatesCount={0}
+        onResetUpdates={() => {}}
+        tasks={displayTasks}
       />
       
       <StandardGanttContainer
