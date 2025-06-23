@@ -12,40 +12,70 @@ import { RecentActivity } from './RecentActivity';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { ProjectSummaryBar } from './ProjectSummaryBar';
+import { MigrationWarning } from '@/components/common/MigrationWarning';
 // Hooks
 import { useProjects } from '@/hooks/useProjects';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+// Migration utilities
+import { getMigrationStatus, getMigrationWarningMessage, logMigrationStatus } from '@/utils/migration-detection';
+import { getLifecycleStatus } from '@/utils/lifecycle-status';
 
 /**
  * ProjectDashboard - Main dashboard component with redesigned layout
  * 
  * Layout Structure:
- * 1. ProjectSummaryBar - Portfolio-wide metrics and navigation
- * 2. Dashboard Header - Title and Create Project action
- * 3. Primary Metrics Grid - 6 key dashboard components in responsive grid
- * 4. Recent Activity - Activity feed at bottom
+ * 1. Migration Warning (if needed)
+ * 2. ProjectSummaryBar - Portfolio-wide metrics and navigation
+ * 3. Dashboard Header - Title and Create Project action
+ * 4. Primary Metrics Grid - 6 key dashboard components in responsive grid
+ * 5. Recent Activity - Activity feed at bottom
  * 
  * Responsive Design:
  * - Desktop (lg+): 3-column grid
  * - Tablet (md): 2-column grid  
  * - Mobile (sm): 1-column grid
- * 
- * Deprecated Components Removed:
- * - QuickStats (replaced by ProjectSummaryBar)
- * - WeatherWidget (replaced by CompactWeatherWidget)
- * - AdvancedMetrics (integrated into individual components)
- * - Project-specific sections (moved to project detail views)
  */
 export const ProjectDashboard = () => {
-  const { projects } = useProjects();
+  const { projects, updateProject } = useProjects();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
+  const [migrationDismissed, setMigrationDismissed] = useState(false);
 
   const selectedProject = projectId ? projects.find(p => p.id === projectId) : null;
+
+  // Check migration status
+  const migrationStatus = getMigrationStatus(projects);
+  const migrationWarningMessage = getMigrationWarningMessage(migrationStatus);
+
+  // Log migration status for debugging
+  useEffect(() => {
+    if (projects.length > 0) {
+      logMigrationStatus(projects);
+    }
+  }, [projects]);
+
+  // Handle mass migration
+  const handleMigrateAllProjects = async () => {
+    const projectsToMigrate = projects.filter(p => !p.lifecycle_status);
+    
+    console.log(`🔄 Starting migration of ${projectsToMigrate.length} projects...`);
+    
+    for (const project of projectsToMigrate) {
+      const lifecycleStatus = getLifecycleStatus(project);
+      console.log(`Migrating project "${project.name}" to lifecycle_status: ${lifecycleStatus}`);
+      
+      await updateProject(project.id, {
+        lifecycle_status: lifecycleStatus
+      });
+    }
+    
+    console.log('✅ Migration completed successfully!');
+    setMigrationDismissed(true);
+  };
 
   // Setup keyboard shortcuts
   useKeyboardShortcuts([
@@ -59,6 +89,19 @@ export const ProjectDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Migration Warning */}
+      {migrationStatus.needsMigration && !migrationDismissed && (
+        <MigrationWarning
+          title="Lifecycle Status Migration Available"
+          message={migrationWarningMessage}
+          actionLabel="Migrate All Projects"
+          onAction={handleMigrateAllProjects}
+          type="info"
+          dismissible
+          onDismiss={() => setMigrationDismissed(true)}
+        />
+      )}
+
       {/* Portfolio Summary Bar - Key metrics and navigation */}
       <ProjectSummaryBar />
 

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -22,6 +22,7 @@ import { NavigationItem } from '@/types/navigation';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { EnhancedSidebarTrigger } from '@/components/navigation/EnhancedSidebarTrigger';
 import { useSidebarFocus } from '@/hooks/useSidebarFocus';
+import { addTestCommands } from '@/utils/migration-test-utils';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -45,6 +46,13 @@ const IndexContent = () => {
   const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
   const { triggerRef } = useSidebarFocus();
+
+  // Add development test utilities
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      addTestCommands();
+    }
+  }, []);
 
   const handleSectionChange = (searchParamsString: string) => {
     setSearchParams(searchParamsString);

@@ -2,6 +2,8 @@
 import { MapPin, Calendar, Clock, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatAddress } from '@/utils/addressFormatting';
+import { LifecycleStatusBadge } from '@/components/ui/lifecycle-status-badge';
+import { getLifecycleStatus } from '@/utils/lifecycle-status';
 
 interface ProjectCardProps {
   project: {
@@ -13,6 +15,7 @@ interface ProjectCardProps {
     end_date?: string;
     status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
     phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
+    lifecycle_status?: string;
     location?: string;
     street_address?: string;
     city?: string;
@@ -28,21 +31,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
-  const statusColors = {
-    'planning': 'bg-blue-100 text-blue-800',
-    'active': 'bg-green-100 text-green-800',
-    'on-hold': 'bg-yellow-100 text-yellow-800',
-    'completed': 'bg-green-100 text-green-800',
-    'cancelled': 'bg-red-100 text-red-800'
-  };
-
-  const phaseColors = {
-    'planning': 'border-blue-500 text-blue-700',
-    'active': 'border-green-500 text-green-700',
-    'punch_list': 'border-orange-500 text-orange-700',
-    'closeout': 'border-yellow-500 text-yellow-700',
-    'completed': 'border-gray-500 text-gray-700'
-  };
+  const lifecycleStatus = getLifecycleStatus(project as any);
 
   const progressColor = project.progress >= 75 ? 'bg-green-500' : 
                        project.progress >= 50 ? 'bg-orange-500' : 'bg-blue-500';
@@ -85,12 +74,7 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
           {project.name}
         </h3>
         <div className="flex items-center gap-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
-            {project.status.replace('-', ' ')}
-          </span>
-          <Badge variant="outline" className={phaseColors[project.phase]}>
-            {project.phase.replace('_', ' ')}
-          </Badge>
+          <LifecycleStatusBadge status={lifecycleStatus} size="sm" />
         </div>
       </div>
 
