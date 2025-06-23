@@ -21,7 +21,7 @@ export const initialGanttState = (): GanttState => {
       status: [],
       priority: [],
       category: [],
-      lifecycle_status: [], // Updated to use unified lifecycle status
+      lifecycle_status: [],
     },
     
     // Timeline State

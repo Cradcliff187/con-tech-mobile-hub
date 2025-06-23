@@ -1,3 +1,4 @@
+
 import { Task } from '@/types/database';
 import { Dispatch } from 'react';
 
@@ -27,6 +28,9 @@ export interface GanttContextValue {
 
 export type GanttAction =
   | { type: 'SET_TASKS'; payload: Task[] }
+  | { type: 'ADD_TASK'; payload: Task }
+  | { type: 'UPDATE_TASK'; payload: { id: string; updates: Partial<Task> } }
+  | { type: 'DELETE_TASK'; payload: string }
   | { type: 'SET_OPTIMISTIC_UPDATE'; payload: { id: string; updates: Partial<Task> } }
   | { type: 'CLEAR_OPTIMISTIC_UPDATE'; payload: string }
   | { type: 'CLEAR_ALL_OPTIMISTIC_UPDATES' }
@@ -34,6 +38,7 @@ export type GanttAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_FILTERS'; payload: Partial<GanttState['filters']> }
   | { type: 'SET_VIEW_MODE'; payload: 'days' | 'weeks' | 'months' }
+  | { type: 'SET_TIMELINE_BOUNDS'; payload: { start: Date; end: Date } }
   | { type: 'SET_VIEWPORT'; payload: { start: Date; end: Date } }
   | { type: 'SET_SHOW_MINIMAP'; payload: boolean }
   | { type: 'SET_DRAG_STATE'; payload: Partial<GanttState['dragState']> }
@@ -43,6 +48,8 @@ export type GanttAction =
 
 export interface GanttState {
   // Timeline and Viewport
+  timelineStart: Date;
+  timelineEnd: Date;
   currentViewStart: Date;
   currentViewEnd: Date;
   viewMode: 'days' | 'weeks' | 'months';
@@ -58,8 +65,8 @@ export interface GanttState {
   filters: {
     status: string[];
     priority: string[];
-    assignee: string[];
-    phase: string[];
+    category: string[];
+    lifecycle_status: string[];
   };
   
   // Drag and Drop

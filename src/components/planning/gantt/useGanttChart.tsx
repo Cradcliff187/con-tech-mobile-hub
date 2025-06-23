@@ -134,6 +134,14 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
   // Calculate optimistic updates count
   const optimisticUpdatesCount = optimisticUpdates ? optimisticUpdates.size : 0;
 
+  // Ensure filters matches FilterState structure
+  const safeFilters: FilterState = {
+    status: filters?.status || [],
+    priority: filters?.priority || [],
+    category: filters?.category || [],
+    lifecycle_status: filters?.lifecycle_status || []
+  };
+
   return {
     // Data
     projectTasks,
@@ -154,7 +162,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     selectedTaskId,
     searchQuery,
     setSearchQuery,
-    filters,
+    filters: safeFilters,
     viewMode,
     setViewMode,
     

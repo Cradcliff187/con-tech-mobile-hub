@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
 import { useGanttCollapse } from '../hooks/useGanttCollapse';
@@ -91,7 +92,12 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   // Ensure filters has proper FilterState structure
   const safeFilters = useMemo(() => {
     return filters && typeof filters === 'object' && 'status' in filters 
-      ? filters 
+      ? {
+          status: filters.status || [],
+          priority: filters.priority || [],
+          category: filters.category || [],
+          lifecycle_status: filters.lifecycle_status || []
+        }
       : {
           status: [],
           priority: [],

@@ -68,8 +68,15 @@ export const useGanttDataManager = ({ projectId, state, dispatch }: UseGanttData
     });
   }, [state.tasks, dispatch]);
 
-  // Apply filters to get filtered tasks
-  const { filteredTasks } = useGanttFilters(state.tasks, state.filters);
+  // Apply filters to get filtered tasks with proper filter structure
+  const filterState = {
+    status: state.filters.status || [],
+    priority: state.filters.priority || [],
+    category: state.filters.category || [],
+    lifecycle_status: state.filters.lifecycle_status || []
+  };
+
+  const { filteredTasks } = useGanttFilters(state.tasks, filterState);
 
   return {
     filteredTasks

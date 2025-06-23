@@ -7,7 +7,7 @@ export interface FilterState {
   status: string[];
   priority: string[];
   category: string[];
-  lifecycle_status: UnifiedLifecycleStatus[]; // Updated to use UnifiedLifecycleStatus
+  lifecycle_status: string[];
 }
 
 // Filter change handler type
