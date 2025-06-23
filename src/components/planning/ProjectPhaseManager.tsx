@@ -6,7 +6,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Target, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateAutoPunchListItems, calculatePhaseReadiness } from '@/utils/phase-automation';
+import { generateAutoPunchListItems, calculatePhaseReadiness } from '@/utils/phase-automation-unified';
+import { getLifecycleStatus, getLifecycleStatusLabel, getLegacyStatusFromLifecycle } from '@/utils/lifecycle-status';
 import { PhaseStatusCard } from './PhaseStatusCard';
 import { PhaseTransitionDialog } from './PhaseTransitionDialog';
 import { PhaseRequirements } from './PhaseRequirements';
@@ -15,23 +16,15 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorFallback } from '@/components/common/ErrorFallback';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface PhaseReadiness {
-  currentPhase: string;
-  completionPercentage: number;
-  canAdvance: boolean;
-  nextPhase: string | null;
-  requirements: string[];
-  recommendations: string[];
-}
+import { LifecycleStatus } from '@/types/database';
 
 export const ProjectPhaseManager = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
-  const { projects, loading: projectsLoading } = useProjects();
+  const { projects, loading: projectsLoading, updateProject } = useProjects();
   const { tasks, createTask, loading: tasksLoading } = useTasks();
   const [showTransitionDialog, setShowTransitionDialog] = useState(false);
-  const [targetPhase, setTargetPhase] = useState<string>('');
+  const [targetLifecycleStatus, setTargetLifecycleStatus] = useState<LifecycleStatus>('pre_planning');
 
   const generatePunchListOperation = useAsyncOperation({
     successMessage: "",
@@ -65,101 +58,8 @@ export const ProjectPhaseManager = () => {
     );
   }
 
-  let phaseReadiness;
-  try {
-    phaseReadiness = calculatePhaseReadiness(project, projectTasks);
-  } catch (error) {
-    console.error('Error calculating phase readiness:', error);
-    return (
-      <ErrorFallback
-        title="Phase Calculation Error"
-        description="There was a problem calculating the project phase readiness."
-        resetError={() => window.location.reload()}
-      />
-    );
-  }
-
-  const calculatePhaseReadinessLegacy = (): PhaseReadiness => {
-    const totalTasks = projectTasks.length;
-    const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
-    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    
-    const budgetUsage = project.budget && project.spent 
-      ? (project.spent / project.budget) * 100 
-      : 0;
-
-    let canAdvance = false;
-    let nextPhase: string | null = null;
-    let requirements: string[] = [];
-    let recommendations: string[] = [];
-
-    switch (project.phase) {
-      case 'planning':
-        nextPhase = 'active';
-        canAdvance = totalTasks > 0 && project.budget && project.budget > 0;
-        requirements = [
-          'At least one task must be created',
-          'Project budget must be set',
-          'Start date should be defined'
-        ];
-        if (!canAdvance) {
-          if (totalTasks === 0) recommendations.push('Create project tasks to begin execution');
-          if (!project.budget) recommendations.push('Set project budget for resource planning');
-        }
-        break;
-
-      case 'active':
-        nextPhase = 'punch_list';
-        canAdvance = phaseReadiness.canAdvanceToPunchList;
-        requirements = [
-          'At least 90% of tasks must be completed',
-          'Major construction work should be finished'
-        ];
-        if (phaseReadiness.readinessScore >= 80 && phaseReadiness.readinessScore < 90) {
-          recommendations.push('Project is nearing completion - prepare for punch list phase');
-        }
-        if (budgetUsage > 95) {
-          recommendations.push('Budget usage is high - review remaining costs');
-        }
-        break;
-
-      case 'punch_list':
-        nextPhase = 'closeout';
-        canAdvance = phaseReadiness.canAdvanceToCloseout;
-        requirements = [
-          'All punch list items must be completed',
-          'Overall project completion should be 95%+'
-        ];
-        if (phaseReadiness.punchListTasks === 0) {
-          recommendations.push('Generate punch list items for final quality checks');
-        }
-        break;
-
-      case 'closeout':
-        nextPhase = 'completed';
-        canAdvance = completionPercentage >= 100;
-        requirements = [
-          'All tasks must be completed',
-          'Final inspections should be passed',
-          'Documentation should be complete'
-        ];
-        recommendations.push('Prepare final project documentation and client handover');
-        break;
-
-      case 'completed':
-        requirements.push('Project is complete');
-        break;
-    }
-
-    return {
-      currentPhase: project.phase,
-      completionPercentage,
-      canAdvance,
-      nextPhase,
-      requirements,
-      recommendations
-    };
-  };
+  const currentLifecycleStatus = getLifecycleStatus(project);
+  const phaseReadiness = calculatePhaseReadiness(project, projectTasks);
 
   const handleGeneratePunchList = async () => {
     if (!projectId) return;
@@ -195,20 +95,25 @@ export const ProjectPhaseManager = () => {
   };
 
   const handlePhaseTransition = async () => {
-    if (!projectId || !targetPhase) return;
+    if (!projectId || !targetLifecycleStatus) return;
 
     await phaseTransitionOperation.execute(async () => {
       try {
-        const { error } = await supabase
-          .from('projects')
-          .update({ phase: targetPhase })
-          .eq('id', projectId);
+        // Get legacy status/phase for backward compatibility
+        const legacyStatus = getLegacyStatusFromLifecycle(targetLifecycleStatus);
+        
+        // Update both lifecycle_status and legacy fields
+        const { error } = await updateProject(projectId, {
+          lifecycle_status: targetLifecycleStatus,
+          status: legacyStatus.status,
+          phase: legacyStatus.phase
+        });
 
         if (error) throw error;
 
-        toast.success(`Project advanced to ${targetPhase.replace('_', ' ')} phase`);
+        toast.success(`Project advanced to ${getLifecycleStatusLabel(targetLifecycleStatus)}`);
         setShowTransitionDialog(false);
-        setTargetPhase('');
+        setTargetLifecycleStatus('pre_planning');
       } catch (error) {
         console.error('Error updating project phase:', error);
         throw error;
@@ -216,14 +121,76 @@ export const ProjectPhaseManager = () => {
     });
   };
 
-  const readiness = calculatePhaseReadinessLegacy();
-
-  const handleAdvancePhase = (phase: string) => {
-    setTargetPhase(phase);
+  const handleAdvancePhase = (lifecycleStatus: LifecycleStatus) => {
+    setTargetLifecycleStatus(lifecycleStatus);
     setShowTransitionDialog(true);
   };
 
   const isUpdating = generatePunchListOperation.loading || phaseTransitionOperation.loading;
+
+  // Generate phase requirements and recommendations based on lifecycle status
+  const getPhaseRequirements = (): string[] => {
+    switch (currentLifecycleStatus) {
+      case 'pre_planning':
+        return [
+          'At least one task must be created',
+          'Project budget must be set',
+          'Start date should be defined'
+        ];
+      case 'planning_active':
+        return [
+          'Project planning should be substantially complete',
+          'Key tasks should be defined and assigned',
+          'Resource allocation should be planned'
+        ];
+      case 'construction_active':
+        return [
+          'At least 90% of tasks must be completed',
+          'Major construction work should be finished'
+        ];
+      case 'punch_list_phase':
+        return [
+          'All punch list items must be completed',
+          'Overall project completion should be 95%+'
+        ];
+      case 'project_closeout':
+        return [
+          'All tasks must be completed',
+          'Final inspections should be passed',
+          'Documentation should be complete'
+        ];
+      default:
+        return ['Project phase requirements will appear here'];
+    }
+  };
+
+  const getPhaseRecommendations = (): string[] => {
+    switch (currentLifecycleStatus) {
+      case 'pre_planning':
+        if (projectTasks.length === 0) return ['Create project tasks to begin execution'];
+        if (!project.budget) return ['Set project budget for resource planning'];
+        return ['Define project timeline and key milestones'];
+      case 'planning_active':
+        return ['Review and finalize all project plans before starting construction'];
+      case 'construction_active':
+        if (phaseReadiness.readinessScore >= 80 && phaseReadiness.readinessScore < 90) {
+          return ['Project is nearing completion - prepare for punch list phase'];
+        }
+        if (phaseReadiness.budgetUsage > 95) {
+          return ['Budget usage is high - review remaining costs'];
+        }
+        return ['Monitor progress and quality regularly'];
+      case 'punch_list_phase':
+        if (phaseReadiness.punchListTasks === 0) {
+          return ['Generate punch list items for final quality checks'];
+        }
+        return ['Complete all punch list items for project closeout'];
+      case 'project_closeout':
+        return ['Prepare final project documentation and client handover'];
+      default:
+        return [];
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -237,25 +204,24 @@ export const ProjectPhaseManager = () => {
       )}
 
       <PhaseStatusCard
-        currentPhase={readiness.currentPhase}
+        currentLifecycleStatus={currentLifecycleStatus}
         readinessScore={phaseReadiness.readinessScore}
-        canAdvance={readiness.canAdvance}
-        nextPhase={readiness.nextPhase}
+        canAdvance={phaseReadiness.canAdvance}
         shouldGeneratePunchList={phaseReadiness.shouldGeneratePunchList}
         isUpdating={isUpdating}
         onAdvancePhase={handleAdvancePhase}
         onGeneratePunchList={handleGeneratePunchList}
       />
 
-      <PhaseRequirements requirements={readiness.requirements} />
+      <PhaseRequirements requirements={getPhaseRequirements()} />
 
-      <PhaseRecommendations recommendations={readiness.recommendations} />
+      <PhaseRecommendations recommendations={getPhaseRecommendations()} />
 
       <PhaseTransitionDialog
         open={showTransitionDialog}
         onOpenChange={setShowTransitionDialog}
-        currentPhase={readiness.currentPhase}
-        targetPhase={targetPhase}
+        currentPhase={getLifecycleStatusLabel(currentLifecycleStatus)}
+        targetPhase={getLifecycleStatusLabel(targetLifecycleStatus)}
         isUpdating={phaseTransitionOperation.loading}
         onConfirm={handlePhaseTransition}
       />

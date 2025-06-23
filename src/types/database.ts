@@ -1,4 +1,3 @@
-
 export interface StructuredAddress {
   street_address?: string;
   city?: string;
@@ -6,12 +5,24 @@ export interface StructuredAddress {
   zip_code?: string;
 }
 
+// New unified lifecycle status type
+export type LifecycleStatus = 
+  | 'pre_planning'
+  | 'planning_active' 
+  | 'construction_active'
+  | 'construction_hold'
+  | 'punch_list_phase'
+  | 'project_closeout'
+  | 'project_completed'
+  | 'project_cancelled';
+
 export interface Project {
   id: string;
   name: string;
   description?: string;
   status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
   phase: 'planning' | 'active' | 'punch_list' | 'closeout' | 'completed';
+  lifecycle_status?: LifecycleStatus; // New unified status field
   start_date?: string;
   end_date?: string;
   budget?: number;

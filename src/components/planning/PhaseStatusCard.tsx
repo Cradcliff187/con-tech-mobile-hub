@@ -7,64 +7,74 @@ import {
   Clock, 
   ArrowRight,
   ListChecks,
-  Target
+  Target,
+  Settings,
+  PlayCircle,
+  PauseCircle
 } from 'lucide-react';
+import { LifecycleStatus } from '@/types/database';
+import { 
+  getLifecycleStatusLabel, 
+  getLifecycleStatusColor,
+  getNextLifecycleStatus 
+} from '@/utils/lifecycle-status';
 
 interface PhaseStatusCardProps {
-  currentPhase: string;
+  currentLifecycleStatus: LifecycleStatus;
   readinessScore: number;
   canAdvance: boolean;
-  nextPhase: string | null;
   shouldGeneratePunchList: boolean;
   isUpdating: boolean;
-  onAdvancePhase: (phase: string) => void;
+  onAdvancePhase: (lifecycleStatus: LifecycleStatus) => void;
   onGeneratePunchList: () => void;
 }
 
 export const PhaseStatusCard = ({
-  currentPhase,
+  currentLifecycleStatus,
   readinessScore,
   canAdvance,
-  nextPhase,
   shouldGeneratePunchList,
   isUpdating,
   onAdvancePhase,
   onGeneratePunchList
 }: PhaseStatusCardProps) => {
-  const getPhaseColor = (phase: string) => {
-    switch (phase) {
-      case 'planning': return 'bg-blue-500';
-      case 'active': return 'bg-green-500';
-      case 'punch_list': return 'bg-orange-500';
-      case 'closeout': return 'bg-purple-500';
-      case 'completed': return 'bg-slate-500';
-      default: return 'bg-slate-400';
+  const nextLifecycleStatus = getNextLifecycleStatus(currentLifecycleStatus);
+
+  const getPhaseIcon = (lifecycleStatus: LifecycleStatus) => {
+    switch (lifecycleStatus) {
+      case 'pre_planning':
+        return Settings;
+      case 'planning_active':
+        return Clock;
+      case 'construction_active':
+        return PlayCircle;
+      case 'construction_hold':
+        return PauseCircle;
+      case 'punch_list_phase':
+        return ListChecks;
+      case 'project_closeout':
+        return CheckCircle;
+      case 'project_completed':
+        return CheckCircle;
+      case 'project_cancelled':
+        return CheckCircle;
+      default:
+        return Clock;
     }
   };
 
-  const getPhaseIcon = (phase: string) => {
-    switch (phase) {
-      case 'planning': return Clock;
-      case 'active': return Target;
-      case 'punch_list': return ListChecks;
-      case 'closeout': return CheckCircle;
-      case 'completed': return CheckCircle;
-      default: return Clock;
-    }
-  };
-
-  const PhaseIcon = getPhaseIcon(currentPhase);
+  const PhaseIcon = getPhaseIcon(currentLifecycleStatus);
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${getPhaseColor(currentPhase)} text-white`}>
+          <div className={`p-2 rounded-lg ${getLifecycleStatusColor(currentLifecycleStatus)} text-white`}>
             <PhaseIcon size={20} />
           </div>
           <div>
             <h3 className="font-semibold text-slate-800">
-              {currentPhase.replace('_', ' ').toUpperCase()} PHASE
+              {getLifecycleStatusLabel(currentLifecycleStatus).toUpperCase()}
             </h3>
             <p className="text-sm text-slate-600">
               {Math.round(readinessScore)}% Complete
@@ -87,19 +97,20 @@ export const PhaseStatusCard = ({
       </div>
 
       {/* Phase Transition Actions */}
-      {canAdvance && nextPhase && (
+      {canAdvance && nextLifecycleStatus && (
         <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-green-600" />
               <span className="text-green-800 font-medium">
-                Ready to advance to {nextPhase.replace('_', ' ')} phase
+                Ready to advance to {getLifecycleStatusLabel(nextLifecycleStatus)}
               </span>
             </div>
             <Button
-              onClick={() => onAdvancePhase(nextPhase)}
+              onClick={() => onAdvancePhase(nextLifecycleStatus)}
               className="bg-green-600 hover:bg-green-700"
               size="sm"
+              disabled={isUpdating}
             >
               <ArrowRight size={16} className="mr-1" />
               Advance Phase

@@ -1,34 +1,30 @@
 
-import { Project, Task, TeamMember } from '@/types/database';
+import { Project, Task, TeamMember, LifecycleStatus } from '@/types/database';
 import { Stakeholder } from '@/hooks/useStakeholders';
+import { getLifecycleStatus, getTaskDefaultsForLifecycleStatus } from './lifecycle-status';
 
 /**
- * Get intelligent task defaults based on project context
+ * Get intelligent task defaults based on project lifecycle status
  */
-export const getTaskDefaults = (project: Project): Partial<Task> => ({
-  task_type: project.phase === 'punch_list' ? 'punch_list' : 'regular',
-  priority: project.phase === 'closeout' ? 'high' : 'medium',
-  status: 'not-started',
-  required_skills: project.phase === 'punch_list' 
-    ? ['inspection', 'quality control'] 
-    : project.phase === 'active' 
-    ? ['construction', 'safety'] 
-    : [],
-  estimated_hours: project.phase === 'punch_list' ? 2 : 8,
-  punch_list_category: project.phase === 'punch_list' ? 'other' : undefined,
-  inspection_status: project.phase === 'punch_list' ? 'pending' : undefined
-});
+export const getTaskDefaults = (project: Project): Partial<Task> => {
+  const lifecycleStatus = getLifecycleStatus(project);
+  return getTaskDefaultsForLifecycleStatus(lifecycleStatus);
+};
 
 /**
  * Get intelligent assignment defaults based on stakeholder and project context
  */
-export const getAssignmentDefaults = (stakeholder: Stakeholder, project: Project) => ({
-  hourly_rate: getDefaultHourlyRate(stakeholder.stakeholder_type),
-  start_date: new Date().toISOString().split('T')[0],
-  end_date: project.end_date || undefined,
-  role: inferRoleFromSkills(stakeholder.specialties || [], project.phase),
-  status: 'assigned'
-});
+export const getAssignmentDefaults = (stakeholder: Stakeholder, project: Project) => {
+  const lifecycleStatus = getLifecycleStatus(project);
+  
+  return {
+    hourly_rate: getDefaultHourlyRate(stakeholder.stakeholder_type),
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: project.end_date || undefined,
+    role: inferRoleFromSkills(stakeholder.specialties || [], lifecycleStatus),
+    status: 'assigned'
+  };
+};
 
 /**
  * Get default hourly rates based on stakeholder type
@@ -45,15 +41,15 @@ export const getDefaultHourlyRate = (stakeholderType: string): number => {
 };
 
 /**
- * Infer appropriate role based on skills and project phase
+ * Infer appropriate role based on skills and lifecycle status
  */
-const inferRoleFromSkills = (skills: string[], phase: string): string => {
+const inferRoleFromSkills = (skills: string[], lifecycleStatus: LifecycleStatus): string => {
   if (!skills || skills.length === 0) {
-    return getDefaultRoleForPhase(phase);
+    return getDefaultRoleForLifecycleStatus(lifecycleStatus);
   }
 
-  // Phase-specific role inference
-  if (phase === 'punch_list' || phase === 'closeout') {
+  // Lifecycle-specific role inference
+  if (lifecycleStatus === 'punch_list_phase' || lifecycleStatus === 'project_closeout') {
     if (skills.some(skill => 
       ['inspection', 'quality control', 'qa', 'qc'].includes(skill.toLowerCase())
     )) {
@@ -67,8 +63,8 @@ const inferRoleFromSkills = (skills: string[], phase: string): string => {
     return 'Inspector';
   }
 
-  // Active phase role inference
-  if (phase === 'active') {
+  // Construction active phase role inference
+  if (lifecycleStatus === 'construction_active') {
     if (skills.some(skill => 
       ['electrical', 'electrician', 'wiring'].includes(skill.toLowerCase())
     )) {
@@ -113,7 +109,7 @@ const inferRoleFromSkills = (skills: string[], phase: string): string => {
   }
 
   // Planning phase role inference
-  if (phase === 'planning') {
+  if (lifecycleStatus === 'pre_planning' || lifecycleStatus === 'planning_active') {
     if (skills.some(skill => 
       ['project management', 'planning', 'coordination'].includes(skill.toLowerCase())
     )) {
@@ -132,105 +128,23 @@ const inferRoleFromSkills = (skills: string[], phase: string): string => {
     return 'Project Coordinator';
   }
 
-  return getDefaultRoleForPhase(phase);
+  return getDefaultRoleForLifecycleStatus(lifecycleStatus);
 };
 
 /**
- * Get default role for project phase when no skills match
+ * Get default role for lifecycle status when no skills match
  */
-const getDefaultRoleForPhase = (phase: string): string => {
-  const phaseRoleMap: Record<string, string> = {
-    'planning': 'Project Coordinator',
-    'active': 'Construction Worker',
-    'punch_list': 'Inspector',
-    'closeout': 'Project Coordinator',
-    'completed': 'Project Coordinator'
+const getDefaultRoleForLifecycleStatus = (lifecycleStatus: LifecycleStatus): string => {
+  const lifecycleRoleMap: Record<LifecycleStatus, string> = {
+    'pre_planning': 'Project Coordinator',
+    'planning_active': 'Project Coordinator',
+    'construction_active': 'Construction Worker',
+    'construction_hold': 'Construction Worker',
+    'punch_list_phase': 'Inspector',
+    'project_closeout': 'Project Coordinator',
+    'project_completed': 'Project Coordinator',
+    'project_cancelled': 'Project Coordinator'
   };
-  
-  return phaseRoleMap[phase] || 'General Worker';
-};
 
-/**
- * Get intelligent team member defaults for resource allocation
- */
-export const getTeamMemberDefaults = (
-  stakeholder: Stakeholder, 
-  project: Project,
-  weekStartDate: string
-): Partial<TeamMember> => ({
-  name: stakeholder.contact_person || stakeholder.company_name || 'Unknown',
-  role: inferRoleFromSkills(stakeholder.specialties || [], project.phase),
-  hours_allocated: project.phase === 'punch_list' ? 20 : 40,
-  hours_used: 0,
-  cost_per_hour: getDefaultHourlyRate(stakeholder.stakeholder_type),
-  availability: 100,
-  tasks: []
-});
-
-/**
- * Get default categories based on project phase
- */
-export const getDefaultCategories = (phase: string): string[] => {
-  const categoryMap: Record<string, string[]> = {
-    'planning': ['Design', 'Permits', 'Planning', 'Documentation'],
-    'active': ['Foundation', 'Framing', 'Electrical', 'Plumbing', 'HVAC', 'Finishing'],
-    'punch_list': ['Touch-ups', 'Corrections', 'Final Inspections', 'Cleanup'],
-    'closeout': ['Documentation', 'Handover', 'Training', 'Warranty'],
-    'completed': ['Maintenance', 'Support', 'Follow-up']
-  };
-  
-  return categoryMap[phase] || ['General'];
-};
-
-/**
- * Get default required skills based on task category and project phase
- */
-export const getDefaultRequiredSkills = (category: string, phase: string): string[] => {
-  const skillMap: Record<string, string[]> = {
-    // Construction categories
-    'Foundation': ['concrete', 'excavation', 'surveying'],
-    'Framing': ['carpentry', 'blueprint reading', 'measuring'],
-    'Electrical': ['electrical', 'wiring', 'safety'],
-    'Plumbing': ['plumbing', 'pipe fitting', 'water systems'],
-    'HVAC': ['hvac', 'ductwork', 'climate control'],
-    'Finishing': ['finishing', 'attention to detail', 'quality control'],
-    
-    // Punch list categories
-    'Touch-ups': ['finishing', 'painting', 'quality control'],
-    'Corrections': ['problem solving', 'repair', 'quality control'],
-    'Final Inspections': ['inspection', 'quality control', 'documentation'],
-    'Cleanup': ['cleaning', 'organization', 'safety'],
-    
-    // Planning categories
-    'Design': ['design', 'cad', 'engineering'],
-    'Permits': ['regulatory knowledge', 'documentation', 'compliance'],
-    'Planning': ['project management', 'scheduling', 'coordination'],
-    
-    // Default by phase
-    'punch_list_default': ['inspection', 'quality control'],
-    'active_default': ['construction', 'safety'],
-    'planning_default': ['planning', 'coordination'],
-    'closeout_default': ['documentation', 'organization']
-  };
-  
-  return skillMap[category] || skillMap[`${phase}_default`] || [];
-};
-
-/**
- * Get intelligent priority based on project phase and task type
- */
-export const getDefaultPriority = (phase: string, category?: string): Task['priority'] => {
-  if (phase === 'closeout' || phase === 'punch_list') {
-    return 'high';
-  }
-  
-  if (category && ['Foundation', 'Safety', 'Permits'].includes(category)) {
-    return 'high';
-  }
-  
-  if (phase === 'planning') {
-    return 'medium';
-  }
-  
-  return 'medium';
+  return lifecycleRoleMap[lifecycleStatus] || 'Construction Worker';
 };

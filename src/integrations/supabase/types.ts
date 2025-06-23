@@ -858,6 +858,9 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          lifecycle_status:
+            | Database["public"]["Enums"]["lifecycle_status"]
+            | null
           location: string | null
           name: string
           phase: string | null
@@ -879,6 +882,9 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          lifecycle_status?:
+            | Database["public"]["Enums"]["lifecycle_status"]
+            | null
           location?: string | null
           name: string
           phase?: string | null
@@ -900,6 +906,9 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          lifecycle_status?:
+            | Database["public"]["Enums"]["lifecycle_status"]
+            | null
           location?: string | null
           name?: string
           phase?: string | null
@@ -2043,6 +2052,10 @@ export type Database = {
           errors_logged: number
         }[]
       }
+      migrate_to_lifecycle_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_project_labor_costs: {
         Args: { target_project_id: string }
         Returns: undefined
@@ -2055,8 +2068,28 @@ export type Database = {
         Args: { user_id: string; required_permission: string }
         Returns: boolean
       }
+      validate_project_status_consistency: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          project_id: string
+          project_name: string
+          current_status: string
+          current_phase: string
+          lifecycle_status: string
+          suggested_lifecycle_status: string
+        }[]
+      }
     }
     Enums: {
+      lifecycle_status:
+        | "pre_planning"
+        | "planning_active"
+        | "construction_active"
+        | "construction_hold"
+        | "punch_list_phase"
+        | "project_closeout"
+        | "project_completed"
+        | "project_cancelled"
       project_status:
         | "planning"
         | "active"
@@ -2190,6 +2223,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      lifecycle_status: [
+        "pre_planning",
+        "planning_active",
+        "construction_active",
+        "construction_hold",
+        "punch_list_phase",
+        "project_closeout",
+        "project_completed",
+        "project_cancelled",
+      ],
       project_status: [
         "planning",
         "active",
