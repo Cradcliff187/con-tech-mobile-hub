@@ -1,7 +1,9 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, Sparkles, FileText, Camera, Receipt, Shield, Building, ClipboardList } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
@@ -364,47 +366,49 @@ export const SmartDocumentUpload = ({
   const DialogOrSheetTitle = isMobile ? SheetTitle : DialogTitle;
 
   const uploadContent = (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full">
       {/* Scrollable Content Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 px-1">
-        {/* Category Selection Panel */}
-        <CategorySelectionPanel
-          preSelectedCategory={preSelectedCategory}
-          onCategorySelect={setPreSelectedCategory}
-          prioritizedCategories={prioritizedCategories}
-          projectPhase={projectPhase}
-          isUploading={isUploading}
-        />
+      <ScrollArea className="flex-1 pr-2">
+        <div className="space-y-3">
+          {/* Category Selection Panel - Compressed */}
+          <CategorySelectionPanel
+            preSelectedCategory={preSelectedCategory}
+            onCategorySelect={setPreSelectedCategory}
+            prioritizedCategories={prioritizedCategories}
+            projectPhase={projectPhase}
+            isUploading={isUploading}
+          />
 
-        {/* File Processing Area */}
-        <FileProcessingArea
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isDragOver={isDragOver}
-          selectedFiles={selectedFiles}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onBrowseFiles={handleBrowseFiles}
-          onCameraCapture={handleCameraCapture}
-          onRemoveFile={removeFile}
-          onUpdateFileData={updateFileData}
-          onClearAllFiles={() => setSelectedFiles([])}
-          isUploading={isUploading}
-        />
+          {/* File Processing Area */}
+          <FileProcessingArea
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isDragOver={isDragOver}
+            selectedFiles={selectedFiles}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onBrowseFiles={handleBrowseFiles}
+            onCameraCapture={handleCameraCapture}
+            onRemoveFile={removeFile}
+            onUpdateFileData={updateFileData}
+            onClearAllFiles={() => setSelectedFiles([])}
+            isUploading={isUploading}
+          />
 
-        {/* Project Selection */}
-        <ProjectSelectionField
-          selectedProjectId={selectedProjectId}
-          onProjectSelect={setSelectedProjectId}
-          projects={projects}
-          isUploading={isUploading}
-          currentProjectId={currentProjectId}
-        />
-      </div>
+          {/* Project Selection - Compressed */}
+          <ProjectSelectionField
+            selectedProjectId={selectedProjectId}
+            onProjectSelect={setSelectedProjectId}
+            projects={projects}
+            isUploading={isUploading}
+            currentProjectId={currentProjectId}
+          />
+        </div>
+      </ScrollArea>
 
-      {/* Sticky Footer with Upload Actions */}
-      <div className="flex-shrink-0 border-t border-slate-200 bg-white mt-4 p-4 -mx-4 -mb-4">
+      {/* Fixed Footer with Upload Actions */}
+      <div className="border-t border-slate-200 bg-white p-4 mt-3">
         <UploadProgress
           selectedFilesCount={selectedFiles.length}
           isUploading={isUploading}
@@ -446,16 +450,16 @@ export const SmartDocumentUpload = ({
     <DialogOrSheet open={isOpen} onOpenChange={handleOpenChange}>
       <DialogOrSheetContent className={`${
         isMobile 
-          ? "h-[88vh] w-full max-w-full overflow-hidden flex flex-col" 
-          : "sm:max-w-3xl max-h-[88vh] w-full overflow-hidden flex flex-col"
-      } animate-scale-in`}>
-        <DialogOrSheetHeader className="flex-shrink-0 pb-4 border-b border-slate-200">
+          ? "h-[90vh] w-full max-w-full" 
+          : "sm:max-w-2xl h-[85vh] w-full"
+      } p-0 flex flex-col animate-scale-in`}>
+        <DialogOrSheetHeader className="flex-shrink-0 px-6 py-4 border-b border-slate-200">
           <DialogOrSheetTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="text-blue-500 flex-shrink-0" size={20} />
             <span className="truncate">Smart Document Upload</span>
           </DialogOrSheetTitle>
         </DialogOrSheetHeader>
-        <div className="flex-1 min-h-0 overflow-hidden p-4">
+        <div className="flex-1 min-h-0 px-6">
           {uploadContent}
         </div>
       </DialogOrSheetContent>

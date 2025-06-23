@@ -23,8 +23,8 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-      <div className="space-y-4">
+    <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+      <div className="space-y-3">
         <div>
           <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-sm">
             <Sparkles className="text-blue-500 flex-shrink-0" size={16} />
@@ -58,7 +58,7 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
         </div>
 
         {preSelectedCategory && (
-          <div className="text-blue-700 bg-blue-50 rounded-lg border border-blue-200 p-3">
+          <div className="text-blue-700 bg-blue-50 rounded-lg border border-blue-200 p-2">
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="flex-shrink-0" />
               <span className="font-medium text-xs">Smart Processing Enabled</span>
