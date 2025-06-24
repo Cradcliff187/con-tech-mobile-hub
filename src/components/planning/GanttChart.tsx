@@ -9,9 +9,11 @@ interface GanttChartProps {
 
 export const GanttChart = ({ projectId, viewMode = 'weeks' }: GanttChartProps): JSX.Element => {
   return (
-    <SimpleGanttChart 
-      projectId={projectId} 
-      viewMode={viewMode} 
-    />
+    <div className="w-full">
+      <SimpleGanttChart 
+        projectId={projectId} 
+        viewMode={viewMode} 
+      />
+    </div>
   );
 };
