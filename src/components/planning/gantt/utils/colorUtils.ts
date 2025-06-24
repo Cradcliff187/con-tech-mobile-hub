@@ -33,16 +33,15 @@ export const getConstructionPhaseColor = (task: Task): string => {
     case 'cleanup':
       return 'bg-gray-500 text-white';
     default:
-      // Status-based fallback
+      // Status-based fallback using correct task status values
       switch (task.status) {
         case 'completed':
           return 'bg-green-500 text-white';
         case 'in-progress':
           return 'bg-blue-500 text-white';
-        case 'on-hold':
-          return 'bg-yellow-500 text-white';
-        case 'cancelled':
-          return 'bg-gray-500 text-white';
+        case 'blocked':
+          return 'bg-red-600 text-white';
+        case 'not-started':
         default:
           return 'bg-slate-500 text-white';
       }
@@ -55,10 +54,9 @@ export const getTaskStatusColor = (status: string): string => {
       return 'bg-green-100 text-green-800 border-green-200';
     case 'in-progress':
       return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'on-hold':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'cancelled':
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'blocked':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'not-started':
     default:
       return 'bg-slate-100 text-slate-800 border-slate-200';
   }
