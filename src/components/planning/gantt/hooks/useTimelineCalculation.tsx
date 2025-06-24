@@ -1,60 +1,58 @@
 
 import { useMemo } from 'react';
 import { Task } from '@/types/database';
-import { getDaysBetween, calculateTaskDatesFromEstimate } from '../utils/dateUtils';
-import type { ProjectData } from '../types/ganttTypes';
+import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
 
-interface UseTimelineCalculationProps {
-  projectTasks: Task[];
-  viewMode: 'days' | 'weeks' | 'months';
-  selectedProject: ProjectData | null;
-}
+export const useTimelineCalculation = (tasks: Task[]) => {
+  const { timelineStart, timelineEnd } = useMemo(() => {
+    if (tasks.length === 0) {
+      // Default to current date plus/minus 30 days
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(today.getDate() - 30);
+      const end = new Date(today);
+      end.setDate(today.getDate() + 90);
+      
+      return {
+        timelineStart: start,
+        timelineEnd: end
+      };
+    }
 
-export const useTimelineCalculation = ({
-  projectTasks,
-  viewMode,
-  selectedProject
-}: UseTimelineCalculationProps) => {
-  
-  const totalDays = useMemo(() => {
-    if (projectTasks.length === 0) return 30; // Default fallback
-    
-    const dates = projectTasks.flatMap(task => {
+    const dates = tasks.flatMap(task => {
       const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
       return [calculatedStartDate, calculatedEndDate];
     });
-    
-    if (dates.length === 0) return 30;
-    
+
+    if (dates.length === 0) {
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(today.getDate() - 30);
+      const end = new Date(today);
+      end.setDate(today.getDate() + 90);
+      
+      return {
+        timelineStart: start,
+        timelineEnd: end
+      };
+    }
+
     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
     const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+
+    // Add some padding to the timeline
+    const paddingDays = 7;
+    const timelineStart = new Date(minDate);
+    timelineStart.setDate(minDate.getDate() - paddingDays);
     
-    return getDaysBetween(minDate, maxDate);
-  }, [projectTasks]);
+    const timelineEnd = new Date(maxDate);
+    timelineEnd.setDate(maxDate.getDate() + paddingDays);
 
-  const projectProgress = useMemo(() => {
-    if (projectTasks.length === 0) return 0;
-    
-    const totalProgress = projectTasks.reduce((sum, task) => sum + (task.progress || 0), 0);
-    return Math.round(totalProgress / projectTasks.length);
-  }, [projectTasks]);
+    return {
+      timelineStart,
+      timelineEnd
+    };
+  }, [tasks]);
 
-  const completedTasks = useMemo(() => {
-    return projectTasks.filter(task => task.status === 'completed').length;
-  }, [projectTasks]);
-
-  const overdueTasks = useMemo(() => {
-    const today = new Date();
-    return projectTasks.filter(task => {
-      const { calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-      return calculatedEndDate < today && task.status !== 'completed';
-    }).length;
-  }, [projectTasks]);
-
-  return {
-    totalDays,
-    projectProgress,
-    completedTasks,
-    overdueTasks
-  };
+  return { timelineStart, timelineEnd };
 };
