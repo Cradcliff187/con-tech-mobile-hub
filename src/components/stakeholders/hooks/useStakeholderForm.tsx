@@ -56,20 +56,20 @@ export const useStakeholderForm = ({
     setLoading(true);
 
     try {
-      // Sanitize data only on submission
+      // Sanitize data only on submission - let sanitization functions handle undefined conversion
       const sanitizedData = {
         stakeholder_type: formData.stakeholder_type, // Explicitly assign to ensure it's not optional
         contact_person: sanitizeOnSubmit(formData.contact_person),
-        company_name: formData.company_name ? sanitizeOnSubmit(formData.company_name) : '',
-        email: formData.email ? sanitizeEmailOnSubmit(formData.email) : '',
-        phone: formData.phone ? sanitizePhoneOnSubmit(formData.phone) : '',
-        street_address: formData.street_address ? sanitizeOnSubmit(formData.street_address) : '',
-        city: formData.city ? sanitizeOnSubmit(formData.city) : '',
-        state: formData.state ? sanitizeOnSubmit(formData.state) : '',
-        zip_code: formData.zip_code ? sanitizeOnSubmit(formData.zip_code) : '',
-        license_number: formData.license_number ? sanitizeOnSubmit(formData.license_number) : '',
-        notes: formData.notes ? sanitizeOnSubmit(formData.notes) : '',
-        specialties: formData.specialties?.filter(s => s.trim().length > 0).map(s => sanitizeOnSubmit(s)) || [],
+        company_name: sanitizeOnSubmit(formData.company_name),
+        email: sanitizeEmailOnSubmit(formData.email),
+        phone: sanitizePhoneOnSubmit(formData.phone),
+        street_address: sanitizeOnSubmit(formData.street_address),
+        city: sanitizeOnSubmit(formData.city),
+        state: sanitizeOnSubmit(formData.state),
+        zip_code: sanitizeOnSubmit(formData.zip_code),
+        license_number: sanitizeOnSubmit(formData.license_number),
+        notes: sanitizeOnSubmit(formData.notes),
+        specialties: formData.specialties?.filter(s => s.trim().length > 0).map(s => sanitizeOnSubmit(s)).filter(s => s !== undefined) || [],
         crew_size: formData.crew_size,
         // Convert empty date strings to undefined for PostgreSQL compatibility
         insurance_expiry: formData.insurance_expiry && formData.insurance_expiry.trim() !== '' ? formData.insurance_expiry : undefined,

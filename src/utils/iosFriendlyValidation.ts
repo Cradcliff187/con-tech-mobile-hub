@@ -5,9 +5,10 @@
 
 /**
  * Sanitize data only when submitting forms, not during typing
+ * Returns undefined for empty/null input to ensure proper database NULL storage
  */
-export const sanitizeOnSubmit = (input: string): string => {
-  if (!input || typeof input !== 'string') return '';
+export const sanitizeOnSubmit = (input: string): string | undefined => {
+  if (!input || typeof input !== 'string' || input.trim() === '') return undefined;
   
   return input
     .trim()
@@ -19,9 +20,10 @@ export const sanitizeOnSubmit = (input: string): string => {
 
 /**
  * Sanitize email for submission
+ * Returns undefined for empty/null input to ensure proper database NULL storage
  */
-export const sanitizeEmailOnSubmit = (input: string): string => {
-  if (!input || typeof input !== 'string') return '';
+export const sanitizeEmailOnSubmit = (input: string): string | undefined => {
+  if (!input || typeof input !== 'string' || input.trim() === '') return undefined;
   
   return input
     .trim()
@@ -32,9 +34,10 @@ export const sanitizeEmailOnSubmit = (input: string): string => {
 
 /**
  * Sanitize phone for submission
+ * Returns undefined for empty/null input to ensure proper database NULL storage
  */
-export const sanitizePhoneOnSubmit = (input: string): string => {
-  if (!input || typeof input !== 'string') return '';
+export const sanitizePhoneOnSubmit = (input: string): string | undefined => {
+  if (!input || typeof input !== 'string' || input.trim() === '') return undefined;
   
   // Keep only digits, spaces, hyphens, parentheses, and plus sign
   return input
@@ -52,5 +55,6 @@ export const sanitizeArrayOnSubmit = (input: string[]): string[] => {
   return input
     .filter(item => typeof item === 'string' && item.trim().length > 0)
     .map(item => sanitizeOnSubmit(item))
+    .filter(item => item !== undefined) // Remove any undefined results
     .slice(0, 50);
 };
