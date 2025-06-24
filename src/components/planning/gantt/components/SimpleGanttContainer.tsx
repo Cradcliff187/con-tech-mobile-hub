@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
@@ -9,7 +10,6 @@ import { GanttErrorState } from './GanttErrorState';
 import { GanttUndoRedoControls } from './GanttUndoRedoControls';
 import { useTimelineCalculation } from '../hooks/useTimelineCalculation';
 import { useActionHistory } from '@/hooks/useActionHistory';
-import { useErrorRecovery } from '@/hooks/useErrorRecovery';
 import { Task } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -35,31 +35,6 @@ export const SimpleGanttContainer = ({
   const { tasks, loading, error, updateTask } = useTasks({ projectId });
   const { timelineStart, timelineEnd } = useTimelineCalculation(tasks);
 
-  // Error recovery system
-  const { 
-    executeWithRecovery, 
-    isRecovering, 
-    hasFailedOperations,
-    clearFailedOperations 
-  } = useErrorRecovery({
-    maxRetries: 3,
-    baseRetryDelay: 1000,
-    onRecoverySuccess: (operationId) => {
-      console.log('✅ Recovery successful for operation:', operationId);
-    },
-    onRecoveryFailure: (operationId, error) => {
-      console.error('❌ Recovery failed for operation:', operationId, error);
-    }
-  });
-
-  // Enhanced task update with error recovery
-  const updateTaskWithRecovery = async (taskId: string, updates: Partial<Task>) => {
-    return executeWithRecovery(
-      () => updateTask(taskId, updates),
-      `Update task "${tasks.find(t => t.id === taskId)?.title || taskId}"`
-    );
-  };
-
   // Action history system
   const {
     canUndo,
@@ -76,7 +51,7 @@ export const SimpleGanttContainer = ({
     historyLength
   } = useActionHistory({
     tasks,
-    onTaskUpdate: updateTaskWithRecovery
+    onTaskUpdate: updateTask
   });
 
   // Filter and sort tasks with proper memoization
@@ -173,7 +148,7 @@ export const SimpleGanttContainer = ({
         }
       }
       
-      const result = await updateTaskWithRecovery(taskId, updates);
+      const result = await updateTask(taskId, updates);
       
       if (result.error) {
         throw new Error(result.error);
@@ -215,7 +190,7 @@ export const SimpleGanttContainer = ({
     return <GanttEmptyState projectId={projectId} />;
   }
 
-  const isSystemBusy = isUpdating || isPerformingAction || isRecovering;
+  const isSystemBusy = isUpdating || isPerformingAction;
 
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
@@ -263,21 +238,11 @@ export const SimpleGanttContainer = ({
         </div>
         
         <div className="flex items-center gap-2 text-xs text-slate-600">
-          {hasFailedOperations && (
-            <button
-              onClick={clearFailedOperations}
-              className="text-red-600 hover:text-red-700 underline"
-            >
-              Clear Failed Operations
-            </button>
-          )}
           {isSystemBusy && (
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
               <span>
-                {isRecovering ? 'Recovering...' : 
-                 isPerformingAction ? 'Processing...' : 
-                 'Updating...'}
+                {isPerformingAction ? 'Processing...' : 'Updating...'}
               </span>
             </div>
           )}
@@ -390,7 +355,7 @@ export const SimpleGanttContainer = ({
         )}
         {isSystemBusy && (
           <span className="ml-4 text-orange-600">
-            {isRecovering ? 'Auto-recovering failed operations...' : 'Saving changes...'}
+            Saving changes...
           </span>
         )}
       </div>
