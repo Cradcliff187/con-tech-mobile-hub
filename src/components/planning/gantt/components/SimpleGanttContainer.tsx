@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
@@ -57,7 +56,6 @@ export const SimpleGanttContainer = ({
       
       return result;
     } catch (error) {
-      console.error('Failed to update task:', error);
       toast({
         title: "Update Failed",
         description: error instanceof Error ? error.message : "Failed to update task",
