@@ -6,7 +6,7 @@ import { useGanttDragBridge } from '@/hooks/useGanttDragBridge';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
 import { GanttEmptyState } from '../GanttEmptyState';
-import { StandardGanttContainer } from './StandardGanttContainer';
+import { SimpleGanttContainer } from './SimpleGanttContainer';
 
 interface GanttChartInnerProps {
   projectId: string;
@@ -64,25 +64,9 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
 
   return (
     <div className="w-full space-y-6">
-      <StandardGanttContainer
-        displayTasks={displayTasks}
-        timelineStart={timelineStart}
-        timelineEnd={timelineEnd}
-        selectedTaskId={selectedTaskId}
-        onTaskSelect={handleTaskSelect}
+      <SimpleGanttContainer
+        projectId={projectId}
         viewMode={viewMode}
-        isDragging={dragBridge.isDragging}
-        draggedTaskId={dragBridge.draggedTask?.id || null}
-        onDragStart={dragBridge.handleDragStart}
-        onDragEnd={dragBridge.handleDragEnd}
-        onDragOver={dragBridge.handleDragOver}
-        onDrop={dragBridge.handleDrop}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={toggleCollapse}
-        dropPreviewDate={dragBridge.dropPreviewDate}
-        currentValidity={dragBridge.currentValidity}
-        violationMessages={dragBridge.violationMessages}
-        dragPosition={dragBridge.dragPosition}
       />
     </div>
   );
