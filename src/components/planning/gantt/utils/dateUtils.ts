@@ -1,41 +1,38 @@
 
 import { Task } from '@/types/database';
+import { addDays } from 'date-fns';
 
-export const calculateTaskDatesFromEstimate = (task: Task) => {
+export interface TaskDateCalculation {
+  calculatedStartDate: Date;
+  calculatedEndDate: Date;
+}
+
+export const calculateTaskDatesFromEstimate = (task: Task): TaskDateCalculation => {
   let calculatedStartDate: Date;
   let calculatedEndDate: Date;
 
   if (task.start_date && task.due_date) {
-    // Use actual dates if both are available
+    // Use actual dates if available
     calculatedStartDate = new Date(task.start_date);
     calculatedEndDate = new Date(task.due_date);
-  } else if (task.start_date) {
-    // Use start date and estimate duration
+  } else if (task.start_date && task.estimated_hours) {
+    // Calculate end date from start date and estimated hours
     calculatedStartDate = new Date(task.start_date);
-    const estimatedDays = task.estimated_hours ? Math.ceil(task.estimated_hours / 8) : 1;
-    calculatedEndDate = new Date(calculatedStartDate.getTime() + estimatedDays * 24 * 60 * 60 * 1000);
-  } else if (task.due_date) {
-    // Use due date and estimate duration backwards
+    const estimatedDays = Math.max(1, Math.ceil(task.estimated_hours / 8)); // 8 hours per day
+    calculatedEndDate = addDays(calculatedStartDate, estimatedDays);
+  } else if (task.due_date && task.estimated_hours) {
+    // Calculate start date from due date and estimated hours
     calculatedEndDate = new Date(task.due_date);
-    const estimatedDays = task.estimated_hours ? Math.ceil(task.estimated_hours / 8) : 1;
-    calculatedStartDate = new Date(calculatedEndDate.getTime() - estimatedDays * 24 * 60 * 60 * 1000);
+    const estimatedDays = Math.max(1, Math.ceil(task.estimated_hours / 8)); // 8 hours per day
+    calculatedStartDate = addDays(calculatedEndDate, -estimatedDays);
   } else {
-    // No dates available, use current date and estimate
+    // Fallback to today and tomorrow if no dates available
     calculatedStartDate = new Date();
-    const estimatedDays = task.estimated_hours ? Math.ceil(task.estimated_hours / 8) : 1;
-    calculatedEndDate = new Date(calculatedStartDate.getTime() + estimatedDays * 24 * 60 * 60 * 1000);
+    calculatedEndDate = addDays(calculatedStartDate, 1);
   }
 
-  return { calculatedStartDate, calculatedEndDate };
-};
-
-export const getDaysBetween = (startDate: Date, endDate: Date): number => {
-  const timeDiff = endDate.getTime() - startDate.getTime();
-  return Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-};
-
-export const formatDateRange = (startDate: Date, endDate: Date): string => {
-  const start = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const end = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${start} - ${end}`;
+  return {
+    calculatedStartDate,
+    calculatedEndDate
+  };
 };

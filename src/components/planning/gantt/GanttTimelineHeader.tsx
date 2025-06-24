@@ -10,7 +10,7 @@ interface GanttTimelineHeaderProps {
   timelineStart: Date;
   timelineEnd: Date;
   viewMode: 'days' | 'weeks' | 'months';
-  tasks: Task[];
+  tasks?: Task[];
   scrollRef?: React.RefObject<HTMLDivElement>;
   onTimelineBoundsChange?: (start: Date, end: Date) => void;
 }
@@ -19,7 +19,7 @@ export const GanttTimelineHeader = ({
   timelineStart,
   timelineEnd,
   viewMode,
-  tasks,
+  tasks = [],
   scrollRef,
   onTimelineBoundsChange
 }: GanttTimelineHeaderProps) => {
@@ -99,7 +99,7 @@ export const GanttTimelineHeader = ({
             <div className="min-w-max relative" style={{ width: `${timelineUnits.length * columnWidth}px` }}>
               {/* Timeline units */}
               <div className="flex h-8 bg-slate-50">
-                {timelineUnits.map((unit, index) => (
+                {timelineUnits.map((unit) => (
                   <div
                     key={unit.key}
                     className={`flex-shrink-0 px-1 py-1 text-xs font-medium border-r border-slate-200 flex items-center justify-center transition-colors hover:bg-slate-100 ${
