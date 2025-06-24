@@ -1,52 +1,40 @@
 
 import { useMemo } from 'react';
 import { Task } from '@/types/database';
-import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
+import { startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 
 export const useTimelineCalculation = (tasks: Task[]) => {
   const { timelineStart, timelineEnd } = useMemo(() => {
-    if (tasks.length === 0) {
-      // Default to current date plus/minus 30 days
-      const today = new Date();
-      const start = new Date(today);
-      start.setDate(today.getDate() - 30);
-      const end = new Date(today);
-      end.setDate(today.getDate() + 90);
-      
-      return {
-        timelineStart: start,
-        timelineEnd: end
-      };
+    if (!tasks || tasks.length === 0) {
+      // Default to current month view if no tasks
+      const now = new Date();
+      const start = startOfDay(subDays(now, 15));
+      const end = endOfDay(addDays(now, 45));
+      return { timelineStart: start, timelineEnd: end };
     }
 
-    const dates = tasks.flatMap(task => {
-      const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-      return [calculatedStartDate, calculatedEndDate];
-    });
+    // Get all task dates, filtering out null values
+    const taskDates = tasks
+      .flatMap(task => [task.start_date, task.due_date])
+      .filter((date): date is string => date !== null && date !== undefined)
+      .map(date => new Date(date))
+      .filter(date => !isNaN(date.getTime())); // Filter out invalid dates
 
-    if (dates.length === 0) {
-      const today = new Date();
-      const start = new Date(today);
-      start.setDate(today.getDate() - 30);
-      const end = new Date(today);
-      end.setDate(today.getDate() + 90);
-      
-      return {
-        timelineStart: start,
-        timelineEnd: end
-      };
+    if (taskDates.length === 0) {
+      // No valid dates found, use default range
+      const now = new Date();
+      const start = startOfDay(subDays(now, 15));
+      const end = endOfDay(addDays(now, 45));
+      return { timelineStart: start, timelineEnd: end };
     }
 
-    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    // Find min and max dates
+    const minDate = new Date(Math.min(...taskDates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...taskDates.map(d => d.getTime())));
 
-    // Add some padding to the timeline
-    const paddingDays = 7;
-    const timelineStart = new Date(minDate);
-    timelineStart.setDate(minDate.getDate() - paddingDays);
-    
-    const timelineEnd = new Date(maxDate);
-    timelineEnd.setDate(maxDate.getDate() + paddingDays);
+    // Add padding to timeline bounds
+    const timelineStart = startOfDay(subDays(minDate, 7));
+    const timelineEnd = endOfDay(addDays(maxDate, 14));
 
     return {
       timelineStart,
@@ -54,5 +42,8 @@ export const useTimelineCalculation = (tasks: Task[]) => {
     };
   }, [tasks]);
 
-  return { timelineStart, timelineEnd };
+  return {
+    timelineStart,
+    timelineEnd
+  };
 };

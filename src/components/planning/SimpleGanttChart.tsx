@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { SimpleGanttContainer } from './gantt/components/SimpleGanttContainer';
+import { GanttErrorBoundary } from './gantt/components/GanttErrorBoundary';
 
 interface SimpleGanttChartProps {
   projectId: string;
@@ -12,11 +13,13 @@ export const SimpleGanttChart = ({
   viewMode = 'weeks' 
 }: SimpleGanttChartProps) => {
   return (
-    <div className="w-full">
-      <SimpleGanttContainer
-        projectId={projectId}
-        viewMode={viewMode}
-      />
+    <div className="w-full h-full">
+      <GanttErrorBoundary>
+        <SimpleGanttContainer
+          projectId={projectId}
+          viewMode={viewMode}
+        />
+      </GanttErrorBoundary>
     </div>
   );
 };
