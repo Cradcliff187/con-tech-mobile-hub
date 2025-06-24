@@ -1,6 +1,5 @@
 
 import { Task } from '@/types/database';
-import { calculateTaskDatesFromEstimate } from './dateUtils';
 import { 
   startOfDay, 
   startOfWeek, 
@@ -174,13 +173,13 @@ export const getTaskGridPosition = (
   timelineEnd: Date,
   viewMode: 'days' | 'weeks' | 'months'
 ): TaskGridPosition => {
-  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+  const taskStart = task.start_date ? new Date(task.start_date) : new Date();
+  const taskEnd = task.due_date ? new Date(task.due_date) : new Date(taskStart.getTime() + 24 * 60 * 60 * 1000);
   
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   
-  const startColumnIndex = getColumnIndexForDate(calculatedStartDate, timelineUnits, viewMode);
-  
-  const columnSpan = calculateDurationInUnits(calculatedStartDate, calculatedEndDate, viewMode);
+  const startColumnIndex = getColumnIndexForDate(taskStart, timelineUnits, viewMode);
+  const columnSpan = calculateDurationInUnits(taskStart, taskEnd, viewMode);
   
   const clampedStartIndex = Math.max(0, Math.min(startColumnIndex, timelineUnits.length - 1));
   const maxAllowedSpan = timelineUnits.length - clampedStartIndex;
