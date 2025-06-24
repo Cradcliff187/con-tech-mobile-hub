@@ -121,7 +121,7 @@ const IndexContent = () => {
       <SidebarInset className="flex flex-col w-full">
         <MobileHeader profile={profile} />
 
-        {/* Floating Sidebar Trigger - Hidden on mobile when header trigger is visible */}
+        {/* Floating Sidebar Trigger - Desktop only */}
         <div className="hidden lg:block">
           <EnhancedSidebarTrigger 
             floating 
@@ -133,12 +133,7 @@ const IndexContent = () => {
         <main className="flex-1 overflow-auto main-content-shift">
           <div className="lg:hidden h-16"></div>
           <div className="p-6 lg:pl-16">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="lg:hidden">
-                <EnhancedSidebarTrigger />
-              </div>
-              <Breadcrumbs />
-            </div>
+            <Breadcrumbs />
             <ErrorBoundary>
               {renderContent()}
             </ErrorBoundary>
