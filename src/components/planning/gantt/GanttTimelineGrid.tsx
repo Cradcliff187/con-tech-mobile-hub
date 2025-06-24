@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { getColumnIndexForDate, generateTimelineUnits, getColumnWidth } from './utils/gridUtils';
+import { generateTimelineUnits, getColumnWidth } from './utils/gridUtils';
 
 interface GanttTimelineGridProps {
   timelineStart: Date;
@@ -13,14 +13,28 @@ export const GanttTimelineGrid = ({
   timelineEnd,
   viewMode
 }: GanttTimelineGridProps) => {
-  // Use the consolidated timeline generation system
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   const columnWidth = getColumnWidth(viewMode);
 
   // Calculate which column contains today's date
   const todayColumnIndex = useMemo(() => {
     const today = new Date();
-    return getColumnIndexForDate(today, timelineUnits, viewMode);
+    const todayTime = today.getTime();
+    
+    for (let i = 0; i < timelineUnits.length; i++) {
+      const unitDate = new Date(timelineUnits[i].key);
+      const nextUnitDate = i < timelineUnits.length - 1 
+        ? new Date(timelineUnits[i + 1].key)
+        : new Date(unitDate.getTime() + (viewMode === 'days' ? 24 * 60 * 60 * 1000 : 
+                                      viewMode === 'weeks' ? 7 * 24 * 60 * 60 * 1000 :
+                                      30 * 24 * 60 * 60 * 1000));
+      
+      if (todayTime >= unitDate.getTime() && todayTime < nextUnitDate.getTime()) {
+        return i;
+      }
+    }
+    
+    return -1; // Today is not within the timeline range
   }, [timelineUnits, viewMode]);
 
   return (

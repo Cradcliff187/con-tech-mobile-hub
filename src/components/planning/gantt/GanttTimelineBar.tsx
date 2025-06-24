@@ -10,7 +10,6 @@ import { getViewModeConfig, getBarHeight } from './utils/viewModeUtils';
 import { generateTimelineUnits } from './utils/gridUtils';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useGanttContext } from '@/contexts/gantt';
 
 interface GanttTimelineBarProps {
   task: Task;
@@ -23,6 +22,7 @@ interface GanttTimelineBarProps {
   draggedTaskId?: string;
   onDragStart?: (e: React.DragEvent, task: Task) => void;
   onDragEnd?: () => void;
+  onUpdate?: (taskId: string, updates: Partial<Task>) => void;
 }
 
 export const GanttTimelineBar = ({
@@ -35,32 +35,29 @@ export const GanttTimelineBar = ({
   isDragging = false,
   draggedTaskId = null,
   onDragStart,
-  onDragEnd
+  onDragEnd,
+  onUpdate
 }: GanttTimelineBarProps) => {
-  const { getDisplayTask } = useGanttContext();
-  
-  const displayTask = getDisplayTask ? getDisplayTask(task.id) || task : task;
-  
-  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(displayTask);
-  const gridPosition = getTaskGridPosition(displayTask, timelineStart, timelineEnd, viewMode);
+  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
+  const gridPosition = getTaskGridPosition(task, timelineStart, timelineEnd, viewMode);
   const columnWidth = getColumnWidth(viewMode);
-  const phaseColor = getConstructionPhaseColor(displayTask);
+  const phaseColor = getConstructionPhaseColor(task);
   const config = getViewModeConfig(viewMode);
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   
   const timelineRangeStart = new Date(timelineUnits[0].key);
   const timelineRangeEnd = new Date(timelineUnits[timelineUnits.length - 1].key);
   
-  const isThisTaskBeingDragged = isDragging && draggedTaskId === displayTask.id;
+  const isThisTaskBeingDragged = isDragging && draggedTaskId === task.id;
   
   const handleClick = (e: React.MouseEvent) => {
     if (isDragging) return;
-    onSelect(displayTask.id);
+    onSelect(task.id);
   };
 
   const handleDragStart = (e: React.DragEvent) => {
     if (onDragStart) {
-      onDragStart(e, displayTask);
+      onDragStart(e, task);
     }
   };
 
@@ -70,8 +67,8 @@ export const GanttTimelineBar = ({
     }
   };
 
-  const hasActualDates = displayTask.start_date && displayTask.due_date;
-  const isOverdue = calculatedEndDate < new Date() && displayTask.status !== 'completed';
+  const hasActualDates = task.start_date && task.due_date;
+  const isOverdue = calculatedEndDate < new Date() && task.status !== 'completed';
   const actualWidth = gridPosition.columnSpan * columnWidth;
 
   const canDrag = !!onDragStart && !isThisTaskBeingDragged;
@@ -103,7 +100,7 @@ export const GanttTimelineBar = ({
         </div>
       )}
 
-      <TaskBarTooltip task={displayTask} viewMode={viewMode}>
+      <TaskBarTooltip task={task} viewMode={viewMode}>
         <div
           className={`absolute ${config.topOffset} ${config.height} rounded-md transition-all duration-300 ${
             isSelected 
@@ -129,13 +126,13 @@ export const GanttTimelineBar = ({
           onDragEnd={handleDragEnd}
         >
           <TaskBarContent 
-            task={displayTask} 
+            task={task} 
             actualWidth={actualWidth} 
             viewModeConfig={config} 
           />
           
           <TaskBarIndicators 
-            task={displayTask} 
+            task={task} 
             isSelected={isSelected} 
             viewMode={viewMode} 
           />
