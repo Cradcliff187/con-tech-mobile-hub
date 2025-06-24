@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
 import { useGanttCollapse } from '../hooks/useGanttCollapse';
-import { useGanttDragBridge } from '../hooks/useGanttDragBridge';
+import { useGanttDragBridge } from '@/hooks/useGanttDragBridge';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
 import { GanttEmptyState } from '../GanttEmptyState';
