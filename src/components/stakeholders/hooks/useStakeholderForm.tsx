@@ -58,7 +58,7 @@ export const useStakeholderForm = ({
     try {
       // Sanitize data only on submission
       const sanitizedData = {
-        ...formData,
+        stakeholder_type: formData.stakeholder_type, // Explicitly assign to ensure it's not optional
         contact_person: sanitizeOnSubmit(formData.contact_person),
         company_name: formData.company_name ? sanitizeOnSubmit(formData.company_name) : '',
         email: formData.email ? sanitizeEmailOnSubmit(formData.email) : '',
@@ -69,7 +69,10 @@ export const useStakeholderForm = ({
         zip_code: formData.zip_code ? sanitizeOnSubmit(formData.zip_code) : '',
         license_number: formData.license_number ? sanitizeOnSubmit(formData.license_number) : '',
         notes: formData.notes ? sanitizeOnSubmit(formData.notes) : '',
-        specialties: formData.specialties?.filter(s => s.trim().length > 0).map(s => sanitizeOnSubmit(s)) || []
+        specialties: formData.specialties?.filter(s => s.trim().length > 0).map(s => sanitizeOnSubmit(s)) || [],
+        crew_size: formData.crew_size,
+        insurance_expiry: formData.insurance_expiry,
+        status: formData.status
       };
 
       // Validate the sanitized data
