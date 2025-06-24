@@ -58,7 +58,7 @@ export const SimpleTaskBar = ({
     return { valid: true, message: 'Valid drop position' };
   };
 
-  const handleDragStart = (e: React.DragEvent) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     if (isUpdating) {
       e.preventDefault();
       return;
@@ -85,7 +85,7 @@ export const SimpleTaskBar = ({
     setDragPreview(null);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     
     const rect = e.currentTarget.getBoundingClientRect();
@@ -103,7 +103,7 @@ export const SimpleTaskBar = ({
     e.dataTransfer.dropEffect = validation.valid ? 'move' : 'none';
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragPreview(null);
     
