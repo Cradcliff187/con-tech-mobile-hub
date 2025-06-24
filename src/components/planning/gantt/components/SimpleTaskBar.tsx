@@ -29,7 +29,8 @@ export const SimpleTaskBar = ({
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
   const phaseColor = getConstructionPhaseColor(task);
 
-  // Calculate position
+  // Calculate position using consistent grid system
+  const totalWidth = timelineUnits.length * columnWidth;
   const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
   const daysFromStart = Math.ceil((calculatedStartDate.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
   const taskDuration = Math.ceil((calculatedEndDate.getTime() - calculatedStartDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -76,7 +77,7 @@ export const SimpleTaskBar = ({
   return (
     <div 
       className="relative h-12 bg-slate-50"
-      style={{ width: `${timelineUnits.length * columnWidth}px` }}
+      style={{ width: `${totalWidth}px` }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >

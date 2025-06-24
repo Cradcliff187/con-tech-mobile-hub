@@ -1,192 +1,76 @@
 
-import { Task } from '@/types/database';
-import { 
-  startOfDay, 
-  startOfWeek, 
-  startOfMonth,
-  addDays, 
-  addWeeks, 
-  addMonths,
-  isSameDay,
-  isSameWeek,
-  isSameMonth,
-  differenceInDays,
-  differenceInWeeks,
-  differenceInMonths
-} from 'date-fns';
-
-export interface TaskGridPosition {
-  startColumnIndex: number;
-  columnSpan: number;
-}
+import { startOfDay, addDays, addWeeks, addMonths, format, isWeekend } from 'date-fns';
 
 export interface TimelineUnit {
-  key: number;
+  key: string;
   label: string;
-  isWeekend: boolean;
+  date: Date;
+  isWeekend?: boolean;
 }
-
-export const generateTimelineUnits = (
-  timelineStart: Date,
-  timelineEnd: Date,
-  viewMode: 'days' | 'weeks' | 'months'
-): TimelineUnit[] => {
-  const units: TimelineUnit[] = [];
-  
-  let current: Date;
-  let end: Date;
-  
-  switch (viewMode) {
-    case 'days':
-      current = startOfDay(timelineStart);
-      end = startOfDay(timelineEnd);
-      
-      while (current <= end) {
-        units.push({
-          key: current.getTime(),
-          label: current.toLocaleDateString('en-US', { 
-            month: 'short',
-            day: 'numeric'
-          }),
-          isWeekend: current.getDay() === 0 || current.getDay() === 6
-        });
-        current = addDays(current, 1);
-      }
-      break;
-      
-    case 'weeks':
-      current = startOfWeek(timelineStart, { weekStartsOn: 1 });
-      end = startOfWeek(timelineEnd, { weekStartsOn: 1 });
-      
-      while (current <= end) {
-        units.push({
-          key: current.getTime(),
-          label: current.toLocaleDateString('en-US', { 
-            month: 'short',
-            day: 'numeric'
-          }),
-          isWeekend: false
-        });
-        current = addWeeks(current, 1);
-      }
-      break;
-      
-    case 'months':
-      current = startOfMonth(timelineStart);
-      end = startOfMonth(timelineEnd);
-      
-      while (current <= end) {
-        units.push({
-          key: current.getTime(),
-          label: current.toLocaleDateString('en-US', { 
-            month: 'short',
-            year: 'numeric'
-          }),
-          isWeekend: false
-        });
-        current = addMonths(current, 1);
-      }
-      break;
-  }
-  
-  return units;
-};
 
 export const getColumnWidth = (viewMode: 'days' | 'weeks' | 'months'): number => {
   switch (viewMode) {
-    case 'days': return 64;
-    case 'weeks': return 80;
-    case 'months': return 96;
+    case 'days': return 64; // 16 * 4 = 64px per day
+    case 'weeks': return 80; // 20 * 4 = 80px per week  
+    case 'months': return 96; // 24 * 4 = 96px per month
+    default: return 80;
   }
 };
 
-export const getColumnIndexForDate = (
-  date: Date,
-  timelineUnits: TimelineUnit[],
+export const generateTimelineUnits = (
+  startDate: Date, 
+  endDate: Date, 
   viewMode: 'days' | 'weeks' | 'months'
-): number => {
-  if (timelineUnits.length === 0) return 0;
-  
-  const normalizedDate = startOfDay(date);
-  
-  for (let i = 0; i < timelineUnits.length; i++) {
-    const unitDate = new Date(timelineUnits[i].key);
-    
+): TimelineUnit[] => {
+  const units: TimelineUnit[] = [];
+  let currentDate = startOfDay(startDate);
+  const end = startOfDay(endDate);
+
+  while (currentDate <= end) {
+    let label: string;
+    let nextDate: Date;
+
     switch (viewMode) {
       case 'days':
-        if (isSameDay(normalizedDate, unitDate)) {
-          return i;
-        }
+        label = format(currentDate, 'MMM d');
+        nextDate = addDays(currentDate, 1);
         break;
-        
       case 'weeks':
-        if (isSameWeek(normalizedDate, unitDate, { weekStartsOn: 1 })) {
-          return i;
-        }
+        label = format(currentDate, 'MMM d');
+        nextDate = addWeeks(currentDate, 1);
         break;
-        
       case 'months':
-        if (isSameMonth(normalizedDate, unitDate)) {
-          return i;
-        }
+        label = format(currentDate, 'MMM yyyy');
+        nextDate = addMonths(currentDate, 1);
         break;
+      default:
+        label = format(currentDate, 'MMM d');
+        nextDate = addDays(currentDate, 1);
     }
+
+    units.push({
+      key: currentDate.toISOString(),
+      label,
+      date: new Date(currentDate),
+      isWeekend: viewMode === 'days' ? isWeekend(currentDate) : false
+    });
+
+    currentDate = nextDate;
   }
-  
-  const firstUnitDate = new Date(timelineUnits[0].key);
-  const lastUnitDate = new Date(timelineUnits[timelineUnits.length - 1].key);
-  
-  if (normalizedDate < firstUnitDate) return 0;
-  if (normalizedDate > lastUnitDate) return timelineUnits.length - 1;
-  
-  return 0;
+
+  return units;
 };
 
-export const calculateDurationInUnits = (
-  startDate: Date,
-  endDate: Date,
-  viewMode: 'days' | 'weeks' | 'months'
-): number => {
-  const normalizedStart = startOfDay(startDate);
-  const normalizedEnd = startOfDay(endDate);
-  
-  let duration: number;
-  
-  switch (viewMode) {
-    case 'days':
-      duration = Math.max(1, differenceInDays(normalizedEnd, normalizedStart) + 1);
-      break;
-    case 'weeks':
-      duration = Math.max(1, differenceInWeeks(normalizedEnd, normalizedStart) + 1);
-      break;
-    case 'months':
-      duration = Math.max(1, differenceInMonths(normalizedEnd, normalizedStart) + 1);
-      break;
-  }
-  
-  return duration;
-};
-
-export const getTaskGridPosition = (
-  task: Task,
+// Utility to get date from pixel position
+export const getDateFromPixelPosition = (
+  pixelX: number,
+  containerWidth: number,
   timelineStart: Date,
-  timelineEnd: Date,
-  viewMode: 'days' | 'weeks' | 'months'
-): TaskGridPosition => {
-  const taskStart = task.start_date ? new Date(task.start_date) : new Date();
-  const taskEnd = task.due_date ? new Date(task.due_date) : new Date(taskStart.getTime() + 24 * 60 * 60 * 1000);
+  timelineEnd: Date
+): Date => {
+  const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+  const positionPercent = pixelX / containerWidth;
+  const daysFromStart = positionPercent * totalDays;
   
-  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
-  
-  const startColumnIndex = getColumnIndexForDate(taskStart, timelineUnits, viewMode);
-  const columnSpan = calculateDurationInUnits(taskStart, taskEnd, viewMode);
-  
-  const clampedStartIndex = Math.max(0, Math.min(startColumnIndex, timelineUnits.length - 1));
-  const maxAllowedSpan = timelineUnits.length - clampedStartIndex;
-  const clampedSpan = Math.max(1, Math.min(columnSpan, maxAllowedSpan));
-
-  return {
-    startColumnIndex: clampedStartIndex,
-    columnSpan: clampedSpan
-  };
+  return new Date(timelineStart.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
 };

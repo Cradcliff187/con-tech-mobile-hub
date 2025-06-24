@@ -14,6 +14,8 @@ interface SimpleGanttContainerProps {
 export const SimpleGanttContainer = ({ projectId, viewMode }: SimpleGanttContainerProps) => {
   const { tasks, loading, error, updateTask } = useTasks({ projectId });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [timelineStart, setTimelineStart] = useState<Date | null>(null);
+  const [timelineEnd, setTimelineEnd] = useState<Date | null>(null);
   const { headerScrollRef, contentScrollRef } = useScrollSync();
 
   if (loading) {
@@ -28,22 +30,27 @@ export const SimpleGanttContainer = ({ projectId, viewMode }: SimpleGanttContain
     return <div className="p-8 text-center text-slate-500">No tasks found for this project.</div>;
   }
 
-  // Calculate timeline bounds from tasks
-  const taskDates = tasks
-    .flatMap(task => [task.start_date, task.due_date])
-    .filter(Boolean)
-    .map(date => new Date(date!));
+  // Calculate timeline bounds from tasks or use state values
+  let calculatedTimelineStart = timelineStart;
+  let calculatedTimelineEnd = timelineEnd;
 
-  if (taskDates.length === 0) {
-    return <div className="p-8 text-center text-slate-500">No task dates available.</div>;
+  if (!calculatedTimelineStart || !calculatedTimelineEnd) {
+    const taskDates = tasks
+      .flatMap(task => [task.start_date, task.due_date])
+      .filter(Boolean)
+      .map(date => new Date(date!));
+
+    if (taskDates.length === 0) {
+      return <div className="p-8 text-center text-slate-500">No task dates available.</div>;
+    }
+
+    calculatedTimelineStart = new Date(Math.min(...taskDates.map(d => d.getTime())));
+    calculatedTimelineEnd = new Date(Math.max(...taskDates.map(d => d.getTime())));
+
+    // Add padding
+    calculatedTimelineStart.setDate(calculatedTimelineStart.getDate() - 7);
+    calculatedTimelineEnd.setDate(calculatedTimelineEnd.getDate() + 7);
   }
-
-  const timelineStart = new Date(Math.min(...taskDates.map(d => d.getTime())));
-  const timelineEnd = new Date(Math.max(...taskDates.map(d => d.getTime())));
-
-  // Add padding
-  timelineStart.setDate(timelineStart.getDate() - 7);
-  timelineEnd.setDate(timelineEnd.getDate() + 7);
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
     try {
@@ -53,14 +60,21 @@ export const SimpleGanttContainer = ({ projectId, viewMode }: SimpleGanttContain
     }
   };
 
+  const handleTimelineBoundsChange = (start: Date, end: Date) => {
+    setTimelineStart(start);
+    setTimelineEnd(end);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
       {/* Header */}
       <GanttTimelineHeader
-        timelineStart={timelineStart}
-        timelineEnd={timelineEnd}
+        timelineStart={calculatedTimelineStart}
+        timelineEnd={calculatedTimelineEnd}
         viewMode={viewMode}
+        tasks={tasks}
         scrollRef={headerScrollRef}
+        onTimelineBoundsChange={handleTimelineBoundsChange}
       />
 
       {/* Content */}
@@ -72,8 +86,8 @@ export const SimpleGanttContainer = ({ projectId, viewMode }: SimpleGanttContain
           <SimpleTaskRow
             key={task.id}
             task={task}
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
+            timelineStart={calculatedTimelineStart}
+            timelineEnd={calculatedTimelineEnd}
             viewMode={viewMode}
             isSelected={selectedTaskId === task.id}
             onSelect={setSelectedTaskId}
