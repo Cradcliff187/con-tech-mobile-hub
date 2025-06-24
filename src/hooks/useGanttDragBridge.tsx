@@ -1,6 +1,7 @@
 
 import { useCallback } from 'react';
 import { useGanttContext } from '@/contexts/gantt';
+import { useTasks } from '@/hooks/useTasks';
 import { Task } from '@/types/database';
 import { getDateFromPosition } from '@/components/planning/gantt/utils/dragUtils';
 import { validateTaskDrag, getSnapDate } from '@/components/planning/gantt/utils/dragValidation';
@@ -33,14 +34,18 @@ export const useGanttDragBridge = ({
 }: UseGanttDragBridgeProps): GanttDragBridgeReturn => {
   const {
     state,
+    updateTaskOptimistic,
+    clearOptimisticUpdate,
     startDrag,
     updateDragPreview,
-    completeDrag,
     cancelDrag,
     setSaving
   } = useGanttContext();
 
   const { dragState, tasks, saving } = state;
+  
+  // Get the real database update function
+  const { updateTask: updateTaskInDB } = useTasks();
 
   // Handle drag start
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
@@ -90,7 +95,7 @@ export const useGanttDragBridge = ({
     updateDragPreview(previewDate, validation.validity, validation.messages);
   }, [dragState.isDragging, dragState.draggedTask, timelineStart, timelineEnd, viewMode, updateDragPreview, tasks]);
 
-  // Handle drop with date calculation and task update
+  // Handle drop with proper database update
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     
@@ -113,9 +118,11 @@ export const useGanttDragBridge = ({
 
     const task = dragState.draggedTask;
     const newStartDate = dragState.dropPreviewDate;
+    const taskId = task.id;
     
     try {
       setSaving(true);
+      console.log('🎯 Starting database update for task:', taskId);
       
       // Calculate new end date maintaining duration
       const currentStart = task.start_date ? new Date(task.start_date) : new Date();
@@ -129,10 +136,26 @@ export const useGanttDragBridge = ({
         due_date: newEndDate.toISOString()
       };
 
-      console.log('🎯 Completing drag with updates:', updates);
+      console.log('🎯 Applying optimistic update:', updates);
       
-      // This will handle optimistic updates and database save
-      await completeDrag(updates);
+      // Apply optimistic update first
+      updateTaskOptimistic(taskId, updates);
+      
+      // Attempt database update using the real database function
+      console.log('🎯 Saving to database via useTasks updateTask...');
+      const result = await updateTaskInDB(taskId, updates);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      console.log('✅ Database update successful');
+      
+      // Clear optimistic update on success (real data will come from subscription)
+      clearOptimisticUpdate(taskId);
+      
+      // Reset drag state on success
+      cancelDrag();
       
       // Show success feedback
       toast({
@@ -142,7 +165,13 @@ export const useGanttDragBridge = ({
       });
       
     } catch (error) {
-      console.error('❌ Drop failed:', error);
+      console.error('❌ Database update failed:', error);
+      
+      // Rollback optimistic update on failure
+      clearOptimisticUpdate(taskId);
+      
+      // Reset drag state
+      cancelDrag();
       
       // Show error feedback
       toast({
@@ -150,13 +179,10 @@ export const useGanttDragBridge = ({
         description: error instanceof Error ? error.message : "Failed to update task position",
         variant: "destructive"
       });
-      
-      // Error is already handled in completeDrag, just ensure drag state is reset
-      cancelDrag();
     } finally {
       setSaving(false);
     }
-  }, [dragState, completeDrag, cancelDrag, setSaving]);
+  }, [dragState, updateTaskOptimistic, updateTaskInDB, clearOptimisticUpdate, cancelDrag, setSaving]);
 
   // Handle drag end (cleanup)
   const handleDragEnd = useCallback(() => {
