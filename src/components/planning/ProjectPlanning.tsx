@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { GanttChart } from './GanttChart';
+import { SimpleGanttChart } from './SimpleGanttChart';
 import { TaskHierarchy } from './TaskHierarchy';
 import { ResourcePlanning } from './ResourcePlanning';
 import { MilestonePlanning } from './MilestonePlanning';
@@ -226,7 +226,7 @@ export const ProjectPlanning = () => {
         <div className="p-6">
           {selectedProjectId ? (
             <>
-              {activeView === 'gantt' && <GanttChart projectId={selectedProjectId} viewMode={viewMode} />}
+              {activeView === 'gantt' && <SimpleGanttChart projectId={selectedProjectId} viewMode={viewMode} />}
               {activeView === 'hierarchy' && <TaskHierarchy projectId={selectedProjectId} />}
               {activeView === 'resources' && <ResourcePlanning projectId={selectedProjectId} />}
               {activeView === 'milestones' && <MilestonePlanning projectId={selectedProjectId} />}
