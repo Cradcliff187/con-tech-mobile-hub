@@ -20,7 +20,7 @@ interface EditStakeholderDialogProps {
 }
 
 export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditStakeholderDialogProps) => {
-  const { updateStakeholder } = useStakeholders();
+  const { updateStakeholder, refetch } = useStakeholders();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -115,44 +115,87 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
 
     setLoading(true);
 
-    // Sanitize data only on submission - sanitization functions now handle undefined conversion
-    const legacyAddress = [
-      sanitizeOnSubmit(formData.street_address),
-      sanitizeOnSubmit(formData.city),
-      sanitizeOnSubmit(formData.state),
-      sanitizeOnSubmit(formData.zip_code)
-    ].filter(Boolean).join(', ');
+    // Debug logging - before sanitization
+    console.log('=== DEBUG: Form data before sanitization ===');
+    console.log('Raw phone value:', JSON.stringify(formData.phone));
+    console.log('Raw email value:', JSON.stringify(formData.email));
+    console.log('Raw company_name value:', JSON.stringify(formData.company_name));
 
+    // Sanitize all fields - let sanitization functions handle undefined conversion properly
+    const sanitizedPhone = sanitizePhoneOnSubmit(formData.phone);
+    const sanitizedEmail = sanitizeEmailOnSubmit(formData.email);
+    const sanitizedCompanyName = sanitizeOnSubmit(formData.company_name);
+    const sanitizedContactPerson = sanitizeOnSubmit(formData.contact_person);
+    const sanitizedStreetAddress = sanitizeOnSubmit(formData.street_address);
+    const sanitizedCity = sanitizeOnSubmit(formData.city);
+    const sanitizedState = sanitizeOnSubmit(formData.state);
+    const sanitizedZipCode = sanitizeOnSubmit(formData.zip_code);
+    const sanitizedLicenseNumber = sanitizeOnSubmit(formData.license_number);
+    const sanitizedNotes = sanitizeOnSubmit(formData.notes);
+
+    // Debug logging - after sanitization
+    console.log('=== DEBUG: Values after sanitization ===');
+    console.log('Sanitized phone:', JSON.stringify(sanitizedPhone));
+    console.log('Sanitized email:', JSON.stringify(sanitizedEmail));
+    console.log('Sanitized company_name:', JSON.stringify(sanitizedCompanyName));
+
+    // Build legacy address for backward compatibility
+    const legacyAddressParts = [sanitizedStreetAddress, sanitizedCity, sanitizedState, sanitizedZipCode].filter(Boolean);
+    const legacyAddress = legacyAddressParts.length > 0 ? legacyAddressParts.join(', ') : undefined;
+
+    // Build update data with explicit NULL handling
     const updatedData = {
       stakeholder_type: formData.stakeholder_type,
-      company_name: sanitizeOnSubmit(formData.company_name),
-      contact_person: sanitizeOnSubmit(formData.contact_person),
-      phone: sanitizePhoneOnSubmit(formData.phone),
-      email: sanitizeEmailOnSubmit(formData.email),
-      address: legacyAddress || undefined, // Keep for backward compatibility
-      street_address: sanitizeOnSubmit(formData.street_address),
-      city: sanitizeOnSubmit(formData.city),
-      state: sanitizeOnSubmit(formData.state),
-      zip_code: sanitizeOnSubmit(formData.zip_code),
+      company_name: sanitizedCompanyName,
+      contact_person: sanitizedContactPerson,
+      phone: sanitizedPhone, // This will be undefined for empty phone, which should convert to NULL
+      email: sanitizedEmail, // This will be undefined for empty email, which should convert to NULL
+      address: legacyAddress, // Keep for backward compatibility
+      street_address: sanitizedStreetAddress,
+      city: sanitizedCity,
+      state: sanitizedState,
+      zip_code: sanitizedZipCode,
       specialties: formData.specialties ? formData.specialties.split(',').map(s => sanitizeOnSubmit(s)).filter(s => s !== undefined) : undefined,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
-      license_number: sanitizeOnSubmit(formData.license_number),
-      notes: sanitizeOnSubmit(formData.notes),
+      license_number: sanitizedLicenseNumber,
+      notes: sanitizedNotes,
       status: formData.status
     };
 
-    const { error } = await updateStakeholder(stakeholder.id, updatedData);
-    
-    if (!error) {
-      onOpenChange(false);
-      toast({
-        title: "Success",
-        description: "Stakeholder updated successfully"
-      });
-    } else {
+    console.log('=== DEBUG: Final update data being sent to database ===');
+    console.log('Update data:', JSON.stringify(updatedData, null, 2));
+    console.log('Phone field specifically:', JSON.stringify(updatedData.phone));
+
+    try {
+      const { error } = await updateStakeholder(stakeholder.id, updatedData);
+      
+      if (error) {
+        console.error('=== DEBUG: Database update error ===', error);
+        toast({
+          title: "Error",
+          description: "Failed to update stakeholder. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        console.log('=== DEBUG: Database update successful ===');
+        
+        // Force a complete refetch to ensure UI reflects database state
+        await refetch();
+        
+        // Verify the update worked by logging what we expect vs what we got
+        console.log('=== DEBUG: Refetch completed, dialog should close ===');
+        
+        onOpenChange(false);
+        toast({
+          title: "Success",
+          description: "Stakeholder updated successfully"
+        });
+      }
+    } catch (error) {
+      console.error('=== DEBUG: Unexpected error during update ===', error);
       toast({
         title: "Error",
-        description: "Failed to update stakeholder. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     }
@@ -161,6 +204,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
   };
 
   const handleInputChange = (field: string, value: string) => {
+    console.log(`=== DEBUG: Field "${field}" changed to:`, JSON.stringify(value));
     // Direct assignment without any sanitization during typing
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -235,6 +279,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
                 onChange={(value) => handleInputChange('phone', value)}
                 className="min-h-[44px]"
               />
+              <p className="text-xs text-gray-500 mt-1">Leave empty to remove phone number</p>
             </div>
             
             <div>
@@ -244,6 +289,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
                 onChange={(value) => handleInputChange('email', value)}
                 className="min-h-[44px]"
               />
+              <p className="text-xs text-gray-500 mt-1">Leave empty to remove email</p>
             </div>
           </div>
 

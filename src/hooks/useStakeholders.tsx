@@ -89,16 +89,38 @@ export const useStakeholders = (projectId?: string) => {
 
   const updateStakeholder = useCallback(async (id: string, updates: Partial<Stakeholder>) => {
     try {
+      console.log('=== DEBUG: updateStakeholder called ===');
+      console.log('Stakeholder ID:', id);
+      console.log('Updates being sent:', JSON.stringify(updates, null, 2));
+      
+      // Convert undefined values to null explicitly for Supabase
+      const processedUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
+        acc[key] = value === undefined ? null : value;
+        return acc;
+      }, {} as Record<string, any>);
+      
+      console.log('=== DEBUG: Processed updates (undefined -> null) ===');
+      console.log('Processed updates:', JSON.stringify(processedUpdates, null, 2));
+
       const { data, error } = await supabase
         .from('stakeholders')
-        .update(updates)
+        .update(processedUpdates)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('=== DEBUG: Supabase update error ===', error);
+        throw error;
+      }
 
+      console.log('=== DEBUG: Supabase update successful ===');
+      console.log('Returned data:', JSON.stringify(data, null, 2));
+      console.log('Phone field in returned data:', JSON.stringify(data.phone));
+
+      // Update local state
       setStakeholders(prev => prev.map(s => s.id === id ? data : s));
+      
       return { data, error: null };
     } catch (error) {
       console.error('Error updating stakeholder:', error);
