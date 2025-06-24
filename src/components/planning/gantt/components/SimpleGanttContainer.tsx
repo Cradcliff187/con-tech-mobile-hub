@@ -7,7 +7,10 @@ import { SimpleTaskRow } from './SimpleTaskRow';
 import { GanttEmptyState } from './GanttEmptyState';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
+import { GanttUndoRedoControls } from './GanttUndoRedoControls';
 import { useTimelineCalculation } from '../hooks/useTimelineCalculation';
+import { useActionHistory } from '@/hooks/useActionHistory';
+import { useErrorRecovery } from '@/hooks/useErrorRecovery';
 import { Task } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 
@@ -29,6 +32,50 @@ export const SimpleGanttContainer = ({
   
   const { tasks, loading, error, updateTask } = useTasks({ projectId });
   const { timelineStart, timelineEnd } = useTimelineCalculation(tasks);
+
+  // Error recovery system
+  const { 
+    executeWithRecovery, 
+    isRecovering, 
+    hasFailedOperations,
+    clearFailedOperations 
+  } = useErrorRecovery({
+    maxRetries: 3,
+    baseRetryDelay: 1000,
+    onRecoverySuccess: (operationId) => {
+      console.log('✅ Recovery successful for operation:', operationId);
+    },
+    onRecoveryFailure: (operationId, error) => {
+      console.error('❌ Recovery failed for operation:', operationId, error);
+    }
+  });
+
+  // Enhanced task update with error recovery
+  const updateTaskWithRecovery = async (taskId: string, updates: Partial<Task>) => {
+    return executeWithRecovery(
+      () => updateTask(taskId, updates),
+      `Update task "${tasks.find(t => t.id === taskId)?.title || taskId}"`
+    );
+  };
+
+  // Action history system
+  const {
+    canUndo,
+    canRedo,
+    isPerformingAction,
+    undo,
+    redo,
+    clearHistory,
+    recordTaskMove,
+    recordTaskUpdate,
+    getTaskState,
+    getUndoDescription,
+    getRedoDescription,
+    historyLength
+  } = useActionHistory({
+    tasks,
+    onTaskUpdate: updateTaskWithRecovery
+  });
 
   // Filter and sort tasks with proper memoization
   const displayTasks = useMemo(() => {
@@ -80,11 +127,14 @@ export const SimpleGanttContainer = ({
   }, []);
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
-    if (isUpdating) return;
+    if (isUpdating || isPerformingAction) return;
     
     setIsUpdating(true);
     
     try {
+      // Get before state for undo
+      const beforeState = getTaskState(taskId);
+      
       // Validate updates before sending
       if (updates.start_date && updates.due_date) {
         const startDate = new Date(updates.start_date);
@@ -99,11 +149,15 @@ export const SimpleGanttContainer = ({
         }
       }
       
-      const result = await updateTask(taskId, updates);
+      const result = await updateTaskWithRecovery(taskId, updates);
       
       if (result.error) {
         throw new Error(result.error);
       }
+      
+      // Record action for undo
+      const afterState = { ...beforeState, ...updates };
+      recordTaskMove(taskId, beforeState, afterState);
       
       return result;
     } catch (error) {
@@ -137,9 +191,52 @@ export const SimpleGanttContainer = ({
     return <GanttEmptyState projectId={projectId} />;
   }
 
+  const isSystemBusy = isUpdating || isPerformingAction || isRecovering;
+
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
-      {/* Header with scroll sync */}
+      {/* Header with undo/redo controls */}
+      <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-center gap-4">
+          <h3 className="text-sm font-medium text-slate-700">
+            Gantt Chart
+          </h3>
+          <GanttUndoRedoControls
+            canUndo={canUndo}
+            canRedo={canRedo}
+            isPerformingAction={isPerformingAction}
+            onUndo={undo}
+            onRedo={redo}
+            onClearHistory={clearHistory}
+            undoDescription={getUndoDescription()}
+            redoDescription={getRedoDescription()}
+            historyLength={historyLength}
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          {hasFailedOperations && (
+            <button
+              onClick={clearFailedOperations}
+              className="text-red-600 hover:text-red-700 underline"
+            >
+              Clear Failed Operations
+            </button>
+          )}
+          {isSystemBusy && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+              <span>
+                {isRecovering ? 'Recovering...' : 
+                 isPerformingAction ? 'Processing...' : 
+                 'Updating...'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Timeline header with scroll sync */}
       <GanttTimelineHeader
         timelineStart={timelineStart}
         timelineEnd={timelineEnd}
@@ -156,9 +253,6 @@ export const SimpleGanttContainer = ({
             <span className="text-sm font-medium text-slate-700">
               Tasks ({displayTasks.length})
             </span>
-            {isUpdating && (
-              <div className="ml-2 w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-            )}
           </div>
           
           <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
@@ -220,7 +314,7 @@ export const SimpleGanttContainer = ({
         </div>
       </div>
       
-      {/* Status bar */}
+      {/* Enhanced status bar */}
       <div className="h-6 bg-slate-50 border-t border-slate-200 flex items-center px-3 text-xs text-slate-600 flex-shrink-0">
         <span>
           {displayTasks.length} task{displayTasks.length !== 1 ? 's' : ''} • 
@@ -232,8 +326,15 @@ export const SimpleGanttContainer = ({
             Task selected: {displayTasks.find(t => t.id === selectedTaskId)?.title}
           </span>
         )}
-        {isUpdating && (
-          <span className="ml-4 text-orange-600">Saving changes...</span>
+        {historyLength > 0 && (
+          <span className="ml-4 text-slate-500">
+            {historyLength} action{historyLength !== 1 ? 's' : ''} in history
+          </span>
+        )}
+        {isSystemBusy && (
+          <span className="ml-4 text-orange-600">
+            {isRecovering ? 'Auto-recovering failed operations...' : 'Saving changes...'}
+          </span>
         )}
       </div>
     </div>
