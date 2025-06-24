@@ -1,3 +1,4 @@
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,6 +7,7 @@ import { PhoneInput } from '@/components/common/PhoneInput';
 import { AlertTriangle } from 'lucide-react';
 import { sanitizeText } from '@/utils/validation';
 import { type StakeholderFormData } from '@/schemas';
+import { useCallback, useRef } from 'react';
 
 interface ContactInfoFieldsProps {
   formData: StakeholderFormData;
@@ -20,11 +22,57 @@ export const ContactInfoFields = ({
   defaultType,
   errors = {}
 }: ContactInfoFieldsProps) => {
+  const sanitizationTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+
   const getFieldError = (field: string): string | undefined => {
     return errors[field]?.[0];
   };
 
-  const handleSanitizedChange = (field: string, value: string, sanitizeType: 'text' | 'email' | 'phone' = 'text') => {
+  const handleDirectChange = useCallback((field: string, value: string) => {
+    // Update immediately for responsive typing
+    onInputChange(field, value);
+  }, [onInputChange]);
+
+  const handleDeferredSanitization = useCallback((field: string, value: string, sanitizeType: 'text' | 'email' | 'phone' = 'text') => {
+    // Clear existing timeout for this field
+    if (sanitizationTimeouts.current[field]) {
+      clearTimeout(sanitizationTimeouts.current[field]);
+    }
+
+    // Set new timeout for sanitization
+    sanitizationTimeouts.current[field] = setTimeout(() => {
+      let sanitizedValue = value;
+      
+      switch (sanitizeType) {
+        case 'email':
+          sanitizedValue = value.trim().toLowerCase();
+          break;
+        case 'phone':
+          sanitizedValue = value.replace(/[^0-9\s\-\(\)\+]/g, '');
+          break;
+        case 'text':
+        default:
+          sanitizedValue = sanitizeText(value);
+          break;
+      }
+      
+      // Only update if the value actually changed after sanitization
+      if (sanitizedValue !== value) {
+        onInputChange(field, sanitizedValue);
+      }
+      
+      delete sanitizationTimeouts.current[field];
+    }, 500); // 500ms delay for sanitization
+  }, [onInputChange]);
+
+  const handleBlurSanitization = useCallback((field: string, value: string, sanitizeType: 'text' | 'email' | 'phone' = 'text') => {
+    // Clear any pending timeout
+    if (sanitizationTimeouts.current[field]) {
+      clearTimeout(sanitizationTimeouts.current[field]);
+      delete sanitizationTimeouts.current[field];
+    }
+
+    // Immediately sanitize on blur
     let sanitizedValue = value;
     
     switch (sanitizeType) {
@@ -40,8 +88,10 @@ export const ContactInfoFields = ({
         break;
     }
     
-    onInputChange(field, sanitizedValue);
-  };
+    if (sanitizedValue !== value) {
+      onInputChange(field, sanitizedValue);
+    }
+  }, [onInputChange]);
 
   return (
     <>
@@ -101,9 +151,16 @@ export const ContactInfoFields = ({
           <Input
             id="company_name"
             value={formData.company_name || ''}
-            onChange={(e) => handleSanitizedChange('company_name', e.target.value)}
+            onChange={(e) => {
+              handleDirectChange('company_name', e.target.value);
+              handleDeferredSanitization('company_name', e.target.value);
+            }}
+            onBlur={(e) => handleBlurSanitization('company_name', e.target.value)}
             placeholder="Enter company name (max 200 characters)"
             className={getFieldError('company_name') ? 'border-red-500' : ''}
+            autoComplete="off"
+            autoCapitalize="words"
+            inputMode="text"
           />
           {getFieldError('company_name') && (
             <p className="text-sm text-red-600 flex items-center gap-1">
@@ -118,10 +175,17 @@ export const ContactInfoFields = ({
           <Input
             id="contact_person"
             value={formData.contact_person}
-            onChange={(e) => handleSanitizedChange('contact_person', e.target.value)}
+            onChange={(e) => {
+              handleDirectChange('contact_person', e.target.value);
+              handleDeferredSanitization('contact_person', e.target.value);
+            }}
+            onBlur={(e) => handleBlurSanitization('contact_person', e.target.value)}
             placeholder="Primary contact name (max 100 characters)"
             required
             className={getFieldError('contact_person') ? 'border-red-500' : ''}
+            autoComplete="off"
+            autoCapitalize="words"
+            inputMode="text"
           />
           {getFieldError('contact_person') && (
             <p className="text-sm text-red-600 flex items-center gap-1">
@@ -137,7 +201,11 @@ export const ContactInfoFields = ({
           <Label htmlFor="email">Email</Label>
           <EmailInput
             value={formData.email || ''}
-            onChange={(value) => handleSanitizedChange('email', value, 'email')}
+            onChange={(value) => {
+              handleDirectChange('email', value);
+              handleDeferredSanitization('email', value, 'email');
+            }}
+            onBlur={(e) => handleBlurSanitization('email', e.target.value, 'email')}
             className={getFieldError('email') ? 'border-red-500' : ''}
           />
           {getFieldError('email') && (
@@ -152,7 +220,11 @@ export const ContactInfoFields = ({
           <Label htmlFor="phone">Phone</Label>
           <PhoneInput
             value={formData.phone || ''}
-            onChange={(value) => handleSanitizedChange('phone', value, 'phone')}
+            onChange={(value) => {
+              handleDirectChange('phone', value);
+              handleDeferredSanitization('phone', value, 'phone');
+            }}
+            onBlur={(e) => handleBlurSanitization('phone', e.target.value, 'phone')}
             placeholder="Phone number"
             className={getFieldError('phone') ? 'border-red-500' : ''}
           />
