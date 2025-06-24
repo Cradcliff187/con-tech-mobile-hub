@@ -1,9 +1,9 @@
 
 import { Task } from '@/types/database';
-import { getDaysBetween } from './dateUtils';
 import { generateTimelineUnits, getColumnWidth } from './gridUtils';
+import { startOfDay, addDays } from 'date-fns';
 
-// Updated drag-and-drop utility functions with grid-based positioning
+// Simplified drag-and-drop utility functions using consolidated grid system
 export const getDateFromPosition = (
   pixelX: number, 
   timelineWidth: number, 
@@ -11,40 +11,34 @@ export const getDateFromPosition = (
   timelineEnd: Date,
   viewMode: 'days' | 'weeks' | 'months' = 'weeks'
 ): Date => {
-  const columnWidth = getColumnWidth(viewMode);
-  const columnIndex = Math.floor(pixelX / columnWidth);
+  // Use consolidated timeline generation
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
+  const columnWidth = getColumnWidth(viewMode);
   
-  if (columnIndex >= 0 && columnIndex < timelineUnits.length) {
-    return new Date(timelineUnits[columnIndex].key);
-  }
+  // Calculate which column the pixel position falls into
+  const columnIndex = Math.floor(pixelX / columnWidth);
   
-  // Fallback to original calculation for edge cases
-  const totalDays = getDaysBetween(timelineStart, timelineEnd);
-  const dayPosition = (pixelX / timelineWidth) * totalDays;
-  const newDate = new Date(timelineStart);
-  newDate.setDate(newDate.getDate() + dayPosition);
+  // Clamp to valid range
+  const clampedIndex = Math.max(0, Math.min(columnIndex, timelineUnits.length - 1));
   
-  // Apply snapping based on view mode
-  const snapInterval = getSnapInterval(viewMode);
-  if (snapInterval > 0) {
-    const daysSinceStart = getDaysBetween(timelineStart, newDate);
-    const snappedDays = Math.round(daysSinceStart / snapInterval) * snapInterval;
-    const snappedDate = new Date(timelineStart);
-    snappedDate.setDate(snappedDate.getDate() + snappedDays);
-    return snappedDate;
-  }
+  // Return the date for that column
+  const targetDate = new Date(timelineUnits[clampedIndex].key);
   
-  return newDate;
+  console.log('🎯 Date from position:', {
+    pixelX,
+    columnWidth,
+    columnIndex,
+    clampedIndex,
+    targetDate: targetDate.toISOString(),
+    viewMode
+  });
+  
+  return targetDate;
 };
 
 export const getSnapInterval = (viewMode: 'days' | 'weeks' | 'months'): number => {
-  switch (viewMode) {
-    case 'days': return 0.25; // 6-hour intervals
-    case 'weeks': return 1; // Daily intervals
-    case 'months': return 7; // Weekly intervals
-    default: return 1;
-  }
+  // Simplified snapping - always snap to grid boundaries
+  return 1;
 };
 
 export const createDragPreview = (task: Task): HTMLElement => {

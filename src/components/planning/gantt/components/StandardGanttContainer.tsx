@@ -6,6 +6,7 @@ import { GanttTaskRow } from '../GanttTaskRow';
 import { TaskListHeader } from './TaskListHeader';
 import { DragPreviewIndicator } from './DragPreviewIndicator';
 import { DragSnapGrid } from './DragSnapGrid';
+import { GanttDebugOverlay } from './GanttDebugOverlay';
 import { useScrollSync } from '../hooks/useScrollSync';
 
 interface StandardGanttContainerProps {
@@ -50,6 +51,9 @@ export const StandardGanttContainer = ({
   dragPosition
 }: StandardGanttContainerProps) => {
   const { headerScrollRef, contentScrollRef } = useScrollSync();
+  
+  // Show debug overlay in development mode
+  const showDebug = process.env.NODE_ENV === 'development';
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
@@ -128,6 +132,16 @@ export const StandardGanttContainer = ({
         validity={currentValidity}
         violationMessages={violationMessages}
       />
+      
+      {/* Debug overlay - development only */}
+      {showDebug && (
+        <GanttDebugOverlay
+          isVisible={true}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          viewMode={viewMode}
+        />
+      )}
     </div>
   );
 };

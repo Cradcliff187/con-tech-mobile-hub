@@ -17,6 +17,7 @@ export const DragSnapGrid = ({
 }: DragSnapGridProps) => {
   if (!isVisible) return null;
 
+  // Use consolidated timeline generation
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   const columnWidth = getColumnWidth(viewMode);
 

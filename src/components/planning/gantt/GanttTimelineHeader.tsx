@@ -3,7 +3,7 @@ import { useRef, useEffect } from 'react';
 import { GanttTimelineNavigation } from './GanttTimelineNavigation';
 import { GanttCurrentDateIndicator } from './GanttCurrentDateIndicator';
 import { useTimelineNavigation } from './hooks/useTimelineNavigation';
-import { useTimelineUnits } from './hooks/useTimelineUnits';
+import { generateTimelineUnits } from './utils/gridUtils';
 
 interface GanttTimelineHeaderProps {
   timelineStart: Date;
@@ -36,7 +36,8 @@ export const GanttTimelineHeader = ({
     scrollContainerRef: headerScrollRef
   });
 
-  const timelineUnits = useTimelineUnits(timelineStart, timelineEnd, viewMode);
+  // Use the consolidated timeline generation from gridUtils
+  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
 
   // Update scroll info when scrolling
   useEffect(() => {
@@ -84,20 +85,21 @@ export const GanttTimelineHeader = ({
             }}
           >
             <div className="min-w-max relative">
-              {/* Timeline units */}
+              {/* Timeline units - use consistent column widths */}
               <div className="flex h-8 bg-slate-50">
-                {timelineUnits.map((unit, index) => (
-                  <div
-                    key={unit.key}
-                    className={`flex-shrink-0 px-1 py-1 text-xs font-medium border-r border-slate-200 flex items-center justify-center transition-colors hover:bg-slate-100 ${
-                      unit.isWeekend ? 'bg-slate-100 text-slate-500' : 'text-slate-700'
-                    } ${
-                      viewMode === 'days' ? 'w-16' : viewMode === 'weeks' ? 'w-20' : 'w-24'
-                    }`}
-                  >
-                    {unit.label}
-                  </div>
-                ))}
+                {timelineUnits.map((unit, index) => {
+                  const columnWidth = viewMode === 'days' ? 'w-16' : viewMode === 'weeks' ? 'w-20' : 'w-24';
+                  return (
+                    <div
+                      key={unit.key}
+                      className={`flex-shrink-0 px-1 py-1 text-xs font-medium border-r border-slate-200 flex items-center justify-center transition-colors hover:bg-slate-100 ${
+                        unit.isWeekend ? 'bg-slate-100 text-slate-500' : 'text-slate-700'
+                      } ${columnWidth}`}
+                    >
+                      {unit.label}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Current date indicator */}
