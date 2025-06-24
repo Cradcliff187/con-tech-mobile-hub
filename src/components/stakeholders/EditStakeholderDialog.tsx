@@ -21,6 +21,7 @@ interface EditStakeholderDialogProps {
 export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditStakeholderDialogProps) => {
   const { updateStakeholder } = useStakeholders();
   const { toast } = useToast();
+  
   const [formData, setFormData] = useState({
     stakeholder_type: 'subcontractor' as 'subcontractor' | 'employee' | 'vendor' | 'client',
     company_name: '',
@@ -113,29 +114,29 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
 
     setLoading(true);
 
-    // Sanitize data only on submission
+    // Sanitize data only on submission - properly handle empty strings
     const legacyAddress = [
-      sanitizeOnSubmit(formData.street_address),
-      sanitizeOnSubmit(formData.city),
-      sanitizeOnSubmit(formData.state),
-      sanitizeOnSubmit(formData.zip_code)
+      formData.street_address && formData.street_address.trim() !== '' ? sanitizeOnSubmit(formData.street_address) : '',
+      formData.city && formData.city.trim() !== '' ? sanitizeOnSubmit(formData.city) : '',
+      formData.state && formData.state.trim() !== '' ? sanitizeOnSubmit(formData.state) : '',
+      formData.zip_code && formData.zip_code.trim() !== '' ? sanitizeOnSubmit(formData.zip_code) : ''
     ].filter(Boolean).join(', ');
 
     const updatedData = {
       stakeholder_type: formData.stakeholder_type,
       company_name: sanitizeOnSubmit(formData.company_name),
-      contact_person: sanitizeOnSubmit(formData.contact_person) || undefined,
-      phone: formData.phone ? sanitizePhoneOnSubmit(formData.phone) : undefined,
-      email: formData.email ? sanitizeEmailOnSubmit(formData.email) : undefined,
+      contact_person: formData.contact_person && formData.contact_person.trim() !== '' ? sanitizeOnSubmit(formData.contact_person) : undefined,
+      phone: formData.phone && formData.phone.trim() !== '' ? sanitizePhoneOnSubmit(formData.phone) : undefined,
+      email: formData.email && formData.email.trim() !== '' ? sanitizeEmailOnSubmit(formData.email) : undefined,
       address: legacyAddress || undefined, // Keep for backward compatibility
-      street_address: formData.street_address ? sanitizeOnSubmit(formData.street_address) : undefined,
-      city: formData.city ? sanitizeOnSubmit(formData.city) : undefined,
-      state: formData.state ? sanitizeOnSubmit(formData.state) : undefined,
-      zip_code: formData.zip_code ? sanitizeOnSubmit(formData.zip_code) : undefined,
-      specialties: formData.specialties ? formData.specialties.split(',').map(s => sanitizeOnSubmit(s)).filter(s => s) : undefined,
+      street_address: formData.street_address && formData.street_address.trim() !== '' ? sanitizeOnSubmit(formData.street_address) : undefined,
+      city: formData.city && formData.city.trim() !== '' ? sanitizeOnSubmit(formData.city) : undefined,
+      state: formData.state && formData.state.trim() !== '' ? sanitizeOnSubmit(formData.state) : undefined,
+      zip_code: formData.zip_code && formData.zip_code.trim() !== '' ? sanitizeOnSubmit(formData.zip_code) : undefined,
+      specialties: formData.specialties && formData.specialties.trim() !== '' ? formData.specialties.split(',').map(s => sanitizeOnSubmit(s)).filter(s => s) : undefined,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
-      license_number: formData.license_number ? sanitizeOnSubmit(formData.license_number) : undefined,
-      notes: formData.notes ? sanitizeOnSubmit(formData.notes) : undefined,
+      license_number: formData.license_number && formData.license_number.trim() !== '' ? sanitizeOnSubmit(formData.license_number) : undefined,
+      notes: formData.notes && formData.notes.trim() !== '' ? sanitizeOnSubmit(formData.notes) : undefined,
       status: formData.status
     };
 
