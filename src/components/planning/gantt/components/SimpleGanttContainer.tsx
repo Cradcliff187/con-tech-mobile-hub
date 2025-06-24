@@ -24,7 +24,7 @@ export const SimpleGanttContainer = ({
   const [isUpdating, setIsUpdating] = useState(false);
   
   const { tasks, loading, error, updateTask } = useTasks({ projectId });
-  const { timelineStart, timelineEnd } = useTimelineCalculation(tasks, viewMode);
+  const { timelineStart, timelineEnd } = useTimelineCalculation(tasks);
 
   // Filter and sort tasks
   const displayTasks = useMemo(() => {

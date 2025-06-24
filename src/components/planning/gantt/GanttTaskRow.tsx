@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task } from '@/types/database';
-import { GanttTaskCard } from './GanttTaskCard';
+import { SimpleTaskCard } from './components/SimpleTaskCard';
 import { GanttTimelineBar } from './GanttTimelineBar';
 import { GanttCollapsedTaskCard } from './GanttCollapsedTaskCard';
 
@@ -47,12 +47,10 @@ export const GanttTaskRow = ({
             onSelect={onTaskSelect}
           />
         ) : (
-          <GanttTaskCard
+          <SimpleTaskCard
             task={task}
             isSelected={isSelected}
-            onSelect={onTaskSelect}
-            viewMode={viewMode}
-            isCollapsed={isCollapsed}
+            onClick={() => onTaskSelect(task.id)}
           />
         )}
       </div>

@@ -49,8 +49,7 @@ export const SimpleTaskRow = ({
         <SimpleTaskCard
           task={task}
           isSelected={isSelected}
-          onSelect={onTaskSelect}
-          viewMode={viewMode}
+          onClick={() => onTaskSelect(task.id)}
         />
       </div>
     </div>
