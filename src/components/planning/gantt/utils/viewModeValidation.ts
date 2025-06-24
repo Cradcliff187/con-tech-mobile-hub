@@ -25,7 +25,6 @@ export const validateViewMode = (
   let totalColumnSpan = 0;
   let totalStartColumn = 0;
 
-  // Generate timeline units for validation
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   const columnWidth = getColumnWidth(viewMode);
 
@@ -38,19 +37,16 @@ export const validateViewMode = (
     };
   }
 
-  // Validate each task
-  tasks.forEach((task, index) => {
+  tasks.forEach((task) => {
     const taskIssues: string[] = [];
     
     try {
-      // Test date calculations
       const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
       
       if (calculatedStartDate >= calculatedEndDate) {
         taskIssues.push(`Invalid date range: start >= end`);
       }
 
-      // Test grid positioning
       const gridPosition = getTaskGridPosition(task, timelineStart, timelineEnd, viewMode);
       
       if (gridPosition.startColumnIndex < 0) {
@@ -65,13 +61,11 @@ export const validateViewMode = (
         taskIssues.push(`Start column beyond timeline: ${gridPosition.startColumnIndex} >= ${timelineUnits.length}`);
       }
 
-      // Test width calculations
       const taskWidth = gridPosition.columnSpan * columnWidth;
       if (taskWidth <= 0) {
         taskIssues.push(`Invalid task width: ${taskWidth}px`);
       }
 
-      // Accumulate stats
       totalColumnSpan += gridPosition.columnSpan;
       totalStartColumn += gridPosition.startColumnIndex;
 
@@ -85,7 +79,6 @@ export const validateViewMode = (
     }
   });
 
-  // Validate timeline units consistency
   const firstUnit = timelineUnits[0];
   const lastUnit = timelineUnits[timelineUnits.length - 1];
   
@@ -109,19 +102,7 @@ export const validateViewMode = (
   };
 };
 
-export const validateAllViewModes = (
-  tasks: Task[],
-  timelineStart: Date,
-  timelineEnd: Date
-): Record<'days' | 'weeks' | 'months', ViewModeValidationResult> => {
-  return {
-    days: validateViewMode(tasks, timelineStart, timelineEnd, 'days'),
-    weeks: validateViewMode(tasks, timelineStart, timelineEnd, 'weeks'),
-    months: validateViewMode(tasks, timelineStart, timelineEnd, 'months')
-  };
-};
-
-// Development-only validation hook
+// Simplified validation hook for development only
 export const useViewModeValidation = (
   tasks: Task[],
   timelineStart: Date,
@@ -132,13 +113,5 @@ export const useViewModeValidation = (
     return { isValid: true, issues: [], stats: { totalTasks: 0, tasksWithIssues: 0, averageColumnSpan: 0, averageStartColumn: 0 } };
   }
 
-  const result = validateViewMode(tasks, timelineStart, timelineEnd, currentViewMode);
-  
-  if (!result.isValid) {
-    console.warn(`🎯 View mode validation failed for ${currentViewMode}:`, result.issues);
-  } else {
-    console.log(`✅ View mode validation passed for ${currentViewMode}:`, result.stats);
-  }
-
-  return result;
+  return validateViewMode(tasks, timelineStart, timelineEnd, currentViewMode);
 };

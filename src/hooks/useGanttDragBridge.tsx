@@ -19,7 +19,6 @@ interface GanttDragBridgeReturn {
   dropPreviewDate: Date | null;
   currentValidity: 'valid' | 'warning' | 'invalid';
   violationMessages: string[];
-  suggestedDropDate: Date | null;
   dragPosition: { x: number; y: number } | null;
   isSaving: boolean;
   handleDragStart: (e: React.DragEvent, task: Task) => void;
@@ -51,19 +50,6 @@ export const useGanttDragBridge = ({
   const getOptimisticTask = useCallback((taskId: string): Task | null => {
     return getDisplayTask(taskId) || null;
   }, [getDisplayTask]);
-
-  const getSuggestedDropDate = useCallback((
-    originalDate: Date, 
-    task: Task, 
-    validity: 'valid' | 'warning' | 'invalid'
-  ): Date | null => {
-    if (validity === 'valid') return null;
-    
-    const nextDay = new Date(originalDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-    
-    return nextDay;
-  }, []);
 
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     e.dataTransfer.setData('text/plain', task.id);
@@ -174,17 +160,12 @@ export const useGanttDragBridge = ({
     }
   }, [dragState.isDragging, cancelDrag]);
 
-  const suggestedDropDate = dragState.draggedTask && dragState.dropPreviewDate 
-    ? getSuggestedDropDate(dragState.dropPreviewDate, dragState.draggedTask, dragState.currentValidity)
-    : null;
-
   return {
     isDragging: dragState.isDragging,
     draggedTask: dragState.draggedTask,
     dropPreviewDate: dragState.dropPreviewDate,
     currentValidity: dragState.currentValidity,
     violationMessages: dragState.violationMessages,
-    suggestedDropDate,
     dragPosition: null,
     isSaving: saving || false,
     
