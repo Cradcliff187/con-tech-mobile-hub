@@ -23,8 +23,8 @@ export const formatAddress = (stakeholder: {
   return stakeholder.address || '';
 };
 
-export const formatPhoneNumber = (phone?: string): string => {
-  if (!phone) return '';
+export const formatPhoneNumber = (phone?: string): string | null => {
+  if (!phone || phone.trim() === '') return null;
   
   // Remove all non-digits
   const digits = phone.replace(/\D/g, '');
@@ -34,6 +34,6 @@ export const formatPhoneNumber = (phone?: string): string => {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
   
-  // Return original if not 10 digits
+  // Return original if not 10 digits (but not empty)
   return phone;
 };

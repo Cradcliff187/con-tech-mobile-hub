@@ -1,4 +1,3 @@
-
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -250,6 +249,7 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
         </CardContent>
       </Card>
 
+      
       <StakeholderDetail
         open={isDialogOpen('details')}
         onOpenChange={(open) => !open && closeDialog()}
