@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
@@ -13,6 +12,8 @@ import { useActionHistory } from '@/hooks/useActionHistory';
 import { useErrorRecovery } from '@/hooks/useErrorRecovery';
 import { Task } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SimpleGanttContainerProps {
   projectId: string;
@@ -25,6 +26,7 @@ export const SimpleGanttContainer = ({
 }: SimpleGanttContainerProps) => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   
   // Refs for scroll synchronization
   const headerScrollRef = useRef<HTMLDivElement>(null);
@@ -97,6 +99,28 @@ export const SimpleGanttContainer = ({
         return bPriority - aPriority;
       });
   }, [tasks, projectId]);
+
+  // Collapse/expand functionality
+  const toggleTaskCollapse = (taskId: string) => {
+    setCollapsedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const collapseAllTasks = () => {
+    const allTaskIds = new Set(displayTasks.map(task => task.id));
+    setCollapsedTasks(allTaskIds);
+  };
+
+  const expandAllTasks = () => {
+    setCollapsedTasks(new Set());
+  };
 
   // Scroll synchronization effect
   useEffect(() => {
@@ -212,6 +236,30 @@ export const SimpleGanttContainer = ({
             redoDescription={getRedoDescription()}
             historyLength={historyLength}
           />
+          
+          {/* Collapse/Expand Controls */}
+          <div className="flex items-center gap-1 border-l border-slate-200 pl-3 ml-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={collapseAllTasks}
+              disabled={isSystemBusy}
+              className="h-8 px-2 text-xs"
+            >
+              <ChevronRight className="h-3 w-3 mr-1" />
+              Collapse All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={expandAllTasks}
+              disabled={isSystemBusy}
+              className="h-8 px-2 text-xs"
+            >
+              <ChevronDown className="h-3 w-3 mr-1" />
+              Expand All
+            </Button>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -268,6 +316,8 @@ export const SimpleGanttContainer = ({
                   timelineEnd={timelineEnd}
                   isFirstRow={index === 0}
                   timelineOnly={false}
+                  isCollapsed={collapsedTasks.has(task.id)}
+                  onToggleCollapse={toggleTaskCollapse}
                 />
               </div>
             ))}
@@ -294,8 +344,8 @@ export const SimpleGanttContainer = ({
             {displayTasks.map((task, index) => (
               <div 
                 key={task.id} 
-                className="relative border-b border-slate-200"
-                style={{ height: '48px' }}
+                className="relative border-b border-slate-200 transition-all duration-200"
+                style={{ height: collapsedTasks.has(task.id) ? '32px' : '48px' }}
               >
                 <SimpleTaskRow
                   task={task}
@@ -307,6 +357,8 @@ export const SimpleGanttContainer = ({
                   timelineEnd={timelineEnd}
                   isFirstRow={index === 0}
                   timelineOnly={true}
+                  isCollapsed={collapsedTasks.has(task.id)}
+                  onToggleCollapse={toggleTaskCollapse}
                 />
               </div>
             ))}
@@ -329,6 +381,11 @@ export const SimpleGanttContainer = ({
         {historyLength > 0 && (
           <span className="ml-4 text-slate-500">
             {historyLength} action{historyLength !== 1 ? 's' : ''} in history
+          </span>
+        )}
+        {collapsedTasks.size > 0 && (
+          <span className="ml-4 text-slate-500">
+            {collapsedTasks.size} task{collapsedTasks.size !== 1 ? 's' : ''} collapsed
           </span>
         )}
         {isSystemBusy && (

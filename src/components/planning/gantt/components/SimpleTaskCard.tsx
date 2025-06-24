@@ -3,15 +3,23 @@ import React from 'react';
 import { Task } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { User, Clock } from 'lucide-react';
+import { User, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SimpleTaskCardProps {
   task: Task;
   isSelected: boolean;
   onClick: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (taskId: string) => void;
 }
 
-export const SimpleTaskCard = ({ task, isSelected, onClick }: SimpleTaskCardProps) => {
+export const SimpleTaskCard = ({ 
+  task, 
+  isSelected, 
+  onClick, 
+  isCollapsed = false, 
+  onToggleCollapse 
+}: SimpleTaskCardProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
@@ -29,17 +37,80 @@ export const SimpleTaskCard = ({ task, isSelected, onClick }: SimpleTaskCardProp
     return `${start} - ${end}`;
   };
 
+  const getAssigneeInitials = () => {
+    if (task.assignee_id) return 'TM';
+    if (task.assigned_stakeholder_id) return 'ST';
+    return '?';
+  };
+
+  const handleCollapseToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleCollapse) {
+      onToggleCollapse(task.id);
+    }
+  };
+
+  if (isCollapsed) {
+    return (
+      <div 
+        className={`p-2 cursor-pointer transition-all duration-200 ${
+          isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-slate-25'
+        }`}
+        onClick={onClick}
+        style={{ height: '32px' }}
+      >
+        <div className="flex items-center gap-2 h-full">
+          {/* Collapse/Expand button */}
+          <button
+            onClick={handleCollapseToggle}
+            className="flex-shrink-0 p-0.5 hover:bg-slate-200 rounded transition-colors"
+          >
+            <ChevronRight className="h-3 w-3 text-slate-600" />
+          </button>
+
+          {/* Task title - truncated */}
+          <h4 className="text-sm font-medium text-slate-800 truncate flex-1 min-w-0">
+            {task.title}
+          </h4>
+
+          {/* Status badge - small */}
+          <Badge className={`text-xs px-1.5 py-0 ${getStatusColor(task.status)}`}>
+            {task.status.charAt(0).toUpperCase()}
+          </Badge>
+
+          {/* Assignee initials */}
+          <div className="flex-shrink-0 w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center">
+            <span className="text-xs font-medium text-slate-700">
+              {getAssigneeInitials()}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
-      className={`p-3 cursor-pointer transition-colors ${
+      className={`p-3 cursor-pointer transition-all duration-200 ${
         isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-slate-25'
       }`}
       onClick={onClick}
+      style={{ minHeight: '64px' }}
     >
-      {/* Title */}
-      <h4 className="text-sm font-medium text-slate-800 mb-2 line-clamp-2">
-        {task.title}
-      </h4>
+      <div className="flex items-start gap-2 mb-2">
+        {/* Collapse/Expand button */}
+        <button
+          onClick={handleCollapseToggle}
+          className="flex-shrink-0 p-0.5 hover:bg-slate-200 rounded transition-colors mt-0.5"
+        >
+          <ChevronDown className="h-3 w-3 text-slate-600" />
+        </button>
+
+        {/* Title */}
+        <h4 className="text-sm font-medium text-slate-800 line-clamp-2 flex-1">
+          {task.title}
+        </h4>
+      </div>
 
       {/* Status and Category */}
       <div className="flex gap-2 mb-2">

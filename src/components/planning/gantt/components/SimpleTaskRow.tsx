@@ -14,6 +14,8 @@ interface SimpleTaskRowProps {
   timelineEnd: Date;
   isFirstRow?: boolean;
   timelineOnly?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (taskId: string) => void;
 }
 
 const SimpleTaskRowComponent = ({
@@ -25,7 +27,9 @@ const SimpleTaskRowComponent = ({
   timelineStart,
   timelineEnd,
   isFirstRow = false,
-  timelineOnly = false
+  timelineOnly = false,
+  isCollapsed = false,
+  onToggleCollapse
 }: SimpleTaskRowProps) => {
   const isSelected = selectedTaskId === task.id;
 
@@ -38,18 +42,24 @@ const SimpleTaskRowComponent = ({
         viewMode={viewMode}
         isSelected={isSelected}
         onUpdate={onTaskUpdate}
+        isCollapsed={isCollapsed}
       />
     );
   }
 
   return (
-    <div className={`flex border-b border-slate-200 hover:bg-slate-50 transition-colors ${isFirstRow ? 'border-t' : ''}`}>
+    <div 
+      className={`flex border-b border-slate-200 hover:bg-slate-50 transition-all duration-200 ${isFirstRow ? 'border-t' : ''}`}
+      style={{ minHeight: isCollapsed ? '32px' : '64px' }}
+    >
       {/* Task Card */}
       <div className="w-full">
         <SimpleTaskCard
           task={task}
           isSelected={isSelected}
           onClick={() => onTaskSelect(task.id)}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
       </div>
     </div>
@@ -74,7 +84,8 @@ const arePropsEqual = (prevProps: SimpleTaskRowProps, nextProps: SimpleTaskRowPr
     prevProps.selectedTaskId !== nextProps.selectedTaskId ||
     prevProps.viewMode !== nextProps.viewMode ||
     prevProps.isFirstRow !== nextProps.isFirstRow ||
-    prevProps.timelineOnly !== nextProps.timelineOnly;
+    prevProps.timelineOnly !== nextProps.timelineOnly ||
+    prevProps.isCollapsed !== nextProps.isCollapsed;
 
   // Timeline comparison (compare by time value, not object reference)
   const timelineChanged = 
