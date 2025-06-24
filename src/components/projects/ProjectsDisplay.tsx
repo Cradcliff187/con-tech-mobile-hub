@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Plus, Grid3X3, List, MoreHorizontal, Eye, Edit, Trash2, Archive, ArchiveRestore } from 'lucide-react';
 import { Project } from '@/types/database';
+import { getUnifiedLifecycleStatus, getStatusMetadata } from '@/utils/unified-lifecycle-utils';
 
 type ViewMode = 'grid' | 'table';
 
@@ -59,29 +60,20 @@ export const ProjectsDisplay = ({
       mobileLabel: 'Project'
     },
     {
-      key: 'status',
+      key: 'unified_lifecycle_status',
       header: 'Status',
       filterable: true,
-      accessor: (project: Project) => (
-        <Badge variant={
-          project.status === 'active' ? 'default' :
-          project.status === 'completed' ? 'secondary' :
-          project.status === 'cancelled' ? 'outline' :
-          project.status === 'on-hold' ? 'outline' : 'outline'
-        }>
-          {project.status === 'cancelled' ? 'Archived' : project.status.replace('-', ' ')}
-        </Badge>
-      )
-    },
-    {
-      key: 'phase',
-      header: 'Phase',
-      filterable: true,
-      accessor: (project: Project) => (
-        <Badge variant="outline">
-          {project.phase.replace('_', ' ')}
-        </Badge>
-      )
+      accessor: (project: Project) => {
+        const unifiedStatus = getUnifiedLifecycleStatus(project);
+        const statusMetadata = getStatusMetadata(unifiedStatus);
+        return (
+          <Badge 
+            className={`${statusMetadata.color} ${statusMetadata.textColor}`}
+          >
+            {statusMetadata.label}
+          </Badge>
+        );
+      }
     },
     {
       key: 'client',
@@ -226,7 +218,7 @@ export const ProjectsDisplay = ({
                     )}
                     {canEdit && (
                       <DropdownMenuItem onClick={() => onArchiveProject(project)}>
-                        {project.status === 'cancelled' ? (
+                        {getUnifiedLifecycleStatus(project) === 'cancelled' ? (
                           <>
                             <ArchiveRestore size={16} />
                             Restore
@@ -284,7 +276,7 @@ export const ProjectsDisplay = ({
                 )}
                 {canEdit && (
                   <DropdownMenuItem onClick={() => onArchiveProject(project)}>
-                    {project.status === 'cancelled' ? (
+                    {getUnifiedLifecycleStatus(project) === 'cancelled' ? (
                       <>
                         <ArchiveRestore size={16} />
                         Restore
