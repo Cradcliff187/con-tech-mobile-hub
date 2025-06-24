@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ProjectCard } from '@/components/dashboard/ProjectCard';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
@@ -7,9 +7,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { EnhancedStatusTransitionDialog } from '@/components/common/EnhancedStatusTransitionDialog';
 import { Plus, Grid3X3, List, MoreHorizontal, Eye, Edit, Trash2, Archive, ArchiveRestore } from 'lucide-react';
 import { Project } from '@/types/database';
-import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
+import { getUnifiedLifecycleStatus, updateProjectStatus } from '@/utils/unified-lifecycle-utils';
+import { UnifiedLifecycleStatus } from '@/types/unified-lifecycle';
+import { toast } from '@/hooks/use-toast';
 
 type ViewMode = 'grid' | 'table';
 
@@ -46,6 +49,75 @@ export const ProjectsDisplay = ({
   onArchiveProject,
   onStatusChange
 }: ProjectsDisplayProps) => {
+  const [statusTransitionDialog, setStatusTransitionDialog] = useState<{
+    open: boolean;
+    project?: Project;
+    targetStatus?: UnifiedLifecycleStatus;
+  }>({ open: false });
+  const [updatingProjects, setUpdatingProjects] = useState<Set<string>>(new Set());
+
+  const handleStatusChange = async (project: Project, newStatus: string) => {
+    if (!canEdit) return;
+
+    const currentStatus = getUnifiedLifecycleStatus(project);
+    const targetStatus = newStatus as UnifiedLifecycleStatus;
+
+    // For critical status changes, show confirmation dialog
+    if (['cancelled', 'on_hold'].includes(targetStatus)) {
+      setStatusTransitionDialog({
+        open: true,
+        project,
+        targetStatus
+      });
+      return;
+    }
+
+    // For other status changes, update directly
+    await performStatusUpdate(project, targetStatus);
+  };
+
+  const performStatusUpdate = async (project: Project, newStatus: UnifiedLifecycleStatus) => {
+    setUpdatingProjects(prev => new Set(prev).add(project.id));
+
+    try {
+      const result = await updateProjectStatus(project.id, newStatus);
+      
+      if (result.success) {
+        toast({
+          title: "Status Updated",
+          description: `Project status changed to ${newStatus.replace('_', ' ')}`,
+        });
+        
+        // Call the parent's status change handler if provided
+        if (onStatusChange) {
+          onStatusChange(project, newStatus);
+        }
+      } else {
+        throw new Error(result.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Status update failed:', error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : 'Failed to update project status',
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingProjects(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(project.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleTransitionConfirm = async () => {
+    if (statusTransitionDialog.project && statusTransitionDialog.targetStatus) {
+      await performStatusUpdate(statusTransitionDialog.project, statusTransitionDialog.targetStatus);
+      setStatusTransitionDialog({ open: false });
+    }
+  };
+
   // Table columns for DataTable
   const tableColumns = [
     {
@@ -68,14 +140,17 @@ export const ProjectsDisplay = ({
       filterable: true,
       accessor: (project: Project) => {
         const unifiedStatus = getUnifiedLifecycleStatus(project);
+        const isUpdating = updatingProjects.has(project.id);
+        
         return (
           <GlobalStatusDropdown
             entityType="project"
             currentStatus={unifiedStatus}
-            onStatusChange={(newStatus) => onStatusChange?.(project, newStatus)}
+            onStatusChange={(newStatus) => handleStatusChange(project, newStatus)}
             showAsDropdown={canEdit}
             size="sm"
             disabled={!canEdit}
+            isUpdating={isUpdating}
           />
         );
       }
@@ -93,7 +168,7 @@ export const ProjectsDisplay = ({
     {
       key: 'progress',
       header: 'Progress',
-      accessor: (project: Project)=>(
+      accessor: (project: Project) => (
         <div className="flex items-center gap-2">
           <div className="w-16 bg-slate-200 rounded-full h-2">
             <div 
@@ -313,6 +388,20 @@ export const ProjectsDisplay = ({
         Showing {filteredProjects.length} of {projects.length} projects
         {activeFiltersCount > 0 && ` (${activeFiltersCount} filter${activeFiltersCount > 1 ? 's' : ''} active)`}
       </div>
+
+      {/* Status Transition Dialog */}
+      {statusTransitionDialog.open && statusTransitionDialog.project && statusTransitionDialog.targetStatus && (
+        <EnhancedStatusTransitionDialog
+          open={statusTransitionDialog.open}
+          onOpenChange={(open) => setStatusTransitionDialog({ open })}
+          projectId={statusTransitionDialog.project.id}
+          currentStatus={getUnifiedLifecycleStatus(statusTransitionDialog.project)}
+          targetStatus={statusTransitionDialog.targetStatus}
+          project={statusTransitionDialog.project}
+          onConfirm={handleTransitionConfirm}
+          isLoading={updatingProjects.has(statusTransitionDialog.project.id)}
+        />
+      )}
     </>
   );
 };
