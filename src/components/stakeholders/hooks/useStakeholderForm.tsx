@@ -71,7 +71,8 @@ export const useStakeholderForm = ({
         notes: formData.notes ? sanitizeOnSubmit(formData.notes) : '',
         specialties: formData.specialties?.filter(s => s.trim().length > 0).map(s => sanitizeOnSubmit(s)) || [],
         crew_size: formData.crew_size,
-        insurance_expiry: formData.insurance_expiry,
+        // Convert empty date strings to undefined for PostgreSQL compatibility
+        insurance_expiry: formData.insurance_expiry && formData.insurance_expiry.trim() !== '' ? formData.insurance_expiry : undefined,
         status: formData.status
       };
 
