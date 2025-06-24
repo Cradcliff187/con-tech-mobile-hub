@@ -242,7 +242,7 @@ export const SimpleGanttContainer = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={collapseAllTasks}
+              onClick={() => setCollapsedTasks(new Set(displayTasks.map(task => task.id)))}
               disabled={isSystemBusy}
               className="h-8 px-2 text-xs"
             >
@@ -252,7 +252,7 @@ export const SimpleGanttContainer = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={expandAllTasks}
+              onClick={() => setCollapsedTasks(new Set())}
               disabled={isSystemBusy}
               className="h-8 px-2 text-xs"
             >

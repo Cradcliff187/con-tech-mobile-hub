@@ -1,16 +1,6 @@
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-
-interface FailedOperation {
-  id: string;
-  operation: () => Promise<any>;
-  retryCount: number;
-  maxRetries: number;
-  lastAttempt: number;
-  error: Error;
-  description: string;
-}
 
 interface UseErrorRecoveryOptions {
   maxRetries?: number;
@@ -28,11 +18,9 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
   } = options;
 
   const [isRecovering, setIsRecovering] = useState(false);
-  const [failedOperations, setFailedOperations] = useState<Map<string, FailedOperation>>(new Map());
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<Error | null>(null);
-
-  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const [hasFailedOperations, setHasFailedOperations] = useState(false);
 
   const generateOperationId = useCallback(() => {
     return `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -51,13 +39,8 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
         const result = await operation();
         
         // Clean up on success
-        setFailedOperations(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(operationId);
-          return newMap;
-        });
-        
         setIsRecovering(false);
+        setHasFailedOperations(false);
 
         if (onRecoverySuccess && attemptNumber > 1) {
           onRecoverySuccess(operationId);
@@ -73,30 +56,8 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
         if (attemptNumber < effectiveMaxRetries) {
           const delay = baseRetryDelay * Math.pow(2, attemptNumber - 1);
           
-          const failedOp: FailedOperation = {
-            id: operationId,
-            operation,
-            retryCount: attemptNumber,
-            maxRetries: effectiveMaxRetries,
-            lastAttempt: Date.now(),
-            error: err,
-            description
-          };
-
-          setFailedOperations(prev => {
-            const newMap = new Map(prev);
-            newMap.set(operationId, failedOp);
-            return newMap;
-          });
-
           setIsRecovering(true);
-
-          const timeoutId = setTimeout(() => {
-            attemptOperation(attemptNumber + 1);
-            timeoutRefs.current.delete(operationId);
-          }, delay);
-
-          timeoutRefs.current.set(operationId, timeoutId);
+          setHasFailedOperations(true);
 
           toast({
             title: "Operation Failed",
@@ -104,15 +65,12 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
             variant: "destructive"
           });
 
-          throw err;
+          // Wait and retry
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return attemptOperation(attemptNumber + 1);
         } else {
-          setFailedOperations(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(operationId);
-            return newMap;
-          });
-          
           setIsRecovering(false);
+          setHasFailedOperations(true);
 
           if (onRecoveryFailure) {
             onRecoveryFailure(operationId, err);
@@ -133,25 +91,15 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
   }, [maxRetries, baseRetryDelay, onRecoverySuccess, onRecoveryFailure, generateOperationId]);
 
   const clearFailedOperations = useCallback(() => {
-    timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
-    timeoutRefs.current.clear();
-    setFailedOperations(new Map());
+    setHasFailedOperations(false);
     setIsRecovering(false);
     setRetryCount(0);
     setLastError(null);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
-      timeoutRefs.current.clear();
-    };
-  }, []);
-
   return {
     isRecovering,
-    failedOperations: Array.from(failedOperations.values()),
-    hasFailedOperations: failedOperations.size > 0,
+    hasFailedOperations,
     retryCount,
     lastError,
     executeWithRecovery,
