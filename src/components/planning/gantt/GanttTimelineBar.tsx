@@ -39,7 +39,6 @@ export const GanttTimelineBar = ({
 }: GanttTimelineBarProps) => {
   const { getDisplayTask } = useGanttContext();
   
-  // Get task with optimistic updates applied
   const displayTask = getDisplayTask ? getDisplayTask(task.id) || task : task;
   
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(displayTask);
@@ -49,32 +48,23 @@ export const GanttTimelineBar = ({
   const config = getViewModeConfig(viewMode);
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   
-  // Timeline boundary variables for off-timeline indicators
   const timelineRangeStart = new Date(timelineUnits[0].key);
   const timelineRangeEnd = new Date(timelineUnits[timelineUnits.length - 1].key);
   
-  // Check if this specific task is being dragged
   const isThisTaskBeingDragged = isDragging && draggedTaskId === displayTask.id;
   
   const handleClick = (e: React.MouseEvent) => {
-    // Don't trigger selection during drag operations
     if (isDragging) return;
     onSelect(displayTask.id);
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎯 GanttTimelineBar: Starting drag for task:', displayTask.id, displayTask.title);
-    }
     if (onDragStart) {
       onDragStart(e, displayTask);
     }
   };
 
   const handleDragEnd = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎯 GanttTimelineBar: Ending drag for task:', displayTask.id);
-    }
     if (onDragEnd) {
       onDragEnd();
     }
@@ -84,7 +74,6 @@ export const GanttTimelineBar = ({
   const isOverdue = calculatedEndDate < new Date() && displayTask.status !== 'completed';
   const actualWidth = gridPosition.columnSpan * columnWidth;
 
-  // Determine draggable state and cursor
   const canDrag = !!onDragStart && !isThisTaskBeingDragged;
   const cursorClass = isThisTaskBeingDragged 
     ? 'cursor-grabbing' 
@@ -94,7 +83,7 @@ export const GanttTimelineBar = ({
 
   return (
     <div className={`relative ${getBarHeight(viewMode)}`} style={{ width: `${timelineUnits.length * columnWidth}px` }}>
-      {/* Off-timeline indicator for past tasks */}
+      {/* Off-timeline indicators */}
       {gridPosition.startColumnIndex === 0 && calculatedStartDate < timelineRangeStart && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2">
           <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-l flex items-center gap-1 shadow-sm">
@@ -104,7 +93,6 @@ export const GanttTimelineBar = ({
         </div>
       )}
 
-      {/* Off-timeline indicator for future tasks */}
       {gridPosition.startColumnIndex + gridPosition.columnSpan >= timelineUnits.length - 1 && 
        calculatedEndDate > timelineRangeEnd && (
         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2">
@@ -152,7 +140,6 @@ export const GanttTimelineBar = ({
             viewMode={viewMode} 
           />
 
-          {/* Enhanced visual drag feedback */}
           {isThisTaskBeingDragged && (
             <>
               <div className="absolute inset-0 bg-blue-100 bg-opacity-30 rounded-md pointer-events-none" />
@@ -163,17 +150,6 @@ export const GanttTimelineBar = ({
           )}
         </div>
       </TaskBarTooltip>
-
-      {/* Debug overlay - development only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute -top-8 left-0 text-xs bg-yellow-200 px-2 py-1 rounded shadow-sm border">
-          <div>Task: {displayTask.title.slice(0, 20)}...</div>
-          <div>Dates: {format(calculatedStartDate, 'MMM d')} - {format(calculatedEndDate, 'MMM d')}</div>
-          <div>Grid: Col {gridPosition.startColumnIndex}, Span {gridPosition.columnSpan}</div>
-          <div>Draggable: {canDrag ? 'Yes' : 'No'} | Dragging: {isThisTaskBeingDragged ? 'Yes' : 'No'}</div>
-          <div>Optimistic: {displayTask !== task ? 'Yes' : 'No'}</div>
-        </div>
-      )}
     </div>
   );
 };

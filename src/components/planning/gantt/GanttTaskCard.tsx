@@ -29,7 +29,6 @@ const getPriorityIcon = (priority: string) => {
 };
 
 const getCategoryBadgeColor = (category: string) => {
-  // Using standard construction industry category colors
   switch (category?.toLowerCase()) {
     case 'foundation': return 'bg-stone-100 text-stone-800';
     case 'framing': return 'bg-amber-100 text-amber-800';
@@ -49,13 +48,11 @@ const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) =
   const start = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const end = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   
-  // Calculate duration in days
   const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   const durationText = durationDays === 1 ? '1 day' : `${durationDays} days`;
   
-  // Show if dates are calculated vs actual
   const hasActualDates = task.start_date && task.due_date;
-  const indicator = hasActualDates ? '' : ' (calc)'; // Shortened indicator
+  const indicator = hasActualDates ? '' : ' (calc)';
   
   return {
     dateRange: `${start} - ${end}`,
@@ -70,12 +67,8 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
   const { toast } = useToast();
   const { getDisplayTask } = useGanttContext();
   
-  // Get task with optimistic updates applied
   const displayTask = getDisplayTask ? getDisplayTask(task.id) || task : task;
-  
-  console.log('📋 GanttTaskCard: Rendering task', displayTask.title, 'collapsed:', isCollapsed, 'optimistic:', displayTask !== task);
 
-  // If collapsed, render the collapsed version
   if (isCollapsed) {
     return (
       <GanttCollapsedTaskCard
@@ -170,10 +163,9 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
           }`}>{displayTask.progress || 0}%</span>
         </div>
         
-        {/* Progress Bar */}
         <Progress value={displayTask.progress || 0} className="h-1 mb-1" />
         
-        {/* Compact Dates with Duration */}
+        {/* Dates with Duration */}
         <div className="space-y-0.5 mb-1">
           <div className={`text-xs ${dateInfo.isCalculated ? 'text-slate-500' : 'text-slate-700'}`}>
             {dateInfo.dateRange}{dateInfo.indicator}
@@ -187,7 +179,7 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
           </div>
         </div>
 
-        {/* Required Skills - More compact */}
+        {/* Required Skills */}
         {displayTask.required_skills && displayTask.required_skills.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {displayTask.required_skills.slice(0, 1).map((skill, i) => (
@@ -198,13 +190,6 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
             {displayTask.required_skills.length > 1 && (
               <span className="text-xs text-slate-500">+{displayTask.required_skills.length - 1}</span>
             )}
-          </div>
-        )}
-
-        {/* Optimistic update indicator - development only */}
-        {process.env.NODE_ENV === 'development' && displayTask !== task && (
-          <div className="mt-1 text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded">
-            Optimistic Update
           </div>
         )}
       </CardContent>

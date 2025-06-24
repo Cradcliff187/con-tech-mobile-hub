@@ -27,7 +27,6 @@ export interface TimelineUnit {
   isWeekend: boolean;
 }
 
-// Consolidated timeline generation - SINGLE SOURCE OF TRUTH
 export const generateTimelineUnits = (
   timelineStart: Date,
   timelineEnd: Date,
@@ -35,7 +34,6 @@ export const generateTimelineUnits = (
 ): TimelineUnit[] => {
   const units: TimelineUnit[] = [];
   
-  // Normalize dates to avoid boundary issues
   let current: Date;
   let end: Date;
   
@@ -48,7 +46,7 @@ export const generateTimelineUnits = (
         units.push({
           key: current.getTime(),
           label: current.toLocaleDateString('en-US', { 
-            month: 'short', 
+            month: 'short',
             day: 'numeric'
           }),
           isWeekend: current.getDay() === 0 || current.getDay() === 6
@@ -58,7 +56,6 @@ export const generateTimelineUnits = (
       break;
       
     case 'weeks':
-      // Use Monday as week start for consistency
       current = startOfWeek(timelineStart, { weekStartsOn: 1 });
       end = startOfWeek(timelineEnd, { weekStartsOn: 1 });
       
@@ -66,7 +63,7 @@ export const generateTimelineUnits = (
         units.push({
           key: current.getTime(),
           label: current.toLocaleDateString('en-US', { 
-            month: 'short', 
+            month: 'short',
             day: 'numeric'
           }),
           isWeekend: false
@@ -93,28 +90,17 @@ export const generateTimelineUnits = (
       break;
   }
   
-  console.log('🎯 Generated timeline units:', {
-    viewMode,
-    startDate: timelineStart.toISOString(),
-    endDate: timelineEnd.toISOString(),
-    unitsCount: units.length,
-    firstUnit: units[0]?.label,
-    lastUnit: units[units.length - 1]?.label
-  });
-  
   return units;
 };
 
-// Fixed column width mapping - SINGLE SOURCE OF TRUTH
 export const getColumnWidth = (viewMode: 'days' | 'weeks' | 'months'): number => {
   switch (viewMode) {
-    case 'days': return 64; // w-16
-    case 'weeks': return 80; // w-20  
-    case 'months': return 96; // w-24
+    case 'days': return 64;
+    case 'weeks': return 80;
+    case 'months': return 96;
   }
 };
 
-// Improved column index calculation with proper date normalization
 export const getColumnIndexForDate = (
   date: Date,
   timelineUnits: TimelineUnit[],
@@ -148,7 +134,6 @@ export const getColumnIndexForDate = (
     }
   }
   
-  // Edge case handling
   const firstUnitDate = new Date(timelineUnits[0].key);
   const lastUnitDate = new Date(timelineUnits[timelineUnits.length - 1].key);
   
@@ -158,7 +143,6 @@ export const getColumnIndexForDate = (
   return 0;
 };
 
-// Simplified duration calculation using consolidated timeline
 export const calculateDurationInUnits = (
   startDate: Date,
   endDate: Date,
@@ -181,17 +165,9 @@ export const calculateDurationInUnits = (
       break;
   }
   
-  console.log('🎯 Duration calculation:', {
-    viewMode,
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    duration
-  });
-  
   return duration;
 };
 
-// Fixed task grid positioning using consolidated system
 export const getTaskGridPosition = (
   task: Task,
   timelineStart: Date,
@@ -200,30 +176,15 @@ export const getTaskGridPosition = (
 ): TaskGridPosition => {
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
   
-  // Generate timeline units for consistent calculation
   const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
   
-  // Get start column index
   const startColumnIndex = getColumnIndexForDate(calculatedStartDate, timelineUnits, viewMode);
   
-  // Calculate duration in timeline units
   const columnSpan = calculateDurationInUnits(calculatedStartDate, calculatedEndDate, viewMode);
   
-  // Clamp to valid bounds
   const clampedStartIndex = Math.max(0, Math.min(startColumnIndex, timelineUnits.length - 1));
   const maxAllowedSpan = timelineUnits.length - clampedStartIndex;
   const clampedSpan = Math.max(1, Math.min(columnSpan, maxAllowedSpan));
-
-  console.log('🎯 Task grid position:', {
-    taskId: task.id,
-    title: task.title.substring(0, 30),
-    viewMode,
-    startDate: calculatedStartDate.toISOString(),
-    endDate: calculatedEndDate.toISOString(),
-    startColumnIndex: clampedStartIndex,
-    columnSpan: clampedSpan,
-    timelineUnitsCount: timelineUnits.length
-  });
 
   return {
     startColumnIndex: clampedStartIndex,
