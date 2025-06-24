@@ -6,49 +6,51 @@ import { SimpleTaskBar } from './SimpleTaskBar';
 
 interface SimpleTaskRowProps {
   task: Task;
+  selectedTaskId: string | null;
+  onTaskSelect: (taskId: string) => void;
+  onTaskUpdate: (taskId: string, updates: Partial<Task>) => Promise<any>;
+  viewMode: 'days' | 'weeks' | 'months';
   timelineStart: Date;
   timelineEnd: Date;
-  viewMode: 'days' | 'weeks' | 'months';
-  isSelected: boolean;
-  onSelect: (taskId: string | null) => void;
-  onUpdate: (taskId: string, updates: Partial<Task>) => void;
   isFirstRow?: boolean;
+  timelineOnly?: boolean;
 }
 
 export const SimpleTaskRow = ({
   task,
+  selectedTaskId,
+  onTaskSelect,
+  onTaskUpdate,
+  viewMode,
   timelineStart,
   timelineEnd,
-  viewMode,
-  isSelected,
-  onSelect,
-  onUpdate,
-  isFirstRow = false
+  isFirstRow = false,
+  timelineOnly = false
 }: SimpleTaskRowProps) => {
-  const handleClick = () => {
-    onSelect(isSelected ? null : task.id);
-  };
+  const isSelected = selectedTaskId === task.id;
+
+  if (timelineOnly) {
+    return (
+      <SimpleTaskBar
+        task={task}
+        timelineStart={timelineStart}
+        timelineEnd={timelineEnd}
+        viewMode={viewMode}
+        isSelected={isSelected}
+        onUpdate={onTaskUpdate}
+      />
+    );
+  }
 
   return (
-    <div className={`flex border-b border-slate-200 hover:bg-slate-50 ${isFirstRow ? 'border-t' : ''}`}>
-      {/* Task Card - Fixed Column */}
-      <div className="w-72 border-r border-slate-200 flex-shrink-0 bg-white">
+    <div className={`flex border-b border-slate-200 hover:bg-slate-50 transition-colors ${isFirstRow ? 'border-t' : ''}`}>
+      {/* Task Card */}
+      <div className="w-full">
         <SimpleTaskCard
           task={task}
           isSelected={isSelected}
-          onClick={handleClick}
-        />
-      </div>
-
-      {/* Task Bar - Scrollable Timeline */}
-      <div className="flex-1 relative">
-        <SimpleTaskBar
-          task={task}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
+          onSelect={onTaskSelect}
           viewMode={viewMode}
-          isSelected={isSelected}
-          onUpdate={onUpdate}
         />
       </div>
     </div>
