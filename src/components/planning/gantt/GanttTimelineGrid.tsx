@@ -13,7 +13,10 @@ export const GanttTimelineGrid = ({
   timelineEnd,
   viewMode
 }: GanttTimelineGridProps) => {
-  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
+  const timelineUnits = useMemo(() => 
+    generateTimelineUnits(timelineStart, timelineEnd, viewMode),
+    [timelineStart, timelineEnd, viewMode]
+  );
   const columnWidth = getColumnWidth(viewMode);
 
   // Calculate which column contains today's date

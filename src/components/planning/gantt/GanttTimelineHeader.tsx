@@ -1,5 +1,5 @@
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { GanttTimelineNavigation } from './GanttTimelineNavigation';
 import { GanttCurrentDateIndicator } from './GanttCurrentDateIndicator';
@@ -42,7 +42,10 @@ export const GanttTimelineHeader = ({
     onTimelineBoundsChange
   });
 
-  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
+  const timelineUnits = useMemo(() => 
+    generateTimelineUnits(timelineStart, timelineEnd, viewMode),
+    [timelineStart, timelineEnd, viewMode]
+  );
   const columnWidth = getColumnWidth(viewMode);
 
   // Handle navigation actions with current scroll container

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { generateTimelineUnits, getColumnWidth } from '../utils/gridUtils';
 import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
@@ -27,7 +27,10 @@ export const SimpleTaskBar = ({
   const [dragPreview, setDragPreview] = useState<{ x: number; valid: boolean } | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const timelineUnits = generateTimelineUnits(timelineStart, timelineEnd, viewMode);
+  const timelineUnits = useMemo(() => 
+    generateTimelineUnits(timelineStart, timelineEnd, viewMode),
+    [timelineStart, timelineEnd, viewMode]
+  );
   const columnWidth = getColumnWidth(viewMode);
   const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
   const phaseColor = getConstructionPhaseColor(task);
