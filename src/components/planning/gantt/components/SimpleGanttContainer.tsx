@@ -3,7 +3,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttTimelineGrid } from '../GanttTimelineGrid';
 import { SimpleTaskRow } from './SimpleTaskRow';
-import { GanttEmptyState } from '../GanttEmptyState';
+import { GanttEmptyState } from './GanttEmptyState';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
 import { useTimelineCalculation } from '../hooks/useTimelineCalculation';
