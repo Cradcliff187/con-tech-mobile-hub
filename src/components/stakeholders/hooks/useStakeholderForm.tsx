@@ -2,104 +2,117 @@
 import { useState } from 'react';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
-import { validateFormData, stakeholderSchema } from '@/schemas';
-import { transformStakeholderData, getInitialFormData } from '../utils/stakeholderFormUtils';
-import { type StakeholderFormData } from '@/schemas';
-import { coerceFieldValue } from '@/utils/form-type-guards';
+import { stakeholderSchema, type StakeholderFormData } from '@/schemas';
+import { validateFormData } from '@/schemas/validation';
+import { sanitizeOnSubmit, sanitizeEmailOnSubmit, sanitizePhoneOnSubmit } from '@/utils/iosFriendlyValidation';
 
 interface UseStakeholderFormProps {
   defaultType?: 'client' | 'subcontractor' | 'employee' | 'vendor';
   onSuccess?: () => void;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
-export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, onClose }: UseStakeholderFormProps) => {
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [formData, setFormData] = useState<StakeholderFormData>(getInitialFormData(defaultType));
-  
+export const useStakeholderForm = ({
+  defaultType = 'subcontractor',
+  onSuccess,
+  onClose
+}: UseStakeholderFormProps) => {
   const { createStakeholder } = useStakeholders();
   const { toast } = useToast();
+  
+  const [formData, setFormData] = useState<StakeholderFormData>({
+    stakeholder_type: defaultType,
+    contact_person: '',
+    company_name: '',
+    email: '',
+    phone: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    specialties: [],
+    crew_size: undefined,
+    license_number: '',
+    insurance_expiry: '',
+    notes: '',
+    status: 'active'
+  });
+
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prevData => {
-      const coercedValue = coerceFieldValue(field, value);
-      return { ...prevData, [field]: coercedValue };
-    });
-  };
-
-  const resetForm = () => {
-    setFormData(getInitialFormData(defaultType));
-    setErrors({});
-  };
-
-  const validateForm = (): boolean => {
-    const validation = validateFormData(stakeholderSchema, formData);
+    // Direct assignment without any sanitization during typing
+    setFormData(prev => ({ ...prev, [field]: value }));
     
-    if (!validation.success) {
-      setErrors(validation.errors || {});
-      return false;
+    // Clear errors for this field
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: [] }));
     }
-    
-    setErrors({});
-    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the errors below and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setLoading(true);
 
     try {
-      const validation = validateFormData(stakeholderSchema, formData);
-      if (!validation.success || !validation.data) {
-        throw new Error('Form validation failed');
-      }
+      // Sanitize data only on submission
+      const sanitizedData = {
+        ...formData,
+        contact_person: sanitizeOnSubmit(formData.contact_person),
+        company_name: formData.company_name ? sanitizeOnSubmit(formData.company_name) : '',
+        email: formData.email ? sanitizeEmailOnSubmit(formData.email) : '',
+        phone: formData.phone ? sanitizePhoneOnSubmit(formData.phone) : '',
+        street_address: formData.street_address ? sanitizeOnSubmit(formData.street_address) : '',
+        city: formData.city ? sanitizeOnSubmit(formData.city) : '',
+        state: formData.state ? sanitizeOnSubmit(formData.state) : '',
+        zip_code: formData.zip_code ? sanitizeOnSubmit(formData.zip_code) : '',
+        license_number: formData.license_number ? sanitizeOnSubmit(formData.license_number) : '',
+        notes: formData.notes ? sanitizeOnSubmit(formData.notes) : '',
+        specialties: formData.specialties?.filter(s => s.trim().length > 0).map(s => sanitizeOnSubmit(s)) || []
+      };
 
-      // Explicitly type the validated data to ensure TypeScript recognizes the correct types
-      const validatedData = validation.data as StakeholderFormData;
-      const stakeholderData = transformStakeholderData(validatedData);
-
-      const { error } = await createStakeholder(stakeholderData);
-
-      if (error) {
+      // Validate the sanitized data
+      const validation = validateFormData(stakeholderSchema, sanitizedData);
+      
+      if (!validation.success) {
+        setErrors(validation.errors || {});
         toast({
-          title: "Error creating stakeholder",
-          description: error.message,
+          title: "Validation Error",
+          description: "Please correct the errors in the form",
           variant: "destructive"
         });
-      } else {
-        toast({
-          title: "Stakeholder created successfully",
-          description: `${validatedData.company_name || validatedData.contact_person} has been added successfully`
-        });
-        
-        resetForm();
-        
-        if (onSuccess) {
-          onSuccess();
-        }
-        onClose();
+        return;
       }
-    } catch (error) {
-      console.error('Stakeholder creation error:', error);
+
+      const { error } = await createStakeholder(sanitizedData);
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create stakeholder. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
-        title: "Error creating stakeholder",
-        description: "Failed to create stakeholder. Please try again.",
+        title: "Success",
+        description: "Stakeholder created successfully"
+      });
+      
+      onSuccess?.();
+      onClose?.();
+    } catch (error) {
+      console.error('Error creating stakeholder:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return {
@@ -107,8 +120,6 @@ export const useStakeholderForm = ({ defaultType = 'subcontractor', onSuccess, o
     errors,
     loading,
     handleInputChange,
-    handleSubmit,
-    resetForm,
-    validateForm
+    handleSubmit
   };
 };

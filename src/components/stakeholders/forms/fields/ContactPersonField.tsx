@@ -2,7 +2,6 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertTriangle } from 'lucide-react';
-import { sanitizeText } from '@/utils/validation';
 
 interface ContactPersonFieldProps {
   value: string;
@@ -15,13 +14,6 @@ export const ContactPersonField = ({
   onChange, 
   error 
 }: ContactPersonFieldProps) => {
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const sanitizedValue = sanitizeText(e.target.value);
-    if (sanitizedValue !== e.target.value) {
-      onChange(sanitizedValue);
-    }
-  };
-
   return (
     <div className="space-y-2">
       <Label htmlFor="contact_person">Contact Person *</Label>
@@ -29,7 +21,6 @@ export const ContactPersonField = ({
         id="contact_person"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onBlur={handleBlur}
         placeholder="Primary contact name"
         required
         className={error ? 'border-red-500' : ''}

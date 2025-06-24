@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useStakeholders, Stakeholder } from '@/hooks/useStakeholders';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +10,7 @@ import { AddressFormFields } from '@/components/common/AddressFormFields';
 import { PhoneInput } from '@/components/common/PhoneInput';
 import { EmailInput } from '@/components/common/EmailInput';
 import { useToast } from '@/hooks/use-toast';
+import { sanitizeOnSubmit, sanitizeEmailOnSubmit, sanitizePhoneOnSubmit } from '@/utils/iosFriendlyValidation';
 
 interface EditStakeholderDialogProps {
   open: boolean;
@@ -113,29 +113,29 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
 
     setLoading(true);
 
-    // Create legacy address field for backward compatibility
+    // Sanitize data only on submission
     const legacyAddress = [
-      formData.street_address,
-      formData.city,
-      formData.state,
-      formData.zip_code
+      sanitizeOnSubmit(formData.street_address),
+      sanitizeOnSubmit(formData.city),
+      sanitizeOnSubmit(formData.state),
+      sanitizeOnSubmit(formData.zip_code)
     ].filter(Boolean).join(', ');
 
     const updatedData = {
       stakeholder_type: formData.stakeholder_type,
-      company_name: formData.company_name.trim(),
-      contact_person: formData.contact_person.trim() || undefined,
-      phone: formData.phone.trim() || undefined,
-      email: formData.email.trim() || undefined,
+      company_name: sanitizeOnSubmit(formData.company_name),
+      contact_person: sanitizeOnSubmit(formData.contact_person) || undefined,
+      phone: formData.phone ? sanitizePhoneOnSubmit(formData.phone) : undefined,
+      email: formData.email ? sanitizeEmailOnSubmit(formData.email) : undefined,
       address: legacyAddress || undefined, // Keep for backward compatibility
-      street_address: formData.street_address.trim() || undefined,
-      city: formData.city.trim() || undefined,
-      state: formData.state || undefined,
-      zip_code: formData.zip_code.trim() || undefined,
-      specialties: formData.specialties ? formData.specialties.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      street_address: formData.street_address ? sanitizeOnSubmit(formData.street_address) : undefined,
+      city: formData.city ? sanitizeOnSubmit(formData.city) : undefined,
+      state: formData.state ? sanitizeOnSubmit(formData.state) : undefined,
+      zip_code: formData.zip_code ? sanitizeOnSubmit(formData.zip_code) : undefined,
+      specialties: formData.specialties ? formData.specialties.split(',').map(s => sanitizeOnSubmit(s)).filter(s => s) : undefined,
       crew_size: formData.crew_size ? parseInt(formData.crew_size) : undefined,
-      license_number: formData.license_number.trim() || undefined,
-      notes: formData.notes.trim() || undefined,
+      license_number: formData.license_number ? sanitizeOnSubmit(formData.license_number) : undefined,
+      notes: formData.notes ? sanitizeOnSubmit(formData.notes) : undefined,
       status: formData.status
     };
 
@@ -159,6 +159,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
   };
 
   const handleInputChange = (field: string, value: string) => {
+    // Direct assignment without any sanitization during typing
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -202,6 +203,9 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
               value={formData.company_name}
               onChange={(e) => handleInputChange('company_name', e.target.value)}
               className={`min-h-[44px] ${errors.company_name ? 'border-red-500' : ''}`}
+              autoComplete="organization"
+              autoCapitalize="words"
+              inputMode="text"
             />
             {errors.company_name && <p className="text-red-500 text-sm mt-1">{errors.company_name}</p>}
           </div>
@@ -214,6 +218,9 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
                 value={formData.contact_person}
                 onChange={(e) => handleInputChange('contact_person', e.target.value)}
                 className="min-h-[44px]"
+                autoComplete="name"
+                autoCapitalize="words"
+                inputMode="text"
               />
             </div>
           )}
@@ -256,6 +263,8 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
               value={formData.specialties}
               onChange={(e) => handleInputChange('specialties', e.target.value)}
               className="min-h-[44px]"
+              autoCapitalize="words"
+              inputMode="text"
             />
           </div>
 
@@ -269,6 +278,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
                 value={formData.crew_size}
                 onChange={(e) => handleInputChange('crew_size', e.target.value)}
                 className={`min-h-[44px] ${errors.crew_size ? 'border-red-500' : ''}`}
+                inputMode="numeric"
               />
               {errors.crew_size && <p className="text-red-500 text-sm mt-1">{errors.crew_size}</p>}
             </div>
@@ -281,6 +291,8 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
               value={formData.license_number}
               onChange={(e) => handleInputChange('license_number', e.target.value)}
               className="min-h-[44px]"
+              autoCapitalize="characters"
+              inputMode="text"
             />
           </div>
 
@@ -310,6 +322,7 @@ export const EditStakeholderDialog = ({ open, onOpenChange, stakeholder }: EditS
               onChange={(e) => handleInputChange('notes', e.target.value)}
               className="min-h-[88px]"
               rows={3}
+              autoCapitalize="sentences"
             />
           </div>
 

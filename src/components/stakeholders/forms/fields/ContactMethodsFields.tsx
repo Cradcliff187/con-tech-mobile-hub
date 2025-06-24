@@ -21,20 +21,6 @@ export const ContactMethodsFields = ({
   emailError, 
   phoneError 
 }: ContactMethodsFieldsProps) => {
-  const handleEmailBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const sanitizedValue = e.target.value.trim().toLowerCase();
-    if (sanitizedValue !== e.target.value) {
-      onEmailChange(sanitizedValue);
-    }
-  };
-
-  const handlePhoneBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const sanitizedValue = e.target.value.replace(/[^0-9\s\-\(\)\+]/g, '');
-    if (sanitizedValue !== e.target.value) {
-      onPhoneChange(sanitizedValue);
-    }
-  };
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="space-y-2">
@@ -42,8 +28,8 @@ export const ContactMethodsFields = ({
         <EmailInput
           value={email || ''}
           onChange={onEmailChange}
-          onBlur={handleEmailBlur}
           className={emailError ? 'border-red-500' : ''}
+          placeholder="Enter email address"
         />
         {emailError && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -58,8 +44,7 @@ export const ContactMethodsFields = ({
         <PhoneInput
           value={phone || ''}
           onChange={onPhoneChange}
-          onBlur={handlePhoneBlur}
-          placeholder="Phone number"
+          placeholder="Enter phone number"
           className={phoneError ? 'border-red-500' : ''}
         />
         {phoneError && (
