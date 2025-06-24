@@ -1,25 +1,27 @@
 
+import React from 'react';
 import { Task } from '@/types/database';
+import { ViewModeConfig } from '../utils/viewModeUtils';
 
 interface TaskBarContentProps {
   task: Task;
   actualWidth: number;
-  viewModeConfig: {
-    textLength: number;
-    fontSize: string;
-    showText: boolean;
-  };
+  viewModeConfig: ViewModeConfig;
 }
 
 export const TaskBarContent = ({ task, actualWidth, viewModeConfig }: TaskBarContentProps) => {
-  const getTaskDisplayText = () => {
-    return task.title.slice(0, viewModeConfig.textLength) + 
-           (task.title.length > viewModeConfig.textLength ? '...' : '');
-  };
+  const minWidthForText = 48; // Minimum width to show text
+  const showText = actualWidth >= minWidthForText;
+
+  if (!showText) {
+    return null;
+  }
 
   return (
-    <div className={`px-2 py-1 text-white ${viewModeConfig.fontSize} font-medium truncate`}>
-      {actualWidth > 50 && viewModeConfig.showText ? getTaskDisplayText() : ''}
+    <div className={`px-2 py-1 h-full flex items-center justify-center ${viewModeConfig.fontSize}`}>
+      <span className="truncate font-medium">
+        {task.title}
+      </span>
     </div>
   );
 };

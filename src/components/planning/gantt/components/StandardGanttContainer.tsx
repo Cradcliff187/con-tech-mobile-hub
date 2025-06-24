@@ -4,9 +4,6 @@ import { Task } from '@/types/database';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttTaskRow } from '../GanttTaskRow';
 import { TaskListHeader } from './TaskListHeader';
-import { DragPreviewIndicator } from './DragPreviewIndicator';
-import { DragSnapGrid } from './DragSnapGrid';
-import { GanttDebugOverlay } from './GanttDebugOverlay';
 import { useScrollSync } from '../hooks/useScrollSync';
 
 interface StandardGanttContainerProps {
@@ -51,9 +48,6 @@ export const StandardGanttContainer = ({
   dragPosition
 }: StandardGanttContainerProps) => {
   const { headerScrollRef, contentScrollRef } = useScrollSync();
-  
-  // Show debug overlay in development mode
-  const showDebug = process.env.NODE_ENV === 'development';
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
@@ -78,14 +72,6 @@ export const StandardGanttContainer = ({
             viewMode={viewMode}
             scrollRef={headerScrollRef}
           />
-          
-          {/* Snap grid overlay for timeline header */}
-          <DragSnapGrid
-            isVisible={isDragging}
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            viewMode={viewMode}
-          />
         </div>
       </div>
 
@@ -96,14 +82,6 @@ export const StandardGanttContainer = ({
         onDragOver={onDragOver}
         onDrop={onDrop}
       >
-        {/* Snap grid overlay for content area */}
-        <DragSnapGrid
-          isVisible={isDragging}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-        />
-        
         {/* Task rows */}
         {displayTasks.map((task, index) => (
           <GanttTaskRow
@@ -123,25 +101,6 @@ export const StandardGanttContainer = ({
           />
         ))}
       </div>
-
-      {/* Global drag preview indicator */}
-      <DragPreviewIndicator
-        isVisible={isDragging}
-        position={dragPosition}
-        previewDate={dropPreviewDate}
-        validity={currentValidity}
-        violationMessages={violationMessages}
-      />
-      
-      {/* Debug overlay - development only */}
-      {showDebug && (
-        <GanttDebugOverlay
-          isVisible={true}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          viewMode={viewMode}
-        />
-      )}
     </div>
   );
 };

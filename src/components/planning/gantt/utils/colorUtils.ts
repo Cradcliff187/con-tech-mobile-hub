@@ -1,42 +1,65 @@
 
 import { Task } from '@/types/database';
 
-export const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'completed': return 'bg-green-500';
-    case 'in-progress': return 'bg-blue-500';
-    case 'blocked': return 'bg-red-500';
-    case 'on-hold': return 'bg-yellow-500';
-    default: return 'bg-slate-400';
+export const getConstructionPhaseColor = (task: Task): string => {
+  // Priority-based coloring
+  if (task.priority === 'critical') {
+    return 'bg-red-500 text-white';
+  }
+  if (task.priority === 'high') {
+    return 'bg-orange-500 text-white';
+  }
+
+  // Category-based coloring for construction phases
+  switch (task.category?.toLowerCase()) {
+    case 'foundation':
+      return 'bg-stone-500 text-white';
+    case 'framing':
+      return 'bg-amber-600 text-white';
+    case 'electrical':
+      return 'bg-yellow-600 text-white';
+    case 'plumbing':
+      return 'bg-blue-600 text-white';
+    case 'hvac':
+      return 'bg-cyan-600 text-white';
+    case 'roofing':
+      return 'bg-slate-600 text-white';
+    case 'flooring':
+      return 'bg-orange-600 text-white';
+    case 'painting':
+      return 'bg-purple-600 text-white';
+    case 'inspection':
+      return 'bg-green-600 text-white';
+    case 'cleanup':
+      return 'bg-gray-500 text-white';
+    default:
+      // Status-based fallback
+      switch (task.status) {
+        case 'completed':
+          return 'bg-green-500 text-white';
+        case 'in-progress':
+          return 'bg-blue-500 text-white';
+        case 'on-hold':
+          return 'bg-yellow-500 text-white';
+        case 'cancelled':
+          return 'bg-gray-500 text-white';
+        default:
+          return 'bg-slate-500 text-white';
+      }
   }
 };
 
-export const getConstructionPhaseColor = (task: Task) => {
-  const category = task.category?.toLowerCase() || '';
-  const taskType = task.task_type || 'regular';
-  
-  if (taskType === 'punch_list') return 'bg-purple-500';
-  
-  if (category.includes('foundation')) return 'bg-amber-600';
-  if (category.includes('framing') || category.includes('structure')) return 'bg-orange-600';
-  if (category.includes('electrical')) return 'bg-yellow-500';
-  if (category.includes('plumbing')) return 'bg-blue-600';
-  if (category.includes('hvac')) return 'bg-indigo-500';
-  if (category.includes('finish') || category.includes('paint')) return 'bg-green-600';
-  
-  return getStatusColor(task.status);
-};
-
-export const getCategoryBadgeColor = (category?: string) => {
-  if (!category) return 'bg-slate-100 text-slate-700';
-  
-  const cat = category.toLowerCase();
-  if (cat.includes('foundation')) return 'bg-amber-100 text-amber-700';
-  if (cat.includes('framing') || cat.includes('structure')) return 'bg-orange-100 text-orange-700';
-  if (cat.includes('electrical')) return 'bg-yellow-100 text-yellow-700';
-  if (cat.includes('plumbing')) return 'bg-blue-100 text-blue-700';
-  if (cat.includes('hvac')) return 'bg-indigo-100 text-indigo-700';
-  if (cat.includes('finish') || cat.includes('paint')) return 'bg-green-100 text-green-700';
-  
-  return 'bg-slate-100 text-slate-700';
+export const getTaskStatusColor = (status: string): string => {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'in-progress':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'on-hold':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'cancelled':
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+    default:
+      return 'bg-slate-100 text-slate-800 border-slate-200';
+  }
 };

@@ -7,8 +7,6 @@ import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
 import { GanttEmptyState } from '../GanttEmptyState';
 import { StandardGanttContainer } from './StandardGanttContainer';
-import { GanttEnhancedHeader } from './GanttEnhancedHeader';
-import { GanttControls } from '../GanttControls';
 
 interface GanttChartInnerProps {
   projectId: string;
@@ -47,35 +45,6 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
   const displayTasks = useMemo(() => {
     return getFilteredTasks();
   }, [getFilteredTasks]);
-  
-  const taskCounts = useMemo(() => {
-    const total = displayTasks.length;
-    const punchList = displayTasks.filter(task => task.task_type === 'punch_list').length;
-    const completed = displayTasks.filter(task => task.status === 'completed').length;
-    
-    return { total, punchList, completed };
-  }, [displayTasks]);
-
-  const totalDays = useMemo(() => {
-    if (!timelineStart || !timelineEnd) return 0;
-    return Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
-  }, [timelineStart?.getTime(), timelineEnd?.getTime()]);
-
-  const safeFilters = useMemo(() => {
-    return filters && typeof filters === 'object' && 'status' in filters 
-      ? {
-          status: filters.status || [],
-          priority: filters.priority || [],
-          category: filters.category || [],
-          lifecycle_status: filters.lifecycle_status || []
-        }
-      : {
-          status: [],
-          priority: [],
-          category: [],
-          lifecycle_status: []
-        };
-  }, [filters]);
 
   if (loading) {
     return <GanttLoadingState />;
@@ -93,31 +62,8 @@ export const GanttChartInner = ({ projectId }: GanttChartInnerProps) => {
     selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
-  const handleFilterChange = (filterType: string, values: string[]) => {
-    setFilters({ [filterType]: values });
-  };
-
   return (
     <div className="w-full space-y-6">
-      <GanttEnhancedHeader 
-        totalDays={totalDays}
-        completedTasks={taskCounts.completed}
-        punchListTasks={taskCounts.punchList}
-        localUpdatesCount={0}
-        onResetUpdates={() => {}}
-        tasks={displayTasks}
-      />
-
-      <GanttControls
-        searchQuery={searchQuery || ''}
-        onSearchChange={setSearchQuery}
-        filters={safeFilters}
-        onFilterChange={handleFilterChange}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        isDevelopment={process.env.NODE_ENV === 'development'}
-      />
-      
       <StandardGanttContainer
         displayTasks={displayTasks}
         timelineStart={timelineStart}

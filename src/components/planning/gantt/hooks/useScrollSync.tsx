@@ -5,26 +5,30 @@ export const useScrollSync = () => {
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
 
-  // Simplified scroll synchronization
   useEffect(() => {
-    const headerScroll = headerScrollRef.current;
-    const contentScroll = contentScrollRef.current;
+    const headerElement = headerScrollRef.current;
+    const contentElement = contentScrollRef.current;
 
-    if (!headerScroll || !contentScroll) return;
+    if (!headerElement || !contentElement) return;
 
-    const syncScrollLeft = (source: HTMLElement, target: HTMLElement) => {
-      target.scrollLeft = source.scrollLeft;
+    const syncHeaderToContent = () => {
+      if (headerElement && contentElement) {
+        headerElement.scrollLeft = contentElement.scrollLeft;
+      }
     };
 
-    const handleHeaderScroll = () => syncScrollLeft(headerScroll, contentScroll);
-    const handleContentScroll = () => syncScrollLeft(contentScroll, headerScroll);
+    const syncContentToHeader = () => {
+      if (headerElement && contentElement) {
+        contentElement.scrollLeft = headerElement.scrollLeft;
+      }
+    };
 
-    headerScroll.addEventListener('scroll', handleHeaderScroll, { passive: true });
-    contentScroll.addEventListener('scroll', handleContentScroll, { passive: true });
+    contentElement.addEventListener('scroll', syncHeaderToContent);
+    headerElement.addEventListener('scroll', syncContentToHeader);
 
     return () => {
-      headerScroll.removeEventListener('scroll', handleHeaderScroll);
-      contentScroll.removeEventListener('scroll', handleContentScroll);
+      contentElement.removeEventListener('scroll', syncHeaderToContent);
+      headerElement.removeEventListener('scroll', syncContentToHeader);
     };
   }, []);
 

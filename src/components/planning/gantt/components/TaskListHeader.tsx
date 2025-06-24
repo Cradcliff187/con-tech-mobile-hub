@@ -10,8 +10,6 @@ interface TaskListHeaderProps {
 }
 
 export const TaskListHeader = ({ isCollapsed, onToggleCollapse, taskCount }: TaskListHeaderProps) => {
-  console.log('🔄 TaskListHeader: Render with collapsed state:', isCollapsed);
-
   return (
     <div className="flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
       <div className="flex items-center gap-2">
@@ -26,10 +24,7 @@ export const TaskListHeader = ({ isCollapsed, onToggleCollapse, taskCount }: Tas
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => {
-          console.log('🔄 TaskListHeader: Toggle collapse clicked, current:', isCollapsed);
-          onToggleCollapse();
-        }}
+        onClick={onToggleCollapse}
         className="h-6 w-6 p-0 hover:bg-slate-200"
         aria-label={isCollapsed ? "Expand task details" : "Collapse task details"}
         title={isCollapsed ? "Expand task details" : "Collapse task details"}
