@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Task } from '@/types/database';
 import { generateTimelineUnits, getColumnWidth } from '../utils/gridUtils';
@@ -13,6 +12,7 @@ interface SimpleTaskBarProps {
   viewMode: 'days' | 'weeks' | 'months';
   isSelected: boolean;
   onUpdate: (taskId: string, updates: Partial<Task>) => Promise<any>;
+  isCollapsed?: boolean;
 }
 
 export const SimpleTaskBar = ({
@@ -21,7 +21,8 @@ export const SimpleTaskBar = ({
   timelineEnd,
   viewMode,
   isSelected,
-  onUpdate
+  onUpdate,
+  isCollapsed = false
 }: SimpleTaskBarProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragPreview, setDragPreview] = useState<{ x: number; valid: boolean; date?: Date } | null>(null);
@@ -186,10 +187,18 @@ export const SimpleTaskBar = ({
     }
   }, [isUpdating, validateDrop, task.id, task.title, calculatedStartDate, calculatedEndDate, onUpdate]);
 
+  // Use consistent heights: 32px for collapsed, 64px for expanded
+  const containerHeight = isCollapsed ? '32px' : '64px';
+  const barHeight = isCollapsed ? '16px' : '32px';
+  const barTopOffset = isCollapsed ? '8px' : '16px';
+
   return (
     <div 
-      className="relative h-12 bg-slate-50"
-      style={{ width: `${totalWidth}px` }}
+      className="relative bg-slate-50"
+      style={{ 
+        width: `${totalWidth}px`, 
+        height: containerHeight 
+      }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onDragLeave={() => setDragPreview(null)}
@@ -214,7 +223,7 @@ export const SimpleTaskBar = ({
       
       {/* Task Bar */}
       <div
-        className={`absolute top-2 h-8 rounded transition-all ${
+        className={`absolute rounded transition-all ${
           isUpdating ? 'cursor-wait opacity-50' : 'cursor-grab active:cursor-grabbing'
         } ${
           isSelected ? 'ring-2 ring-blue-500 ring-offset-1 shadow-lg' : 'hover:shadow-md'
@@ -224,14 +233,16 @@ export const SimpleTaskBar = ({
         style={{
           left: `${leftPercent}%`,
           width: `${widthPercent}%`,
-          minWidth: '24px'
+          minWidth: '24px',
+          height: barHeight,
+          top: barTopOffset
         }}
         draggable={!isUpdating}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div className="px-2 py-1 h-full flex items-center">
-          <span className="text-xs font-medium truncate text-white">
+          <span className={`font-medium truncate text-white ${isCollapsed ? 'text-xs' : 'text-sm'}`}>
             {task.title}
           </span>
           {isUpdating && (
