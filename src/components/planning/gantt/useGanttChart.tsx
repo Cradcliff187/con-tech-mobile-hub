@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useGanttContext } from '@/contexts/gantt';
@@ -86,7 +85,7 @@ export const useGanttChart = ({ projectId }: UseGanttChartProps): GanttChartHook
     
     // Utility methods
     getUpdatedTask: (task: Task): Task => {
-      return dragBridge.getOptimisticTask && dragBridge.getOptimisticTask(task.id) || task;
+      return dragBridge.getOptimisticTask(task.id) || task;
     },
     
     resetLocalUpdates: (): void => {
