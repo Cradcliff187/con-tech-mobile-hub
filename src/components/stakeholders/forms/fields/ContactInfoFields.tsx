@@ -1,13 +1,10 @@
 
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EmailInput } from '@/components/common/EmailInput';
-import { PhoneInput } from '@/components/common/PhoneInput';
-import { AlertTriangle } from 'lucide-react';
-import { sanitizeText } from '@/utils/validation';
+import { StakeholderTypeField } from './StakeholderTypeField';
+import { StatusField } from './StatusField';
+import { CompanyField } from './CompanyField';
+import { ContactPersonField } from './ContactPersonField';
+import { ContactMethodsFields } from './ContactMethodsFields';
 import { type StakeholderFormData } from '@/schemas';
-import { useCallback } from 'react';
 
 interface ContactInfoFieldsProps {
   formData: StakeholderFormData;
@@ -26,164 +23,44 @@ export const ContactInfoFields = ({
     return errors[field]?.[0];
   };
 
-  // Simple direct input change - no sanitization during typing
-  const handleInputChange = useCallback((field: string, value: string) => {
-    onInputChange(field, value);
-  }, [onInputChange]);
-
-  // Sanitization only on blur when user finishes typing
-  const handleBlurSanitization = useCallback((field: string, value: string, sanitizeType: 'text' | 'email' | 'phone' = 'text') => {
-    let sanitizedValue = value;
-    
-    switch (sanitizeType) {
-      case 'email':
-        sanitizedValue = value.trim().toLowerCase();
-        break;
-      case 'phone':
-        sanitizedValue = value.replace(/[^0-9\s\-\(\)\+]/g, '');
-        break;
-      case 'text':
-      default:
-        sanitizedValue = sanitizeText(value);
-        break;
-    }
-    
-    if (sanitizedValue !== value) {
-      onInputChange(field, sanitizedValue);
-    }
-  }, [onInputChange]);
-
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="stakeholder_type">Type *</Label>
-          <Select 
-            value={formData.stakeholder_type || ''} 
-            onValueChange={(value) => onInputChange('stakeholder_type', value)}
-          >
-            <SelectTrigger className={getFieldError('stakeholder_type') ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select stakeholder type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="client">Client</SelectItem>
-              <SelectItem value="subcontractor">Subcontractor</SelectItem>
-              <SelectItem value="employee">Employee</SelectItem>
-              <SelectItem value="vendor">Vendor</SelectItem>
-            </SelectContent>
-          </Select>
-          {getFieldError('stakeholder_type') && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {getFieldError('stakeholder_type')}
-            </p>
-          )}
-        </div>
+        <StakeholderTypeField
+          value={formData.stakeholder_type || ''}
+          onChange={(value) => onInputChange('stakeholder_type', value)}
+          error={getFieldError('stakeholder_type')}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="status">Status *</Label>
-          <Select 
-            value={formData.status} 
-            onValueChange={(value) => onInputChange('status', value)}
-          >
-            <SelectTrigger className={getFieldError('status') ? 'border-red-500' : ''}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
-          {getFieldError('status') && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {getFieldError('status')}
-            </p>
-          )}
-        </div>
+        <StatusField
+          value={formData.status}
+          onChange={(value) => onInputChange('status', value)}
+          error={getFieldError('status')}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="company_name">Company Name</Label>
-          <Input
-            id="company_name"
-            value={formData.company_name || ''}
-            onChange={(e) => handleInputChange('company_name', e.target.value)}
-            onBlur={(e) => handleBlurSanitization('company_name', e.target.value)}
-            placeholder="Enter company name"
-            className={getFieldError('company_name') ? 'border-red-500' : ''}
-            autoComplete="organization"
-            autoCapitalize="words"
-            inputMode="text"
-          />
-          {getFieldError('company_name') && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {getFieldError('company_name')}
-            </p>
-          )}
-        </div>
+        <CompanyField
+          value={formData.company_name || ''}
+          onChange={(value) => onInputChange('company_name', value)}
+          error={getFieldError('company_name')}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="contact_person">Contact Person *</Label>
-          <Input
-            id="contact_person"
-            value={formData.contact_person}
-            onChange={(e) => handleInputChange('contact_person', e.target.value)}
-            onBlur={(e) => handleBlurSanitization('contact_person', e.target.value)}
-            placeholder="Primary contact name"
-            required
-            className={getFieldError('contact_person') ? 'border-red-500' : ''}
-            autoComplete="name"
-            autoCapitalize="words"
-            inputMode="text"
-          />
-          {getFieldError('contact_person') && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {getFieldError('contact_person')}
-            </p>
-          )}
-        </div>
+        <ContactPersonField
+          value={formData.contact_person}
+          onChange={(value) => onInputChange('contact_person', value)}
+          error={getFieldError('contact_person')}
+        />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <EmailInput
-            value={formData.email || ''}
-            onChange={(value) => handleInputChange('email', value)}
-            onBlur={(e) => handleBlurSanitization('email', e.target.value, 'email')}
-            className={getFieldError('email') ? 'border-red-500' : ''}
-          />
-          {getFieldError('email') && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {getFieldError('email')}
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <PhoneInput
-            value={formData.phone || ''}
-            onChange={(value) => handleInputChange('phone', value)}
-            onBlur={(e) => handleBlurSanitization('phone', e.target.value, 'phone')}
-            placeholder="Phone number"
-            className={getFieldError('phone') ? 'border-red-500' : ''}
-          />
-          {getFieldError('phone') && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertTriangle size={12} />
-              {getFieldError('phone')}
-            </p>
-          )}
-        </div>
-      </div>
+      <ContactMethodsFields
+        email={formData.email || ''}
+        phone={formData.phone || ''}
+        onEmailChange={(value) => onInputChange('email', value)}
+        onPhoneChange={(value) => onInputChange('phone', value)}
+        emailError={getFieldError('email')}
+        phoneError={getFieldError('phone')}
+      />
     </>
   );
 };
