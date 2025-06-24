@@ -1,6 +1,6 @@
 
 import { Task } from '@/types/database';
-import { addDays } from 'date-fns';
+import { addDays, differenceInDays, format } from 'date-fns';
 
 export interface TaskDateCalculation {
   calculatedStartDate: Date;
@@ -35,4 +35,26 @@ export const calculateTaskDatesFromEstimate = (task: Task): TaskDateCalculation 
     calculatedStartDate,
     calculatedEndDate
   };
+};
+
+export const getDaysBetween = (startDate: Date, endDate: Date): number => {
+  return Math.max(1, differenceInDays(endDate, startDate));
+};
+
+export const formatDateRange = (startDate: Date, endDate: Date): string => {
+  const start = format(startDate, 'MMM d');
+  const end = format(endDate, 'MMM d');
+  
+  // If same year, don't repeat it
+  if (startDate.getFullYear() === endDate.getFullYear()) {
+    if (startDate.getMonth() === endDate.getMonth() && startDate.getDate() === endDate.getDate()) {
+      // Same day
+      return `${start}, ${startDate.getFullYear()}`;
+    }
+    // Different days, same year
+    return `${start} - ${end}, ${startDate.getFullYear()}`;
+  }
+  
+  // Different years
+  return `${start}, ${startDate.getFullYear()} - ${end}, ${endDate.getFullYear()}`;
 };
