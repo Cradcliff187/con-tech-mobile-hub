@@ -10,6 +10,7 @@ import { GanttCollapsedTaskCard } from './GanttCollapsedTaskCard';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
+import { useGanttContext } from '@/contexts/gantt';
 
 interface GanttTaskCardProps {
   task: Task;
@@ -67,32 +68,36 @@ const formatCalculatedDateRange = (startDate: Date, endDate: Date, task: Task) =
 export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, isCollapsed = false }: GanttTaskCardProps) => {
   const { updateTask } = useTasks();
   const { toast } = useToast();
+  const { getDisplayTask } = useGanttContext();
   
-  console.log('📋 GanttTaskCard: Rendering task', task.title, 'collapsed:', isCollapsed);
+  // Get task with optimistic updates applied
+  const displayTask = getDisplayTask ? getDisplayTask(task.id) || task : task;
+  
+  console.log('📋 GanttTaskCard: Rendering task', displayTask.title, 'collapsed:', isCollapsed, 'optimistic:', displayTask !== task);
 
   // If collapsed, render the collapsed version
   if (isCollapsed) {
     return (
       <GanttCollapsedTaskCard
-        task={task}
+        task={displayTask}
         isSelected={isSelected}
         onSelect={onSelect}
       />
     );
   }
 
-  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(task);
-  const dateInfo = formatCalculatedDateRange(calculatedStartDate, calculatedEndDate, task);
+  const { calculatedStartDate, calculatedEndDate } = calculateTaskDatesFromEstimate(displayTask);
+  const dateInfo = formatCalculatedDateRange(calculatedStartDate, calculatedEndDate, displayTask);
   
   const handleClick = () => {
     if (onSelect) {
-      onSelect(task.id);
+      onSelect(displayTask.id);
     }
   };
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateTask(task.id, { status: newStatus as Task['status'] });
+      await updateTask(displayTask.id, { status: newStatus as Task['status'] });
       toast({
         title: "Success",
         description: "Task status updated successfully"
@@ -115,18 +120,20 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
         isSelected 
           ? 'ring-2 ring-blue-400 bg-blue-50' 
           : 'hover:bg-slate-25'
+      } ${
+        displayTask !== task ? 'bg-blue-25 border-l-2 border-l-blue-400' : ''
       }`}
       onClick={handleClick}
     >
       <CardContent className="p-2 py-1.5">
         {/* Priority + Title */}
         <div className="flex items-start gap-1 mb-1">
-          {getPriorityIcon(task.priority)}
+          {getPriorityIcon(displayTask.priority)}
           <div className="flex-1 min-w-0">
             <h4 className={`text-xs font-semibold line-clamp-2 leading-tight ${
               isSelected ? 'text-blue-800' : 'text-slate-800'
             }`}>
-              {task.title}
+              {displayTask.title}
             </h4>
           </div>
         </div>
@@ -135,17 +142,17 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
         <div className="flex flex-wrap gap-1 mb-1">
           <GlobalStatusDropdown
             entityType="task"
-            currentStatus={task.status}
+            currentStatus={displayTask.status}
             onStatusChange={handleStatusChange}
             size="sm"
             showAsDropdown={false}
           />
-          {task.category && (
-            <Badge className={`text-xs px-1 py-0.5 ${getCategoryBadgeColor(task.category)}`}>
-              {task.category}
+          {displayTask.category && (
+            <Badge className={`text-xs px-1 py-0.5 ${getCategoryBadgeColor(displayTask.category)}`}>
+              {displayTask.category}
             </Badge>
           )}
-          {task.task_type === 'punch_list' && (
+          {displayTask.task_type === 'punch_list' && (
             <Badge className="bg-purple-100 text-purple-700 text-xs px-1 py-0.5">
               Punch
             </Badge>
@@ -156,15 +163,15 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-1 text-xs text-slate-600">
             <User size={10} className="flex-shrink-0" />
-            <span className="truncate text-xs">{getAssigneeName(task)}</span>
+            <span className="truncate text-xs">{getAssigneeName(displayTask)}</span>
           </div>
           <span className={`text-xs font-semibold ${
             isSelected ? 'text-blue-800' : 'text-slate-800'
-          }`}>{task.progress || 0}%</span>
+          }`}>{displayTask.progress || 0}%</span>
         </div>
         
         {/* Progress Bar */}
-        <Progress value={task.progress || 0} className="h-1 mb-1" />
+        <Progress value={displayTask.progress || 0} className="h-1 mb-1" />
         
         {/* Compact Dates with Duration */}
         <div className="space-y-0.5 mb-1">
@@ -174,23 +181,30 @@ export const GanttTaskCard = ({ task, isSelected = false, onSelect, viewMode, is
           <div className="flex items-center gap-1 text-xs text-slate-500">
             <Clock size={10} className="flex-shrink-0" />
             <span className="text-xs">{dateInfo.duration}</span>
-            {task.estimated_hours && (
-              <span className="ml-1 text-xs">• {task.estimated_hours}h</span>
+            {displayTask.estimated_hours && (
+              <span className="ml-1 text-xs">• {displayTask.estimated_hours}h</span>
             )}
           </div>
         </div>
 
         {/* Required Skills - More compact */}
-        {task.required_skills && task.required_skills.length > 0 && (
+        {displayTask.required_skills && displayTask.required_skills.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {task.required_skills.slice(0, 1).map((skill, i) => (
+            {displayTask.required_skills.slice(0, 1).map((skill, i) => (
               <span key={i} className="text-xs bg-slate-100 text-slate-600 px-1 py-0.5 rounded">
                 {skill}
               </span>
             ))}
-            {task.required_skills.length > 1 && (
-              <span className="text-xs text-slate-500">+{task.required_skills.length - 1}</span>
+            {displayTask.required_skills.length > 1 && (
+              <span className="text-xs text-slate-500">+{displayTask.required_skills.length - 1}</span>
             )}
+          </div>
+        )}
+
+        {/* Optimistic update indicator - development only */}
+        {process.env.NODE_ENV === 'development' && displayTask !== task && (
+          <div className="mt-1 text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded">
+            Optimistic Update
           </div>
         )}
       </CardContent>
