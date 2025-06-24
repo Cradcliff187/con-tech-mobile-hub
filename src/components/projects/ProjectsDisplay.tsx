@@ -6,9 +6,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { Plus, Grid3X3, List, MoreHorizontal, Eye, Edit, Trash2, Archive, ArchiveRestore } from 'lucide-react';
 import { Project } from '@/types/database';
-import { getUnifiedLifecycleStatus, getStatusMetadata } from '@/utils/unified-lifecycle-utils';
+import { getUnifiedLifecycleStatus } from '@/utils/unified-lifecycle-utils';
 
 type ViewMode = 'grid' | 'table';
 
@@ -26,6 +27,7 @@ interface ProjectsDisplayProps {
   onEditProject: (project: Project) => void;
   onDeleteProject: (project: Project) => void;
   onArchiveProject: (project: Project) => void;
+  onStatusChange?: (project: Project, newStatus: string) => void;
 }
 
 export const ProjectsDisplay = ({
@@ -41,7 +43,8 @@ export const ProjectsDisplay = ({
   onViewProject,
   onEditProject,
   onDeleteProject,
-  onArchiveProject
+  onArchiveProject,
+  onStatusChange
 }: ProjectsDisplayProps) => {
   // Table columns for DataTable
   const tableColumns = [
@@ -65,13 +68,15 @@ export const ProjectsDisplay = ({
       filterable: true,
       accessor: (project: Project) => {
         const unifiedStatus = getUnifiedLifecycleStatus(project);
-        const statusMetadata = getStatusMetadata(unifiedStatus);
         return (
-          <Badge 
-            className={`${statusMetadata.color} ${statusMetadata.textColor}`}
-          >
-            {statusMetadata.label}
-          </Badge>
+          <GlobalStatusDropdown
+            entityType="project"
+            currentStatus={unifiedStatus}
+            onStatusChange={(newStatus) => onStatusChange?.(project, newStatus)}
+            showAsDropdown={canEdit}
+            size="sm"
+            disabled={!canEdit}
+          />
         );
       }
     },

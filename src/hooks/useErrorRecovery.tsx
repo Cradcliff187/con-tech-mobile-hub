@@ -50,7 +50,7 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
       try {
         const result = await operation();
         
-        // Success - clean up any failed operation tracking
+        // Clean up on success
         setFailedOperations(prev => {
           const newMap = new Map(prev);
           newMap.delete(operationId);
@@ -71,10 +71,8 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
         setRetryCount(attemptNumber);
 
         if (attemptNumber < effectiveMaxRetries) {
-          // Calculate exponential backoff delay
           const delay = baseRetryDelay * Math.pow(2, attemptNumber - 1);
           
-          // Store failed operation
           const failedOp: FailedOperation = {
             id: operationId,
             operation,
@@ -93,7 +91,6 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
 
           setIsRecovering(true);
 
-          // Schedule retry
           const timeoutId = setTimeout(() => {
             attemptOperation(attemptNumber + 1);
             timeoutRefs.current.delete(operationId);
@@ -103,13 +100,12 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
 
           toast({
             title: "Operation Failed",
-            description: `${description} failed. Retrying in ${delay}ms... (${attemptNumber}/${effectiveMaxRetries})`,
+            description: `${description} failed. Retrying... (${attemptNumber}/${effectiveMaxRetries})`,
             variant: "destructive"
           });
 
           throw err;
         } else {
-          // Max retries reached
           setFailedOperations(prev => {
             const newMap = new Map(prev);
             newMap.delete(operationId);
@@ -124,7 +120,7 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
 
           toast({
             title: "Operation Failed",
-            description: `${description} failed after ${effectiveMaxRetries} attempts: ${err.message}`,
+            description: `${description} failed after ${effectiveMaxRetries} attempts`,
             variant: "destructive"
           });
 
@@ -136,74 +132,15 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
     return attemptOperation(1);
   }, [maxRetries, baseRetryDelay, onRecoverySuccess, onRecoveryFailure, generateOperationId]);
 
-  const retryFailedOperation = useCallback(async (operationId: string): Promise<boolean> => {
-    const failedOp = failedOperations.get(operationId);
-    if (!failedOp) return false;
-
-    try {
-      setIsRecovering(true);
-      await failedOp.operation();
-      
-      setFailedOperations(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(operationId);
-        return newMap;
-      });
-      
-      setIsRecovering(false);
-
-      toast({
-        title: "Retry Successful",
-        description: `${failedOp.description} completed successfully`,
-      });
-
-      return true;
-    } catch (error) {
-      setIsRecovering(false);
-      
-      toast({
-        title: "Retry Failed",
-        description: `${failedOp.description} still failing: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive"
-      });
-      
-      return false;
-    }
-  }, [failedOperations]);
-
   const clearFailedOperations = useCallback(() => {
-    // Clear all pending timeouts
     timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
     timeoutRefs.current.clear();
-
     setFailedOperations(new Map());
     setIsRecovering(false);
     setRetryCount(0);
     setLastError(null);
   }, []);
 
-  const rollbackToLastGoodState = useCallback(async (rollbackOperation: () => Promise<void>) => {
-    try {
-      setIsRecovering(true);
-      await rollbackOperation();
-      clearFailedOperations();
-      
-      toast({
-        title: "Rollback Successful",
-        description: "Restored to last known good state",
-      });
-    } catch (error) {
-      setIsRecovering(false);
-      
-      toast({
-        title: "Rollback Failed",
-        description: error instanceof Error ? error.message : "Failed to rollback",
-        variant: "destructive"
-      });
-    }
-  }, [clearFailedOperations]);
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
@@ -212,17 +149,12 @@ export const useErrorRecovery = (options: UseErrorRecoveryOptions = {}) => {
   }, []);
 
   return {
-    // State
     isRecovering,
     failedOperations: Array.from(failedOperations.values()),
     hasFailedOperations: failedOperations.size > 0,
     retryCount,
     lastError,
-    
-    // Actions
     executeWithRecovery,
-    retryFailedOperation,
-    clearFailedOperations,
-    rollbackToLastGoodState
+    clearFailedOperations
   };
 };
