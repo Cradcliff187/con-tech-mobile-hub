@@ -67,7 +67,7 @@ const arePropsEqual = (prevProps: SimpleTaskRowProps, nextProps: SimpleTaskRowPr
     prevProps.task.progress !== nextProps.task.progress ||
     prevProps.task.status !== nextProps.task.status ||
     prevProps.task.priority !== nextProps.task.priority ||
-    prevProps.task.estimate_hours !== nextProps.task.estimate_hours;
+    prevProps.task.estimated_hours !== nextProps.task.estimated_hours;
 
   // UI state comparison
   const uiChanged = 
