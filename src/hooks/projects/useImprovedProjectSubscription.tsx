@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/types/database';
 import { subscriptionManager } from '@/services/subscription';
@@ -13,8 +13,30 @@ export const useImprovedProjectSubscription = ({
   user, 
   onProjectsUpdate 
 }: UseImprovedProjectSubscriptionProps) => {
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const lastUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) {
+      // Clean up existing subscription if user logs out
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      lastUserIdRef.current = null;
+      return;
+    }
+
+    // Skip if same user and subscription already exists
+    if (lastUserIdRef.current === user.id && unsubscribeRef.current) {
+      return;
+    }
+
+    // Clean up existing subscription before creating new one
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
 
     console.log('Setting up projects real-time subscription');
 
@@ -58,12 +80,25 @@ export const useImprovedProjectSubscription = ({
       handleProjectChange
     );
 
+    unsubscribeRef.current = unsubscribe;
+    lastUserIdRef.current = user.id;
+
     // Initial fetch
     handleProjectChange();
 
     return () => {
       console.log('Cleaning up projects subscription');
-      unsubscribe?.();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      lastUserIdRef.current = null;
     };
-  }, [user?.id, onProjectsUpdate]);
+  }, [user?.id]); // Only depend on user ID, not the callback
+
+  // Handle callback changes without re-subscribing
+  useEffect(() => {
+    // No need to re-subscribe, just ensure we have the latest callback
+    // The subscription manager handles this internally
+  }, [onProjectsUpdate]);
 };

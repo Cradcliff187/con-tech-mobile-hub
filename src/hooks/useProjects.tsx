@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Project } from '@/types/database';
@@ -11,14 +10,23 @@ export const useProjects = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const updateCallbackRef = useRef<(projects: Project[]) => void>();
 
-  // Use improved real-time subscription
+  // Create a stable callback reference to prevent subscription loops
+  const stableProjectsUpdate = useCallback((updatedProjects: Project[]) => {
+    setProjects(updatedProjects);
+    setLoading(false);
+  }, []);
+
+  // Update the ref when the callback changes
+  useEffect(() => {
+    updateCallbackRef.current = stableProjectsUpdate;
+  }, [stableProjectsUpdate]);
+
+  // Use improved real-time subscription with stable callback
   useImprovedProjectSubscription({
     user,
-    onProjectsUpdate: (updatedProjects) => {
-      setProjects(updatedProjects);
-      setLoading(false);
-    }
+    onProjectsUpdate: stableProjectsUpdate
   });
 
   const createProject = async (projectData: Partial<Project>) => {

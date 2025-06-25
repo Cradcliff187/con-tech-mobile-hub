@@ -1,8 +1,8 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useImprovedStakeholderSubscription } from '@/hooks/stakeholders/useImprovedStakeholderSubscription';
 
 export interface Stakeholder {
   id: string;
@@ -33,75 +33,25 @@ export const useStakeholders = (projectId?: string) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const updateCallbackRef = useRef<(stakeholders: Stakeholder[]) => void>();
 
-  // Real-time subscription setup
+  // Create a stable callback reference to prevent subscription loops
+  const stableStakeholdersUpdate = useCallback((updatedStakeholders: Stakeholder[]) => {
+    setStakeholders(updatedStakeholders);
+    setLoading(false);
+  }, []);
+
+  // Update the ref when the callback changes
   useEffect(() => {
-    if (!user) return;
+    updateCallbackRef.current = stableStakeholdersUpdate;
+  }, [stableStakeholdersUpdate]);
 
-    console.log('Setting up stakeholders real-time subscription', { projectId });
-
-    const handleStakeholderChange = async () => {
-      try {
-        let query = supabase
-          .from('stakeholders')
-          .select('*')
-          .eq('status', 'active')
-          .order('contact_person');
-
-        if (projectId) {
-          // Get stakeholders assigned to this project
-          const { data: assignments } = await supabase
-            .from('stakeholder_assignments')
-            .select('stakeholder_id')
-            .eq('project_id', projectId);
-          
-          const stakeholderIds = assignments?.map(a => a.stakeholder_id) || [];
-          if (stakeholderIds.length > 0) {
-            query = query.in('id', stakeholderIds);
-          } else {
-            // No assignments found, return empty array
-            setStakeholders([]);
-            setLoading(false);
-            return;
-          }
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('Error fetching stakeholders:', error);
-          setStakeholders([]);
-        } else {
-          setStakeholders(data || []);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error in stakeholders subscription handler:', error);
-        setLoading(false);
-      }
-    };
-
-    // Initial fetch
-    handleStakeholderChange();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('stakeholders-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'stakeholders' },
-        () => handleStakeholderChange()
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'stakeholder_assignments' },
-        () => handleStakeholderChange()
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up stakeholders subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user, projectId]);
+  // Use improved real-time subscription with stable callback
+  useImprovedStakeholderSubscription({
+    user,
+    onStakeholdersUpdate: stableStakeholdersUpdate,
+    projectId
+  });
 
   const createStakeholder = useCallback(async (stakeholderData: Omit<Stakeholder, 'id' | 'created_at' | 'updated_at' | 'rating'>) => {
     try {

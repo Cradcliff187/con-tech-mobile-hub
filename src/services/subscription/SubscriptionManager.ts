@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionConfig, SubscriptionCallback, ChannelManager } from './types';
 import { generateChannelKey, generateChannelName, formatFilterForSupabase } from './channelUtils';
@@ -6,17 +5,7 @@ import { SubscriptionErrorHandler } from './errorHandling';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 /**
- * Enhanced Centralized Subscription Manager with improved error handling and retry logic
- * 
- * This singleton class manages all real-time subscriptions in the application,
- * providing the following features:
- * 
- * - **Automatic Deduplication**: Multiple components subscribing to the same table
- *   will share a single channel, reducing overhead
- * - **Proper Cleanup**: Channels are automatically cleaned up when no longer needed
- * - **Error Recovery**: Built-in reconnection capabilities for failed channels
- * - **Debug Support**: Status monitoring and channel information for debugging
- * - **Rate Limiting**: Circuit breaker pattern to prevent server overload
+ * Enhanced Centralized Subscription Manager with improved error handling and deduplication
  */
 export class SubscriptionManager {
   private static instance: SubscriptionManager;
@@ -25,6 +14,7 @@ export class SubscriptionManager {
   private errorHandler: SubscriptionErrorHandler = new SubscriptionErrorHandler();
   private globalRateLimit: Map<string, number> = new Map();
   private circuitBreaker: Map<string, { failures: number; lastFailure: number; isOpen: boolean }> = new Map();
+  private subscriptionCallbacks: Map<string, Set<SubscriptionCallback>> = new Map();
 
   private constructor() {
     // Private constructor to enforce singleton pattern
@@ -43,9 +33,10 @@ export class SubscriptionManager {
   private shouldAllowOperation(key: string): boolean {
     const now = Date.now();
     
-    // Check rate limiting (max 10 operations per second per key)
+    // Check rate limiting (max 5 operations per second per key)
     const lastCall = this.globalRateLimit.get(key) || 0;
-    if (now - lastCall < 100) { // 100ms minimum between calls
+    if (now - lastCall < 200) { // 200ms minimum between calls
+      console.log(`Rate limiting subscription operation for ${key}`);
       return false;
     }
     
@@ -57,6 +48,7 @@ export class SubscriptionManager {
         breaker.isOpen = false;
         breaker.failures = 0;
       } else {
+        console.log(`Circuit breaker open for ${key}`);
         return false;
       }
     }
@@ -96,8 +88,15 @@ export class SubscriptionManager {
     
     // Check rate limiting and circuit breaker
     if (!this.shouldAllowOperation(channelKey)) {
+      // Return a no-op unsubscribe function for rate-limited calls
       return () => {};
     }
+
+    // Store callback for this subscription
+    if (!this.subscriptionCallbacks.has(channelKey)) {
+      this.subscriptionCallbacks.set(channelKey, new Set());
+    }
+    this.subscriptionCallbacks.get(channelKey)!.add(callback);
 
     let channelManager = this.channels.get(channelKey);
 
@@ -105,13 +104,21 @@ export class SubscriptionManager {
     if (!channelManager) {
       channelManager = this.createChannel(config, channelKey);
       this.channels.set(channelKey, channelManager);
+    } else {
+      // Channel exists, just add the callback
+      channelManager.callbacks.add(callback);
     }
-
-    // Add callback to the channel
-    channelManager.callbacks.add(callback);
 
     // Return unsubscribe function
     return () => {
+      const callbacks = this.subscriptionCallbacks.get(channelKey);
+      if (callbacks) {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          this.subscriptionCallbacks.delete(channelKey);
+        }
+      }
+
       const manager = this.channels.get(channelKey);
       if (manager) {
         manager.callbacks.delete(callback);
@@ -124,7 +131,7 @@ export class SubscriptionManager {
             if (currentManager && currentManager.callbacks.size === 0) {
               this.cleanupChannel(channelKey);
             }
-          }, 2000); // Increased debounce to 2 seconds
+          }, 3000); // Increased debounce to 3 seconds
         }
       }
     };
@@ -135,6 +142,17 @@ export class SubscriptionManager {
    */
   private createChannel(config: SubscriptionConfig, channelKey: string): ChannelManager {
     const channelName = generateChannelName(config);
+    
+    // Check if we already have a channel with the same name
+    const existingChannel = Array.from(this.channels.values()).find(
+      manager => manager.channel.topic === channelName
+    );
+    
+    if (existingChannel) {
+      console.log(`Reusing existing channel: ${channelName}`);
+      return existingChannel;
+    }
+
     const channel = supabase.channel(channelName);
 
     const channelManager: ChannelManager = {
@@ -162,21 +180,25 @@ export class SubscriptionManager {
       }
     }
 
-    // Set up real-time listener with enhanced error handling using the correct method
+    // Set up real-time listener with enhanced error handling
     channel.on(
       'postgres_changes',
       postgresChangesConfig,
       (payload: RealtimePostgresChangesPayload<any>) => {
         try {
           // Call all registered callbacks for this channel
-          channelManager.callbacks.forEach(cb => {
-            try {
-              cb(payload);
-            } catch (error) {
-              // Error in callback - log but don't fail entire channel
-            }
-          });
+          const callbacks = this.subscriptionCallbacks.get(channelKey);
+          if (callbacks) {
+            callbacks.forEach(cb => {
+              try {
+                cb(payload);
+              } catch (error) {
+                console.error(`Error in subscription callback for ${channelKey}:`, error);
+              }
+            });
+          }
         } catch (error) {
+          console.error(`Error processing subscription payload for ${channelKey}:`, error);
           this.recordFailure(channelKey);
         }
       }
@@ -185,6 +207,7 @@ export class SubscriptionManager {
     // Enhanced subscription status handling with retry logic
     channel.subscribe((status) => {
       channelManager.status = status;
+      console.log(`Channel ${channelName} status: ${status}`);
 
       if (status === 'CHANNEL_ERROR') {
         this.recordFailure(channelKey);
@@ -214,7 +237,7 @@ export class SubscriptionManager {
   private reconnectChannelInternal(channelKey: string, config: SubscriptionConfig): void {
     const channelManager = this.channels.get(channelKey);
     if (channelManager) {
-      const callbacks = Array.from(channelManager.callbacks);
+      const callbacks = Array.from(this.subscriptionCallbacks.get(channelKey) || []);
       
       // Clean up the existing channel
       this.cleanupChannel(channelKey);
@@ -237,14 +260,16 @@ export class SubscriptionManager {
     const channelManager = this.channels.get(channelKey);
     if (channelManager) {
       try {
+        console.log(`Cleaning up channel: ${channelKey}`);
         supabase.removeChannel(channelManager.channel);
       } catch (error) {
-        // Cleanup error - not critical
+        console.error(`Error cleaning up channel ${channelKey}:`, error);
       }
       
       // Clean up error handling state
       this.errorHandler.cleanupErrorState(channelKey);
       this.channels.delete(channelKey);
+      this.subscriptionCallbacks.delete(channelKey);
     }
   }
 
@@ -282,6 +307,7 @@ export class SubscriptionManager {
     // Clear rate limiting and circuit breaker state
     this.globalRateLimit.clear();
     this.circuitBreaker.clear();
+    this.subscriptionCallbacks.clear();
     
     const channelKeys = Array.from(this.channels.keys());
     channelKeys.forEach(channelKey => {
