@@ -22,6 +22,13 @@ export const TaskSkillsField = ({
   onRemoveSkill,
   error
 }: TaskSkillsFieldProps) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onAddSkill();
+    }
+  };
+
   return (
     <div className="space-y-2">
       <Label>Required Skills</Label>
@@ -30,7 +37,7 @@ export const TaskSkillsField = ({
           value={newSkill}
           onChange={(e) => setNewSkill(e.target.value)}
           placeholder="Add a skill (max 50 characters)"
-          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), onAddSkill())}
+          onKeyDown={handleKeyDown}
         />
         <Button type="button" onClick={onAddSkill} variant="outline">
           Add
