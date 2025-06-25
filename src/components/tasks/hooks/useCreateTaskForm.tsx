@@ -26,6 +26,7 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     required_skills: [],
     punch_list_category: undefined,
     assigned_stakeholder_id: undefined,
+    assigned_stakeholder_ids: [],
     task_type: 'regular',
     progress: 0
   });
@@ -33,6 +34,7 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   const [newSkill, setNewSkill] = useState('');
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
   
   const { createTask } = useTasks();
   const { projects } = useProjects();
@@ -76,6 +78,17 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
       case 'assigned_stakeholder_id':
         // Ensure empty string becomes undefined for proper database storage
         sanitizedValue = value === '' ? undefined : value;
+        // Clear multi-assignment when single assignment is set
+        if (sanitizedValue) {
+          setFormData(prev => ({ ...prev, assigned_stakeholder_ids: [] }));
+        }
+        break;
+      case 'assigned_stakeholder_ids':
+        sanitizedValue = Array.isArray(value) ? value : [];
+        // Clear single assignment when multi-assignment is set
+        if (Array.isArray(value) && value.length > 0) {
+          setFormData(prev => ({ ...prev, assigned_stakeholder_id: undefined }));
+        }
         break;
       default:
         sanitizedValue = value;
@@ -157,14 +170,24 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
           variant: "destructive"
         });
       } else {
-        // Get assigned stakeholder name for success message
-        const assignedStakeholder = formData.assigned_stakeholder_id 
-          ? stakeholders.find(s => s.id === formData.assigned_stakeholder_id)
-          : null;
+        // Generate success message based on assignments
+        let successMessage = `${validation.data.title} has been created successfully`;
         
-        const successMessage = assignedStakeholder
-          ? `${validation.data.title} has been created and assigned to ${assignedStakeholder.company_name || assignedStakeholder.contact_person}`
-          : `${validation.data.title} has been created successfully`;
+        const assignedStakeholderIds = validation.data.assigned_stakeholder_ids || 
+          (validation.data.assigned_stakeholder_id ? [validation.data.assigned_stakeholder_id] : []);
+        
+        if (assignedStakeholderIds.length > 0) {
+          const assignedStakeholders = assignedStakeholderIds
+            .map(id => stakeholders.find(s => s.id === id))
+            .filter(Boolean);
+          
+          if (assignedStakeholders.length === 1) {
+            const stakeholder = assignedStakeholders[0];
+            successMessage = `${validation.data.title} has been created and assigned to ${stakeholder!.company_name || stakeholder!.contact_person}`;
+          } else if (assignedStakeholders.length > 1) {
+            successMessage = `${validation.data.title} has been created and assigned to ${assignedStakeholders.length} stakeholders`;
+          }
+        }
         
         toast({
           title: "Task created successfully",
@@ -200,11 +223,13 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
       required_skills: [],
       punch_list_category: undefined,
       assigned_stakeholder_id: undefined,
+      assigned_stakeholder_ids: [],
       task_type: 'regular',
       progress: 0
     });
     setNewSkill('');
     setErrors({});
+    setMultiSelectMode(false);
   };
 
   const getFieldError = (field: string): string | undefined => {
@@ -220,6 +245,8 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     projects,
     selectedProject,
     workers,
+    multiSelectMode,
+    setMultiSelectMode,
     handleInputChange,
     handleAddSkill,
     handleRemoveSkill,

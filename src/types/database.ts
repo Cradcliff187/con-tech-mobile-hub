@@ -1,4 +1,3 @@
-
 export interface StructuredAddress {
   street_address?: string;
   city?: string;
@@ -74,6 +73,20 @@ export interface Stakeholder {
   updated_at: string;
 }
 
+// New interface for task-stakeholder assignments
+export interface TaskStakeholderAssignment {
+  id: string;
+  task_id: string;
+  stakeholder_id: string;
+  assignment_role: 'primary' | 'secondary' | 'reviewer';
+  assigned_at: string;
+  assigned_by?: string;
+  status: 'active' | 'completed' | 'removed';
+  created_at: string;
+  updated_at: string;
+  stakeholder?: Stakeholder;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -86,7 +99,9 @@ export interface Task {
   updated_at: string;
   project_id: string;
   assignee_id?: string;
-  assigned_stakeholder_id?: string;
+  assigned_stakeholder_id?: string; // Legacy single assignment
+  assigned_stakeholder_ids?: string[]; // New multiple assignment IDs
+  assigned_stakeholders?: TaskStakeholderAssignment[]; // Full assignment objects
   task_type?: 'regular' | 'punch_list';
   required_skills?: string[];
   punch_list_category?: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other';

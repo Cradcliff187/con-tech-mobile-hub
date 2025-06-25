@@ -1720,6 +1720,57 @@ export type Database = {
           },
         ]
       }
+      task_stakeholder_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assignment_role: string | null
+          created_at: string
+          id: string
+          stakeholder_id: string
+          status: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignment_role?: string | null
+          created_at?: string
+          id?: string
+          stakeholder_id: string
+          status?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignment_role?: string | null
+          created_at?: string
+          id?: string
+          stakeholder_id?: string
+          status?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_stakeholder_assignments_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_stakeholder_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_updates: {
         Row: {
           author_id: string | null

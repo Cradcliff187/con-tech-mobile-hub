@@ -189,10 +189,12 @@ export const CreateTaskFormFields = ({
 
       <TaskStakeholderAssignmentField
         value={formData.assigned_stakeholder_id}
+        values={formData.assigned_stakeholder_ids || []}
         onChange={(value) => onInputChange('assigned_stakeholder_id', value)}
+        onMultiChange={(values) => onInputChange('assigned_stakeholder_ids', values)}
         stakeholders={workers}
         requiredSkills={formData.required_skills || []}
-        error={getFieldError('assigned_stakeholder_id')}
+        error={getFieldError('assigned_stakeholder_id') || getFieldError('assigned_stakeholder_ids')}
       />
 
       <div className="grid grid-cols-2 gap-4">

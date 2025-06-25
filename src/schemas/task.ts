@@ -30,7 +30,9 @@ export const taskSchema = z.object({
   
   punch_list_category: z.enum(['electrical', 'plumbing', 'carpentry', 'flooring', 'hvac', 'paint', 'other']).optional(),
   
-  assigned_stakeholder_id: z.string().uuid().optional(),
+  // Support both single and multiple stakeholder assignments
+  assigned_stakeholder_id: z.string().uuid().optional(), // Legacy support
+  assigned_stakeholder_ids: z.array(z.string().uuid()).optional(), // New multi-assignment
   
   progress: z.number().min(0).max(100).optional()
 }).refine(data => {
@@ -41,6 +43,15 @@ export const taskSchema = z.object({
 }, {
   message: "Due date must be after start date",
   path: ["due_date"]
+}).refine(data => {
+  // Ensure we don't have both single and multiple assignments
+  if (data.assigned_stakeholder_id && data.assigned_stakeholder_ids && data.assigned_stakeholder_ids.length > 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Cannot use both single and multiple stakeholder assignments",
+  path: ["assigned_stakeholder_ids"]
 });
 
 export type TaskFormData = z.infer<typeof taskSchema>;
