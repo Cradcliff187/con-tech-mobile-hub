@@ -6,7 +6,7 @@ import { useImprovedEquipmentSubscription } from '@/hooks/equipment/useImprovedE
 export interface Equipment {
   id: string;
   name: string;
-  type: string;
+  type?: string; // Make type optional to match database schema
   status: string;
   project_id?: string;
   operator_id?: string;
