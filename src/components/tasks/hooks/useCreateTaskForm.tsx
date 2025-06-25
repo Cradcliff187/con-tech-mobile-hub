@@ -58,43 +58,43 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   );
 
   const handleInputChange = (field: keyof TaskFormData, value: string | number | string[] | undefined) => {
-    // Sanitize input based on field type
-    let sanitizedValue: any = value;
+    // For text-based fields that users type in, allow raw input without sanitization
+    // Only sanitize non-text fields that need immediate processing
+    let processedValue: any = value;
     
     switch (field) {
       case 'title':
-      case 'category':
-        sanitizedValue = sanitizeInput(value as string, 'text');
-        break;
       case 'description':
-        sanitizedValue = sanitizeInput(value as string, 'html');
+      case 'category':
+        // Allow raw input for typing fields - no sanitization during typing
+        processedValue = value;
         break;
       case 'estimated_hours':
-        sanitizedValue = value === '' || value === undefined ? undefined : Number(value);
+        processedValue = value === '' || value === undefined ? undefined : Number(value);
         break;
       case 'required_skills':
-        sanitizedValue = sanitizeStringArray(value as string[]);
+        processedValue = sanitizeStringArray(value as string[]);
         break;
       case 'assigned_stakeholder_id':
         // Ensure empty string becomes undefined for proper database storage
-        sanitizedValue = value === '' ? undefined : value;
+        processedValue = value === '' ? undefined : value;
         // Clear multi-assignment when single assignment is set
-        if (sanitizedValue) {
+        if (processedValue) {
           setFormData(prev => ({ ...prev, assigned_stakeholder_ids: [] }));
         }
         break;
       case 'assigned_stakeholder_ids':
-        sanitizedValue = Array.isArray(value) ? value : [];
+        processedValue = Array.isArray(value) ? value : [];
         // Clear single assignment when multi-assignment is set
         if (Array.isArray(value) && value.length > 0) {
           setFormData(prev => ({ ...prev, assigned_stakeholder_id: undefined }));
         }
         break;
       default:
-        sanitizedValue = value;
+        processedValue = value;
     }
     
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
     
     // Clear field error when user starts typing
     if (errors[field]) {
@@ -121,7 +121,15 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   };
 
   const validateForm = (): boolean => {
-    const validation = validateFormData(taskSchema, formData);
+    // Sanitize text fields before validation
+    const sanitizedFormData = {
+      ...formData,
+      title: sanitizeInput(formData.title || '', 'text') as string,
+      description: sanitizeInput(formData.description || '', 'html') as string,
+      category: sanitizeInput(formData.category || '', 'text') as string,
+    };
+
+    const validation = validateFormData(taskSchema, sanitizedFormData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -147,7 +155,15 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     setLoading(true);
 
     try {
-      const validation = validateFormData(taskSchema, formData);
+      // Sanitize all text fields before submission
+      const sanitizedFormData = {
+        ...formData,
+        title: sanitizeInput(formData.title || '', 'text') as string,
+        description: sanitizeInput(formData.description || '', 'html') as string,
+        category: sanitizeInput(formData.category || '', 'text') as string,
+      };
+
+      const validation = validateFormData(taskSchema, sanitizedFormData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
