@@ -57,10 +57,22 @@ export const TaskStakeholderAssignmentField = ({
     return 'text-red-600';
   };
 
+  // Handle the select value change - convert "none" to undefined
+  const handleValueChange = (selectedValue: string) => {
+    if (selectedValue === 'none') {
+      onChange(undefined);
+    } else {
+      onChange(selectedValue);
+    }
+  };
+
+  // Get the current select value - convert undefined to "none"
+  const selectValue = value || 'none';
+
   return (
     <div className="space-y-2">
       <Label htmlFor="stakeholder-assignment">Assign To</Label>
-      <Select value={value || ''} onValueChange={(val) => onChange(val || undefined)}>
+      <Select value={selectValue} onValueChange={handleValueChange}>
         <SelectTrigger 
           className={`min-h-[44px] ${error ? 'border-red-500' : ''}`}
           id="stakeholder-assignment"
@@ -68,7 +80,7 @@ export const TaskStakeholderAssignmentField = ({
           <SelectValue placeholder="Select a stakeholder (optional)" />
         </SelectTrigger>
         <SelectContent className="bg-white max-h-80">
-          <SelectItem value="">No assignment</SelectItem>
+          <SelectItem value="none">No assignment</SelectItem>
           {sortedStakeholders.map((stakeholder) => (
             <SelectItem 
               key={stakeholder.id} 
