@@ -49,9 +49,9 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     }
   }, [selectedProject]);
 
-  // Filter stakeholders to get workers with skills
+  // Filter stakeholders to get workers with skills - include all assignable types
   const workers = stakeholders.filter(s => 
-    (s.stakeholder_type === 'employee' || s.stakeholder_type === 'subcontractor') && 
+    ['employee', 'subcontractor', 'vendor'].includes(s.stakeholder_type) && 
     s.status === 'active'
   );
 
@@ -72,6 +72,10 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
         break;
       case 'required_skills':
         sanitizedValue = sanitizeStringArray(value as string[]);
+        break;
+      case 'assigned_stakeholder_id':
+        // Ensure empty string becomes undefined for proper database storage
+        sanitizedValue = value === '' ? undefined : value;
         break;
       default:
         sanitizedValue = value;
@@ -153,9 +157,18 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
           variant: "destructive"
         });
       } else {
+        // Get assigned stakeholder name for success message
+        const assignedStakeholder = formData.assigned_stakeholder_id 
+          ? stakeholders.find(s => s.id === formData.assigned_stakeholder_id)
+          : null;
+        
+        const successMessage = assignedStakeholder
+          ? `${validation.data.title} has been created and assigned to ${assignedStakeholder.company_name || assignedStakeholder.contact_person}`
+          : `${validation.data.title} has been created successfully`;
+        
         toast({
           title: "Task created successfully",
-          description: `${validation.data.title} has been created with enhanced security validation`
+          description: successMessage
         });
         
         resetForm();
