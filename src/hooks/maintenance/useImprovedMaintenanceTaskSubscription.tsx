@@ -2,28 +2,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { subscriptionManager } from '@/services/subscription';
-
-interface MaintenanceTask {
-  id: string;
-  equipment_id: string;
-  title: string;
-  description?: string;
-  task_type: string;
-  priority: string;
-  status: string;
-  scheduled_date: string;
-  completed_at?: string;
-  estimated_hours?: number;
-  actual_hours?: number;
-  assigned_to_user_id?: string;
-  assigned_to_stakeholder_id?: string;
-  created_by?: string;
-  completed_by?: string;
-  notes?: string;
-  checklist_items?: any[];
-  created_at: string;
-  updated_at: string;
-}
+import { MaintenanceTask } from '@/types/maintenance';
 
 interface UseImprovedMaintenanceTaskSubscriptionProps {
   user: any;
@@ -59,7 +38,17 @@ export const useImprovedMaintenanceTaskSubscription = ({
           return;
         }
 
-        onTasksUpdate(data || []);
+        // Type cast the data to match MaintenanceTask interface
+        const typedTasks = (data || []).map(task => ({
+          ...task,
+          checklist_items: Array.isArray(task.checklist_items) 
+            ? task.checklist_items 
+            : typeof task.checklist_items === 'string' 
+              ? JSON.parse(task.checklist_items) 
+              : []
+        })) as MaintenanceTask[];
+
+        onTasksUpdate(typedTasks);
       } catch (error) {
         console.error('Error in maintenance tasks subscription handler:', error);
       }

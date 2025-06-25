@@ -41,7 +41,15 @@ export const useImprovedResourceAllocationSubscription = ({
           return;
         }
 
-        onResourceAllocationsUpdate(data || []);
+        // Type cast the data to match ResourceAllocation interface
+        const typedAllocations = (data || []).map(allocation => ({
+          ...allocation,
+          allocation_type: (allocation.allocation_type === 'daily' || allocation.allocation_type === 'weekly') 
+            ? allocation.allocation_type 
+            : 'weekly' as 'weekly' | 'daily'
+        })) as ResourceAllocation[];
+
+        onResourceAllocationsUpdate(typedAllocations);
       } catch (error) {
         console.error('Error in resource allocations subscription handler:', error);
       }
