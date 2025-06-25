@@ -6,13 +6,13 @@ import { useImprovedEquipmentSubscription } from '@/hooks/equipment/useImprovedE
 export interface Equipment {
   id: string;
   name: string;
-  type?: string; // Make type optional to match database schema
+  type?: string;
   status: string;
   project_id?: string;
   operator_id?: string;
   assigned_operator_id?: string;
   maintenance_due?: string;
-  utilization_rate?: number; // Make utilization_rate optional to match database schema
+  utilization_rate?: number;
   created_at: string;
   updated_at: string;
   project?: { id: string; name: string };
@@ -34,15 +34,8 @@ export const useEquipment = () => {
     }
   });
 
-  // Manual refetch function for compatibility
-  const refetch = async () => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  };
-
   return { 
     equipment, 
-    loading, 
-    refetch
+    loading
   };
 };

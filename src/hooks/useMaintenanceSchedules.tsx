@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useImprovedMaintenanceScheduleSubscription } from '@/hooks/maintenance/useImprovedMaintenanceScheduleSubscription';
 
-export interface MaintenanceSchedule {
+interface MaintenanceSchedule {
   id: string;
   equipment_id: string;
   schedule_name: string;
@@ -19,7 +21,6 @@ export interface MaintenanceSchedule {
   checklist_template: any[];
   created_at: string;
   updated_at: string;
-  // Relations
   equipment?: {
     id: string;
     name: string;
@@ -32,115 +33,103 @@ export interface MaintenanceSchedule {
   };
 }
 
-export const useMaintenanceSchedules = () => {
+export const useMaintenanceSchedules = (equipmentId?: string) => {
   const [schedules, setSchedules] = useState<MaintenanceSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchSchedules = async () => {
-    if (!user) return;
+  // Create stable callback for subscription
+  const stableSchedulesUpdate = useCallback((updatedSchedules: MaintenanceSchedule[]) => {
+    setSchedules(updatedSchedules);
+    setLoading(false);
+  }, []);
 
-    setLoading(true);
+  // Use improved real-time subscription
+  useImprovedMaintenanceScheduleSubscription({
+    user,
+    onSchedulesUpdate: stableSchedulesUpdate,
+    equipmentId
+  });
+
+  const createSchedule = useCallback(async (scheduleData: Omit<MaintenanceSchedule, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!user) return { error: 'User not authenticated' };
+
     try {
       const { data, error } = await supabase
         .from('maintenance_schedules')
+        .insert({
+          ...scheduleData,
+          checklist_template: scheduleData.checklist_template || []
+        })
         .select(`
           *,
           equipment:equipment(id, name, type),
           auto_assign_stakeholder:stakeholders(id, contact_person, company_name)
         `)
-        .order('next_due_date', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching maintenance schedules:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load maintenance schedules",
-          variant: "destructive"
-        });
-      } else {
-        // Type cast frequency_type and handle JSON properly
-        const normalizedSchedules = (data || []).map(schedule => ({
-          ...schedule,
-          frequency_type: schedule.frequency_type as MaintenanceSchedule['frequency_type'],
-          checklist_template: Array.isArray(schedule.checklist_template) ? schedule.checklist_template : []
-        }));
-        setSchedules(normalizedSchedules);
-      }
-    } catch (error) {
-      console.error('Error fetching maintenance schedules:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createSchedule = async (scheduleData: {
-    equipment_id: string;
-    schedule_name: string;
-    task_type?: string;
-    description?: string;
-    frequency_type: string;
-    frequency_value: number;
-    estimated_hours?: number;
-    auto_assign_to_stakeholder_id?: string;
-    checklist_template?: any[];
-  }) => {
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_schedules')
-        .insert(scheduleData)
-        .select()
         .single();
 
       if (error) throw error;
 
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Maintenance schedule created successfully"
       });
 
-      await fetchSchedules();
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating maintenance schedule:', error);
       toast({
         title: "Error",
-        description: "Failed to create maintenance schedule",
+        description: error.message || "Failed to create maintenance schedule",
         variant: "destructive"
       });
-      return { data: null, error };
+      return { data: null, error: error.message };
     }
-  };
+  }, [user, toast]);
 
-  const updateSchedule = async (id: string, updates: Partial<MaintenanceSchedule>) => {
+  const updateSchedule = useCallback(async (id: string, updates: Partial<MaintenanceSchedule>) => {
+    if (!user) return { error: 'User not authenticated' };
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('maintenance_schedules')
-        .update(updates)
-        .eq('id', id);
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          equipment:equipment(id, name, type),
+          auto_assign_stakeholder:stakeholders(id, contact_person, company_name)
+        `)
+        .single();
 
       if (error) throw error;
 
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Maintenance schedule updated successfully"
       });
 
-      await fetchSchedules();
-      return { error: null };
-    } catch (error) {
+      return { data, error: null };
+    } catch (error: any) {
       console.error('Error updating maintenance schedule:', error);
       toast({
         title: "Error",
-        description: "Failed to update maintenance schedule",
+        description: error.message || "Failed to update maintenance schedule",
         variant: "destructive"
       });
-      return { error };
+      return { data: null, error: error.message };
     }
-  };
+  }, [user, toast]);
 
-  const deleteSchedule = async (id: string) => {
+  const deleteSchedule = useCallback(async (id: string) => {
+    if (!user) return { error: 'User not authenticated' };
+
     try {
       const { error } = await supabase
         .from('maintenance_schedules')
@@ -149,34 +138,103 @@ export const useMaintenanceSchedules = () => {
 
       if (error) throw error;
 
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Maintenance schedule deleted successfully"
       });
 
-      await fetchSchedules();
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting maintenance schedule:', error);
       toast({
         title: "Error",
-        description: "Failed to delete maintenance schedule",
+        description: error.message || "Failed to delete maintenance schedule",
         variant: "destructive"
       });
-      return { error };
+      return { error: error.message };
     }
-  };
+  }, [user, toast]);
 
-  useEffect(() => {
-    fetchSchedules();
-  }, [user]);
+  const generateTasks = useCallback(async (scheduleId: string) => {
+    if (!user) return { error: 'User not authenticated' };
+
+    try {
+      const schedule = schedules.find(s => s.id === scheduleId);
+      if (!schedule) {
+        throw new Error('Schedule not found');
+      }
+
+      // Calculate next due date based on frequency
+      const nextDueDate = new Date();
+      switch (schedule.frequency_type) {
+        case 'daily':
+          nextDueDate.setDate(nextDueDate.getDate() + schedule.frequency_value);
+          break;
+        case 'weekly':
+          nextDueDate.setDate(nextDueDate.getDate() + (schedule.frequency_value * 7));
+          break;
+        case 'monthly':
+          nextDueDate.setMonth(nextDueDate.getMonth() + schedule.frequency_value);
+          break;
+        case 'quarterly':
+          nextDueDate.setMonth(nextDueDate.getMonth() + (schedule.frequency_value * 3));
+          break;
+        case 'yearly':
+          nextDueDate.setFullYear(nextDueDate.getFullYear() + schedule.frequency_value);
+          break;
+        default:
+          nextDueDate.setDate(nextDueDate.getDate() + 30); // Default to 30 days
+      }
+
+      // Create maintenance task
+      const { data: taskData, error: taskError } = await supabase
+        .from('maintenance_tasks')
+        .insert({
+          equipment_id: schedule.equipment_id,
+          title: `${schedule.schedule_name} - ${schedule.equipment?.name}`,
+          description: schedule.description || `Scheduled ${schedule.task_type} maintenance`,
+          task_type: schedule.task_type as any,
+          priority: 'medium' as any,
+          scheduled_date: nextDueDate.toISOString().split('T')[0],
+          estimated_hours: schedule.estimated_hours,
+          assigned_to: schedule.auto_assign_to_stakeholder_id,
+          checklist: schedule.checklist_template
+        })
+        .select()
+        .single();
+
+      if (taskError) throw taskError;
+
+      // Update schedule's last generated date and next due date
+      await updateSchedule(scheduleId, {
+        last_generated_date: new Date().toISOString(),
+        next_due_date: nextDueDate.toISOString()
+      });
+
+      toast({
+        title: "Success",
+        description: "Maintenance task generated successfully"
+      });
+
+      return { data: taskData, error: null };
+    } catch (error: any) {
+      console.error('Error generating maintenance task:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate maintenance task",
+        variant: "destructive"
+      });
+      return { data: null, error: error.message };
+    }
+  }, [user, schedules, updateSchedule, toast]);
 
   return {
     schedules,
     loading,
-    refetch: fetchSchedules,
     createSchedule,
     updateSchedule,
-    deleteSchedule
+    deleteSchedule,
+    generateTasks
   };
 };

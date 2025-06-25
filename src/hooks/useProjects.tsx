@@ -10,18 +10,12 @@ export const useProjects = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const updateCallbackRef = useRef<(projects: Project[]) => void>();
 
   // Create a stable callback reference to prevent subscription loops
   const stableProjectsUpdate = useCallback((updatedProjects: Project[]) => {
     setProjects(updatedProjects);
     setLoading(false);
   }, []);
-
-  // Update the ref when the callback changes
-  useEffect(() => {
-    updateCallbackRef.current = stableProjectsUpdate;
-  }, [stableProjectsUpdate]);
 
   // Use improved real-time subscription with stable callback
   useImprovedProjectSubscription({
@@ -244,12 +238,6 @@ export const useProjects = () => {
     return { data, error };
   };
 
-  // Manual refetch function for compatibility
-  const refetch = async () => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  };
-
   return {
     projects,
     loading,
@@ -257,7 +245,6 @@ export const useProjects = () => {
     updateProject,
     deleteProject,
     archiveProject,
-    unarchiveProject,
-    refetch
+    unarchiveProject
   };
 };

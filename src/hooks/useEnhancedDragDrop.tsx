@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { Task } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
@@ -55,9 +56,6 @@ interface UseEnhancedDragDropProps {
   onTasksUpdate?: (tasks: Task[]) => void;
 }
 
-/**
- * Validate drag operation based on business rules
- */
 const validateDragOperation = (
   task: Task, 
   newStartDate: Date, 
@@ -195,10 +193,10 @@ export const useEnhancedDragDrop = ({
     // Apply optimistic update immediately
     applyOptimisticUpdate(task.id, updates);
 
-    // Set up auto-cleanup timeout
+    // Set up auto-cleanup
     const timeoutId = setTimeout(() => {
       cleanupOperation(operationId);
-    }, 30000); // 30 second timeout
+    }, 30000);
     
     operationTimeoutRef.current.set(operationId, timeoutId);
 
@@ -345,56 +343,7 @@ export const useEnhancedDragDrop = ({
     }
   }, [state.activeOperations, updateTask, toast, cleanupOperation, rollbackOperation]);
 
-  // Start bulk operation
-  const startBulkOperation = useCallback((primaryTaskId: string, dependentTaskIds: string[]) => {
-    setState(prev => ({
-      ...prev,
-      bulkOperation: {
-        primaryTaskId,
-        dependentTaskIds,
-        coordinatedSave: true,
-        operationIds: []
-      }
-    }));
-  }, []);
-
-  // Execute bulk operations
-  const executeBulkOperations = useCallback(async () => {
-    const { bulkOperation } = state;
-    if (!bulkOperation.coordinatedSave || bulkOperation.operationIds.length === 0) return;
-
-    setState(prev => ({ ...prev, isSaving: true }));
-
-    try {
-      const promises = bulkOperation.operationIds.map(operationId => executeOperation(operationId));
-      await Promise.all(promises);
-
-      toast({
-        title: "Bulk Update Completed",
-        description: `Successfully updated ${bulkOperation.operationIds.length} task(s)`,
-      });
-
-    } catch (error) {
-      toast({
-        title: "Bulk Update Failed",
-        description: "Some updates failed. Individual retry attempts will continue.",
-        variant: "destructive"
-      });
-    } finally {
-      setState(prev => ({
-        ...prev,
-        bulkOperation: {
-          primaryTaskId: null,
-          dependentTaskIds: [],
-          coordinatedSave: false,
-          operationIds: []
-        },
-        isSaving: false
-      }));
-    }
-  }, [state, executeOperation, toast]);
-
-  // Handle drag start
+  // Handle drag operations
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     if (state.isSaving) {
       e.preventDefault();
@@ -416,7 +365,6 @@ export const useEnhancedDragDrop = ({
     e.dataTransfer.effectAllowed = 'move';
   }, [state.isSaving]);
 
-  // Handle drag end
   const handleDragEnd = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -431,7 +379,6 @@ export const useEnhancedDragDrop = ({
     }));
   }, []);
 
-  // Handle drag over with validation
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -462,7 +409,6 @@ export const useEnhancedDragDrop = ({
     }));
   }, [state.dragPreview.task, state.isSaving, timelineStart, timelineEnd]);
 
-  // Handle drop with optimistic updates
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     
@@ -526,10 +472,6 @@ export const useEnhancedDragDrop = ({
     rollbackOperation,
     cleanupOperation,
     getTaskOperationStatus,
-    
-    // Bulk operations
-    startBulkOperation,
-    executeBulkOperations,
     
     // Utilities
     getOptimisticTask,

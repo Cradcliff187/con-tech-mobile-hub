@@ -1,66 +1,31 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { StakeholderAssignment, CreateAssignmentData } from './stakeholders/types';
 import * as assignmentService from './stakeholders/assignmentService';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useImprovedStakeholderAssignmentSubscription } from '@/hooks/stakeholders/useImprovedStakeholderAssignmentSubscription';
 
-export const useStakeholderAssignments = () => {
+export const useStakeholderAssignments = (projectId?: string) => {
   const [assignments, setAssignments] = useState<StakeholderAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Real-time subscription setup
-  useEffect(() => {
-    if (!user) return;
+  // Create stable callback for subscription
+  const stableAssignmentsUpdate = useCallback((updatedAssignments: StakeholderAssignment[]) => {
+    setAssignments(updatedAssignments);
+    setLoading(false);
+  }, []);
 
-    console.log('Setting up stakeholder assignments real-time subscription');
+  // Use improved real-time subscription
+  useImprovedStakeholderAssignmentSubscription({
+    user,
+    onAssignmentsUpdate: stableAssignmentsUpdate,
+    projectId
+  });
 
-    const handleAssignmentChange = async () => {
-      try {
-        const data = await assignmentService.fetchAssignments();
-        setAssignments(data);
-        setLoading(false);
-      } catch (error: any) {
-        console.error('Error fetching stakeholder assignments:', error);
-        setLoading(false);
-      }
-    };
-
-    // Initial fetch
-    handleAssignmentChange();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('stakeholder-assignments-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'stakeholder_assignments' },
-        () => handleAssignmentChange()
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'stakeholders' },
-        () => handleAssignmentChange()
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
-        () => handleAssignmentChange()
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up stakeholder assignments subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  const fetchAssignments = async (projectId?: string) => {
-    // Real-time subscription handles automatic updates
-    console.log('Manual fetch called - real-time subscription should handle updates automatically');
-  };
-
-  const createAssignment = async (assignmentData: CreateAssignmentData) => {
+  const createAssignment = useCallback(async (assignmentData: CreateAssignmentData) => {
     try {
       const newAssignment = await assignmentService.createAssignment(assignmentData);
       
@@ -74,14 +39,14 @@ export const useStakeholderAssignments = () => {
       console.error('Error creating assignment:', error);
       toast({
         title: "Error",
-        description: "Failed to assign stakeholder",
+        description: error.message || "Failed to create assignment",
         variant: "destructive"
       });
-      return { data: null, error };
+      return { data: null, error: error.message };
     }
-  };
+  }, [toast]);
 
-  const updateAssignment = async (id: string, updates: Partial<StakeholderAssignment>) => {
+  const updateAssignment = useCallback(async (id: string, updates: Partial<StakeholderAssignment>) => {
     try {
       const updatedAssignment = await assignmentService.updateAssignment(id, updates);
       
@@ -95,53 +60,87 @@ export const useStakeholderAssignments = () => {
       console.error('Error updating assignment:', error);
       toast({
         title: "Error",
-        description: "Failed to update assignment",
+        description: error.message || "Failed to update assignment",
         variant: "destructive"
       });
-      return { data: null, error };
+      return { data: null, error: error.message };
     }
-  };
+  }, [toast]);
 
-  const updateDailyHours = async (id: string, date: string, hours: number) => {
+  const deleteAssignment = useCallback(async (id: string) => {
     try {
-      // Get current assignment
-      const assignment = assignments.find(a => a.id === id);
-      if (!assignment) throw new Error('Assignment not found');
-
-      const updatedAssignment = await assignmentService.updateDailyHours(id, date, hours, assignment);
+      await assignmentService.deleteAssignment(id);
       
       // Real-time subscription will handle state update
       toast({
         title: "Success",
-        description: "Daily hours updated successfully"
+        description: "Assignment deleted successfully"
       });
-      return { data: updatedAssignment, error: null };
+      return { error: null };
     } catch (error: any) {
-      console.error('Error updating daily hours:', error);
+      console.error('Error deleting assignment:', error);
       toast({
         title: "Error",
-        description: "Failed to update daily hours",
+        description: error.message || "Failed to delete assignment",
         variant: "destructive"
       });
-      return { data: null, error };
+      return { error: error.message };
     }
-  };
+  }, [toast]);
 
-  // Manual refetch function for compatibility
-  const refetch = (projectId?: string) => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  };
+  const bulkCreateAssignments = useCallback(async (assignmentsData: CreateAssignmentData[]) => {
+    try {
+      const newAssignments = await assignmentService.bulkCreateAssignments(assignmentsData);
+      
+      // Real-time subscription will handle state update
+      toast({
+        title: "Success",
+        description: `${newAssignments.length} assignments created successfully`
+      });
+      return { data: newAssignments, error: null };
+    } catch (error: any) {
+      console.error('Error creating bulk assignments:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create assignments",
+        variant: "destructive"
+      });
+      return { data: null, error: error.message };
+    }
+  }, [toast]);
+
+  const getAssignmentsByStakeholder = useCallback((stakeholderId: string) => {
+    return assignments.filter(assignment => assignment.stakeholder_id === stakeholderId);
+  }, [assignments]);
+
+  const getAssignmentsByProject = useCallback((projectId: string) => {
+    return assignments.filter(assignment => assignment.project_id === projectId);
+  }, [assignments]);
+
+  const getTotalCostByProject = useCallback((projectId: string) => {
+    const projectAssignments = getAssignmentsByProject(projectId);
+    return projectAssignments.reduce((total, assignment) => {
+      return total + (assignment.total_cost || 0);
+    }, 0);
+  }, [getAssignmentsByProject]);
+
+  const getTotalHoursByStakeholder = useCallback((stakeholderId: string) => {
+    const stakeholderAssignments = getAssignmentsByStakeholder(stakeholderId);
+    return stakeholderAssignments.reduce((total, assignment) => {
+      return total + (assignment.total_hours || 0);
+    }, 0);
+  }, [getAssignmentsByStakeholder]);
 
   return {
     assignments,
     loading,
     createAssignment,
     updateAssignment,
-    updateDailyHours,
-    refetch
+    deleteAssignment,
+    bulkCreateAssignments,
+    getAssignmentsByStakeholder,
+    getAssignmentsByProject,
+    getTotalCostByProject,
+    getTotalHoursByStakeholder
   };
 };
-
-// Export types for backward compatibility
-export type { StakeholderAssignment } from './stakeholders/types';

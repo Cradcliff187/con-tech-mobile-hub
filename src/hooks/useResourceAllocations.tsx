@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ResourceAllocation } from '@/types/database';
@@ -91,16 +90,9 @@ export const useResourceAllocations = (projectId?: string) => {
     return { error: 'Use stakeholder assignments system for creating new allocations' };
   };
 
-  // Manual refetch function for compatibility
-  const refetch = async () => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  };
-
   return {
     allocations,
     loading,
-    createAllocation,
-    refetch
+    createAllocation
   };
 };

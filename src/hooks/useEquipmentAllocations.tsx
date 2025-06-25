@@ -1,8 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { prepareOptionalSelectField } from '@/utils/selectHelpers';
+import { useImprovedEquipmentAllocationSubscription } from '@/hooks/equipment/useImprovedEquipmentAllocationSubscription';
 
 export interface EquipmentAllocation {
   id: string;
@@ -24,10 +26,29 @@ export interface EquipmentAllocation {
   operator_user?: { id: string; full_name?: string } | null;
 }
 
-export const useEquipmentAllocations = (equipmentId?: string) => {
+export const useEquipmentAllocations = (equipmentId?: string, projectId?: string) => {
   const [allocations, setAllocations] = useState<EquipmentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Create stable callback for subscription
+  const stableAllocationsUpdate = useCallback(async (updatedAllocations: any[]) => {
+    // Process allocations with operator details
+    const processedAllocations = await Promise.all(
+      updatedAllocations.map(allocation => processAllocationData(allocation))
+    );
+    setAllocations(processedAllocations);
+    setLoading(false);
+  }, []);
+
+  // Use improved real-time subscription
+  useImprovedEquipmentAllocationSubscription({
+    user,
+    onAllocationsUpdate: stableAllocationsUpdate,
+    equipmentId,
+    projectId
+  });
 
   const fetchOperatorDetails = async (allocation: any) => {
     let operator_stakeholder = null;
@@ -62,44 +83,7 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     return await fetchOperatorDetails(rawData);
   };
 
-  const fetchAllocations = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('equipment_allocations')
-        .select(`
-          *,
-          project:projects!inner(id, name),
-          equipment:equipment(id, name, type),
-          task:tasks(id, title)
-        `)
-        .order('start_date', { ascending: true });
-
-      if (equipmentId) {
-        query = query.eq('equipment_id', equipmentId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching equipment allocations:', error);
-      } else {
-        // Process allocations with operator details
-        const processedData = await Promise.all(
-          (data || []).map(allocation => processAllocationData(allocation))
-        );
-        setAllocations(processedData);
-      }
-    } catch (error) {
-      console.error('Error fetching equipment allocations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createAllocation = async (allocationData: {
+  const createAllocation = useCallback(async (allocationData: {
     equipment_id: string;
     project_id: string;
     task_id?: string;
@@ -111,87 +95,125 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   }) => {
     if (!user) return { error: 'User not authenticated' };
 
-    // Prepare data for database with proper field handling
-    const dbData = {
-      equipment_id: allocationData.equipment_id,
-      project_id: allocationData.project_id,
-      task_id: prepareOptionalSelectField(allocationData.task_id),
-      operator_type: allocationData.operator_type || null,
-      operator_id: prepareOptionalSelectField(allocationData.operator_id),
-      start_date: allocationData.start_date,
-      end_date: allocationData.end_date,
-      notes: allocationData.notes || null,
-      allocated_by: user.id
-    };
+    try {
+      // Prepare data for database with proper field handling
+      const dbData = {
+        equipment_id: allocationData.equipment_id,
+        project_id: allocationData.project_id,
+        task_id: prepareOptionalSelectField(allocationData.task_id),
+        operator_type: allocationData.operator_type || null,
+        operator_id: prepareOptionalSelectField(allocationData.operator_id),
+        start_date: allocationData.start_date,
+        end_date: allocationData.end_date,
+        notes: allocationData.notes || null,
+        allocated_by: user.id
+      };
 
-    const { data, error } = await supabase
-      .from('equipment_allocations')
-      .insert(dbData)
-      .select(`
-        *,
-        project:projects!inner(id, name),
-        equipment:equipment(id, name, type),
-        task:tasks(id, title)
-      `)
-      .single();
+      const { data, error } = await supabase
+        .from('equipment_allocations')
+        .insert(dbData)
+        .select(`
+          *,
+          project:projects!inner(id, name),
+          equipment:equipment(id, name, type),
+          task:tasks(id, title)
+        `)
+        .single();
 
-    if (!error && data) {
-      const processedAllocation = await processAllocationData(data);
-      setAllocations(prev => [...prev, processedAllocation]);
+      if (error) throw error;
+
+      // Real-time subscription will handle state update
+      toast({
+        title: "Success",
+        description: "Equipment allocation created successfully"
+      });
+
+      return { data, error: null };
+    } catch (error: any) {
+      console.error('Error creating allocation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create allocation",
+        variant: "destructive"
+      });
+      return { data: null, error: error.message };
     }
+  }, [user, toast]);
 
-    return { data, error };
-  };
+  const updateAllocation = useCallback(async (id: string, updates: Partial<EquipmentAllocation>) => {
+    try {
+      // Prepare updates for database with proper field handling
+      const dbUpdates: any = {};
+      
+      Object.keys(updates).forEach(key => {
+        const value = updates[key as keyof EquipmentAllocation];
+        if (key === 'task_id' || key === 'operator_id') {
+          dbUpdates[key] = prepareOptionalSelectField(value as string);
+        } else {
+          dbUpdates[key] = value;
+        }
+      });
 
-  const updateAllocation = async (id: string, updates: Partial<EquipmentAllocation>) => {
-    // Prepare updates for database with proper field handling
-    const dbUpdates: any = {};
-    
-    Object.keys(updates).forEach(key => {
-      const value = updates[key as keyof EquipmentAllocation];
-      if (key === 'task_id' || key === 'operator_id') {
-        dbUpdates[key] = prepareOptionalSelectField(value as string);
-      } else {
-        dbUpdates[key] = value;
-      }
-    });
+      const { data, error } = await supabase
+        .from('equipment_allocations')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select(`
+          *,
+          project:projects!inner(id, name),
+          equipment:equipment(id, name, type),
+          task:tasks(id, title)
+        `)
+        .single();
 
-    const { data, error } = await supabase
-      .from('equipment_allocations')
-      .update(dbUpdates)
-      .eq('id', id)
-      .select(`
-        *,
-        project:projects!inner(id, name),
-        equipment:equipment(id, name, type),
-        task:tasks(id, title)
-      `)
-      .single();
+      if (error) throw error;
 
-    if (!error && data) {
-      const processedAllocation = await processAllocationData(data);
-      setAllocations(prev => prev.map(allocation => 
-        allocation.id === id ? processedAllocation : allocation
-      ));
+      // Real-time subscription will handle state update
+      toast({
+        title: "Success",
+        description: "Equipment allocation updated successfully"
+      });
+
+      return { data, error: null };
+    } catch (error: any) {
+      console.error('Error updating allocation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update allocation",
+        variant: "destructive"
+      });
+      return { data: null, error: error.message };
     }
+  }, [toast]);
 
-    return { data, error };
-  };
+  const deleteAllocation = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('equipment_allocations')
+        .delete()
+        .eq('id', id);
 
-  const deleteAllocation = async (id: string) => {
-    const { error } = await supabase
-      .from('equipment_allocations')
-      .delete()
-      .eq('id', id);
+      if (error) throw error;
 
-    if (!error) {
-      setAllocations(prev => prev.filter(allocation => allocation.id !== id));
+      // Real-time subscription will handle state update
+      toast({
+        title: "Success",
+        description: "Equipment allocation deleted successfully"
+      });
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error deleting allocation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete allocation",
+        variant: "destructive"
+      });
+      return { error: error.message };
     }
+  }, [toast]);
 
-    return { error };
-  };
-
-  const checkAvailability = async (
+  const checkAvailability = useCallback(async (
     equipmentId: string,
     startDate: string,
     endDate: string,
@@ -205,9 +227,9 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     });
 
     return { isAvailable: data, error };
-  };
+  }, []);
 
-  const getConflictingAllocations = async (
+  const getConflictingAllocations = useCallback(async (
     equipmentId: string,
     startDate: string,
     endDate: string,
@@ -233,10 +255,9 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
       (data || []).map(allocation => processAllocationData(allocation))
     );
     return { conflicts: processedConflicts, error };
-  };
+  }, []);
 
-  // Bulk allocation creation for multiple equipment
-  const createBulkAllocations = async (allocationsData: Array<{
+  const createBulkAllocations = useCallback(async (allocationsData: Array<{
     equipment_id: string;
     project_id: string;
     task_id?: string;
@@ -248,64 +269,48 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
   }>) => {
     if (!user) return { error: 'User not authenticated' };
 
-    const dbDataArray = allocationsData.map(allocationData => ({
-      equipment_id: allocationData.equipment_id,
-      project_id: allocationData.project_id,
-      task_id: prepareOptionalSelectField(allocationData.task_id),
-      operator_type: allocationData.operator_type || null,
-      operator_id: prepareOptionalSelectField(allocationData.operator_id),
-      start_date: allocationData.start_date,
-      end_date: allocationData.end_date,
-      notes: allocationData.notes || null,
-      allocated_by: user.id
-    }));
+    try {
+      const dbDataArray = allocationsData.map(allocationData => ({
+        equipment_id: allocationData.equipment_id,
+        project_id: allocationData.project_id,
+        task_id: prepareOptionalSelectField(allocationData.task_id),
+        operator_type: allocationData.operator_type || null,
+        operator_id: prepareOptionalSelectField(allocationData.operator_id),
+        start_date: allocationData.start_date,
+        end_date: allocationData.end_date,
+        notes: allocationData.notes || null,
+        allocated_by: user.id
+      }));
 
-    const { data, error } = await supabase
-      .from('equipment_allocations')
-      .insert(dbDataArray)
-      .select(`
-        *,
-        project:projects!inner(id, name),
-        equipment:equipment(id, name, type),
-        task:tasks(id, title)
-      `);
+      const { data, error } = await supabase
+        .from('equipment_allocations')
+        .insert(dbDataArray)
+        .select(`
+          *,
+          project:projects!inner(id, name),
+          equipment:equipment(id, name, type),
+          task:tasks(id, title)
+        `);
 
-    if (!error && data) {
-      const processedAllocations = await Promise.all(
-        data.map(allocation => processAllocationData(allocation))
-      );
-      setAllocations(prev => [...prev, ...processedAllocations]);
+      if (error) throw error;
+
+      // Real-time subscription will handle state update
+      toast({
+        title: "Success",
+        description: `${data.length} equipment allocations created successfully`
+      });
+
+      return { data, error: null };
+    } catch (error: any) {
+      console.error('Error creating bulk allocations:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create allocations",
+        variant: "destructive"
+      });
+      return { data: null, error: error.message };
     }
-
-    return { data, error };
-  };
-
-  // Get allocation history for equipment
-  const getAllocationHistory = async (equipmentId: string) => {
-    const { data, error } = await supabase
-      .from('equipment_allocations')
-      .select(`
-        *,
-        project:projects!inner(id, name),
-        equipment:equipment(id, name, type),
-        task:tasks(id, title)
-      `)
-      .eq('equipment_id', equipmentId)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      const processedHistory = await Promise.all(
-        data.map(allocation => processAllocationData(allocation))
-      );
-      return { history: processedHistory, error: null };
-    }
-
-    return { history: [], error };
-  };
-
-  useEffect(() => {
-    fetchAllocations();
-  }, [user, equipmentId]);
+  }, [user, toast]);
 
   return {
     allocations,
@@ -315,8 +320,6 @@ export const useEquipmentAllocations = (equipmentId?: string) => {
     updateAllocation,
     deleteAllocation,
     checkAvailability,
-    getConflictingAllocations,
-    getAllocationHistory,
-    refetch: fetchAllocations
+    getConflictingAllocations
   };
 };

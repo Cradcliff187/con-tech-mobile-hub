@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useImprovedDocumentSubscription } from '@/hooks/documents/useImprovedDocumentSubscription';
 
 interface DocumentRecord {
   id: string;
@@ -71,58 +72,18 @@ export const useDocuments = (projectId?: string) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
 
-  // Simplified fetch function with proper error handling
-  const fetchDocuments = useCallback(async () => {
-    if (!user) {
-      setDocuments([]);
-      setLoading(false);
-      return;
-    }
+  // Create stable callback for subscription
+  const stableDocumentsUpdate = useCallback((updatedDocuments: DocumentRecord[]) => {
+    setDocuments(updatedDocuments);
+    setLoading(false);
+  }, []);
 
-    setLoading(true);
-    
-    try {
-      console.log('Fetching documents for user:', user.id, 'project:', projectId);
-      
-      let query = supabase
-        .from('documents')
-        .select(`
-          *,
-          uploader:profiles!uploaded_by(full_name, email),
-          project:projects(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (projectId) {
-        query = query.eq('project_id', projectId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Documents fetch error:', error);
-        throw new Error(`Failed to fetch documents: ${error.message}`);
-      }
-      
-      console.log('Documents fetched successfully:', data?.length || 0, 'documents');
-      setDocuments(data || []);
-    } catch (error) {
-      console.error('Error in fetchDocuments:', error);
-      setDocuments([]);
-      toast({
-        title: "Error loading documents",
-        description: error instanceof Error ? error.message : "Failed to load documents",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, projectId, toast]);
-
-  // Simple useEffect with clear dependencies
-  useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
+  // Use improved real-time subscription
+  useImprovedDocumentSubscription({
+    user,
+    onDocumentsUpdate: stableDocumentsUpdate,
+    projectId
+  });
 
   const uploadDocument = useCallback(async (
     file: File, 
@@ -148,8 +109,6 @@ export const useDocuments = (projectId?: string) => {
       const projectPath = targetProjectId || projectId || 'general';
       
       const filePath = `${projectPath}/${timestamp}_${sanitizedFileName}`;
-
-      console.log('Uploading document:', filePath);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
@@ -187,14 +146,9 @@ export const useDocuments = (projectId?: string) => {
         throw new Error(`Failed to save document metadata: ${error.message}`);
       }
 
-      if (data) {
-        setDocuments(prev => [data, ...prev]);
-      }
-
-      console.log('Document uploaded successfully:', data);
+      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (error) {
-      console.error('Upload error:', error);
       throw error;
     } finally {
       setUploading(false);
@@ -204,8 +158,6 @@ export const useDocuments = (projectId?: string) => {
 
   const deleteDocument = useCallback(async (id: string, filePath: string) => {
     try {
-      console.log('Deleting document:', id, filePath);
-      
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([filePath]);
@@ -223,19 +175,15 @@ export const useDocuments = (projectId?: string) => {
         throw new Error(`Failed to delete document: ${error.message}`);
       }
 
-      setDocuments(prev => prev.filter(doc => doc.id !== id));
-      console.log('Document deleted successfully');
+      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
-      console.error('Delete error:', error);
       throw error;
     }
   }, []);
 
   const downloadDocument = useCallback(async (doc: DocumentRecord) => {
     try {
-      console.log('Downloading document:', doc.name);
-      
       const cleanPath = doc.file_path.startsWith('documents/') 
         ? doc.file_path.substring('documents/'.length)
         : doc.file_path;
@@ -277,15 +225,12 @@ export const useDocuments = (projectId?: string) => {
 
       return { error: null };
     } catch (error) {
-      console.error('Download error:', error);
       throw error;
     }
   }, []);
 
   const shareDocument = useCallback(async (doc: DocumentRecord) => {
     try {
-      console.log('Generating share link for:', doc.name);
-      
       const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(doc.file_path, 604800); // 7 days
@@ -311,15 +256,12 @@ export const useDocuments = (projectId?: string) => {
 
       return { error: null, url: data.signedUrl };
     } catch (error) {
-      console.error('Share error:', error);
       throw error;
     }
   }, []);
 
   const previewDocument = useCallback(async (doc: DocumentRecord) => {
     try {
-      console.log('Generating preview link for:', doc.name);
-      
       const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(doc.file_path, 3600);
@@ -334,7 +276,6 @@ export const useDocuments = (projectId?: string) => {
 
       return { data: { signedUrl: data.signedUrl }, error: null };
     } catch (error) {
-      console.error('Preview error:', error);
       throw error;
     }
   }, []);
@@ -344,18 +285,7 @@ export const useDocuments = (projectId?: string) => {
     const hasProfile = !!profile;
     const isApproved = profile?.account_status === 'approved';
     
-    const result = hasUser && hasProfile && isApproved;
-    
-    console.log('useDocuments canUpload check:', {
-      hasUser,
-      hasProfile,
-      isApproved,
-      result,
-      userEmail: user?.email,
-      profileRole: profile?.role
-    });
-    
-    return result;
+    return hasUser && hasProfile && isApproved;
   }, [user, profile]);
 
   const canDelete = useCallback((document: DocumentRecord) => {
@@ -368,11 +298,6 @@ export const useDocuments = (projectId?: string) => {
     return profile.is_company_user && profile.account_status === 'approved';
   }, [user, profile]);
 
-  const refetch = useCallback(() => {
-    console.log('Refetching documents...');
-    fetchDocuments();
-  }, [fetchDocuments]);
-
   return {
     documents,
     loading,
@@ -383,7 +308,6 @@ export const useDocuments = (projectId?: string) => {
     downloadDocument,
     shareDocument,
     previewDocument,
-    refetch,
     canUpload,
     canDelete
   };

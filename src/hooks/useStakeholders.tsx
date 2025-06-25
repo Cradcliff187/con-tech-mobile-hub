@@ -33,18 +33,12 @@ export const useStakeholders = (projectId?: string) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const updateCallbackRef = useRef<(stakeholders: Stakeholder[]) => void>();
 
   // Create a stable callback reference to prevent subscription loops
   const stableStakeholdersUpdate = useCallback((updatedStakeholders: Stakeholder[]) => {
     setStakeholders(updatedStakeholders);
     setLoading(false);
   }, []);
-
-  // Update the ref when the callback changes
-  useEffect(() => {
-    updateCallbackRef.current = stableStakeholdersUpdate;
-  }, [stableStakeholdersUpdate]);
 
   // Use improved real-time subscription with stable callback
   useImprovedStakeholderSubscription({
@@ -138,18 +132,11 @@ export const useStakeholders = (projectId?: string) => {
     }
   }, [toast]);
 
-  // Manual refetch function for compatibility
-  const refetch = useCallback(async () => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  }, []);
-
   return { 
     stakeholders, 
     loading, 
     createStakeholder, 
     updateStakeholder, 
-    deleteStakeholder,
-    refetch
+    deleteStakeholder
   };
 };
