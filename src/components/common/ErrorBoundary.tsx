@@ -29,8 +29,8 @@ export class ErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
-    // Additional debugging for React error #310
-    if (error.message.includes('310')) {
+    // Additional debugging for React error #310 - add null checks
+    if (error?.message && error.message.includes('310')) {
       console.error('React Error #310 detected - useMemo dependency issue');
       console.error('Component stack:', errorInfo.componentStack);
       console.error('Error details:', {
