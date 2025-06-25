@@ -12,7 +12,7 @@ export interface Equipment {
   operator_id?: string;
   assigned_operator_id?: string;
   maintenance_due?: string;
-  utilization_rate: number;
+  utilization_rate?: number; // Make utilization_rate optional to match database schema
   created_at: string;
   updated_at: string;
   project?: { id: string; name: string };
