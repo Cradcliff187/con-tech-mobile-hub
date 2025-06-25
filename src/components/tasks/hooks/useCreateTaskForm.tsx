@@ -69,6 +69,11 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
         // Allow raw input for typing fields - no sanitization during typing
         processedValue = value;
         break;
+      case 'due_date':
+      case 'start_date':
+        // Convert empty date strings to undefined for proper database storage
+        processedValue = value === '' ? undefined : value;
+        break;
       case 'estimated_hours':
         processedValue = value === '' || value === undefined ? undefined : Number(value);
         break;
@@ -121,12 +126,15 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   };
 
   const validateForm = (): boolean => {
-    // Sanitize text fields before validation
+    // Sanitize text fields and handle dates before validation
     const sanitizedFormData = {
       ...formData,
       title: sanitizeInput(formData.title || '', 'text') as string,
       description: sanitizeInput(formData.description || '', 'html') as string,
       category: sanitizeInput(formData.category || '', 'text') as string,
+      // Ensure date fields are undefined if empty, not empty strings
+      due_date: formData.due_date === '' ? undefined : formData.due_date,
+      start_date: formData.start_date === '' ? undefined : formData.start_date,
     };
 
     const validation = validateFormData(taskSchema, sanitizedFormData);
@@ -155,12 +163,15 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     setLoading(true);
 
     try {
-      // Sanitize all text fields before submission
+      // Sanitize all text fields and handle dates before submission
       const sanitizedFormData = {
         ...formData,
         title: sanitizeInput(formData.title || '', 'text') as string,
         description: sanitizeInput(formData.description || '', 'html') as string,
         category: sanitizeInput(formData.category || '', 'text') as string,
+        // Ensure date fields are undefined if empty, not empty strings
+        due_date: formData.due_date === '' ? undefined : formData.due_date,
+        start_date: formData.start_date === '' ? undefined : formData.start_date,
       };
 
       const validation = validateFormData(taskSchema, sanitizedFormData);
