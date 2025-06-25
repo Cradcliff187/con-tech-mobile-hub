@@ -10,6 +10,7 @@ import {
   completeMaintenanceTask,
   deleteMaintenanceTask
 } from '@/services/maintenanceTaskService';
+import { useImprovedMaintenanceTaskSubscription } from '@/hooks/maintenance/useImprovedMaintenanceTaskSubscription';
 
 export const useMaintenanceTasks = () => {
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
@@ -17,23 +18,18 @@ export const useMaintenanceTasks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const refetch = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const data = await fetchMaintenanceTasks();
-      setTasks(data);
-    } catch (error) {
-      console.error('Error fetching maintenance tasks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load maintenance tasks",
-        variant: "destructive"
-      });
-    } finally {
+  // Use improved real-time subscription
+  useImprovedMaintenanceTaskSubscription({
+    user,
+    onTasksUpdate: (updatedTasks) => {
+      setTasks(updatedTasks);
       setLoading(false);
     }
+  });
+
+  const refetch = async () => {
+    // Real-time subscription handles automatic updates, but this is kept for compatibility
+    console.log('Manual refetch called - real-time subscription should handle updates automatically');
   };
 
   const createTask = async (taskData: CreateMaintenanceTaskData) => {
@@ -45,7 +41,7 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task created successfully"
       });
-      await refetch();
+      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (error) {
       console.error('Error creating maintenance task:', error);
@@ -65,7 +61,7 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task updated successfully"
       });
-      await refetch();
+      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       console.error('Error updating maintenance task:', error);
@@ -87,7 +83,7 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task completed successfully"
       });
-      await refetch();
+      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       console.error('Error completing maintenance task:', error);
@@ -107,7 +103,7 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task deleted successfully"
       });
-      await refetch();
+      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       console.error('Error deleting maintenance task:', error);
@@ -119,10 +115,6 @@ export const useMaintenanceTasks = () => {
       return { error };
     }
   };
-
-  useEffect(() => {
-    refetch();
-  }, [user]);
 
   return {
     tasks,

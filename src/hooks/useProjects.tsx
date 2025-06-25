@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Project } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { useImprovedProjectSubscription } from '@/hooks/projects/useImprovedProjectSubscription';
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -11,44 +12,14 @@ export const useProjects = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchProjects = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        client:stakeholders(
-          id,
-          company_name,
-          contact_person,
-          stakeholder_type
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching projects:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch projects",
-        variant: "destructive"
-      });
-    } else {
-      const mappedProjects = (data || []).map(project => ({
-        ...project,
-        phase: (project.phase || 'planning') as Project['phase'],
-        unified_lifecycle_status: project.unified_lifecycle_status || undefined
-      }));
-      setProjects(mappedProjects as Project[]);
+  // Use improved real-time subscription
+  useImprovedProjectSubscription({
+    user,
+    onProjectsUpdate: (updatedProjects) => {
+      setProjects(updatedProjects);
+      setLoading(false);
     }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, [user]);
+  });
 
   const createProject = async (projectData: Partial<Project>) => {
     if (!user) return { error: 'User not authenticated' };
@@ -94,7 +65,7 @@ export const useProjects = () => {
         phase: (data.phase || 'planning') as Project['phase'],
         unified_lifecycle_status: data.unified_lifecycle_status || undefined
       };
-      setProjects(prev => [newProject, ...prev]);
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Project created successfully"
@@ -146,12 +117,7 @@ export const useProjects = () => {
       .single();
 
     if (!error && data) {
-      const updatedProject: Project = {
-        ...data,
-        phase: (data.phase || 'planning') as Project['phase'],
-        unified_lifecycle_status: data.unified_lifecycle_status || undefined
-      };
-      setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Project updated successfully"
@@ -176,7 +142,7 @@ export const useProjects = () => {
       .eq('id', id);
 
     if (!error) {
-      setProjects(prev => prev.filter(p => p.id !== id));
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Project deleted successfully"
@@ -215,12 +181,7 @@ export const useProjects = () => {
       .single();
 
     if (!error && data) {
-      const updatedProject: Project = {
-        ...data,
-        phase: (data.phase || 'planning') as Project['phase'],
-        unified_lifecycle_status: data.unified_lifecycle_status || undefined
-      };
-      setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Project archived successfully"
@@ -259,12 +220,7 @@ export const useProjects = () => {
       .single();
 
     if (!error && data) {
-      const updatedProject: Project = {
-        ...data,
-        phase: (data.phase || 'planning') as Project['phase'],
-        unified_lifecycle_status: data.unified_lifecycle_status || undefined
-      };
-      setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Project restored successfully"
@@ -280,6 +236,12 @@ export const useProjects = () => {
     return { data, error };
   };
 
+  // Manual refetch function for compatibility
+  const refetch = async () => {
+    // Real-time subscription handles automatic updates, but this is kept for compatibility
+    console.log('Manual refetch called - real-time subscription should handle updates automatically');
+  };
+
   return {
     projects,
     loading,
@@ -288,6 +250,6 @@ export const useProjects = () => {
     deleteProject,
     archiveProject,
     unarchiveProject,
-    refetch: fetchProjects
+    refetch
   };
 };

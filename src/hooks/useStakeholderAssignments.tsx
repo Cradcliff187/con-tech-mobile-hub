@@ -3,34 +3,68 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { StakeholderAssignment, CreateAssignmentData } from './stakeholders/types';
 import * as assignmentService from './stakeholders/assignmentService';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useStakeholderAssignments = () => {
   const [assignments, setAssignments] = useState<StakeholderAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Real-time subscription setup
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up stakeholder assignments real-time subscription');
+
+    const handleAssignmentChange = async () => {
+      try {
+        const data = await assignmentService.fetchAssignments();
+        setAssignments(data);
+        setLoading(false);
+      } catch (error: any) {
+        console.error('Error fetching stakeholder assignments:', error);
+        setLoading(false);
+      }
+    };
+
+    // Initial fetch
+    handleAssignmentChange();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('stakeholder-assignments-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'stakeholder_assignments' },
+        () => handleAssignmentChange()
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'stakeholders' },
+        () => handleAssignmentChange()
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => handleAssignmentChange()
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up stakeholder assignments subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const fetchAssignments = async (projectId?: string) => {
-    setLoading(true);
-    try {
-      const data = await assignmentService.fetchAssignments(projectId);
-      setAssignments(data);
-    } catch (error: any) {
-      console.error('Error fetching assignments:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch stakeholder assignments",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Real-time subscription handles automatic updates
+    console.log('Manual fetch called - real-time subscription should handle updates automatically');
   };
 
   const createAssignment = async (assignmentData: CreateAssignmentData) => {
     try {
       const newAssignment = await assignmentService.createAssignment(assignmentData);
       
-      setAssignments(prev => [newAssignment, ...prev]);
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Stakeholder assigned successfully"
@@ -51,7 +85,7 @@ export const useStakeholderAssignments = () => {
     try {
       const updatedAssignment = await assignmentService.updateAssignment(id, updates);
       
-      setAssignments(prev => prev.map(a => a.id === id ? updatedAssignment : a));
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Assignment updated successfully"
@@ -76,7 +110,7 @@ export const useStakeholderAssignments = () => {
 
       const updatedAssignment = await assignmentService.updateDailyHours(id, date, hours, assignment);
       
-      setAssignments(prev => prev.map(a => a.id === id ? updatedAssignment : a));
+      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Daily hours updated successfully"
@@ -93,9 +127,11 @@ export const useStakeholderAssignments = () => {
     }
   };
 
-  useEffect(() => {
-    fetchAssignments();
-  }, []);
+  // Manual refetch function for compatibility
+  const refetch = (projectId?: string) => {
+    // Real-time subscription handles automatic updates, but this is kept for compatibility
+    console.log('Manual refetch called - real-time subscription should handle updates automatically');
+  };
 
   return {
     assignments,
@@ -103,7 +139,7 @@ export const useStakeholderAssignments = () => {
     createAssignment,
     updateAssignment,
     updateDailyHours,
-    refetch: fetchAssignments
+    refetch
   };
 };
 

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useImprovedEquipmentSubscription } from '@/hooks/equipment/useImprovedEquipmentSubscription';
 
 export interface Equipment {
   id: string;
@@ -25,40 +25,24 @@ export const useEquipment = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const fetchEquipment = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('equipment')
-        .select(`
-          *,
-          project:projects(id, name),
-          operator:profiles(id, full_name),
-          assigned_operator:stakeholders(id, contact_person, company_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching equipment:', error);
-      } else {
-        setEquipment(data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching equipment:', error);
-    } finally {
+  // Use improved real-time subscription
+  useImprovedEquipmentSubscription({
+    user,
+    onEquipmentUpdate: (updatedEquipment) => {
+      setEquipment(updatedEquipment);
       setLoading(false);
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchEquipment();
-  }, [user]);
+  // Manual refetch function for compatibility
+  const refetch = async () => {
+    // Real-time subscription handles automatic updates, but this is kept for compatibility
+    console.log('Manual refetch called - real-time subscription should handle updates automatically');
+  };
 
   return { 
     equipment, 
     loading, 
-    refetch: fetchEquipment 
+    refetch
   };
 };
