@@ -72,7 +72,13 @@ export const useImprovedTaskSubscription = ({
           return;
         }
 
-        onTasksUpdate(data || []);
+        // Transform the data to ensure task_type is properly typed
+        const transformedTasks = (data || []).map(task => ({
+          ...task,
+          task_type: task.task_type === 'punch_list' ? 'punch_list' as const : 'regular' as const
+        }));
+
+        onTasksUpdate(transformedTasks as Task[]);
       } catch (error) {
         console.error('Error in tasks subscription handler:', error);
       }

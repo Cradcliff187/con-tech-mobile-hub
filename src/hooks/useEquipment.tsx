@@ -34,8 +34,15 @@ export const useEquipment = () => {
     }
   });
 
+  // Backward compatibility function - real-time updates handle data automatically
+  const refetch = () => {
+    console.log('refetch() called - data updates automatically via real-time subscription');
+    return Promise.resolve();
+  };
+
   return { 
     equipment, 
-    loading
+    loading,
+    refetch
   };
 };

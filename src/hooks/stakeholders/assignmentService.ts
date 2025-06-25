@@ -65,6 +65,36 @@ export const updateAssignment = async (id: string, updates: Partial<StakeholderA
   return transformedData;
 };
 
+export const deleteAssignment = async (id: string) => {
+  const { error } = await supabase
+    .from('stakeholder_assignments')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  
+  return { success: true };
+};
+
+export const bulkCreateAssignments = async (assignmentsData: CreateAssignmentData[]) => {
+  const enhancedDataArray = assignmentsData.map(enhanceAssignmentData);
+
+  const { data, error } = await supabase
+    .from('stakeholder_assignments')
+    .insert(enhancedDataArray)
+    .select(`
+      *,
+      stakeholder:stakeholders(*)
+    `);
+
+  if (error) throw error;
+
+  // Transform the returned data
+  const transformedData = (data || []).map(transformAssignmentData);
+  
+  return transformedData;
+};
+
 export const updateDailyHours = async (id: string, date: string, hours: number, currentAssignment: StakeholderAssignment) => {
   // Update daily hours
   const updatedDailyHours = {

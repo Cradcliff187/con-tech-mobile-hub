@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -132,11 +133,18 @@ export const useStakeholders = (projectId?: string) => {
     }
   }, [toast]);
 
+  // Backward compatibility function - real-time updates handle data automatically
+  const refetch = useCallback(() => {
+    console.log('refetch() called - data updates automatically via real-time subscription');
+    return Promise.resolve();
+  }, []);
+
   return { 
     stakeholders, 
     loading, 
     createStakeholder, 
     updateStakeholder, 
-    deleteStakeholder
+    deleteStakeholder,
+    refetch
   };
 };

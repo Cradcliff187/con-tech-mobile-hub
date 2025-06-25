@@ -6,6 +6,9 @@ import * as assignmentService from './stakeholders/assignmentService';
 import { useAuth } from '@/hooks/useAuth';
 import { useImprovedStakeholderAssignmentSubscription } from '@/hooks/stakeholders/useImprovedStakeholderAssignmentSubscription';
 
+// Re-export the type for backward compatibility
+export type { StakeholderAssignment } from './stakeholders/types';
+
 export const useStakeholderAssignments = (projectId?: string) => {
   const [assignments, setAssignments] = useState<StakeholderAssignment[]>([]);
   const [loading, setLoading] = useState(true);

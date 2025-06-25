@@ -1,5 +1,5 @@
 
-import { StakeholderAssignment } from '@/hooks/useStakeholderAssignments';
+import { StakeholderAssignment } from '@/hooks/stakeholders/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -125,7 +125,7 @@ export const AssignmentCard = ({
                   <span className="text-slate-600">
                     {format(new Date(date), 'MMM dd')}:
                   </span>
-                  <span className="font-medium ml-1">{hours}h</span>
+                  <span className="font-medium ml-1">{String(hours)}h</span>
                 </div>
               ))}
             </div>

@@ -245,6 +245,11 @@ export const useProjects = () => {
     updateProject,
     deleteProject,
     archiveProject,
-    unarchiveProject
+    unarchiveProject,
+    // Backward compatibility function - real-time updates handle data automatically
+    refetch: () => {
+      console.log('refetch() called - data updates automatically via real-time subscription');
+      return Promise.resolve();
+    }
   };
 };

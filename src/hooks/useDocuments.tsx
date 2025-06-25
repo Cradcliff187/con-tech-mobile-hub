@@ -309,6 +309,11 @@ export const useDocuments = (projectId?: string) => {
     shareDocument,
     previewDocument,
     canUpload,
-    canDelete
+    canDelete,
+    // Backward compatibility function - real-time updates handle data automatically
+    refetch: () => {
+      console.log('refetch() called - data updates automatically via real-time subscription');
+      return Promise.resolve();
+    }
   };
 };
