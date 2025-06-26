@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -27,13 +26,18 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showProjectChangeConfirm, setShowProjectChangeConfirm] = useState(false);
   const [pendingProjectChange, setPendingProjectChange] = useState<string>('');
+  const [currentMode, setCurrentMode] = useState<'edit' | 'view'>(mode);
   
   const { updateTask } = useTasks();
   const { toast } = useToast();
   const { canAssignToProject, loading: permissionsLoading } = useProjectPermissions();
-  const isViewMode = mode === 'view';
 
   const formData = useEditTaskForm({ task, open });
+
+  // Update current mode when prop changes
+  useEffect(() => {
+    setCurrentMode(mode);
+  }, [mode]);
 
   const updateOperation = useAsyncOperation({
     successMessage: "Task updated successfully",
@@ -91,8 +95,8 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!task || !formData.title.trim() || isViewMode) {
-      if (!isViewMode) {
+    if (!task || !formData.title.trim() || currentMode === 'view') {
+      if (currentMode !== 'view') {
         toast({
           title: "Validation Error",
           description: "Task title is required.",
@@ -115,14 +119,19 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     await updateOperation.execute(() => 
       updateTask(task.id, formData.getFormData())
     );
-  }, [task, formData, updateTask, updateOperation, toast, isViewMode, canAssignToProject]);
+  }, [task, formData, updateTask, updateOperation, toast, currentMode, canAssignToProject]);
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && !updateOperation.loading) {
       formData.resetForm();
+      setCurrentMode(mode); // Reset mode when closing
     }
     onOpenChange(newOpen);
-  }, [updateOperation.loading, formData, onOpenChange]);
+  }, [updateOperation.loading, formData, onOpenChange, mode]);
+
+  const handleSwitchToEdit = useCallback(() => {
+    setCurrentMode('edit');
+  }, []);
 
   if (permissionsLoading) {
     return (
@@ -136,22 +145,21 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     );
   }
 
+  if (!task) return null;
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isViewMode ? 'Task Details' : 'Edit Task'}</DialogTitle>
+            <DialogTitle>{currentMode === 'view' ? 'Task Details' : 'Edit Task'}</DialogTitle>
           </DialogHeader>
           
-          {isViewMode ? (
+          {currentMode === 'view' ? (
             <EditTaskViewMode
-              title={formData.title}
-              description={formData.description}
-              status={formData.status}
-              priority={formData.priority}
-              dueDate={formData.dueDate}
+              task={task}
               onClose={() => handleOpenChange(false)}
+              onSwitchToEdit={handleSwitchToEdit}
             />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
