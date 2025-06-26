@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
@@ -7,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { taskSchema, type TaskFormData, validateFormData } from '@/schemas';
 import { sanitizeInput, sanitizeStringArray } from '@/utils/validation';
 import { getTaskDefaults } from '@/utils/smart-defaults';
+import { useTaskValidation } from '@/hooks/useTaskValidation';
 
 interface UseCreateTaskFormProps {
   onSuccess: () => void;
@@ -32,7 +32,6 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   });
 
   const [newSkill, setNewSkill] = useState('');
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   
@@ -40,6 +39,20 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
+
+  // Initialize validation hook
+  const { 
+    validateTaskData, 
+    errors, 
+    clearFieldError, 
+    clearAllErrors, 
+    getFieldError, 
+    hasErrors 
+  } = useTaskValidation({ 
+    projectId: formData.project_id, 
+    taskType: formData.task_type as 'regular' | 'punch_list',
+    isEditMode: false 
+  });
 
   const selectedProject = projects.find(p => p.id === formData.project_id);
 
@@ -101,14 +114,8 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
     
-    // Clear field error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+    // Clear field error when user starts typing/changing values
+    clearFieldError(field);
   };
 
   const handleAddSkill = () => {
@@ -126,26 +133,8 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   };
 
   const validateForm = (): boolean => {
-    // Sanitize text fields and handle dates before validation
-    const sanitizedFormData = {
-      ...formData,
-      title: sanitizeInput(formData.title || '', 'text') as string,
-      description: sanitizeInput(formData.description || '', 'html') as string,
-      category: sanitizeInput(formData.category || '', 'text') as string,
-      // Ensure date fields are undefined if empty, not empty strings
-      due_date: formData.due_date === '' ? undefined : formData.due_date,
-      start_date: formData.start_date === '' ? undefined : formData.start_date,
-    };
-
-    const validation = validateFormData(taskSchema, sanitizedFormData);
-    
-    if (!validation.success) {
-      setErrors(validation.errors || {});
-      return false;
-    }
-    
-    setErrors({});
-    return true;
+    const validation = validateTaskData(formData);
+    return validation.success;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,18 +152,7 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     setLoading(true);
 
     try {
-      // Sanitize all text fields and handle dates before submission
-      const sanitizedFormData = {
-        ...formData,
-        title: sanitizeInput(formData.title || '', 'text') as string,
-        description: sanitizeInput(formData.description || '', 'html') as string,
-        category: sanitizeInput(formData.category || '', 'text') as string,
-        // Ensure date fields are undefined if empty, not empty strings
-        due_date: formData.due_date === '' ? undefined : formData.due_date,
-        start_date: formData.start_date === '' ? undefined : formData.start_date,
-      };
-
-      const validation = validateFormData(taskSchema, sanitizedFormData);
+      const validation = validateTaskData(formData);
       if (!validation.success || !validation.data) {
         throw new Error('Form validation failed');
       }
@@ -255,12 +233,8 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
       progress: 0
     });
     setNewSkill('');
-    setErrors({});
+    clearAllErrors();
     setMultiSelectMode(false);
-  };
-
-  const getFieldError = (field: string): string | undefined => {
-    return errors[field]?.[0];
   };
 
   return {
@@ -278,6 +252,7 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     handleAddSkill,
     handleRemoveSkill,
     handleSubmit,
-    getFieldError
+    getFieldError,
+    hasErrors
   };
 };

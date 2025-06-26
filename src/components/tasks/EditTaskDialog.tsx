@@ -97,14 +97,19 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!task || !formData.title.trim() || currentMode === 'view') {
-      if (currentMode !== 'view') {
-        toast({
-          title: "Validation Error",
-          description: "Task title is required.",
-          variant: "destructive",
-        });
-      }
+    if (!task || currentMode === 'view') {
+      return;
+    }
+
+    // Use unified validation
+    const validation = formData.validateForm();
+    
+    if (!validation.success) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors below and try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -182,6 +187,8 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 progress={formData.progress}
                 setProgress={formData.setProgress}
                 disabled={updateOperation.loading}
+                errors={formData.errors}
+                getFieldError={formData.getFieldError}
               />
 
               {/* Advanced Fields */}
@@ -217,6 +224,8 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                     punchListCategory={formData.punchListCategory}
                     setPunchListCategory={formData.setPunchListCategory}
                     disabled={updateOperation.loading}
+                    errors={formData.errors}
+                    getFieldError={formData.getFieldError}
                   />
                 </CollapsibleContent>
               </Collapsible>
@@ -254,7 +263,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={updateOperation.loading || !formData.title.trim()}
+                  disabled={updateOperation.loading || !formData.title.trim() || formData.hasErrors()}
                   className="bg-orange-600 hover:bg-orange-700 transition-colors duration-200 focus:ring-2 focus:ring-orange-300"
                 >
                   {updateOperation.loading ? (

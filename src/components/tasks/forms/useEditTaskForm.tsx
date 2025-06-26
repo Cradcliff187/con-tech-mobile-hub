@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
 import { useProjectReassignmentDefaults } from '@/hooks/useProjectReassignmentDefaults';
 import { useProjects } from '@/hooks/useProjects';
+import { useTaskValidation } from '@/hooks/useTaskValidation';
+import { EditTaskFormData } from '@/schemas/task';
 
 interface UseEditTaskFormProps {
   task: Task | null;
@@ -29,6 +31,20 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
   const [newSkill, setNewSkill] = useState('');
 
   const { projects } = useProjects();
+  
+  // Initialize validation hook
+  const { 
+    validateTaskData, 
+    errors, 
+    clearFieldError, 
+    clearAllErrors, 
+    getFieldError, 
+    hasErrors 
+  } = useTaskValidation({ 
+    projectId, 
+    taskType, 
+    isEditMode: true 
+  });
 
   const handleApplyDefaults = useCallback((defaults: any) => {
     setCategory(defaults.category);
@@ -52,24 +68,22 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
         return 100;
       case 'in-progress':
       case 'blocked':
-        // For these statuses, keep current progress but ensure it's reasonable
-        if (currentProgress === 0) return 10; // Start with some progress
-        if (currentProgress === 100) return 90; // Not quite complete
+        if (currentProgress === 0) return 10;
+        if (currentProgress === 100) return 90;
         return currentProgress;
       default:
         return currentProgress;
     }
   }, []);
 
-  // Validate progress based on status
   const validateProgressForStatus = useCallback((progress: number, status: Task['status']): number => {
     switch (status) {
       case 'not-started':
-        return 0; // Force 0% for not-started
+        return 0;
       case 'completed':
-        return 100; // Force 100% for completed
+        return 100;
       default:
-        return Math.max(0, Math.min(100, progress)); // Clamp between 0-100
+        return Math.max(0, Math.min(100, progress));
     }
   }, []);
 
@@ -92,8 +106,11 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
       setRequiredSkills(task.required_skills || []);
       setPunchListCategory(task.punch_list_category || '');
       setNewSkill('');
+      
+      // Clear any existing validation errors when loading new task
+      clearAllErrors();
     }
-  }, [task, open]);
+  }, [task, open, clearAllErrors]);
 
   const resetForm = useCallback(() => {
     setTitle('');
@@ -111,42 +128,100 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     setRequiredSkills([]);
     setPunchListCategory('');
     setNewSkill('');
-  }, []);
+    clearAllErrors();
+  }, [clearAllErrors]);
 
   const handleStatusChange = (newStatus: string) => {
     const taskStatus = newStatus as Task['status'];
     setStatus(taskStatus);
     
-    // Auto-sync progress when status changes
     const newProgress = syncProgressWithStatus(taskStatus, progress);
     setProgress(newProgress);
+    
+    // Clear field errors when user makes changes
+    clearFieldError('status');
+    clearFieldError('progress');
   };
 
   const handleProgressChange = (newProgress: number) => {
-    // Validate progress for current status
     const validatedProgress = validateProgressForStatus(newProgress, status);
     setProgress(validatedProgress);
+    
+    clearFieldError('progress');
   };
 
   const handleProjectChange = (newProjectId: string) => {
     const oldProjectId = projectId;
     setProjectId(newProjectId);
     
-    // Apply smart defaults when project changes
     if (newProjectId !== oldProjectId) {
       applyProjectDefaults(newProjectId, oldProjectId);
     }
+    
+    clearFieldError('project_id');
   };
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !requiredSkills.includes(newSkill.trim()) && requiredSkills.length < 20) {
       setRequiredSkills([...requiredSkills, newSkill.trim()]);
       setNewSkill('');
+      clearFieldError('required_skills');
     }
   };
 
   const handleRemoveSkill = (skillToRemove: string) => {
     setRequiredSkills(requiredSkills.filter(skill => skill !== skillToRemove));
+    clearFieldError('required_skills');
+  };
+
+  // Field change handlers with validation clearing
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    clearFieldError('title');
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value);
+    clearFieldError('description');
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategory(value);
+    clearFieldError('category');
+  };
+
+  const handleTaskTypeChange = (value: 'regular' | 'punch_list') => {
+    setTaskType(value);
+    clearFieldError('task_type');
+    clearFieldError('punch_list_category');
+  };
+
+  const handlePunchListCategoryChange = (value: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | '') => {
+    setPunchListCategory(value);
+    clearFieldError('punch_list_category');
+  };
+
+  const validateForm = (): { success: boolean; data?: EditTaskFormData } => {
+    const formData = {
+      id: task?.id,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      priority,
+      status,
+      due_date: dueDate?.toISOString().split('T')[0],
+      project_id: projectId,
+      task_type: taskType,
+      category: category.trim() || undefined,
+      estimated_hours: estimatedHours,
+      actual_hours: actualHours,
+      progress,
+      start_date: startDate?.toISOString().split('T')[0],
+      required_skills: requiredSkills.length > 0 ? requiredSkills : undefined,
+      punch_list_category: taskType === 'punch_list' && punchListCategory ? punchListCategory as Task['punch_list_category'] : undefined,
+    };
+
+    const validation = validateTaskData(formData);
+    return validation;
   };
 
   const getFormData = () => ({
@@ -169,9 +244,9 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
   return {
     // Basic fields
     title,
-    setTitle,
+    setTitle: handleTitleChange,
     description,
-    setDescription,
+    setDescription: handleDescriptionChange,
     priority,
     setPriority,
     status,
@@ -181,15 +256,15 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     projectId,
     handleProjectChange,
     
-    // Progress field (moved to basic)
+    // Progress field
     progress,
     setProgress: handleProgressChange,
     
     // Advanced fields
     taskType,
-    setTaskType,
+    setTaskType: handleTaskTypeChange,
     category,
-    setCategory,
+    setCategory: handleCategoryChange,
     estimatedHours,
     setEstimatedHours,
     actualHours,
@@ -202,7 +277,14 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     handleAddSkill,
     handleRemoveSkill,
     punchListCategory,
-    setPunchListCategory,
+    setPunchListCategory: handlePunchListCategoryChange,
+    
+    // Validation
+    validateForm,
+    errors,
+    getFieldError,
+    hasErrors,
+    clearFieldError,
     
     // Utilities
     resetForm,
