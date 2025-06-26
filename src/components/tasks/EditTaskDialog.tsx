@@ -41,7 +41,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [progress, setProgress] = useState(0);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
-  const [punchListCategory, setPunchListCategory] = useState<string>('');
+  const [punchListCategory, setPunchListCategory] = useState<'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | ''>('');
   const [newSkill, setNewSkill] = useState('');
   
   // UI state
@@ -127,7 +127,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
         progress,
         start_date: startDate?.toISOString(),
         required_skills: requiredSkills.length > 0 ? requiredSkills : undefined,
-        punch_list_category: taskType === 'punch_list' && punchListCategory ? punchListCategory : undefined,
+        punch_list_category: taskType === 'punch_list' && punchListCategory ? punchListCategory as Task['punch_list_category'] : undefined,
       })
     );
   }, [task, title, description, priority, status, dueDate, taskType, category, estimatedHours, actualHours, progress, startDate, requiredSkills, punchListCategory, updateTask, updateOperation, toast, isViewMode]);
@@ -397,7 +397,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                     </label>
                     <Select 
                       value={punchListCategory} 
-                      onValueChange={setPunchListCategory}
+                      onValueChange={(value: 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'paint' | 'other') => setPunchListCategory(value)}
                       disabled={updateOperation.loading}
                     >
                       <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
