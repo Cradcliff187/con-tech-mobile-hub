@@ -1,57 +1,56 @@
-import { useState, useEffect } from 'react';
-import { useTasks } from '@/hooks/useTasks';
+
+import { useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
-import { taskSchema, type TaskFormData, validateFormData } from '@/schemas';
-import { sanitizeInput, sanitizeStringArray } from '@/utils/validation';
+import { useTasks } from '@/hooks/useTasks';
 import { getTaskDefaults } from '@/utils/smart-defaults';
-import { useTaskValidation } from '@/hooks/useTaskValidation';
+import { useCreateTaskFormState } from './useCreateTaskFormState';
+import { useCreateTaskFormValidation } from './useCreateTaskFormValidation';
+import { useCreateTaskFormHandlers } from './useCreateTaskFormHandlers';
 
 interface UseCreateTaskFormProps {
   onSuccess: () => void;
 }
 
 export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
-  const [formData, setFormData] = useState<Partial<TaskFormData>>({
-    title: '',
-    description: '',
-    project_id: '',
-    priority: 'medium',
-    status: 'not-started',
-    category: '',
-    due_date: '',
-    start_date: '',
-    estimated_hours: undefined,
-    required_skills: [],
-    punch_list_category: undefined,
-    assigned_stakeholder_id: undefined,
-    assigned_stakeholder_ids: [],
-    task_type: 'regular',
-    progress: 0
-  });
-
-  const [newSkill, setNewSkill] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
-  
-  const { createTask } = useTasks();
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
+  const { createTask } = useTasks();
 
-  // Initialize validation hook
-  const { 
-    validateTaskData, 
-    errors, 
-    clearFieldError, 
-    clearAllErrors, 
-    getFieldError, 
-    hasErrors 
-  } = useTaskValidation({ 
-    projectId: formData.project_id, 
-    taskType: formData.task_type as 'regular' | 'punch_list',
-    isEditMode: false 
+  // State management
+  const {
+    formData,
+    setFormData,
+    newSkill,
+    setNewSkill,
+    loading,
+    setLoading,
+    multiSelectMode,
+    setMultiSelectMode,
+    resetForm: resetFormState,
+  } = useCreateTaskFormState();
+
+  // Validation
+  const {
+    validateForm,
+    validateTaskData,
+    errors,
+    clearAllErrors,
+    getFieldError,
+    hasErrors,
+  } = useCreateTaskFormValidation({ formData });
+
+  // Handlers
+  const { handleInputChange, handleAddSkill, handleRemoveSkill } = useCreateTaskFormHandlers({
+    formData,
+    setFormData,
+    newSkill,
+    setNewSkill,
+    clearFieldError: (fieldName: string) => {
+      // This will be handled by the validation hook
+    },
   });
 
   const selectedProject = projects.find(p => p.id === formData.project_id);
@@ -62,80 +61,13 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
       const defaults = getTaskDefaults(selectedProject);
       setFormData(prev => ({ ...prev, ...defaults }));
     }
-  }, [selectedProject]);
+  }, [selectedProject, setFormData]);
 
   // Filter stakeholders to get workers with skills - include all assignable types
   const workers = stakeholders.filter(s => 
     ['employee', 'subcontractor', 'vendor'].includes(s.stakeholder_type) && 
     s.status === 'active'
   );
-
-  const handleInputChange = (field: keyof TaskFormData, value: string | number | string[] | undefined) => {
-    // For text-based fields that users type in, allow raw input without sanitization
-    // Only sanitize non-text fields that need immediate processing
-    let processedValue: any = value;
-    
-    switch (field) {
-      case 'title':
-      case 'description':
-      case 'category':
-        // Allow raw input for typing fields - no sanitization during typing
-        processedValue = value;
-        break;
-      case 'due_date':
-      case 'start_date':
-        // Convert empty date strings to undefined for proper database storage
-        processedValue = value === '' ? undefined : value;
-        break;
-      case 'estimated_hours':
-        processedValue = value === '' || value === undefined ? undefined : Number(value);
-        break;
-      case 'required_skills':
-        processedValue = sanitizeStringArray(value as string[]);
-        break;
-      case 'assigned_stakeholder_id':
-        // Ensure empty string becomes undefined for proper database storage
-        processedValue = value === '' ? undefined : value;
-        // Clear multi-assignment when single assignment is set
-        if (processedValue) {
-          setFormData(prev => ({ ...prev, assigned_stakeholder_ids: [] }));
-        }
-        break;
-      case 'assigned_stakeholder_ids':
-        processedValue = Array.isArray(value) ? value : [];
-        // Clear single assignment when multi-assignment is set
-        if (Array.isArray(value) && value.length > 0) {
-          setFormData(prev => ({ ...prev, assigned_stakeholder_id: undefined }));
-        }
-        break;
-      default:
-        processedValue = value;
-    }
-    
-    setFormData(prev => ({ ...prev, [field]: processedValue }));
-    
-    // Clear field error when user starts typing/changing values
-    clearFieldError(field);
-  };
-
-  const handleAddSkill = () => {
-    const sanitizedSkill = sanitizeInput(newSkill, 'text') as string;
-    if (sanitizedSkill && !formData.required_skills?.includes(sanitizedSkill)) {
-      const updatedSkills = [...(formData.required_skills || []), sanitizedSkill];
-      handleInputChange('required_skills', updatedSkills);
-      setNewSkill('');
-    }
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    const updatedSkills = formData.required_skills?.filter(skill => skill !== skillToRemove) || [];
-    handleInputChange('required_skills', updatedSkills);
-  };
-
-  const validateForm = (): boolean => {
-    const validation = validateTaskData(formData);
-    return validation.success;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,26 +147,8 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
   };
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      project_id: '',
-      priority: 'medium',
-      status: 'not-started',
-      category: '',
-      due_date: '',
-      start_date: '',
-      estimated_hours: undefined,
-      required_skills: [],
-      punch_list_category: undefined,
-      assigned_stakeholder_id: undefined,
-      assigned_stakeholder_ids: [],
-      task_type: 'regular',
-      progress: 0
-    });
-    setNewSkill('');
+    resetFormState();
     clearAllErrors();
-    setMultiSelectMode(false);
   };
 
   return {
