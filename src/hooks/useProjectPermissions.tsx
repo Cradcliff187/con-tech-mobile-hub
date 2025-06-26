@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthSession } from '@/hooks/useAuthSession';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectPermissions {
@@ -8,12 +9,15 @@ interface ProjectPermissions {
   canAssignToProject: (projectId: string) => boolean;
   loading: boolean;
   userProjects: string[];
+  sessionError: string | null;
 }
 
 export const useProjectPermissions = (): ProjectPermissions => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const { validateSessionForOperation, sessionHealth } = useAuthSession();
   const [userProjects, setUserProjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserProjects = async () => {
@@ -23,6 +27,15 @@ export const useProjectPermissions = (): ProjectPermissions => {
       }
 
       try {
+        // Validate session before making permission-critical calls
+        const sessionValid = await validateSessionForOperation('Project Access Check');
+        if (!sessionValid) {
+          setSessionError('Session validation failed');
+          setLoading(false);
+          return;
+        }
+
+        setSessionError(null);
         const accessibleProjectIds = await getUserAccessibleProjects();
         
         const { data: projects, error } = await supabase
@@ -33,19 +46,21 @@ export const useProjectPermissions = (): ProjectPermissions => {
         if (error) {
           console.error('Error fetching user projects:', error);
           setUserProjects([]);
+          setSessionError(`Database error: ${error.message}`);
         } else {
           setUserProjects(projects?.map(p => p.id) || []);
         }
       } catch (error) {
         console.error('Error in fetchUserProjects:', error);
         setUserProjects([]);
+        setSessionError('Unexpected error occurred');
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserProjects();
-  }, [user]);
+  }, [user, sessionHealth.isHealthy]);
 
   const getUserAccessibleProjects = async (): Promise<string> => {
     if (!user) return '';
@@ -75,20 +90,23 @@ export const useProjectPermissions = (): ProjectPermissions => {
   };
 
   const canAccessProject = (projectId: string): boolean => {
-    if (!projectId) return false;
+    if (!projectId || sessionError) return false;
     return userProjects.includes(projectId);
   };
 
   const canAssignToProject = (projectId: string): boolean => {
-    if (!projectId) return false;
-    // For now, same as access permission - can be extended later
-    return canAccessProject(projectId);
+    if (!projectId || sessionError) return false;
+    // Enhanced permission check for task assignment
+    const hasBasicAccess = canAccessProject(projectId);
+    const hasRequiredRole = profile?.is_company_user && profile?.account_status === 'approved';
+    return hasBasicAccess && hasRequiredRole;
   };
 
   return {
     canAccessProject,
     canAssignToProject,
     loading,
-    userProjects
+    userProjects,
+    sessionError
   };
 };

@@ -1,12 +1,15 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { TaskDocumentAttachments } from '../TaskDocumentAttachments';
 import { TaskViewHeader } from './view/TaskViewHeader';
 import { TaskViewProgress } from './view/TaskViewProgress';
 import { TaskViewDetails } from './view/TaskViewDetails';
 import { TaskViewTimestamps } from './view/TaskViewTimestamps';
 import { Task } from '@/types/database';
+import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 
 interface EditTaskViewModeProps {
   task: Task;
@@ -19,8 +22,20 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
   onClose,
   onSwitchToEdit
 }) => {
+  const { sessionError } = useProjectPermissions();
+
   return (
     <div className="space-y-6">
+      {/* Session Error Alert */}
+      {sessionError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Authentication Issue: {sessionError}. Please refresh the page or sign in again.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header Section */}
       <TaskViewHeader task={task} />
 
@@ -53,6 +68,7 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
           type="button" 
           onClick={onSwitchToEdit}
           className="bg-blue-600 hover:bg-blue-700 transition-colors duration-200 focus:ring-2 focus:ring-blue-300"
+          disabled={!!sessionError}
         >
           Switch to Edit
         </Button>
