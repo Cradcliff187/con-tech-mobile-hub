@@ -46,7 +46,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
 
   const checkTaskDependencies = useCallback((task: Task): boolean => {
     // Check if task has relationships that might be affected by project change
-    const hasAssignments = task.assigned_stakeholder_id || (task.assigned_stakeholder_ids && task.assigned_stakeholder_ids.length > 0);
+    const hasAssignments = !!task.assigned_stakeholder_id || (task.assigned_stakeholder_ids && task.assigned_stakeholder_ids.length > 0);
     const hasAssignedStakeholders = task.assigned_stakeholders && task.assigned_stakeholders.length > 0;
     
     return hasAssignments || hasAssignedStakeholders;
