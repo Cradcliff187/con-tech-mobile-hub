@@ -1,10 +1,11 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Task } from '@/types/database';
 import { useProjectReassignmentDefaults } from '@/hooks/useProjectReassignmentDefaults';
 import { useProjects } from '@/hooks/useProjects';
-import { useTaskValidation } from '@/hooks/useTaskValidation';
-import { EditTaskFormData } from '@/schemas/task';
+import { useTaskFormState } from './hooks/useTaskFormState';
+import { useTaskFormHandlers } from './hooks/useTaskFormHandlers';
+import { useTaskFormValidation } from './hooks/useTaskFormValidation';
 
 interface UseEditTaskFormProps {
   task: Task | null;
@@ -12,279 +13,163 @@ interface UseEditTaskFormProps {
 }
 
 export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<Task['priority']>('medium');
-  const [status, setStatus] = useState<Task['status']>('not-started');
-  const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [projectId, setProjectId] = useState('');
-  
-  // Advanced fields
-  const [taskType, setTaskType] = useState<'regular' | 'punch_list'>('regular');
-  const [category, setCategory] = useState('');
-  const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
-  const [actualHours, setActualHours] = useState<number | undefined>();
-  const [progress, setProgress] = useState(0);
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
-  const [punchListCategory, setPunchListCategory] = useState<'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | ''>('');
-  const [newSkill, setNewSkill] = useState('');
-
   const { projects } = useProjects();
   
-  // Initialize validation hook
-  const { 
-    validateTaskData, 
-    errors, 
-    clearFieldError, 
-    clearAllErrors, 
-    getFieldError, 
-    hasErrors 
-  } = useTaskValidation({ 
-    projectId, 
-    taskType, 
-    isEditMode: true 
+  // State management
+  const formState = useTaskFormState({ task, open });
+  
+  // Validation
+  const validation = useTaskFormValidation({ 
+    projectId: formState.projectId, 
+    taskType: formState.taskType, 
+    task 
   });
 
   const handleApplyDefaults = useCallback((defaults: any) => {
-    setCategory(defaults.category);
-    setRequiredSkills(defaults.requiredSkills);
+    formState.setCategory(defaults.category);
+    formState.setRequiredSkills(defaults.requiredSkills);
     if (defaults.estimatedHours !== undefined) {
-      setEstimatedHours(defaults.estimatedHours);
+      formState.setEstimatedHours(defaults.estimatedHours);
     }
-  }, []);
+  }, [formState]);
 
   const { applyProjectDefaults } = useProjectReassignmentDefaults({
     projects,
     onApplyDefaults: handleApplyDefaults
   });
 
-  // Smart status-progress synchronization
-  const syncProgressWithStatus = useCallback((newStatus: Task['status'], currentProgress: number) => {
-    switch (newStatus) {
-      case 'not-started':
-        return 0;
-      case 'completed':
-        return 100;
-      case 'in-progress':
-      case 'blocked':
-        if (currentProgress === 0) return 10;
-        if (currentProgress === 100) return 90;
-        return currentProgress;
-      default:
-        return currentProgress;
-    }
-  }, []);
+  // Handlers
+  const handlers = useTaskFormHandlers({
+    status: formState.status,
+    progress: formState.progress,
+    setProgress: formState.setProgress,
+    setStatus: formState.setStatus,
+    projectId: formState.projectId,
+    setProjectId: formState.setProjectId,
+    requiredSkills: formState.requiredSkills,
+    setRequiredSkills: formState.setRequiredSkills,
+    newSkill: formState.newSkill,
+    setNewSkill: formState.setNewSkill,
+    clearFieldError: validation.clearFieldError,
+    applyProjectDefaults,
+  });
 
-  const validateProgressForStatus = useCallback((progress: number, status: Task['status']): number => {
-    switch (status) {
-      case 'not-started':
-        return 0;
-      case 'completed':
-        return 100;
-      default:
-        return Math.max(0, Math.min(100, progress));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (task && open) {
-      setTitle(task.title);
-      setDescription(task.description || '');
-      setPriority(task.priority);
-      setStatus(task.status);
-      setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-      setProjectId(task.project_id);
-      
-      // Advanced fields
-      setTaskType(task.task_type || 'regular');
-      setCategory(task.category || '');
-      setEstimatedHours(task.estimated_hours || undefined);
-      setActualHours(task.actual_hours || undefined);
-      setProgress(task.progress || 0);
-      setStartDate(task.start_date ? new Date(task.start_date) : undefined);
-      setRequiredSkills(task.required_skills || []);
-      setPunchListCategory(task.punch_list_category || '');
-      setNewSkill('');
-      
-      // Clear any existing validation errors when loading new task
-      clearAllErrors();
-    }
-  }, [task, open, clearAllErrors]);
-
+  // Enhanced reset form that also clears validation errors
   const resetForm = useCallback(() => {
-    setTitle('');
-    setDescription('');
-    setPriority('medium');
-    setStatus('not-started');
-    setDueDate(undefined);
-    setProjectId('');
-    setTaskType('regular');
-    setCategory('');
-    setEstimatedHours(undefined);
-    setActualHours(undefined);
-    setProgress(0);
-    setStartDate(undefined);
-    setRequiredSkills([]);
-    setPunchListCategory('');
-    setNewSkill('');
-    clearAllErrors();
-  }, [clearAllErrors]);
-
-  const handleStatusChange = (newStatus: string) => {
-    const taskStatus = newStatus as Task['status'];
-    setStatus(taskStatus);
-    
-    const newProgress = syncProgressWithStatus(taskStatus, progress);
-    setProgress(newProgress);
-    
-    // Clear field errors when user makes changes
-    clearFieldError('status');
-    clearFieldError('progress');
-  };
-
-  const handleProgressChange = (newProgress: number) => {
-    const validatedProgress = validateProgressForStatus(newProgress, status);
-    setProgress(validatedProgress);
-    
-    clearFieldError('progress');
-  };
-
-  const handleProjectChange = (newProjectId: string) => {
-    const oldProjectId = projectId;
-    setProjectId(newProjectId);
-    
-    if (newProjectId !== oldProjectId) {
-      applyProjectDefaults(newProjectId, oldProjectId);
-    }
-    
-    clearFieldError('project_id');
-  };
-
-  const handleAddSkill = () => {
-    if (newSkill.trim() && !requiredSkills.includes(newSkill.trim()) && requiredSkills.length < 20) {
-      setRequiredSkills([...requiredSkills, newSkill.trim()]);
-      setNewSkill('');
-      clearFieldError('required_skills');
-    }
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setRequiredSkills(requiredSkills.filter(skill => skill !== skillToRemove));
-    clearFieldError('required_skills');
-  };
+    formState.resetForm();
+    validation.clearAllErrors();
+  }, [formState, validation]);
 
   // Field change handlers with validation clearing
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    clearFieldError('title');
-  };
+  const handleTitleChange = useCallback((value: string) => {
+    formState.setTitle(value);
+    validation.clearFieldError('title');
+  }, [formState, validation]);
 
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-    clearFieldError('description');
-  };
+  const handleDescriptionChange = useCallback((value: string) => {
+    formState.setDescription(value);
+    validation.clearFieldError('description');
+  }, [formState, validation]);
 
-  const handleCategoryChange = (value: string) => {
-    setCategory(value);
-    clearFieldError('category');
-  };
+  const handleCategoryChange = useCallback((value: string) => {
+    formState.setCategory(value);
+    validation.clearFieldError('category');
+  }, [formState, validation]);
 
-  const handleTaskTypeChange = (value: 'regular' | 'punch_list') => {
-    setTaskType(value);
-    clearFieldError('task_type');
-    clearFieldError('punch_list_category');
-  };
+  const handleTaskTypeChange = useCallback((value: 'regular' | 'punch_list') => {
+    formState.setTaskType(value);
+    validation.clearFieldError('task_type');
+    validation.clearFieldError('punch_list_category');
+  }, [formState, validation]);
 
-  const handlePunchListCategoryChange = (value: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | '') => {
-    setPunchListCategory(value);
-    clearFieldError('punch_list_category');
-  };
+  const handlePunchListCategoryChange = useCallback((value: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | '') => {
+    formState.setPunchListCategory(value);
+    validation.clearFieldError('punch_list_category');
+  }, [formState, validation]);
 
-  const validateForm = (): { success: boolean; data?: EditTaskFormData } => {
-    const formData = {
-      id: task?.id,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      priority,
-      status,
-      due_date: dueDate?.toISOString().split('T')[0],
-      project_id: projectId,
-      task_type: taskType,
-      category: category.trim() || undefined,
-      estimated_hours: estimatedHours,
-      actual_hours: actualHours,
-      progress,
-      start_date: startDate?.toISOString().split('T')[0],
-      required_skills: requiredSkills.length > 0 ? requiredSkills : undefined,
-      punch_list_category: taskType === 'punch_list' && punchListCategory ? punchListCategory as Task['punch_list_category'] : undefined,
-    };
+  // Validation methods
+  const validateForm = useCallback(() => {
+    return validation.validateForm({
+      title: formState.title,
+      description: formState.description,
+      priority: formState.priority,
+      status: formState.status,
+      dueDate: formState.dueDate,
+      projectId: formState.projectId,
+      taskType: formState.taskType,
+      category: formState.category,
+      estimatedHours: formState.estimatedHours,
+      actualHours: formState.actualHours,
+      progress: formState.progress,
+      startDate: formState.startDate,
+      requiredSkills: formState.requiredSkills,
+      punchListCategory: formState.punchListCategory,
+    });
+  }, [validation, formState]);
 
-    const validation = validateTaskData(formData);
-    return validation;
-  };
-
-  const getFormData = () => ({
-    title: title.trim(),
-    description: description.trim() || undefined,
-    priority,
-    status,
-    due_date: dueDate?.toISOString(),
-    project_id: projectId,
-    task_type: taskType,
-    category: category.trim() || undefined,
-    estimated_hours: estimatedHours,
-    actual_hours: actualHours,
-    progress,
-    start_date: startDate?.toISOString(),
-    required_skills: requiredSkills.length > 0 ? requiredSkills : undefined,
-    punch_list_category: taskType === 'punch_list' && punchListCategory ? punchListCategory as Task['punch_list_category'] : undefined,
-  });
+  const getFormData = useCallback(() => {
+    return validation.getFormData({
+      title: formState.title,
+      description: formState.description,
+      priority: formState.priority,
+      status: formState.status,
+      dueDate: formState.dueDate,
+      projectId: formState.projectId,
+      taskType: formState.taskType,
+      category: formState.category,
+      estimatedHours: formState.estimatedHours,
+      actualHours: formState.actualHours,
+      progress: formState.progress,
+      startDate: formState.startDate,
+      requiredSkills: formState.requiredSkills,
+      punchListCategory: formState.punchListCategory,
+    });
+  }, [validation, formState]);
 
   return {
     // Basic fields
-    title,
+    title: formState.title,
     setTitle: handleTitleChange,
-    description,
+    description: formState.description,
     setDescription: handleDescriptionChange,
-    priority,
-    setPriority,
-    status,
-    handleStatusChange,
-    dueDate,
-    setDueDate,
-    projectId,
-    handleProjectChange,
+    priority: formState.priority,
+    setPriority: formState.setPriority,
+    status: formState.status,
+    handleStatusChange: handlers.handleStatusChange,
+    dueDate: formState.dueDate,
+    setDueDate: formState.setDueDate,
+    projectId: formState.projectId,
+    handleProjectChange: handlers.handleProjectChange,
     
     // Progress field
-    progress,
-    setProgress: handleProgressChange,
+    progress: formState.progress,
+    setProgress: handlers.handleProgressChange,
     
     // Advanced fields
-    taskType,
+    taskType: formState.taskType,
     setTaskType: handleTaskTypeChange,
-    category,
+    category: formState.category,
     setCategory: handleCategoryChange,
-    estimatedHours,
-    setEstimatedHours,
-    actualHours,
-    setActualHours,
-    startDate,
-    setStartDate,
-    requiredSkills,
-    newSkill,
-    setNewSkill,
-    handleAddSkill,
-    handleRemoveSkill,
-    punchListCategory,
+    estimatedHours: formState.estimatedHours,
+    setEstimatedHours: formState.setEstimatedHours,
+    actualHours: formState.actualHours,
+    setActualHours: formState.setActualHours,
+    startDate: formState.startDate,
+    setStartDate: formState.setStartDate,
+    requiredSkills: formState.requiredSkills,
+    newSkill: formState.newSkill,
+    setNewSkill: formState.setNewSkill,
+    handleAddSkill: handlers.handleAddSkill,
+    handleRemoveSkill: handlers.handleRemoveSkill,
+    punchListCategory: formState.punchListCategory,
     setPunchListCategory: handlePunchListCategoryChange,
     
     // Validation
     validateForm,
-    errors,
-    getFieldError,
-    hasErrors,
-    clearFieldError,
+    errors: validation.errors,
+    getFieldError: validation.getFieldError,
+    hasErrors: validation.hasErrors,
+    clearFieldError: validation.clearFieldError,
     
     // Utilities
     resetForm,
