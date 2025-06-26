@@ -169,6 +169,8 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 setDueDate={formData.setDueDate}
                 projectId={formData.projectId}
                 onProjectChange={handleProjectChange}
+                progress={formData.progress}
+                setProgress={formData.setProgress}
                 disabled={updateOperation.loading}
               />
 
@@ -195,8 +197,6 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                     setEstimatedHours={formData.setEstimatedHours}
                     actualHours={formData.actualHours}
                     setActualHours={formData.setActualHours}
-                    progress={formData.progress}
-                    setProgress={formData.setProgress}
                     startDate={formData.startDate}
                     setStartDate={formData.setStartDate}
                     requiredSkills={formData.requiredSkills}

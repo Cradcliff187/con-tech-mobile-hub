@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
 import { useProjectReassignmentDefaults } from '@/hooks/useProjectReassignmentDefaults';
@@ -43,6 +42,37 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     onApplyDefaults: handleApplyDefaults
   });
 
+  // Smart status-progress synchronization
+  const syncProgressWithStatus = useCallback((newStatus: Task['status'], currentProgress: number) => {
+    switch (newStatus) {
+      case 'not-started':
+        return 0;
+      case 'completed':
+        return 100;
+      case 'in-progress':
+      case 'on-hold':
+      case 'blocked':
+        // For these statuses, keep current progress but ensure it's reasonable
+        if (currentProgress === 0) return 10; // Start with some progress
+        if (currentProgress === 100) return 90; // Not quite complete
+        return currentProgress;
+      default:
+        return currentProgress;
+    }
+  }, []);
+
+  // Validate progress based on status
+  const validateProgressForStatus = useCallback((progress: number, status: Task['status']): number => {
+    switch (status) {
+      case 'not-started':
+        return 0; // Force 0% for not-started
+      case 'completed':
+        return 100; // Force 100% for completed
+      default:
+        return Math.max(0, Math.min(100, progress)); // Clamp between 0-100
+    }
+  }, []);
+
   useEffect(() => {
     if (task && open) {
       setTitle(task.title);
@@ -84,7 +114,18 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
   }, []);
 
   const handleStatusChange = (newStatus: string) => {
-    setStatus(newStatus as Task['status']);
+    const taskStatus = newStatus as Task['status'];
+    setStatus(taskStatus);
+    
+    // Auto-sync progress when status changes
+    const newProgress = syncProgressWithStatus(taskStatus, progress);
+    setProgress(newProgress);
+  };
+
+  const handleProgressChange = (newProgress: number) => {
+    // Validate progress for current status
+    const validatedProgress = validateProgressForStatus(newProgress, status);
+    setProgress(validatedProgress);
   };
 
   const handleProjectChange = (newProjectId: string) => {
@@ -140,6 +181,10 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     projectId,
     handleProjectChange,
     
+    // Progress field (moved to basic)
+    progress,
+    setProgress: handleProgressChange,
+    
     // Advanced fields
     taskType,
     setTaskType,
@@ -149,8 +194,6 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     setEstimatedHours,
     actualHours,
     setActualHours,
-    progress,
-    setProgress,
     startDate,
     setStartDate,
     requiredSkills,

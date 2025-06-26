@@ -19,8 +19,6 @@ interface EditTaskAdvancedFieldsProps {
   setEstimatedHours: (value: number | undefined) => void;
   actualHours: number | undefined;
   setActualHours: (value: number | undefined) => void;
-  progress: number;
-  setProgress: (value: number) => void;
   startDate: Date | undefined;
   setStartDate: (date: Date | undefined) => void;
   requiredSkills: string[];
@@ -42,8 +40,6 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
   setEstimatedHours,
   actualHours,
   setActualHours,
-  progress,
-  setProgress,
   startDate,
   setStartDate,
   requiredSkills,
@@ -131,7 +127,7 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
         </div>
       )}
 
-      {/* Date & Time Tracking */}
+      {/* Date & Hours Tracking */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -161,21 +157,6 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
               />
             </PopoverContent>
           </Popover>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Progress (%)
-          </label>
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            value={progress}
-            onChange={(e) => setProgress(parseInt(e.target.value) || 0)}
-            disabled={disabled}
-            className="focus:ring-2 focus:ring-orange-300"
-          />
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Task } from '@/types/database';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { useProjects } from '@/hooks/useProjects';
+import { ProgressField } from './ProgressField';
 
 interface EditTaskBasicFieldsProps {
   title: string;
@@ -26,6 +27,8 @@ interface EditTaskBasicFieldsProps {
   setDueDate: (date: Date | undefined) => void;
   projectId: string;
   onProjectChange: (projectId: string) => void;
+  progress: number;
+  setProgress: (value: number) => void;
   disabled?: boolean;
 }
 
@@ -42,6 +45,8 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
   setDueDate,
   projectId,
   onProjectChange,
+  progress,
+  setProgress,
   disabled = false
 }) => {
   const { projects } = useProjects();
@@ -167,6 +172,16 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      {/* Progress Field */}
+      <div>
+        <ProgressField
+          progress={progress}
+          setProgress={setProgress}
+          status={status}
+          disabled={disabled}
+        />
       </div>
     </>
   );
