@@ -2,11 +2,13 @@
 import { useState } from 'react';
 import { useStakeholderAssignments } from './useStakeholderAssignments';
 
+type AssignmentStatus = 'assigned' | 'active' | 'completed' | 'cancelled' | 'on-hold';
+
 interface ConfirmDialogState {
   open: boolean;
   assignmentId: string;
-  newStatus: string;
-  currentStatus: string;
+  newStatus: AssignmentStatus;
+  currentStatus: AssignmentStatus;
 }
 
 export const useAssignmentStatusUpdates = () => {
@@ -15,16 +17,16 @@ export const useAssignmentStatusUpdates = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     open: false,
     assignmentId: '',
-    newStatus: '',
-    currentStatus: ''
+    newStatus: 'assigned',
+    currentStatus: 'assigned'
   });
 
   const handleStatusChange = (assignmentId: string, newStatus: string, currentStatus: string) => {
     setConfirmDialog({
       open: true,
       assignmentId,
-      newStatus,
-      currentStatus
+      newStatus: newStatus as AssignmentStatus,
+      currentStatus: currentStatus as AssignmentStatus
     });
   };
 
@@ -44,8 +46,8 @@ export const useAssignmentStatusUpdates = () => {
       setConfirmDialog({
         open: false,
         assignmentId: '',
-        newStatus: '',
-        currentStatus: ''
+        newStatus: 'assigned',
+        currentStatus: 'assigned'
       });
     }
   };

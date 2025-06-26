@@ -72,7 +72,7 @@ export const AssignStakeholderDialog = ({ open, onOpenChange, stakeholder }: Ass
       hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : undefined,
       total_hours: formData.total_hours ? parseFloat(formData.total_hours) : undefined,
       notes: formData.notes || undefined,
-      status: 'assigned'
+      status: 'assigned' as const
     };
 
     let result;
