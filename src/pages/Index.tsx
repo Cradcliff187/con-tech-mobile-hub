@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -37,6 +36,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
+import { AuthSessionProvider } from '@/contexts/AuthSessionContext';
 
 // Inner component that uses sidebar hooks
 const IndexContent = () => {
@@ -167,12 +167,14 @@ const IndexContent = () => {
   );
 };
 
-// Main Index component - only provides SidebarProvider context
+// Main Index component - provides both Sidebar and AuthSession contexts
 const Index = () => {
   return (
     <div className="flex h-screen bg-slate-50">
       <SidebarProvider defaultOpen={false}>
-        <IndexContent />
+        <AuthSessionProvider>
+          <IndexContent />
+        </AuthSessionProvider>
       </SidebarProvider>
     </div>
   );
