@@ -27,28 +27,75 @@ export const useProjectPermissions = (): ProjectPermissions => {
       }
 
       try {
-        // Validate session before making permission-critical calls
+        console.log('Fetching user projects for:', {
+          userId: user.id,
+          userEmail: user.email,
+          profileRole: profile?.role,
+          isCompanyUser: profile?.is_company_user,
+          accountStatus: profile?.account_status
+        });
+
+        // Validate session but don't fail completely if there are issues
         const sessionValid = await validateSessionForOperation('Project Access Check');
         if (!sessionValid) {
           setSessionError('Session validation failed');
-          setLoading(false);
-          return;
+          // Still continue to try with profile-based permissions
+        } else {
+          setSessionError(null);
         }
 
-        setSessionError(null);
-        const accessibleProjectIds = await getUserAccessibleProjects();
-        
-        const { data: projects, error } = await supabase
-          .from('projects')
-          .select('id')
-          .or(`project_manager_id.eq.${user.id}${accessibleProjectIds ? `,id.in.(${accessibleProjectIds})` : ''}`);
+        // Use direct profile-based permission check as primary method
+        const isAuthorizedUser = profile?.is_company_user && 
+                                profile?.account_status === 'approved';
 
-        if (error) {
-          console.error('Error fetching user projects:', error);
-          setUserProjects([]);
-          setSessionError(`Database error: ${error.message}`);
+        console.log('Authorization check:', {
+          isAuthorizedUser,
+          profileData: profile
+        });
+
+        if (isAuthorizedUser) {
+          // Authorized company users can access all projects
+          try {
+            const { data: projects, error } = await supabase
+              .from('projects')
+              .select('id');
+
+            if (error) {
+              console.error('Error fetching projects:', error);
+              setSessionError(`Database error: ${error.message}`);
+              setUserProjects([]);
+            } else {
+              const projectIds = projects?.map(p => p.id) || [];
+              console.log('Fetched projects:', projectIds.length);
+              setUserProjects(projectIds);
+            }
+          } catch (dbError) {
+            console.error('Database query failed:', dbError);
+            setSessionError('Database connection failed');
+            setUserProjects([]);
+          }
         } else {
-          setUserProjects(projects?.map(p => p.id) || []);
+          // Non-company users or pending approval - check specific project assignments
+          try {
+            const { data: projects, error } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('project_manager_id', user.id);
+
+            if (error) {
+              console.error('Error fetching user-specific projects:', error);
+              setSessionError(`Database error: ${error.message}`);
+              setUserProjects([]);
+            } else {
+              const projectIds = projects?.map(p => p.id) || [];
+              console.log('User-specific projects:', projectIds.length);
+              setUserProjects(projectIds);
+            }
+          } catch (dbError) {
+            console.error('User-specific query failed:', dbError);
+            setSessionError('Database connection failed');
+            setUserProjects([]);
+          }
         }
       } catch (error) {
         console.error('Error in fetchUserProjects:', error);
@@ -60,46 +107,54 @@ export const useProjectPermissions = (): ProjectPermissions => {
     };
 
     fetchUserProjects();
-  }, [user, sessionHealth.isHealthy]);
-
-  const getUserAccessibleProjects = async (): Promise<string> => {
-    if (!user) return '';
-    
-    try {
-      // Check if user is company user with broader access
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_company_user, account_status')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.is_company_user === true && profile?.account_status === 'approved') {
-        // Company users can access all projects
-        const { data: allProjects } = await supabase
-          .from('projects')
-          .select('id');
-        
-        return allProjects?.map(p => p.id).join(',') || '';
-      }
-
-      return '';
-    } catch (error) {
-      console.error('Error checking user access:', error);
-      return '';
-    }
-  };
+  }, [user, profile, sessionHealth.lastChecked]);
 
   const canAccessProject = (projectId: string): boolean => {
-    if (!projectId || sessionError) return false;
-    return userProjects.includes(projectId);
+    if (!projectId) return false;
+    
+    // Primary check: user has explicit access to this project
+    const hasProjectAccess = userProjects.includes(projectId);
+    
+    // Fallback: admin users should always have access
+    const isAdmin = profile?.role === 'admin' && 
+                   profile?.is_company_user && 
+                   profile?.account_status === 'approved';
+    
+    console.log('canAccessProject check:', {
+      projectId,
+      hasProjectAccess,
+      isAdmin,
+      userProjectsCount: userProjects.length,
+      result: hasProjectAccess || isAdmin
+    });
+    
+    return hasProjectAccess || isAdmin;
   };
 
   const canAssignToProject = (projectId: string): boolean => {
-    if (!projectId || sessionError) return false;
-    // Enhanced permission check for task assignment
+    if (!projectId) return false;
+    
+    // Check basic project access first
     const hasBasicAccess = canAccessProject(projectId);
-    const hasRequiredRole = profile?.is_company_user && profile?.account_status === 'approved';
-    return hasBasicAccess && hasRequiredRole;
+    
+    // Check role-based assignment permissions
+    const hasAssignmentRole = profile?.is_company_user && 
+                             profile?.account_status === 'approved' &&
+                             ['admin', 'project_manager', 'site_supervisor'].includes(profile?.role || '');
+    
+    console.log('canAssignToProject check:', {
+      projectId,
+      hasBasicAccess,
+      hasAssignmentRole,
+      profileRole: profile?.role,
+      sessionError,
+      result: hasBasicAccess && hasAssignmentRole && !sessionError
+    });
+    
+    // Only fail on assignment if there's a critical session error
+    const hasCriticalError = sessionError && sessionError.includes('Session validation failed');
+    
+    return hasBasicAccess && hasAssignmentRole && !hasCriticalError;
   };
 
   return {

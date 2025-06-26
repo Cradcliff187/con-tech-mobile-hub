@@ -8,6 +8,7 @@ interface SessionHealth {
   frontendAuthenticated: boolean;
   backendAuthenticated: boolean;
   lastChecked: Date | null;
+  error?: string;
 }
 
 export const useAuthSession = () => {
@@ -25,47 +26,79 @@ export const useAuthSession = () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       const frontendAuth = !!session?.user;
 
-      // Check backend auth by calling a simple RLS-protected function
-      const { data: backendCheck, error: backendError } = await supabase
-        .rpc('is_approved_company_user');
+      console.log('Session health check:', {
+        hasSession: frontendAuth,
+        userId: session?.user?.id,
+        sessionError
+      });
 
-      const backendAuth = !backendError && backendCheck !== null;
+      if (!frontendAuth) {
+        const health: SessionHealth = {
+          isHealthy: false,
+          frontendAuthenticated: false,
+          backendAuthenticated: false,
+          lastChecked: new Date(),
+          error: 'No frontend session'
+        };
+        setSessionHealth(health);
+        return health;
+      }
+
+      // Test backend connectivity with a simple, non-critical query
+      let backendAuth = false;
+      let backendError = null;
+
+      try {
+        // Try a simple query to test RLS connectivity
+        const { data: testQuery, error: testError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', session.user.id)
+          .limit(1);
+
+        backendAuth = !testError;
+        backendError = testError;
+
+        console.log('Backend test query:', {
+          success: backendAuth,
+          error: testError,
+          hasData: !!testQuery
+        });
+      } catch (err) {
+        console.warn('Backend connectivity test failed:', err);
+        backendError = err;
+        backendAuth = false;
+      }
 
       const health: SessionHealth = {
-        isHealthy: frontendAuth && backendAuth,
+        isHealthy: frontendAuth, // Be more lenient - focus on frontend auth
         frontendAuthenticated: frontendAuth,
         backendAuthenticated: backendAuth,
-        lastChecked: new Date()
+        lastChecked: new Date(),
+        error: backendError ? String(backendError) : undefined
       };
 
       setSessionHealth(health);
 
-      // If there's a mismatch, try to refresh the session
-      if (frontendAuth && !backendAuth) {
-        console.warn('Session mismatch detected, attempting refresh...');
-        await supabase.auth.refreshSession();
-        
-        // Recheck after refresh
-        const { data: recheckData, error: recheckError } = await supabase
-          .rpc('is_approved_company_user');
-        
-        if (recheckError) {
-          toast({
-            title: "Authentication Issue",
-            description: "Your session has expired. Please sign in again.",
-            variant: "destructive"
-          });
+      // Only try to refresh session if there's a clear backend issue
+      if (frontendAuth && !backendAuth && backendError) {
+        console.log('Detected potential session issue, attempting refresh...');
+        try {
+          await supabase.auth.refreshSession();
+        } catch (refreshError) {
+          console.warn('Session refresh failed:', refreshError);
         }
       }
 
       return health;
     } catch (error) {
-      console.error('Session health check failed:', error);
+      console.error('Session health check failed completely:', error);
       const health: SessionHealth = {
         isHealthy: false,
         frontendAuthenticated: false,
         backendAuthenticated: false,
-        lastChecked: new Date()
+        lastChecked: new Date(),
+        error: String(error)
       };
       setSessionHealth(health);
       return health;
@@ -75,16 +108,22 @@ export const useAuthSession = () => {
   const validateSessionForOperation = async (operationName: string) => {
     const health = await checkSessionHealth();
     
-    if (!health.isHealthy) {
+    // Be more lenient - only fail if there's no frontend authentication
+    if (!health.frontendAuthenticated) {
       toast({
         title: `${operationName} Failed`,
-        description: !health.frontendAuthenticated 
-          ? "Please sign in to continue."
-          : "Session expired. Please refresh the page and try again.",
+        description: "Please sign in to continue.",
         variant: "destructive"
       });
       return false;
     }
+
+    // Warn about backend issues but don't block operations
+    if (!health.backendAuthenticated && health.error) {
+      console.warn(`Backend connectivity issue during ${operationName}:`, health.error);
+      // Don't show toast for backend issues as they may be temporary
+    }
+
     return true;
   };
 

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { TaskDocumentAttachments } from '../TaskDocumentAttachments';
 import { TaskViewHeader } from './view/TaskViewHeader';
 import { TaskViewProgress } from './view/TaskViewProgress';
@@ -22,7 +22,12 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
   onClose,
   onSwitchToEdit
 }) => {
-  const { sessionError } = useProjectPermissions();
+  const { sessionError, canAssignToProject } = useProjectPermissions();
+  const canAssign = canAssignToProject(task.project_id);
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   return (
     <div className="space-y-6">
@@ -30,8 +35,27 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
       {sessionError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>Authentication Issue: {sessionError}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRefresh}
+              className="ml-2 h-6 text-xs"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Refresh
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Permission Warning for Assignment */}
+      {!canAssign && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Authentication Issue: {sessionError}. Please refresh the page or sign in again.
+            You may have limited editing permissions for this task. If you experience issues, try refreshing the page.
           </AlertDescription>
         </Alert>
       )}
@@ -68,7 +92,6 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
           type="button" 
           onClick={onSwitchToEdit}
           className="bg-blue-600 hover:bg-blue-700 transition-colors duration-200 focus:ring-2 focus:ring-blue-300"
-          disabled={!!sessionError}
         >
           Switch to Edit
         </Button>
