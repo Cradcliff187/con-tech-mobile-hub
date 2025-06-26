@@ -1,18 +1,14 @@
+
 import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
-import { EditTaskBasicFields } from './forms/EditTaskBasicFields';
-import { EditTaskAdvancedFields } from './forms/EditTaskAdvancedFields';
 import { EditTaskViewMode } from './forms/EditTaskViewMode';
-import { TaskDocumentAttachments } from './TaskDocumentAttachments';
+import { EditTaskDialogContent } from './forms/EditTaskDialogContent';
 import { useEditTaskForm } from './forms/useEditTaskForm';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 
@@ -24,8 +20,6 @@ interface EditTaskDialogProps {
 }
 
 export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }: EditTaskDialogProps) => {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showAttachments, setShowAttachments] = useState(false);
   const [showProjectChangeConfirm, setShowProjectChangeConfirm] = useState(false);
   const [pendingProjectChange, setPendingProjectChange] = useState<string>('');
   const [currentMode, setCurrentMode] = useState<'edit' | 'view'>(mode);
@@ -51,7 +45,6 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   });
 
   const checkTaskDependencies = useCallback((task: Task): boolean => {
-    // Check if task has relationships that might be affected by project change
     const hasAssignments = !!task.assigned_stakeholder_id || (task.assigned_stakeholder_ids && task.assigned_stakeholder_ids.length > 0);
     const hasAssignedStakeholders = task.assigned_stakeholders && task.assigned_stakeholders.length > 0;
     
@@ -64,7 +57,6 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
-    // Check permissions first
     if (!canAssignToProject(newProjectId)) {
       toast({
         title: "Permission Error",
@@ -74,7 +66,6 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
-    // Check if task has dependencies that require confirmation
     if (checkTaskDependencies(task)) {
       setPendingProjectChange(newProjectId);
       setShowProjectChangeConfirm(true);
@@ -94,26 +85,11 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     setPendingProjectChange('');
   }, []);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = useCallback(async (taskData: any) => {
     if (!task || currentMode === 'view') {
       return;
     }
 
-    // Use unified validation
-    const validation = formData.validateForm();
-    
-    if (!validation.success) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the errors below and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Final permission check for project assignment
     if (formData.projectId !== task.project_id && !canAssignToProject(formData.projectId)) {
       toast({
         title: "Permission Error",
@@ -123,15 +99,13 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
-    await updateOperation.execute(() => 
-      updateTask(task.id, formData.getFormData())
-    );
-  }, [task, formData, updateTask, updateOperation, toast, currentMode, canAssignToProject]);
+    await updateOperation.execute(() => updateTask(task.id, taskData));
+  }, [task, formData.projectId, updateTask, updateOperation, toast, currentMode, canAssignToProject]);
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && !updateOperation.loading) {
       formData.resetForm();
-      setCurrentMode(mode); // Reset mode when closing
+      setCurrentMode(mode);
     }
     onOpenChange(newOpen);
   }, [updateOperation.loading, formData, onOpenChange, mode]);
@@ -169,114 +143,12 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
               onSwitchToEdit={handleSwitchToEdit}
             />
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Basic Fields */}
-              <EditTaskBasicFields
-                title={formData.title}
-                setTitle={formData.setTitle}
-                description={formData.description}
-                setDescription={formData.setDescription}
-                status={formData.status}
-                onStatusChange={formData.handleStatusChange}
-                priority={formData.priority}
-                setPriority={formData.setPriority}
-                dueDate={formData.dueDate}
-                setDueDate={formData.setDueDate}
-                projectId={formData.projectId}
-                onProjectChange={handleProjectChange}
-                progress={formData.progress}
-                setProgress={formData.setProgress}
-                disabled={updateOperation.loading}
-                errors={formData.errors}
-                getFieldError={formData.getFieldError}
-              />
-
-              {/* Advanced Fields */}
-              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="flex items-center gap-2 p-0 h-auto font-medium text-slate-700 hover:text-slate-900"
-                  >
-                    {showAdvanced ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    Advanced Fields
-                  </Button>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="space-y-4 mt-4">
-                  <EditTaskAdvancedFields
-                    taskType={formData.taskType}
-                    setTaskType={formData.setTaskType}
-                    category={formData.category}
-                    setCategory={formData.setCategory}
-                    estimatedHours={formData.estimatedHours}
-                    setEstimatedHours={formData.setEstimatedHours}
-                    actualHours={formData.actualHours}
-                    setActualHours={formData.setActualHours}
-                    startDate={formData.startDate}
-                    setStartDate={formData.setStartDate}
-                    requiredSkills={formData.requiredSkills}
-                    newSkill={formData.newSkill}
-                    setNewSkill={formData.setNewSkill}
-                    onAddSkill={formData.handleAddSkill}
-                    onRemoveSkill={formData.handleRemoveSkill}
-                    punchListCategory={formData.punchListCategory}
-                    setPunchListCategory={formData.setPunchListCategory}
-                    disabled={updateOperation.loading}
-                    errors={formData.errors}
-                    getFieldError={formData.getFieldError}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Document Attachments */}
-              <Collapsible open={showAttachments} onOpenChange={setShowAttachments}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="flex items-center gap-2 p-0 h-auto font-medium text-slate-700 hover:text-slate-900"
-                  >
-                    {showAttachments ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    <Paperclip className="h-4 w-4" />
-                    Document Attachments
-                  </Button>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="space-y-4 mt-4">
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                    <TaskDocumentAttachments task={task} />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleOpenChange(false)}
-                  disabled={updateOperation.loading}
-                  className="transition-colors duration-200 focus:ring-2 focus:ring-slate-300"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={updateOperation.loading || !formData.title.trim() || formData.hasErrors()}
-                  className="bg-orange-600 hover:bg-orange-700 transition-colors duration-200 focus:ring-2 focus:ring-orange-300"
-                >
-                  {updateOperation.loading ? (
-                    <>
-                      <LoadingSpinner size="sm" className="mr-2" />
-                      Updating...
-                    </>
-                  ) : (
-                    'Update Task'
-                  )}
-                </Button>
-              </div>
-            </form>
+            <EditTaskDialogContent
+              task={task}
+              onSubmit={handleSubmit}
+              onProjectChange={handleProjectChange}
+              loading={updateOperation.loading}
+            />
           )}
         </DialogContent>
       </Dialog>

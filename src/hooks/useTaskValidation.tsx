@@ -42,9 +42,9 @@ export const useTaskValidation = ({
       // Ensure date fields are undefined if empty, not empty strings
       due_date: formData.due_date === '' ? undefined : formData.due_date,
       start_date: formData.start_date === '' ? undefined : formData.start_date,
-      // Ensure estimated_hours is properly typed
+      // Ensure estimated_hours is properly typed as number or undefined
       estimated_hours: typeof formData.estimated_hours === 'string' 
-        ? (formData.estimated_hours === '' ? undefined : parseInt(formData.estimated_hours))
+        ? (formData.estimated_hours === '' ? undefined : parseFloat(formData.estimated_hours))
         : formData.estimated_hours,
     };
 
@@ -53,7 +53,7 @@ export const useTaskValidation = ({
     
     if (!conditionalValidation.success) {
       setErrors(conditionalValidation.errors || {});
-      return conditionalValidation;
+      return conditionalValidation as ValidationResult<TaskFormData | EditTaskFormData>;  
     }
 
     // Run appropriate schema validation
@@ -62,10 +62,10 @@ export const useTaskValidation = ({
     
     if (!validation.success) {
       setErrors(validation.errors || {});
-      return validation;
+      return validation as ValidationResult<TaskFormData | EditTaskFormData>;
     }
     
-    return { success: true, data: validation.data };
+    return { success: true, data: validation.data as TaskFormData | EditTaskFormData };
   }, [projects, projectId, taskType, isEditMode]);
 
   const validateConditionalRules = useCallback((
