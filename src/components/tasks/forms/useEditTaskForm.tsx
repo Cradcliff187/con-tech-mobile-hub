@@ -1,6 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
+import { useProjectReassignmentDefaults } from '@/hooks/useProjectReassignmentDefaults';
+import { useProjects } from '@/hooks/useProjects';
 
 interface UseEditTaskFormProps {
   task: Task | null;
@@ -13,6 +15,7 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [status, setStatus] = useState<Task['status']>('not-started');
   const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [projectId, setProjectId] = useState('');
   
   // Advanced fields
   const [taskType, setTaskType] = useState<'regular' | 'punch_list'>('regular');
@@ -25,6 +28,21 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
   const [punchListCategory, setPunchListCategory] = useState<'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | ''>('');
   const [newSkill, setNewSkill] = useState('');
 
+  const { projects } = useProjects();
+
+  const handleApplyDefaults = useCallback((defaults: any) => {
+    setCategory(defaults.category);
+    setRequiredSkills(defaults.requiredSkills);
+    if (defaults.estimatedHours !== undefined) {
+      setEstimatedHours(defaults.estimatedHours);
+    }
+  }, []);
+
+  const { applyProjectDefaults } = useProjectReassignmentDefaults({
+    projects,
+    onApplyDefaults: handleApplyDefaults
+  });
+
   useEffect(() => {
     if (task && open) {
       setTitle(task.title);
@@ -32,6 +50,7 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
+      setProjectId(task.project_id);
       
       // Advanced fields
       setTaskType(task.task_type || 'regular');
@@ -52,6 +71,7 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     setPriority('medium');
     setStatus('not-started');
     setDueDate(undefined);
+    setProjectId('');
     setTaskType('regular');
     setCategory('');
     setEstimatedHours(undefined);
@@ -65,6 +85,16 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
 
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus as Task['status']);
+  };
+
+  const handleProjectChange = (newProjectId: string) => {
+    const oldProjectId = projectId;
+    setProjectId(newProjectId);
+    
+    // Apply smart defaults when project changes
+    if (newProjectId !== oldProjectId) {
+      applyProjectDefaults(newProjectId, oldProjectId);
+    }
   };
 
   const handleAddSkill = () => {
@@ -84,6 +114,7 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     priority,
     status,
     due_date: dueDate?.toISOString(),
+    project_id: projectId,
     task_type: taskType,
     category: category.trim() || undefined,
     estimated_hours: estimatedHours,
@@ -106,6 +137,8 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     handleStatusChange,
     dueDate,
     setDueDate,
+    projectId,
+    handleProjectChange,
     
     // Advanced fields
     taskType,

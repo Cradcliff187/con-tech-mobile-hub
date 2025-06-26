@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Task } from '@/types/database';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { useProjects } from '@/hooks/useProjects';
 
 interface EditTaskBasicFieldsProps {
   title: string;
@@ -23,6 +24,8 @@ interface EditTaskBasicFieldsProps {
   setPriority: (value: Task['priority']) => void;
   dueDate: Date | undefined;
   setDueDate: (date: Date | undefined) => void;
+  projectId: string;
+  onProjectChange: (projectId: string) => void;
   disabled?: boolean;
 }
 
@@ -37,8 +40,12 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
   setPriority,
   dueDate,
   setDueDate,
+  projectId,
+  onProjectChange,
   disabled = false
 }) => {
+  const { projects } = useProjects();
+
   return (
     <>
       <div>
@@ -54,6 +61,31 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
           disabled={disabled}
           className="focus:ring-2 focus:ring-orange-300"
         />
+      </div>
+
+      <div>
+        <label htmlFor="project" className="block text-sm font-medium text-slate-700 mb-1">
+          Project *
+        </label>
+        <Select value={projectId} onValueChange={onProjectChange} disabled={disabled}>
+          <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
+            <SelectValue placeholder="Select project" />
+          </SelectTrigger>
+          <SelectContent>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                <div className="flex items-center justify-between w-full">
+                  <span>{project.name}</span>
+                  {project.unified_lifecycle_status && (
+                    <span className="ml-2 text-xs text-slate-500 capitalize">
+                      ({project.unified_lifecycle_status.replace('_', ' ')})
+                    </span>
+                  )}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
