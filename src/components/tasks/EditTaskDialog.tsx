@@ -2,7 +2,7 @@ import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
 import { EditTaskBasicFields } from './forms/EditTaskBasicFields';
 import { EditTaskAdvancedFields } from './forms/EditTaskAdvancedFields';
 import { EditTaskViewMode } from './forms/EditTaskViewMode';
+import { TaskDocumentAttachments } from './TaskDocumentAttachments';
 import { useEditTaskForm } from './forms/useEditTaskForm';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 
@@ -24,6 +25,7 @@ interface EditTaskDialogProps {
 
 export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }: EditTaskDialogProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const [showProjectChangeConfirm, setShowProjectChangeConfirm] = useState(false);
   const [pendingProjectChange, setPendingProjectChange] = useState<string>('');
   const [currentMode, setCurrentMode] = useState<'edit' | 'view'>(mode);
@@ -216,6 +218,27 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                     setPunchListCategory={formData.setPunchListCategory}
                     disabled={updateOperation.loading}
                   />
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Document Attachments */}
+              <Collapsible open={showAttachments} onOpenChange={setShowAttachments}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex items-center gap-2 p-0 h-auto font-medium text-slate-700 hover:text-slate-900"
+                  >
+                    {showAttachments ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    <Paperclip className="h-4 w-4" />
+                    Document Attachments
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="space-y-4 mt-4">
+                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                    <TaskDocumentAttachments task={task} />
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
 
