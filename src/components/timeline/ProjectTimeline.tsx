@@ -13,7 +13,7 @@ interface TimelineFilters {
 }
 
 interface ProjectTimelineProps {
-  projectId: string;
+  projectId?: string;
   filters?: TimelineFilters;
   onTaskNavigate?: (taskId: string) => void;
   onTaskModal?: (taskId: string) => void;
@@ -26,7 +26,7 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({
   onTaskModal
 }) => {
   const [selectedTimeRange, setSelectedTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
-  const { tasks: sortedTasks, loading } = useTimelineData(projectId, filters);
+  const { tasks: sortedTasks, loading } = useTimelineData(projectId || 'all', filters);
 
   if (loading) {
     return <TimelineLoadingState />;

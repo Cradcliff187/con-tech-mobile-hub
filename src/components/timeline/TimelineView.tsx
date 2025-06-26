@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
@@ -22,7 +21,7 @@ export const TimelineView = () => {
   const timelineStats = React.useMemo(() => {
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(task => task.status === 'completed').length;
-    const inProgressTasks = tasks.filter(task => task.status === 'in_progress').length;
+    const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
     const overdueTasks = tasks.filter(task => {
       if (!task.due_date) return false;
       return new Date(task.due_date) < new Date() && task.status !== 'completed';
@@ -31,8 +30,8 @@ export const TimelineView = () => {
     // Calculate on-track tasks (not overdue and in progress or completed)
     const onTrackTasks = tasks.filter(task => {
       if (task.status === 'completed') return true;
-      if (!task.due_date) return task.status === 'in_progress';
-      return new Date(task.due_date) >= new Date() && task.status === 'in_progress';
+      if (!task.due_date) return task.status === 'in-progress';
+      return new Date(task.due_date) >= new Date() && task.status === 'in-progress';
     }).length;
 
     // Calculate critical path tasks (high priority tasks)
@@ -64,6 +63,13 @@ export const TimelineView = () => {
         };
       });
   }, [projects, tasks]);
+
+  const handleTaskClick = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setSelectedTask(task);
+    }
+  };
 
   if (loading) {
     return (
@@ -178,7 +184,8 @@ export const TimelineView = () => {
         <CardContent>
           <ProjectTimeline 
             projectId={selectedProjectId === 'all' ? undefined : selectedProjectId}
-            onTaskClick={setSelectedTask}
+            onTaskNavigate={handleTaskClick}
+            onTaskModal={handleTaskClick}
           />
         </CardContent>
       </Card>
