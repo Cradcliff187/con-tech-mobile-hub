@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/types/database';
 import { TaskDocumentAttachments } from './TaskDocumentAttachments';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { format } from 'date-fns';
 
 interface TaskDetailsDialogProps {
@@ -18,15 +19,6 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
   onOpenChange 
 }) => {
   if (!task) return null;
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'blocked': return 'bg-red-100 text-red-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -51,9 +43,15 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-slate-600">Status</label>
-              <Badge className={`mt-1 ${getStatusColor(task.status)}`}>
-                {task.status.replace('-', ' ')}
-              </Badge>
+              <div className="mt-1">
+                <GlobalStatusDropdown
+                  entityType="task"
+                  currentStatus={task.status}
+                  onStatusChange={() => {}}
+                  showAsDropdown={false}
+                  size="sm"
+                />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600">Priority</label>

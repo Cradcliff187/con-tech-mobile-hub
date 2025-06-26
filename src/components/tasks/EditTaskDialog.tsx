@@ -15,7 +15,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { TaskStatusField } from './forms/TaskStatusField';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 
 interface EditTaskDialogProps {
   open: boolean;
@@ -107,10 +107,6 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     return priority.charAt(0).toUpperCase() + priority.slice(1);
   };
 
-  const formatStatus = (status: string) => {
-    return status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -141,9 +137,10 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Status
                 </label>
-                <TaskStatusField
-                  value={status}
-                  onChange={() => {}}
+                <GlobalStatusDropdown
+                  entityType="task"
+                  currentStatus={status}
+                  onStatusChange={() => {}}
                   showAsDropdown={false}
                   size="sm"
                 />
@@ -212,10 +209,12 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Status
                 </label>
-                <TaskStatusField
-                  value={status}
-                  onChange={handleStatusChange}
+                <GlobalStatusDropdown
+                  entityType="task"
+                  currentStatus={status}
+                  onStatusChange={handleStatusChange}
                   disabled={updateOperation.loading}
+                  confirmCriticalChanges={true}
                 />
               </div>
 
