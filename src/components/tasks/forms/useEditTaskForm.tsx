@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Task } from '@/types/database';
 import { useProjectReassignmentDefaults } from '@/hooks/useProjectReassignmentDefaults';
@@ -50,7 +51,6 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
       case 'completed':
         return 100;
       case 'in-progress':
-      case 'on-hold':
       case 'blocked':
         // For these statuses, keep current progress but ensure it's reasonable
         if (currentProgress === 0) return 10; // Start with some progress
