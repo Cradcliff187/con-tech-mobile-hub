@@ -55,7 +55,7 @@ export const useProjectPermissions = (): ProjectPermissions => {
       .eq('id', user.id)
       .single();
 
-    if (profile?.is_company_user && profile?.account_status === 'approved') {
+    if (profile?.is_company_user === true && profile?.account_status === 'approved') {
       // Company users can access all projects
       const { data: allProjects } = await supabase
         .from('projects')
