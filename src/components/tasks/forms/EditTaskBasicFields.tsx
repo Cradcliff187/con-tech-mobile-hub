@@ -30,6 +30,8 @@ interface EditTaskBasicFieldsProps {
   progress: number;
   setProgress: (value: number) => void;
   disabled?: boolean;
+  errors?: Record<string, string[]>;
+  getFieldError?: (fieldName: string) => string | undefined;
 }
 
 export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
@@ -47,7 +49,9 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
   onProjectChange,
   progress,
   setProgress,
-  disabled = false
+  disabled = false,
+  errors,
+  getFieldError
 }) => {
   const { projects } = useProjects();
 
@@ -64,8 +68,16 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
           placeholder="Enter task title..."
           required
           disabled={disabled}
-          className="focus:ring-2 focus:ring-orange-300"
+          className={cn(
+            "focus:ring-2 focus:ring-orange-300",
+            getFieldError?.('title') && "border-red-500 focus:ring-red-300"
+          )}
         />
+        {getFieldError?.('title') && (
+          <p className="mt-1 text-sm text-red-600" role="alert">
+            {getFieldError('title')}
+          </p>
+        )}
       </div>
 
       <div>
@@ -73,7 +85,10 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
           Project *
         </label>
         <Select value={projectId} onValueChange={onProjectChange} disabled={disabled}>
-          <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
+          <SelectTrigger className={cn(
+            "focus:ring-2 focus:ring-orange-300",
+            getFieldError?.('project_id') && "border-red-500"
+          )}>
             <SelectValue placeholder="Select project" />
           </SelectTrigger>
           <SelectContent>
@@ -91,6 +106,11 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
             ))}
           </SelectContent>
         </Select>
+        {getFieldError?.('project_id') && (
+          <p className="mt-1 text-sm text-red-600" role="alert">
+            {getFieldError('project_id')}
+          </p>
+        )}
       </div>
 
       <div>
@@ -104,8 +124,16 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
           placeholder="Enter task description..."
           rows={3}
           disabled={disabled}
-          className="focus:ring-2 focus:ring-orange-300"
+          className={cn(
+            "focus:ring-2 focus:ring-orange-300",
+            getFieldError?.('description') && "border-red-500 focus:ring-red-300"
+          )}
         />
+        {getFieldError?.('description') && (
+          <p className="mt-1 text-sm text-red-600" role="alert">
+            {getFieldError('description')}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -120,6 +148,11 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
             disabled={disabled}
             confirmCriticalChanges={true}
           />
+          {getFieldError?.('status') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('status')}
+            </p>
+          )}
         </div>
 
         <div>
@@ -131,7 +164,10 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
             onValueChange={(value: Task['priority']) => setPriority(value)}
             disabled={disabled}
           >
-            <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
+            <SelectTrigger className={cn(
+              "focus:ring-2 focus:ring-orange-300",
+              getFieldError?.('priority') && "border-red-500"
+            )}>
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
             <SelectContent>
@@ -141,6 +177,11 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
               <SelectItem value="critical">Critical</SelectItem>
             </SelectContent>
           </Select>
+          {getFieldError?.('priority') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('priority')}
+            </p>
+          )}
         </div>
 
         <div>
@@ -153,7 +194,8 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal focus:ring-2 focus:ring-orange-300",
-                  !dueDate && "text-muted-foreground"
+                  !dueDate && "text-muted-foreground",
+                  getFieldError?.('due_date') && "border-red-500"
                 )}
                 disabled={disabled}
               >
@@ -171,6 +213,11 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
               />
             </PopoverContent>
           </Popover>
+          {getFieldError?.('due_date') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('due_date')}
+            </p>
+          )}
         </div>
       </div>
 
@@ -182,6 +229,11 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
           status={status}
           disabled={disabled}
         />
+        {getFieldError?.('progress') && (
+          <p className="mt-1 text-sm text-red-600" role="alert">
+            {getFieldError('progress')}
+          </p>
+        )}
       </div>
     </>
   );

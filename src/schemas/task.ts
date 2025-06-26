@@ -2,7 +2,8 @@
 import { z } from 'zod';
 import { requiredString, optionalString, integerFieldSchema, dateStringSchema, sanitizedArraySchema } from './common';
 
-export const taskSchema = z.object({
+// Base task schema without refinements
+const baseTaskSchema = z.object({
   title: requiredString(200)
     .refine(title => !/[<>]/g.test(title), 'Task title contains invalid characters'),
   
@@ -37,7 +38,10 @@ export const taskSchema = z.object({
   // Support both single and multiple stakeholder assignments
   assigned_stakeholder_id: z.string().uuid().optional(), // Legacy support
   assigned_stakeholder_ids: z.array(z.string().uuid()).optional(), // New multi-assignment
-}).refine(data => {
+});
+
+// Task schema with refinements
+export const taskSchema = baseTaskSchema.refine(data => {
   // Date consistency validation
   if (data.start_date && data.due_date) {
     return new Date(data.start_date) <= new Date(data.due_date);
@@ -68,9 +72,36 @@ export const taskSchema = z.object({
 
 export type TaskFormData = z.infer<typeof taskSchema>;
 
-// Enhanced validation for edit scenarios
-export const editTaskSchema = taskSchema.extend({
+// Enhanced validation for edit scenarios using base schema
+export const editTaskSchema = baseTaskSchema.extend({
   id: z.string().uuid().optional(), // For edit mode
+}).refine(data => {
+  // Date consistency validation
+  if (data.start_date && data.due_date) {
+    return new Date(data.start_date) <= new Date(data.due_date);
+  }
+  return true;
+}, {
+  message: "Due date must be after start date",
+  path: ["due_date"]
+}).refine(data => {
+  // Prevent conflicting assignments
+  if (data.assigned_stakeholder_id && data.assigned_stakeholder_ids && data.assigned_stakeholder_ids.length > 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Cannot use both single and multiple stakeholder assignments",
+  path: ["assigned_stakeholder_ids"]
+}).refine(data => {
+  // Punch list category requirement
+  if (data.task_type === 'punch_list' && !data.punch_list_category) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Punch list category is required for punch list tasks",
+  path: ["punch_list_category"]
 }).refine(data => {
   // Status-progress consistency for edit mode
   if (data.status && data.progress !== undefined) {

@@ -1,13 +1,13 @@
 
 import { useState, useCallback } from 'react';
-import { taskSchema, type TaskFormData, validateFormData } from '@/schemas';
+import { taskSchema, editTaskSchema, type TaskFormData, type EditTaskFormData, validateFormData } from '@/schemas';
 import { sanitizeInput, sanitizeStringArray } from '@/utils/validation';
 import { Task } from '@/types/database';
 import { useProjects } from '@/hooks/useProjects';
 
-interface ValidationResult {
+interface ValidationResult<T = TaskFormData> {
   success: boolean;
-  data?: TaskFormData;
+  data?: T;
   errors?: Record<string, string[]>;
 }
 
@@ -25,7 +25,7 @@ export const useTaskValidation = ({
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const { projects } = useProjects();
 
-  const validateTaskData = useCallback((formData: Partial<TaskFormData>): ValidationResult => {
+  const validateTaskData = useCallback((formData: Partial<TaskFormData | EditTaskFormData>): ValidationResult<TaskFormData | EditTaskFormData> => {
     // Clear previous errors
     setErrors({});
 
@@ -42,6 +42,10 @@ export const useTaskValidation = ({
       // Ensure date fields are undefined if empty, not empty strings
       due_date: formData.due_date === '' ? undefined : formData.due_date,
       start_date: formData.start_date === '' ? undefined : formData.start_date,
+      // Ensure estimated_hours is properly typed
+      estimated_hours: typeof formData.estimated_hours === 'string' 
+        ? (formData.estimated_hours === '' ? undefined : parseInt(formData.estimated_hours))
+        : formData.estimated_hours,
     };
 
     // Apply conditional validation rules
@@ -52,8 +56,9 @@ export const useTaskValidation = ({
       return conditionalValidation;
     }
 
-    // Run standard schema validation
-    const validation = validateFormData(taskSchema, sanitizedFormData);
+    // Run appropriate schema validation
+    const schema = isEditMode ? editTaskSchema : taskSchema;
+    const validation = validateFormData(schema, sanitizedFormData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
@@ -61,10 +66,10 @@ export const useTaskValidation = ({
     }
     
     return { success: true, data: validation.data };
-  }, [projects, projectId, taskType]);
+  }, [projects, projectId, taskType, isEditMode]);
 
   const validateConditionalRules = useCallback((
-    formData: Partial<TaskFormData>, 
+    formData: Partial<TaskFormData | EditTaskFormData>, 
     project: any, 
     taskType: string
   ): ValidationResult => {

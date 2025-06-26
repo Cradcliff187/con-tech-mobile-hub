@@ -29,6 +29,8 @@ interface EditTaskAdvancedFieldsProps {
   punchListCategory: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | '';
   setPunchListCategory: (value: 'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | '') => void;
   disabled?: boolean;
+  errors?: Record<string, string[]>;
+  getFieldError?: (fieldName: string) => string | undefined;
 }
 
 export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
@@ -49,7 +51,9 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
   onRemoveSkill,
   punchListCategory,
   setPunchListCategory,
-  disabled = false
+  disabled = false,
+  errors,
+  getFieldError
 }) => {
   const taskCategories = [
     'Foundation', 'Framing', 'Roofing', 'Electrical', 'Plumbing', 'HVAC', 
@@ -69,7 +73,10 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
             onValueChange={(value: 'regular' | 'punch_list') => setTaskType(value)}
             disabled={disabled}
           >
-            <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
+            <SelectTrigger className={cn(
+              "focus:ring-2 focus:ring-orange-300",
+              getFieldError?.('task_type') && "border-red-500"
+            )}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -77,6 +84,11 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
               <SelectItem value="punch_list">Punch List Item</SelectItem>
             </SelectContent>
           </Select>
+          {getFieldError?.('task_type') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('task_type')}
+            </p>
+          )}
         </div>
 
         <div>
@@ -88,7 +100,10 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
             onValueChange={setCategory}
             disabled={disabled}
           >
-            <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
+            <SelectTrigger className={cn(
+              "focus:ring-2 focus:ring-orange-300",
+              getFieldError?.('category') && "border-red-500"
+            )}>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
@@ -97,6 +112,11 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
               ))}
             </SelectContent>
           </Select>
+          {getFieldError?.('category') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('category')}
+            </p>
+          )}
         </div>
       </div>
 
@@ -104,14 +124,17 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
       {taskType === 'punch_list' && (
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Punch List Category
+            Punch List Category *
           </label>
           <Select 
             value={punchListCategory} 
             onValueChange={(value: 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'paint' | 'other') => setPunchListCategory(value)}
             disabled={disabled}
           >
-            <SelectTrigger className="focus:ring-2 focus:ring-orange-300">
+            <SelectTrigger className={cn(
+              "focus:ring-2 focus:ring-orange-300",
+              getFieldError?.('punch_list_category') && "border-red-500"
+            )}>
               <SelectValue placeholder="Select punch list category" />
             </SelectTrigger>
             <SelectContent>
@@ -124,6 +147,11 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
+          {getFieldError?.('punch_list_category') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('punch_list_category')}
+            </p>
+          )}
         </div>
       )}
 
@@ -139,7 +167,8 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal focus:ring-2 focus:ring-orange-300",
-                  !startDate && "text-muted-foreground"
+                  !startDate && "text-muted-foreground",
+                  getFieldError?.('start_date') && "border-red-500"
                 )}
                 disabled={disabled}
               >
@@ -157,6 +186,11 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
               />
             </PopoverContent>
           </Popover>
+          {getFieldError?.('start_date') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('start_date')}
+            </p>
+          )}
         </div>
       </div>
 
@@ -174,8 +208,16 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
             onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="0"
             disabled={disabled}
-            className="focus:ring-2 focus:ring-orange-300"
+            className={cn(
+              "focus:ring-2 focus:ring-orange-300",
+              getFieldError?.('estimated_hours') && "border-red-500 focus:ring-red-300"
+            )}
           />
+          {getFieldError?.('estimated_hours') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('estimated_hours')}
+            </p>
+          )}
         </div>
 
         <div>
@@ -190,19 +232,34 @@ export const EditTaskAdvancedFields: React.FC<EditTaskAdvancedFieldsProps> = ({
             onChange={(e) => setActualHours(e.target.value ? parseFloat(e.target.value) : undefined)}
             placeholder="0"
             disabled={disabled}
-            className="focus:ring-2 focus:ring-orange-300"
+            className={cn(
+              "focus:ring-2 focus:ring-orange-300",
+              getFieldError?.('actual_hours') && "border-red-500 focus:ring-red-300"
+            )}
           />
+          {getFieldError?.('actual_hours') && (
+            <p className="mt-1 text-sm text-red-600" role="alert">
+              {getFieldError('actual_hours')}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Required Skills */}
-      <TaskSkillsField
-        requiredSkills={requiredSkills}
-        newSkill={newSkill}
-        setNewSkill={setNewSkill}
-        onAddSkill={onAddSkill}
-        onRemoveSkill={onRemoveSkill}
-      />
+      <div>
+        <TaskSkillsField
+          requiredSkills={requiredSkills}
+          newSkill={newSkill}
+          setNewSkill={setNewSkill}
+          onAddSkill={onAddSkill}
+          onRemoveSkill={onRemoveSkill}
+        />
+        {getFieldError?.('required_skills') && (
+          <p className="mt-1 text-sm text-red-600" role="alert">
+            {getFieldError('required_skills')}
+          </p>
+        )}
+      </div>
     </>
   );
 };
