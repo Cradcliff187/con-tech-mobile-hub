@@ -51,22 +51,14 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
   }, []);
 
   const handleStakeholderUpdated = useCallback(() => {
-    refetch();
     onRefetch?.();
     setEditStakeholder(null);
-  }, [refetch, onRefetch]);
+  }, [onRefetch]);
 
   const handleStakeholderDeleted = useCallback(() => {
-    refetch();
     onRefetch?.();
     setStakeholderToDelete(null);
-  }, [refetch, onRefetch]);
-
-  const handleStakeholderAssigned = useCallback(() => {
-    refetch();
-    onRefetch?.();
-    setStakeholderToAssign(null);
-  }, [refetch, onRefetch]);
+  }, [onRefetch]);
 
   // Stabilize filter and sort dependencies
   const filterConfig = useMemo(() => ({
@@ -78,8 +70,6 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
   }), [searchTerm, typeFilter, statusFilter, sortBy, sortOrder]);
 
   const filteredAndSortedStakeholders = useMemo(() => {
-    console.log('Filtering stakeholders, count:', stakeholders.length);
-    
     let filtered = stakeholders.filter(stakeholder => {
       const matchesSearch = 
         stakeholder.company_name?.toLowerCase().includes(filterConfig.searchTerm) ||
