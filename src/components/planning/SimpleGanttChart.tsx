@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { SimpleGanttContainer } from './gantt/components/SimpleGanttContainer';
+import React from 'react';
+import { UnifiedGanttContainer } from './gantt/components/UnifiedGanttContainer';
 import { GanttErrorBoundary } from './gantt/components/GanttErrorBoundary';
 
 interface SimpleGanttChartProps {
@@ -15,7 +15,7 @@ export const SimpleGanttChart = ({
   return (
     <div className="w-full h-full">
       <GanttErrorBoundary>
-        <SimpleGanttContainer
+        <UnifiedGanttContainer
           projectId={projectId}
           viewMode={viewMode}
         />
