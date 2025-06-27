@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Project } from '@/types/database';
@@ -11,73 +11,141 @@ export const useProjects = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
+  // Subscription management references
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced fetch function
+  const debouncedFetch = () => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchProjects();
+    }, 100);
+  };
+
+  const fetchProjects = async () => {
     if (!user) {
       setProjects([]);
       setLoading(false);
       return;
     }
 
-    const fetchProjects = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            client:stakeholders(
-              id,
-              company_name,
-              contact_person,
-              stakeholder_type
-            )
-          `)
-          .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:stakeholders(
+            id,
+            company_name,
+            contact_person,
+            stakeholder_type
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching projects:', error);
-          setProjects([]);
-          return;
-        }
-
-        // Map the data to ensure proper typing
-        const mappedProjects = (data || []).map(project => ({
-          ...project,
-          phase: (project.phase || 'planning') as Project['phase'],
-          unified_lifecycle_status: project.unified_lifecycle_status || undefined
-        })) as Project[];
-
-        setProjects(mappedProjects);
-      } catch (error) {
-        console.error('Error in fetchProjects:', error);
+      if (error) {
+        console.error('Error fetching projects:', error);
         setProjects([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('projects_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'projects'
-        },
-        () => {
-          fetchProjects();
-        }
-      )
-      .subscribe();
+      // Map the data to ensure proper typing
+      const mappedProjects = (data || []).map(project => ({
+        ...project,
+        phase: (project.phase || 'planning') as Project['phase'],
+        unified_lifecycle_status: project.unified_lifecycle_status || undefined
+      })) as Project[];
 
-    // Initial fetch
-    fetchProjects();
+      setProjects(mappedProjects);
+    } catch (error) {
+      console.error('Error in fetchProjects:', error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Cleanup subscription function
+  const cleanupSubscription = () => {
+    if (channelRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+        console.log('Projects subscription cleaned up');
+      } catch (error) {
+        console.error('Error cleaning up subscription:', error);
+      }
+      channelRef.current = null;
+    }
+    isSubscribedRef.current = false;
+    
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setProjects([]);
+      setLoading(false);
+      cleanupSubscription();
+      return;
+    }
+
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) {
+      return;
+    }
+
+    try {
+      // Create unique channel name with timestamp
+      const channelName = `projects_${user.id}_${Date.now()}`;
+      
+      // Create subscription with unique channel name
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'projects'
+          },
+          (payload) => {
+            console.log('Projects change detected:', payload);
+            debouncedFetch();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Projects subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            isSubscribedRef.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('Projects subscription error:', status);
+            isSubscribedRef.current = false;
+          }
+        });
+
+      channelRef.current = channel;
+
+      // Initial fetch
+      fetchProjects();
+
+    } catch (error) {
+      console.error('Error setting up projects subscription:', error);
+      isSubscribedRef.current = false;
+    }
+
+    // Cleanup function
     return () => {
-      supabase.removeChannel(channel);
+      cleanupSubscription();
     };
-  }, [user?.id]); // Only depend on user?.id, not the callback
+  }, [user?.id]); // Only depend on user?.id to prevent re-subscription loops
 
   const createProject = async (projectData: Partial<Project>) => {
     if (!user) return { error: 'User not authenticated' };
@@ -302,9 +370,10 @@ export const useProjects = () => {
     deleteProject,
     archiveProject,
     unarchiveProject,
-    // Backward compatibility function - real-time updates handle data automatically
+    // Backward compatibility function - triggers debounced fetch
     refetch: () => {
-      console.log('refetch() called - data updates automatically via real-time subscription');
+      console.log('refetch() called - triggering debounced fetch');
+      debouncedFetch();
       return Promise.resolve();
     }
   };
