@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
@@ -33,7 +32,11 @@ export const SimpleGanttContainer = ({
   const contentScrollRef = useRef<HTMLDivElement>(null);
   
   const { tasks, loading, error, updateTask } = useTasks({ projectId });
-  const { timelineStart, timelineEnd } = useTimelineCalculation(tasks);
+  const timelineBounds = useTimelineCalculation(tasks, viewMode);
+
+  // Extract start and end dates from the timeline bounds
+  const timelineStart = timelineBounds.start;
+  const timelineEnd = timelineBounds.end;
 
   // Action history system
   const {
