@@ -9,8 +9,41 @@ interface UseTasksOptions {
   projectId?: string;
 }
 
+// Enhanced task type with project and stakeholder data
+interface EnhancedTask extends Task {
+  project?: {
+    id: string;
+    name: string;
+    status?: string;
+    phase?: string;
+    unified_lifecycle_status?: string;
+  };
+  assignee?: {
+    id: string;
+    full_name?: string;
+    email: string;
+    avatar_url?: string;
+  };
+  assigned_stakeholder?: {
+    id: string;
+    contact_person?: string;
+    company_name?: string;
+    stakeholder_type: string;
+  };
+  stakeholder_assignments?: Array<{
+    id: string;
+    stakeholder: {
+      id: string;
+      contact_person?: string;
+      company_name?: string;
+      stakeholder_type: string;
+    };
+    assignment_role?: string;
+  }>;
+}
+
 export const useTasks = (options: UseTasksOptions = {}) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<EnhancedTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user, profile } = useAuth();
@@ -20,9 +53,9 @@ export const useTasks = (options: UseTasksOptions = {}) => {
   const isSessionReady = useMemo(() => {
     const ready = !!user && !!profile;
     return ready;
-  }, [user?.id, profile?.id]); // Only depend on IDs to prevent object reference changes
+  }, [user?.id, profile?.id]);
 
-  // Stable fetch function that doesn't change on every render
+  // Enhanced fetch function with project and stakeholder joins
   const fetchTasks = useCallback(async () => {
     if (!isSessionReady) {
       setTasks([]);
@@ -46,7 +79,26 @@ export const useTasks = (options: UseTasksOptions = {}) => {
           ),
           project:projects!project_id(
             id,
-            name
+            name,
+            status,
+            phase,
+            unified_lifecycle_status
+          ),
+          assigned_stakeholder:stakeholders!assigned_stakeholder_id(
+            id,
+            contact_person,
+            company_name,
+            stakeholder_type
+          ),
+          stakeholder_assignments:task_stakeholder_assignments(
+            id,
+            assignment_role,
+            stakeholder:stakeholders(
+              id,
+              contact_person,
+              company_name,
+              stakeholder_type
+            )
           )
         `)
         .order('created_at', { ascending: false });
@@ -58,7 +110,7 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       const mappedTasks = (data || []).map(task => ({
         ...task,
         task_type: task.task_type === 'punch_list' ? 'punch_list' as const : 'regular' as const
-      })) as Task[];
+      })) as EnhancedTask[];
 
       setTasks(mappedTasks);
       return mappedTasks;

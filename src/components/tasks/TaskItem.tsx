@@ -5,13 +5,46 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit, Eye, Calendar, Clock } from 'lucide-react';
 import { TaskDocumentAttachments } from './TaskDocumentAttachments';
+import { ProjectInfo } from './ProjectInfo';
+import { StakeholderInfo } from './StakeholderInfo';
 import { format } from 'date-fns';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface TaskItemProps {
-  task: Task;
+  task: Task & {
+    project?: {
+      id: string;
+      name: string;
+      status?: string;
+      phase?: string;
+      unified_lifecycle_status?: string;
+    };
+    assignee?: {
+      id: string;
+      full_name?: string;
+      email: string;
+      avatar_url?: string;
+    };
+    assigned_stakeholder?: {
+      id: string;
+      contact_person?: string;
+      company_name?: string;
+      stakeholder_type: string;
+    };
+    stakeholder_assignments?: Array<{
+      id: string;
+      stakeholder: {
+        id: string;
+        contact_person?: string;
+        company_name?: string;
+        stakeholder_type: string;
+      };
+      assignment_role?: string;
+    }>;
+  };
   onEdit: (task: Task) => void;
   onViewDetails: (task: Task) => void;
   isSelected?: boolean;
@@ -25,6 +58,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 }) => {
   const { updateTask } = useTasks();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -50,6 +84,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         variant: "destructive"
       });
     }
+  };
+
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/?section=projects&project=${projectId}`);
   };
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
@@ -98,6 +136,25 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <Edit size={16} />
             </Button>
           </div>
+        </div>
+
+        {/* Project Information */}
+        <div className="border-t border-slate-100 pt-2">
+          <ProjectInfo 
+            project={task.project} 
+            onProjectClick={handleProjectClick}
+            size="sm"
+          />
+        </div>
+
+        {/* Stakeholder Assignment */}
+        <div className="border-t border-slate-100 pt-2">
+          <StakeholderInfo
+            assignee={task.assignee}
+            assignedStakeholder={task.assigned_stakeholder}
+            stakeholderAssignments={task.stakeholder_assignments}
+            size="sm"
+          />
         </div>
 
         {/* Status and Progress */}

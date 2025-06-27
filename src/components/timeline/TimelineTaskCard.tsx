@@ -1,13 +1,46 @@
 
 import React from 'react';
-import { Calendar, Clock, AlertTriangle, CheckCircle, User, Eye } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Task } from '@/types/database';
+import { ProjectInfo } from '@/components/tasks/ProjectInfo';
+import { StakeholderInfo } from '@/components/tasks/StakeholderInfo';
+import { useNavigate } from 'react-router-dom';
 
 interface TimelineTaskCardProps {
-  task: Task;
+  task: Task & {
+    project?: {
+      id: string;
+      name: string;
+      status?: string;
+      phase?: string;
+      unified_lifecycle_status?: string;
+    };
+    assignee?: {
+      id: string;
+      full_name?: string;
+      email: string;
+      avatar_url?: string;
+    };
+    assigned_stakeholder?: {
+      id: string;
+      contact_person?: string;
+      company_name?: string;
+      stakeholder_type: string;
+    };
+    stakeholder_assignments?: Array<{
+      id: string;
+      stakeholder: {
+        id: string;
+        contact_person?: string;
+        company_name?: string;
+        stakeholder_type: string;
+      };
+      assignment_role?: string;
+    }>;
+  };
   onTaskNavigate?: (taskId: string) => void;
   onTaskModal?: (taskId: string) => void;
 }
@@ -17,6 +50,8 @@ export const TimelineTaskCard: React.FC<TimelineTaskCardProps> = ({
   onTaskNavigate,
   onTaskModal
 }) => {
+  const navigate = useNavigate();
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -85,6 +120,10 @@ export const TimelineTaskCard: React.FC<TimelineTaskCardProps> = ({
     }
   };
 
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/?section=projects&project=${projectId}`);
+  };
+
   return (
     <div className="relative flex items-start gap-4">
       {/* Timeline dot */}
@@ -99,9 +138,9 @@ export const TimelineTaskCard: React.FC<TimelineTaskCardProps> = ({
         onClick={handleTaskClick}
       >
         <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-2">
                 {getStatusIcon(task.status)}
                 <h4 className="font-medium text-slate-800">{task.title}</h4>
                 <Badge className={`text-xs ${getStatusColor(task.status)}`}>
@@ -110,31 +149,8 @@ export const TimelineTaskCard: React.FC<TimelineTaskCardProps> = ({
               </div>
               
               {task.description && (
-                <p className="text-sm text-slate-600 mb-2">{task.description}</p>
+                <p className="text-sm text-slate-600 mb-3">{task.description}</p>
               )}
-              
-              <div className="flex items-center gap-4 text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <Calendar size={12} />
-                  Due: {formatDate(task.due_date)}
-                  {isOverdue(task.due_date, task.status) && (
-                    <span className="text-red-600 font-medium ml-1">(Overdue)</span>
-                  )}
-                </span>
-                
-                {task.assignee_id && (
-                  <span className="flex items-center gap-1">
-                    <User size={12} />
-                    Assigned
-                  </span>
-                )}
-                
-                {task.category && (
-                  <span className="bg-slate-100 px-2 py-1 rounded text-slate-600">
-                    {task.category}
-                  </span>
-                )}
-              </div>
             </div>
             
             <div className="flex items-center gap-2">
@@ -154,6 +170,41 @@ export const TimelineTaskCard: React.FC<TimelineTaskCardProps> = ({
                 <span className="text-sm text-slate-600">{task.progress}%</span>
               )}
             </div>
+          </div>
+
+          {/* Project Context */}
+          <div className="mb-3 pb-3 border-b border-slate-100">
+            <ProjectInfo 
+              project={task.project} 
+              onProjectClick={handleProjectClick}
+              size="sm"
+            />
+          </div>
+
+          {/* Stakeholder Assignment */}
+          <div className="mb-3 pb-3 border-b border-slate-100">
+            <StakeholderInfo
+              assignee={task.assignee}
+              assignedStakeholder={task.assigned_stakeholder}
+              stakeholderAssignments={task.stakeholder_assignments}
+              size="sm"
+            />
+          </div>
+          
+          <div className="flex items-center gap-4 text-xs text-slate-500 mb-3">
+            <span className="flex items-center gap-1">
+              <Calendar size={12} />
+              Due: {formatDate(task.due_date)}
+              {isOverdue(task.due_date, task.status) && (
+                <span className="text-red-600 font-medium ml-1">(Overdue)</span>
+              )}
+            </span>
+            
+            {task.category && (
+              <span className="bg-slate-100 px-2 py-1 rounded text-slate-600">
+                {task.category}
+              </span>
+            )}
           </div>
           
           {task.progress !== undefined && (

@@ -4,9 +4,42 @@ import { Task } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { User, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { ProjectInfo } from '@/components/tasks/ProjectInfo';
+import { StakeholderInfo } from '@/components/tasks/StakeholderInfo';
+import { useNavigate } from 'react-router-dom';
 
 interface SimpleTaskCardProps {
-  task: Task;
+  task: Task & {
+    project?: {
+      id: string;
+      name: string;
+      status?: string;
+      phase?: string;
+      unified_lifecycle_status?: string;
+    };
+    assignee?: {
+      id: string;
+      full_name?: string;
+      email: string;
+      avatar_url?: string;
+    };
+    assigned_stakeholder?: {
+      id: string;
+      contact_person?: string;
+      company_name?: string;
+      stakeholder_type: string;
+    };
+    stakeholder_assignments?: Array<{
+      id: string;
+      stakeholder: {
+        id: string;
+        contact_person?: string;
+        company_name?: string;
+        stakeholder_type: string;
+      };
+      assignment_role?: string;
+    }>;
+  };
   isSelected: boolean;
   onClick: () => void;
   isCollapsed?: boolean;
@@ -20,6 +53,8 @@ export const SimpleTaskCard = ({
   isCollapsed = false, 
   onToggleCollapse 
 }: SimpleTaskCardProps) => {
+  const navigate = useNavigate();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
@@ -37,17 +72,15 @@ export const SimpleTaskCard = ({
     return `${start} - ${end}`;
   };
 
-  const getAssigneeInitials = () => {
-    if (task.assignee_id) return 'TM';
-    if (task.assigned_stakeholder_id) return 'ST';
-    return '?';
-  };
-
   const handleCollapseToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onToggleCollapse) {
       onToggleCollapse(task.id);
     }
+  };
+
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/?section=projects&project=${projectId}`);
   };
 
   if (isCollapsed) {
@@ -73,17 +106,26 @@ export const SimpleTaskCard = ({
             {task.title}
           </h4>
 
+          {/* Project badge - small */}
+          {task.project && (
+            <Badge variant="outline" className="text-xs px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
+              {task.project.name.substring(0, 8)}...
+            </Badge>
+          )}
+
           {/* Status badge - small */}
           <Badge className={`text-xs px-1.5 py-0 ${getStatusColor(task.status)}`}>
             {task.status.charAt(0).toUpperCase()}
           </Badge>
 
-          {/* Assignee initials */}
-          <div className="flex-shrink-0 w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium text-slate-700">
-              {getAssigneeInitials()}
-            </span>
-          </div>
+          {/* Stakeholder indicator */}
+          <StakeholderInfo
+            assignee={task.assignee}
+            assignedStakeholder={task.assigned_stakeholder}
+            stakeholderAssignments={task.stakeholder_assignments}
+            size="sm"
+            compact
+          />
         </div>
       </div>
     );
@@ -112,8 +154,18 @@ export const SimpleTaskCard = ({
         </h4>
       </div>
 
+      {/* Project Information */}
+      <div className="mb-2 pl-5">
+        <ProjectInfo 
+          project={task.project} 
+          onProjectClick={handleProjectClick}
+          size="sm"
+          showStatus={false}
+        />
+      </div>
+
       {/* Status and Category */}
-      <div className="flex gap-2 mb-2">
+      <div className="flex gap-2 mb-2 pl-5">
         <Badge className={`text-xs ${getStatusColor(task.status)}`}>
           {task.status}
         </Badge>
@@ -125,7 +177,7 @@ export const SimpleTaskCard = ({
       </div>
 
       {/* Progress */}
-      <div className="mb-2">
+      <div className="mb-2 pl-5">
         <div className="flex justify-between items-center mb-1">
           <span className="text-xs text-slate-600">Progress</span>
           <span className="text-xs font-medium">{task.progress || 0}%</span>
@@ -134,15 +186,19 @@ export const SimpleTaskCard = ({
       </div>
 
       {/* Dates */}
-      <div className="flex items-center gap-1 text-xs text-slate-500 mb-1">
+      <div className="flex items-center gap-1 text-xs text-slate-500 mb-1 pl-5">
         <Clock size={10} />
         {formatDateRange()}
       </div>
 
-      {/* Assignee */}
-      <div className="flex items-center gap-1 text-xs text-slate-500">
-        <User size={10} />
-        {task.assignee_id ? 'Assigned' : 'Unassigned'}
+      {/* Stakeholder Assignment */}
+      <div className="pl-5">
+        <StakeholderInfo
+          assignee={task.assignee}
+          assignedStakeholder={task.assigned_stakeholder}
+          stakeholderAssignments={task.stakeholder_assignments}
+          size="sm"
+        />
       </div>
     </div>
   );
