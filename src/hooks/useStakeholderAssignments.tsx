@@ -4,9 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 import { StakeholderAssignment, CreateAssignmentData } from './stakeholders/types';
 import * as assignmentService from './stakeholders/assignmentService';
 import { useAuth } from '@/hooks/useAuth';
-import { useImprovedStakeholderAssignmentSubscription } from '@/hooks/stakeholders/useImprovedStakeholderAssignmentSubscription';
+import { supabase } from '@/integrations/supabase/client';
 
-// Re-export the type for backward compatibility
 export type { StakeholderAssignment } from './stakeholders/types';
 
 export const useStakeholderAssignments = (projectId?: string) => {
@@ -15,24 +14,74 @@ export const useStakeholderAssignments = (projectId?: string) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Create stable callback for subscription
-  const stableAssignmentsUpdate = useCallback((updatedAssignments: StakeholderAssignment[]) => {
-    setAssignments(updatedAssignments);
-    setLoading(false);
-  }, []);
+  const fetchAssignments = useCallback(async () => {
+    if (!user) {
+      setAssignments([]);
+      setLoading(false);
+      return;
+    }
 
-  // Use improved real-time subscription
-  useImprovedStakeholderAssignmentSubscription({
-    user,
-    onAssignmentsUpdate: stableAssignmentsUpdate,
-    projectId
-  });
+    try {
+      let query = supabase
+        .from('stakeholder_assignments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching stakeholder assignments:', error);
+        setAssignments([]);
+        return;
+      }
+
+      setAssignments(data || []);
+    } catch (error) {
+      console.error('Error in fetchAssignments:', error);
+      setAssignments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, projectId]);
+
+  useEffect(() => {
+    if (!user) {
+      setAssignments([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('stakeholder_assignments_mgmt_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stakeholder_assignments'
+        },
+        () => {
+          fetchAssignments();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchAssignments();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAssignments]);
 
   const createAssignment = useCallback(async (assignmentData: CreateAssignmentData) => {
     try {
       const newAssignment = await assignmentService.createAssignment(assignmentData);
-      
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Stakeholder assigned successfully"
@@ -52,8 +101,6 @@ export const useStakeholderAssignments = (projectId?: string) => {
   const updateAssignment = useCallback(async (id: string, updates: Partial<StakeholderAssignment>) => {
     try {
       const updatedAssignment = await assignmentService.updateAssignment(id, updates);
-      
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Assignment updated successfully"
@@ -73,8 +120,6 @@ export const useStakeholderAssignments = (projectId?: string) => {
   const deleteAssignment = useCallback(async (id: string) => {
     try {
       await assignmentService.deleteAssignment(id);
-      
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Assignment deleted successfully"
@@ -94,8 +139,6 @@ export const useStakeholderAssignments = (projectId?: string) => {
   const bulkCreateAssignments = useCallback(async (assignmentsData: CreateAssignmentData[]) => {
     try {
       const newAssignments = await assignmentService.bulkCreateAssignments(assignmentsData);
-      
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: `${newAssignments.length} assignments created successfully`

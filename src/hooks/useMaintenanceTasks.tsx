@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { MaintenanceTask, CreateMaintenanceTaskData } from '@/types/maintenance';
@@ -10,7 +10,7 @@ import {
   completeMaintenanceTask,
   deleteMaintenanceTask
 } from '@/services/maintenanceTaskService';
-import { useImprovedMaintenanceTaskSubscription } from '@/hooks/maintenance/useImprovedMaintenanceTaskSubscription';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useMaintenanceTasks = () => {
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
@@ -18,19 +18,67 @@ export const useMaintenanceTasks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Use improved real-time subscription
-  useImprovedMaintenanceTaskSubscription({
-    user,
-    onTasksUpdate: (updatedTasks) => {
-      setTasks(updatedTasks);
+  const fetchTasks = useCallback(async () => {
+    if (!user) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const data = await fetchMaintenanceTasks();
+      const typedTasks = data.map(task => ({
+        ...task,
+        checklist_items: Array.isArray(task.checklist_items) 
+          ? task.checklist_items 
+          : typeof task.checklist_items === 'string' 
+            ? JSON.parse(task.checklist_items) 
+            : []
+      })) as MaintenanceTask[];
+      
+      setTasks(typedTasks);
+    } catch (error) {
+      console.error('Error fetching maintenance tasks:', error);
+      setTasks([]);
+    } finally {
       setLoading(false);
     }
-  });
+  }, [user?.id]);
 
-  const refetch = async () => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  };
+  useEffect(() => {
+    if (!user) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('maintenance_tasks_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'maintenance_tasks'
+        },
+        () => {
+          fetchTasks();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchTasks();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchTasks]);
+
+  const refetch = useCallback(async () => {
+    await fetchTasks();
+  }, [fetchTasks]);
 
   const createTask = async (taskData: CreateMaintenanceTaskData) => {
     if (!user?.id) return { data: null, error: 'User not authenticated' };
@@ -41,7 +89,6 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task created successfully"
       });
-      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (error) {
       console.error('Error creating maintenance task:', error);
@@ -61,7 +108,6 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task updated successfully"
       });
-      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       console.error('Error updating maintenance task:', error);
@@ -83,7 +129,6 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task completed successfully"
       });
-      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       console.error('Error completing maintenance task:', error);
@@ -103,7 +148,6 @@ export const useMaintenanceTasks = () => {
         title: "Success",
         description: "Maintenance task deleted successfully"
       });
-      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       console.error('Error deleting maintenance task:', error);

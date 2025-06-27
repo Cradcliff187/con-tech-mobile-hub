@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import { authApi } from '@/services/authApi';
 import { getAuthNotification, getSignupNotification } from '@/utils/authNotifications';
 import { AuthContextType, ProfileData } from '@/types/auth';
-import { subscriptionManager } from '@/services/subscription';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -67,12 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }, 0);
     } else {
-      // User logged out - cleanup subscriptions
-      try {
-        subscriptionManager.unsubscribeAll();
-      } catch (error) {
-        console.warn('Error cleaning up subscriptions:', error);
-      }
+      // User logged out - simple cleanup
       setProfile(null);
     }
   };
@@ -132,13 +126,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // Clean up subscriptions before signing out
-      try {
-        subscriptionManager.unsubscribeAll();
-      } catch (cleanupError) {
-        console.warn('Error cleaning up subscriptions during logout:', cleanupError);
-      }
-      
       const { error } = await authApi.signOut();
       if (error) {
         console.error('Signout error:', error);

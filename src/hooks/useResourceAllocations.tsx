@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ResourceAllocation } from '@/types/database';
-import { useImprovedResourceAllocationSubscription } from '@/hooks/resources/useImprovedResourceAllocationSubscription';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResourceAllocationMember {
   id: string;
@@ -21,72 +22,119 @@ export const useResourceAllocations = (projectId?: string) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  // Use improved real-time subscription with data transformation
-  useImprovedResourceAllocationSubscription({
-    user,
-    onResourceAllocationsUpdate: (updatedAllocations) => {
-      // Transform the subscription data to match the expected format
-      const transformedAllocations = transformStakeholderAssignmentsToAllocations(updatedAllocations);
-      setAllocations(transformedAllocations);
+  const fetchAllocations = useCallback(async () => {
+    if (!user) {
+      setAllocations([]);
       setLoading(false);
-    },
-    projectId
-  });
+      return;
+    }
 
-  // Transform stakeholder assignments to resource allocations format
-  const transformStakeholderAssignmentsToAllocations = (assignments: any[]): ResourceAllocation[] => {
-    // Group assignments by project and week to create resource allocations
-    const groupedAllocations = new Map();
+    try {
+      let query = supabase
+        .from('stakeholder_assignments')
+        .select(`
+          *,
+          stakeholders(*),
+          projects(*)
+        `)
+        .order('created_at', { ascending: false });
 
-    assignments?.forEach(assignment => {
-      const key = `${assignment.project_id}-${assignment.week_start_date || 'no-week'}`;
-      const project = assignment.projects;
-      
-      if (!groupedAllocations.has(key)) {
-        groupedAllocations.set(key, {
-          id: key,
-          project_id: assignment.project_id || '',
-          team_name: `${project?.name || 'Unknown Project'} Team`,
-          week_start_date: assignment.week_start_date || new Date().toISOString().split('T')[0],
-          total_budget: 0,
-          total_used: 0,
-          created_at: assignment.created_at,
-          updated_at: assignment.updated_at,
-          allocation_type: 'weekly' as 'weekly' | 'daily',
-          members: [] as ResourceAllocationMember[]
-        });
+      if (projectId) {
+        query = query.eq('project_id', projectId);
       }
 
-      const allocation = groupedAllocations.get(key);
-      
-      // Convert assignment to member format
-      const member: ResourceAllocationMember = {
-        id: assignment.id,
-        user_id: assignment.stakeholders?.id,
-        name: assignment.stakeholders?.contact_person || 'Unknown Employee',
-        role: assignment.role || 'Employee',
-        hours_allocated: assignment.total_hours || 0,
-        hours_used: Math.floor((assignment.total_hours || 0) * 0.7), // Estimate based on progress
-        cost_per_hour: assignment.hourly_rate || 0,
-        availability: 85, // Default availability
-        tasks: [] // Could be enhanced with related tasks
-      };
+      const { data, error } = await query;
 
-      allocation.members.push(member);
-      allocation.total_budget += assignment.total_cost || 0;
-      allocation.total_used += member.hours_used * member.cost_per_hour;
-    });
+      if (error) {
+        console.error('Error fetching resource allocations:', error);
+        setAllocations([]);
+        return;
+      }
 
-    return Array.from(groupedAllocations.values());
-  };
+      // Transform stakeholder assignments to resource allocations format
+      const groupedAllocations = new Map();
+
+      data?.forEach(assignment => {
+        const key = `${assignment.project_id}-${assignment.week_start_date || 'no-week'}`;
+        const project = assignment.projects;
+        
+        if (!groupedAllocations.has(key)) {
+          groupedAllocations.set(key, {
+            id: key,
+            project_id: assignment.project_id || '',
+            team_name: `${project?.name || 'Unknown Project'} Team`,
+            week_start_date: assignment.week_start_date || new Date().toISOString().split('T')[0],
+            total_budget: 0,
+            total_used: 0,
+            created_at: assignment.created_at,
+            updated_at: assignment.updated_at,
+            allocation_type: 'weekly' as 'weekly' | 'daily',
+            members: [] as ResourceAllocationMember[]
+          });
+        }
+
+        const allocation = groupedAllocations.get(key);
+        
+        const member: ResourceAllocationMember = {
+          id: assignment.id,
+          user_id: assignment.stakeholders?.id,
+          name: assignment.stakeholders?.contact_person || 'Unknown Employee',
+          role: assignment.role || 'Employee',
+          hours_allocated: assignment.total_hours || 0,
+          hours_used: Math.floor((assignment.total_hours || 0) * 0.7),
+          cost_per_hour: assignment.hourly_rate || 0,
+          availability: 85,
+          tasks: []
+        };
+
+        allocation.members.push(member);
+        allocation.total_budget += assignment.total_cost || 0;
+        allocation.total_used += member.hours_used * member.cost_per_hour;
+      });
+
+      setAllocations(Array.from(groupedAllocations.values()));
+    } catch (error) {
+      console.error('Error in fetchAllocations:', error);
+      setAllocations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, projectId]);
+
+  useEffect(() => {
+    if (!user) {
+      setAllocations([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('stakeholder_assignments_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stakeholder_assignments'
+        },
+        () => {
+          fetchAllocations();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchAllocations();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAllocations]);
 
   const createAllocation = async (allocationData: Partial<ResourceAllocation>) => {
     if (!user) return { error: 'User not authenticated' };
-
-    // Note: With the new system, we create stakeholder assignments directly
-    // This function is maintained for compatibility but should use the stakeholder assignments system
-    console.warn('Creating allocations should now use stakeholder assignments directly');
-    
+    console.warn('Use stakeholder assignments system for creating new allocations');
     return { error: 'Use stakeholder assignments system for creating new allocations' };
   };
 
