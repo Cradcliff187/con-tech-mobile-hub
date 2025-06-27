@@ -58,6 +58,20 @@ export const StakeholderInfo: React.FC<StakeholderInfoProps> = ({
     return '?';
   };
 
+  const getDisplayName = (person: { full_name?: string; email?: string; contact_person?: string }) => {
+    if ('full_name' in person) {
+      return person.full_name || person.email;
+    }
+    return person.contact_person;
+  };
+
+  const getDisplayInitials = (person: { full_name?: string; email?: string; contact_person?: string }) => {
+    if ('full_name' in person) {
+      return getInitials(person.full_name, person.email);
+    }
+    return getInitials(person.contact_person);
+  };
+
   // Determine primary stakeholder (prioritize employee assignee, then stakeholder assignments)
   const primaryStakeholder = assignee || 
     (stakeholderAssignments.length > 0 ? stakeholderAssignments[0].stakeholder : assignedStakeholder);
@@ -79,8 +93,7 @@ export const StakeholderInfo: React.FC<StakeholderInfoProps> = ({
       <div className="flex items-center gap-1">
         <Avatar className={`${size === 'sm' ? 'h-5 w-5' : 'h-6 w-6'}`}>
           <AvatarFallback className="text-xs bg-slate-200">
-            {assignee ? getInitials(assignee.full_name, assignee.email) : 
-             getInitials(primaryStakeholder?.contact_person)}
+            {primaryStakeholder ? getDisplayInitials(primaryStakeholder) : '?'}
           </AvatarFallback>
         </Avatar>
         {totalAssignments > 1 && (
@@ -100,14 +113,13 @@ export const StakeholderInfo: React.FC<StakeholderInfoProps> = ({
         <div className="flex items-center gap-2">
           <Avatar className={`${size === 'sm' ? 'h-5 w-5' : 'h-6 w-6'}`}>
             <AvatarFallback className="text-xs bg-slate-200">
-              {assignee ? getInitials(assignee.full_name, assignee.email) : 
-               getInitials(primaryStakeholder.contact_person)}
+              {getDisplayInitials(primaryStakeholder)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium text-slate-800 truncate`}>
-                {assignee ? (assignee.full_name || assignee.email) : primaryStakeholder.contact_person}
+                {getDisplayName(primaryStakeholder)}
               </span>
               {!assignee && 'stakeholder_type' in primaryStakeholder && (
                 <Badge 
