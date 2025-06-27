@@ -17,9 +17,9 @@ export const WorkloadValidationButton: React.FC = () => {
 
   const getStatusText = () => {
     if (!validationResult) return 'Not Tested';
-    if (validationResult.isValid && validationResult.warnings.length === 0) return 'All Good';
+    if (validationResult.isValid && validationResult.warnings.length === 0) return 'Working';
     if (validationResult.isValid) return 'With Warnings';
-    return 'Has Errors';
+    return 'Has Issues';
   };
 
   const getStatusIcon = () => {
@@ -39,7 +39,7 @@ export const WorkloadValidationButton: React.FC = () => {
         className="flex items-center gap-2"
       >
         {getStatusIcon()}
-        {loading ? 'Validating...' : 'Test Workload Functions'}
+        {loading ? 'Testing...' : 'Test Core Functions'}
       </Button>
       
       {validationResult && (

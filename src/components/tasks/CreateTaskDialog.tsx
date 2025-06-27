@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useCreateTaskForm } from './hooks/useCreateTaskForm';
 import { CreateTaskFormFields } from './forms/CreateTaskFormFields';
 import { ProjectContextPanel } from './ProjectContextPanel';
-import { SmartStakeholderAssignment } from './SmartStakeholderAssignment';
+import { BasicStakeholderAssignment } from './BasicStakeholderAssignment';
 import { useProjects } from '@/hooks/useProjects';
 import { Separator } from '@/components/ui/separator';
 
@@ -16,7 +16,7 @@ interface CreateTaskDialogProps {
 }
 
 export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) => {
-  const [showAdvancedAssignment, setShowAdvancedAssignment] = useState(false);
+  const [showAssignmentPanel, setShowAssignmentPanel] = useState(false);
   
   const {
     formData,
@@ -36,16 +36,17 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
     onSuccess: () => onOpenChange(false)
   });
 
-  const handleStakeholderSelect = (stakeholderIds: string[]) => {
-    if (stakeholderIds.length === 1) {
-      handleInputChange('assigned_stakeholder_id', stakeholderIds[0]);
+  const handleStakeholderSelect = (stakeholderId: string | undefined) => {
+    handleInputChange('assigned_stakeholder_id', stakeholderId);
+    if (stakeholderId) {
       handleInputChange('assigned_stakeholder_ids', []);
-    } else if (stakeholderIds.length > 1) {
-      handleInputChange('assigned_stakeholder_ids', stakeholderIds);
+    }
+  };
+
+  const handleMultiStakeholderSelect = (stakeholderIds: string[]) => {
+    handleInputChange('assigned_stakeholder_ids', stakeholderIds);
+    if (stakeholderIds.length > 0) {
       handleInputChange('assigned_stakeholder_id', undefined);
-    } else {
-      handleInputChange('assigned_stakeholder_id', undefined);
-      handleInputChange('assigned_stakeholder_ids', []);
     }
   };
 
@@ -75,29 +76,26 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                   getFieldError={getFieldError}
                 />
 
-                {/* Smart Assignment Toggle */}
+                {/* Basic Assignment Panel Toggle */}
                 <div className="pt-4 border-t border-slate-200">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowAdvancedAssignment(!showAdvancedAssignment)}
+                    onClick={() => setShowAssignmentPanel(!showAssignmentPanel)}
                     className="w-full mb-4"
                   >
-                    {showAdvancedAssignment ? 'Hide' : 'Show'} Smart Assignment Suggestions
+                    {showAssignmentPanel ? 'Hide' : 'Show'} Assignment Panel
                   </Button>
 
-                  {showAdvancedAssignment && formData.project_id && (
-                    <SmartStakeholderAssignment
+                  {showAssignmentPanel && formData.project_id && (
+                    <BasicStakeholderAssignment
                       projectId={formData.project_id}
                       requiredSkills={formData.required_skills || []}
-                      selectedStakeholderIds={[
-                        ...(formData.assigned_stakeholder_id ? [formData.assigned_stakeholder_id] : []),
-                        ...(formData.assigned_stakeholder_ids || [])
-                      ]}
-                      onSelectionChange={handleStakeholderSelect}
-                      taskPriority={formData.priority || 'medium'}
-                      estimatedHours={formData.estimated_hours}
-                      dueDate={formData.due_date}
+                      selectedStakeholderId={formData.assigned_stakeholder_id}
+                      selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
+                      onSingleSelect={handleStakeholderSelect}
+                      onMultiSelect={handleMultiStakeholderSelect}
+                      multiSelectMode={false}
                     />
                   )}
                 </div>

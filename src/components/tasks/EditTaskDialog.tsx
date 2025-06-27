@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Task } from '@/types/database';
@@ -10,7 +9,7 @@ import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
 import { EditTaskViewMode } from './forms/EditTaskViewMode';
 import { EditTaskDialogContent } from './forms/EditTaskDialogContent';
 import { ProjectContextPanel } from './ProjectContextPanel';
-import { SmartStakeholderAssignment } from './SmartStakeholderAssignment';
+import { BasicStakeholderAssignment } from './BasicStakeholderAssignment';
 import { useEditTaskForm } from './forms/useEditTaskForm';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 import { useProjects } from '@/hooks/useProjects';
@@ -29,7 +28,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [showProjectChangeConfirm, setShowProjectChangeConfirm] = useState(false);
   const [pendingProjectChange, setPendingProjectChange] = useState<string>('');
   const [currentMode, setCurrentMode] = useState<'edit' | 'view'>(mode);
-  const [showAdvancedAssignment, setShowAdvancedAssignment] = useState(false);
+  const [showAssignmentPanel, setShowAssignmentPanel] = useState(false);
   
   const { updateTask } = useTasks();
   const { toast } = useToast();
@@ -93,16 +92,17 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     setPendingProjectChange('');
   }, []);
 
-  const handleStakeholderSelect = (stakeholderIds: string[]) => {
-    if (stakeholderIds.length === 1) {
-      formData.handleInputChange('assigned_stakeholder_id', stakeholderIds[0]);
+  const handleStakeholderSelect = (stakeholderId: string | undefined) => {
+    formData.handleInputChange('assigned_stakeholder_id', stakeholderId);
+    if (stakeholderId) {
       formData.handleInputChange('assigned_stakeholder_ids', []);
-    } else if (stakeholderIds.length > 1) {
-      formData.handleInputChange('assigned_stakeholder_ids', stakeholderIds);
+    }
+  };
+
+  const handleMultiStakeholderSelect = (stakeholderIds: string[]) => {
+    formData.handleInputChange('assigned_stakeholder_ids', stakeholderIds);
+    if (stakeholderIds.length > 0) {
       formData.handleInputChange('assigned_stakeholder_id', undefined);
-    } else {
-      formData.handleInputChange('assigned_stakeholder_id', undefined);
-      formData.handleInputChange('assigned_stakeholder_ids', []);
     }
   };
 
@@ -182,29 +182,26 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                       loading={updateOperation.loading}
                     />
 
-                    {/* Smart Assignment Toggle */}
+                    {/* Basic Assignment Panel Toggle */}
                     <div className="pt-4 border-t border-slate-200">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setShowAdvancedAssignment(!showAdvancedAssignment)}
+                        onClick={() => setShowAssignmentPanel(!showAssignmentPanel)}
                         className="w-full mb-4"
                       >
-                        {showAdvancedAssignment ? 'Hide' : 'Show'} Smart Reassignment Suggestions
+                        {showAssignmentPanel ? 'Hide' : 'Show'} Assignment Panel
                       </Button>
 
-                      {showAdvancedAssignment && formData.projectId && (
-                        <SmartStakeholderAssignment
+                      {showAssignmentPanel && formData.projectId && (
+                        <BasicStakeholderAssignment
                           projectId={formData.projectId}
                           requiredSkills={formData.requiredSkills || []}
-                          selectedStakeholderIds={[
-                            ...(formData.assigned_stakeholder_id ? [formData.assigned_stakeholder_id] : []),
-                            ...(formData.assigned_stakeholder_ids || [])
-                          ]}
-                          onSelectionChange={handleStakeholderSelect}
-                          taskPriority={formData.priority || 'medium'}
-                          estimatedHours={formData.estimatedHours}
-                          dueDate={formData.dueDate ? formData.dueDate.toISOString().split('T')[0] : undefined}
+                          selectedStakeholderId={formData.assigned_stakeholder_id}
+                          selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
+                          onSingleSelect={handleStakeholderSelect}
+                          onMultiSelect={handleMultiStakeholderSelect}
+                          multiSelectMode={false}
                           existingAssignments={existingAssignments}
                         />
                       )}
