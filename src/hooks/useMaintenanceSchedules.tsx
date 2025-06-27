@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useImprovedMaintenanceScheduleSubscription } from '@/hooks/maintenance/useImprovedMaintenanceScheduleSubscription';
 
 interface MaintenanceSchedule {
   id: string;
@@ -39,18 +38,74 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Create stable callback for subscription
-  const stableSchedulesUpdate = useCallback((updatedSchedules: MaintenanceSchedule[]) => {
-    setSchedules(updatedSchedules);
-    setLoading(false);
-  }, []);
+  const fetchSchedules = useCallback(async () => {
+    if (!user) {
+      setSchedules([]);
+      setLoading(false);
+      return;
+    }
 
-  // Use improved real-time subscription
-  useImprovedMaintenanceScheduleSubscription({
-    user,
-    onSchedulesUpdate: stableSchedulesUpdate,
-    equipmentId
-  });
+    try {
+      let query = supabase
+        .from('maintenance_schedules')
+        .select(`
+          *,
+          equipment:equipment(id, name, type),
+          auto_assign_stakeholder:stakeholders(id, contact_person, company_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (equipmentId) {
+        query = query.eq('equipment_id', equipmentId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching maintenance schedules:', error);
+        setSchedules([]);
+        return;
+      }
+
+      setSchedules(data || []);
+    } catch (error) {
+      console.error('Error in fetchSchedules:', error);
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, equipmentId]);
+
+  useEffect(() => {
+    if (!user) {
+      setSchedules([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('maintenance_schedules_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'maintenance_schedules'
+        },
+        () => {
+          fetchSchedules();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchSchedules();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchSchedules]);
 
   const createSchedule = useCallback(async (scheduleData: Omit<MaintenanceSchedule, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: 'User not authenticated' };
@@ -71,7 +126,6 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Maintenance schedule created successfully"
@@ -109,7 +163,6 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Maintenance schedule updated successfully"
@@ -138,7 +191,6 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Maintenance schedule deleted successfully"

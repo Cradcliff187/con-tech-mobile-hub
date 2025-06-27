@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useImprovedStakeholderSubscription } from '@/hooks/stakeholders/useImprovedStakeholderSubscription';
 
 export interface Stakeholder {
   id: string;
@@ -35,18 +34,64 @@ export const useStakeholders = (projectId?: string) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Create a stable callback reference to prevent subscription loops
-  const stableStakeholdersUpdate = useCallback((updatedStakeholders: Stakeholder[]) => {
-    setStakeholders(updatedStakeholders);
-    setLoading(false);
-  }, []);
+  const fetchStakeholders = useCallback(async () => {
+    if (!user) {
+      setStakeholders([]);
+      setLoading(false);
+      return;
+    }
 
-  // Use improved real-time subscription with stable callback
-  useImprovedStakeholderSubscription({
-    user,
-    onStakeholdersUpdate: stableStakeholdersUpdate,
-    projectId
-  });
+    try {
+      const { data, error } = await supabase
+        .from('stakeholders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching stakeholders:', error);
+        setStakeholders([]);
+        return;
+      }
+
+      setStakeholders(data || []);
+    } catch (error) {
+      console.error('Error in fetchStakeholders:', error);
+      setStakeholders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) {
+      setStakeholders([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('stakeholders_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stakeholders'
+        },
+        () => {
+          fetchStakeholders();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchStakeholders();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchStakeholders]);
 
   const createStakeholder = useCallback(async (stakeholderData: Omit<Stakeholder, 'id' | 'created_at' | 'updated_at' | 'rating'>) => {
     try {
@@ -61,7 +106,6 @@ export const useStakeholders = (projectId?: string) => {
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (error) {
       console.error('Error creating stakeholder:', error);
@@ -99,7 +143,6 @@ export const useStakeholders = (projectId?: string) => {
       console.log('=== DEBUG: Supabase update successful ===');
       console.log('Returned data:', JSON.stringify(data, null, 2));
       
-      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (error) {
       console.error('Error updating stakeholder:', error);
@@ -116,7 +159,6 @@ export const useStakeholders = (projectId?: string) => {
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Stakeholder deleted successfully"
@@ -133,11 +175,9 @@ export const useStakeholders = (projectId?: string) => {
     }
   }, [toast]);
 
-  // Backward compatibility function - real-time updates handle data automatically
-  const refetch = useCallback(() => {
-    console.log('refetch() called - data updates automatically via real-time subscription');
-    return Promise.resolve();
-  }, []);
+  const refetch = useCallback(async () => {
+    await fetchStakeholders();
+  }, [fetchStakeholders]);
 
   return { 
     stakeholders, 

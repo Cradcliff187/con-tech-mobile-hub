@@ -39,7 +39,13 @@ export const useStakeholderAssignments = (projectId?: string) => {
         return;
       }
 
-      setAssignments(data || []);
+      // Map the data to ensure proper typing
+      const mappedAssignments = (data || []).map(assignment => ({
+        ...assignment,
+        status: (assignment.status || 'assigned') as 'assigned' | 'active' | 'completed' | 'cancelled' | 'on-hold'
+      })) as StakeholderAssignment[];
+
+      setAssignments(mappedAssignments);
     } catch (error) {
       console.error('Error in fetchAssignments:', error);
       setAssignments([]);
@@ -57,7 +63,7 @@ export const useStakeholderAssignments = (projectId?: string) => {
 
     // Simple subscription without complex manager
     const channel = supabase
-      .channel('stakeholder_assignments_mgmt_simple')
+      .channel('stakeholder_assignments_simple')
       .on(
         'postgres_changes',
         {

@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useImprovedEquipmentSubscription } from '@/hooks/equipment/useImprovedEquipmentSubscription';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Equipment {
   id: string;
@@ -25,20 +25,73 @@ export const useEquipment = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  // Use improved real-time subscription
-  useImprovedEquipmentSubscription({
-    user,
-    onEquipmentUpdate: (updatedEquipment) => {
-      setEquipment(updatedEquipment);
+  const fetchEquipment = useCallback(async () => {
+    if (!user) {
+      setEquipment([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select(`
+          *,
+          project:projects(id, name),
+          operator:profiles!operator_id(id, full_name),
+          assigned_operator:stakeholders!assigned_operator_id(id, contact_person, company_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching equipment:', error);
+        setEquipment([]);
+        return;
+      }
+
+      setEquipment(data || []);
+    } catch (error) {
+      console.error('Error in fetchEquipment:', error);
+      setEquipment([]);
+    } finally {
       setLoading(false);
     }
-  });
+  }, [user?.id]);
 
-  // Backward compatibility function - real-time updates handle data automatically
-  const refetch = () => {
-    console.log('refetch() called - data updates automatically via real-time subscription');
-    return Promise.resolve();
-  };
+  useEffect(() => {
+    if (!user) {
+      setEquipment([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('equipment_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment'
+        },
+        () => {
+          fetchEquipment();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchEquipment();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchEquipment]);
+
+  const refetch = useCallback(async () => {
+    await fetchEquipment();
+  }, [fetchEquipment]);
 
   return { 
     equipment, 

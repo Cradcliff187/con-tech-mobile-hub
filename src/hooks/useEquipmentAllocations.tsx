@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { prepareOptionalSelectField } from '@/utils/selectHelpers';
-import { useImprovedEquipmentAllocationSubscription } from '@/hooks/equipment/useImprovedEquipmentAllocationSubscription';
 
 export interface EquipmentAllocation {
   id: string;
@@ -32,56 +31,111 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Create stable callback for subscription
-  const stableAllocationsUpdate = useCallback(async (updatedAllocations: any[]) => {
-    // Process allocations with operator details
-    const processedAllocations = await Promise.all(
-      updatedAllocations.map(allocation => processAllocationData(allocation))
-    );
-    setAllocations(processedAllocations);
-    setLoading(false);
-  }, []);
-
-  // Use improved real-time subscription
-  useImprovedEquipmentAllocationSubscription({
-    user,
-    onAllocationsUpdate: stableAllocationsUpdate,
-    equipmentId,
-    projectId
-  });
-
-  const fetchOperatorDetails = async (allocation: any) => {
-    let operator_stakeholder = null;
-    let operator_user = null;
-
-    if (allocation.operator_id && allocation.operator_type) {
-      if (allocation.operator_type === 'employee') {
-        const { data: stakeholder } = await supabase
-          .from('stakeholders')
-          .select('id, contact_person, company_name')
-          .eq('id', allocation.operator_id)
-          .single();
-        operator_stakeholder = stakeholder;
-      } else if (allocation.operator_type === 'user') {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .eq('id', allocation.operator_id)
-          .single();
-        operator_user = userProfile;
-      }
+  const fetchAllocations = useCallback(async () => {
+    if (!user) {
+      setAllocations([]);
+      setLoading(false);
+      return;
     }
 
-    return {
-      ...allocation,
-      operator_stakeholder,
-      operator_user
-    };
-  };
+    try {
+      let query = supabase
+        .from('equipment_allocations')
+        .select(`
+          *,
+          project:projects!inner(id, name),
+          equipment:equipment(id, name, type),
+          task:tasks(id, title)
+        `)
+        .order('created_at', { ascending: false });
 
-  const processAllocationData = async (rawData: any): Promise<EquipmentAllocation> => {
-    return await fetchOperatorDetails(rawData);
-  };
+      if (equipmentId) {
+        query = query.eq('equipment_id', equipmentId);
+      }
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching equipment allocations:', error);
+        setAllocations([]);
+        return;
+      }
+
+      // Process allocations with operator details
+      const processedAllocations = await Promise.all(
+        (data || []).map(async (allocation) => {
+          let operator_stakeholder = null;
+          let operator_user = null;
+
+          if (allocation.operator_id && allocation.operator_type) {
+            if (allocation.operator_type === 'employee') {
+              const { data: stakeholder } = await supabase
+                .from('stakeholders')
+                .select('id, contact_person, company_name')
+                .eq('id', allocation.operator_id)
+                .single();
+              operator_stakeholder = stakeholder;
+            } else if (allocation.operator_type === 'user') {
+              const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('id', allocation.operator_id)
+                .single();
+              operator_user = userProfile;
+            }
+          }
+
+          return {
+            ...allocation,
+            operator_stakeholder,
+            operator_user
+          };
+        })
+      );
+
+      setAllocations(processedAllocations);
+    } catch (error) {
+      console.error('Error in fetchAllocations:', error);
+      setAllocations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, equipmentId, projectId]);
+
+  useEffect(() => {
+    if (!user) {
+      setAllocations([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('equipment_allocations_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment_allocations'
+        },
+        () => {
+          fetchAllocations();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchAllocations();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAllocations]);
 
   const createAllocation = useCallback(async (allocationData: {
     equipment_id: string;
@@ -122,7 +176,6 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Equipment allocation created successfully"
@@ -168,7 +221,6 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Equipment allocation updated successfully"
@@ -195,7 +247,6 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: "Equipment allocation deleted successfully"
@@ -250,11 +301,7 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
 
     const { data, error } = await query;
     
-    // Process conflicts with operator details
-    const processedConflicts = await Promise.all(
-      (data || []).map(allocation => processAllocationData(allocation))
-    );
-    return { conflicts: processedConflicts, error };
+    return { conflicts: data || [], error };
   }, []);
 
   const createBulkAllocations = useCallback(async (allocationsData: Array<{
@@ -294,7 +341,6 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
 
       if (error) throw error;
 
-      // Real-time subscription will handle state update
       toast({
         title: "Success",
         description: `${data.length} equipment allocations created successfully`

@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useImprovedDocumentSubscription } from '@/hooks/documents/useImprovedDocumentSubscription';
 
 interface DocumentRecord {
   id: string;
@@ -72,18 +71,74 @@ export const useDocuments = (projectId?: string) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
 
-  // Create stable callback for subscription
-  const stableDocumentsUpdate = useCallback((updatedDocuments: DocumentRecord[]) => {
-    setDocuments(updatedDocuments);
-    setLoading(false);
-  }, []);
+  const fetchDocuments = useCallback(async () => {
+    if (!user) {
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
 
-  // Use improved real-time subscription
-  useImprovedDocumentSubscription({
-    user,
-    onDocumentsUpdate: stableDocumentsUpdate,
-    projectId
-  });
+    try {
+      let query = supabase
+        .from('documents')
+        .select(`
+          *,
+          uploader:profiles!uploaded_by(full_name, email),
+          project:projects(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching documents:', error);
+        setDocuments([]);
+        return;
+      }
+
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error in fetchDocuments:', error);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, projectId]);
+
+  useEffect(() => {
+    if (!user) {
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('documents_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents'
+        },
+        () => {
+          fetchDocuments();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchDocuments();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchDocuments]);
 
   const uploadDocument = useCallback(async (
     file: File, 
@@ -146,7 +201,6 @@ export const useDocuments = (projectId?: string) => {
         throw new Error(`Failed to save document metadata: ${error.message}`);
       }
 
-      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (error) {
       throw error;
@@ -175,7 +229,6 @@ export const useDocuments = (projectId?: string) => {
         throw new Error(`Failed to delete document: ${error.message}`);
       }
 
-      // Real-time subscription will handle state update
       return { error: null };
     } catch (error) {
       throw error;
@@ -310,10 +363,6 @@ export const useDocuments = (projectId?: string) => {
     previewDocument,
     canUpload,
     canDelete,
-    // Backward compatibility function - real-time updates handle data automatically
-    refetch: () => {
-      console.log('refetch() called - data updates automatically via real-time subscription');
-      return Promise.resolve();
-    }
+    refetch: fetchDocuments
   };
 };

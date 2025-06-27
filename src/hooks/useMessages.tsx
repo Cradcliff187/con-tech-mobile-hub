@@ -1,8 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useImprovedMessageSubscription } from '@/hooks/messages/useImprovedMessageSubscription';
 
 interface Message {
   id: string;
@@ -22,15 +21,73 @@ export const useMessages = (projectId?: string) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  // Use improved real-time subscription
-  useImprovedMessageSubscription({
-    user,
-    onMessagesUpdate: (updatedMessages) => {
-      setMessages(updatedMessages);
+  const fetchMessages = useCallback(async () => {
+    if (!user) {
+      setMessages([]);
       setLoading(false);
-    },
-    projectId
-  });
+      return;
+    }
+
+    try {
+      let query = supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!sender_id(full_name, email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        setMessages([]);
+        return;
+      }
+
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error in fetchMessages:', error);
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, projectId]);
+
+  useEffect(() => {
+    if (!user) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('messages_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchMessages();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchMessages]);
 
   const sendMessage = async (content: string, messageType: string = 'text', targetProjectId?: string) => {
     if (!user) return { error: 'User not authenticated' };
@@ -49,18 +106,12 @@ export const useMessages = (projectId?: string) => {
       `)
       .single();
 
-    if (!error && data) {
-      // Real-time subscription will handle state update
-    }
-
     return { data, error };
   };
 
-  // Manual refetch function for compatibility
-  const refetch = async () => {
-    // Real-time subscription handles automatic updates, but this is kept for compatibility
-    console.log('Manual refetch called - real-time subscription should handle updates automatically');
-  };
+  const refetch = useCallback(async () => {
+    await fetchMessages();
+  }, [fetchMessages]);
 
   return {
     messages,
