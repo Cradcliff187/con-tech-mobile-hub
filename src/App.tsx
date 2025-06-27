@@ -14,7 +14,6 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import ComponentShowcase from "./pages/ComponentShowcase";
 import NotFound from "./pages/NotFound";
-import SubscriptionTest from "./components/test/SubscriptionTest";
 
 // Create QueryClient outside of component to avoid recreation on re-renders
 const queryClient = new QueryClient({
@@ -52,15 +51,6 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <Admin />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  {/* Temporary test route - remove after testing */}
-                  <Route 
-                    path="/test-subscriptions" 
-                    element={
-                      <ProtectedRoute>
-                        <SubscriptionTest />
                       </ProtectedRoute>
                     } 
                   />

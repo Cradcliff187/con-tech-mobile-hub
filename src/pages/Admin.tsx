@@ -7,8 +7,9 @@ import { ApplicationHealth } from '@/components/admin/ApplicationHealth';
 import { MigrationStatus } from '@/components/admin/MigrationStatus';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Database, Shield, Activity, ArrowLeftRight } from 'lucide-react';
+import { Users, Database, Shield, Activity, ArrowLeftRight, Zap } from 'lucide-react';
 import { AddressMigration } from '@/components/admin/AddressMigration';
+import SubscriptionTest from '@/components/test/SubscriptionTest';
 
 const Admin = () => {
   const { isAdmin, loading } = useAdminAuth();
@@ -42,10 +43,14 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="health" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto">
             <TabsTrigger value="health" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Health Monitor
+            </TabsTrigger>
+            <TabsTrigger value="subscriptions" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Subscription Testing
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -67,6 +72,10 @@ const Admin = () => {
 
           <TabsContent value="health" className="space-y-6">
             <ApplicationHealth />
+          </TabsContent>
+
+          <TabsContent value="subscriptions" className="space-y-6">
+            <SubscriptionTest />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
