@@ -10,7 +10,7 @@ import {
   completeMaintenanceTask,
   deleteMaintenanceTask
 } from '@/services/maintenanceTaskService';
-import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export const useMaintenanceTasks = () => {
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
@@ -45,36 +45,31 @@ export const useMaintenanceTasks = () => {
     }
   }, [user?.id]);
 
+  // Handle real-time updates using centralized subscription manager
+  const handleMaintenanceTasksUpdate = useCallback((payload: any) => {
+    console.log('Maintenance tasks change detected:', payload);
+    fetchTasks();
+  }, [fetchTasks]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'maintenance_tasks',
+    handleMaintenanceTasksUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchTasks();
+    } else {
       setTasks([]);
       setLoading(false);
-      return;
     }
-
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('maintenance_tasks_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'maintenance_tasks'
-        },
-        () => {
-          fetchTasks();
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchTasks();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchTasks]);
+  }, [user?.id, fetchTasks]);
 
   const refetch = useCallback(async () => {
     await fetchTasks();

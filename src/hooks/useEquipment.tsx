@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export interface Equipment {
   id: string;
@@ -58,36 +59,31 @@ export const useEquipment = () => {
     }
   }, [user?.id]);
 
+  // Handle real-time updates using centralized subscription manager
+  const handleEquipmentUpdate = useCallback((payload: any) => {
+    console.log('Equipment change detected:', payload);
+    fetchEquipment();
+  }, [fetchEquipment]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'equipment',
+    handleEquipmentUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchEquipment();
+    } else {
       setEquipment([]);
       setLoading(false);
-      return;
     }
-
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('equipment_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'equipment'
-        },
-        () => {
-          fetchEquipment();
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchEquipment();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchEquipment]);
+  }, [user?.id, fetchEquipment]);
 
   const refetch = useCallback(async () => {
     await fetchEquipment();

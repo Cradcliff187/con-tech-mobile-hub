@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface DocumentRecord {
   id: string;
@@ -109,36 +110,31 @@ export const useDocuments = (projectId?: string) => {
     }
   }, [user?.id, projectId]);
 
+  // Handle real-time updates using centralized subscription manager
+  const handleDocumentsUpdate = useCallback((payload: any) => {
+    console.log('Documents change detected:', payload);
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'documents',
+    handleDocumentsUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchDocuments();
+    } else {
       setDocuments([]);
       setLoading(false);
-      return;
     }
-
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('documents_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'documents'
-        },
-        () => {
-          fetchDocuments();
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchDocuments();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchDocuments]);
+  }, [user?.id, fetchDocuments]);
 
   const uploadDocument = useCallback(async (
     file: File, 

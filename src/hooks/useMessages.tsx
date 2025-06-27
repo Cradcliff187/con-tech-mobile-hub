@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Message {
   id: string;
@@ -58,36 +59,31 @@ export const useMessages = (projectId?: string) => {
     }
   }, [user?.id, projectId]);
 
+  // Handle real-time updates using centralized subscription manager
+  const handleMessagesUpdate = useCallback((payload: any) => {
+    console.log('Messages change detected:', payload);
+    fetchMessages();
+  }, [fetchMessages]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'messages',
+    handleMessagesUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchMessages();
+    } else {
       setMessages([]);
       setLoading(false);
-      return;
     }
-
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('messages_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        () => {
-          fetchMessages();
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchMessages();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchMessages]);
+  }, [user?.id, fetchMessages]);
 
   const sendMessage = async (content: string, messageType: string = 'text', targetProjectId?: string) => {
     if (!user) return { error: 'User not authenticated' };

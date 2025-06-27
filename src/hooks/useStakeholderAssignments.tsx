@@ -5,6 +5,7 @@ import { StakeholderAssignment, CreateAssignmentData } from './stakeholders/type
 import * as assignmentService from './stakeholders/assignmentService';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export type { StakeholderAssignment } from './stakeholders/types';
 
@@ -54,36 +55,31 @@ export const useStakeholderAssignments = (projectId?: string) => {
     }
   }, [user?.id, projectId]);
 
+  // Handle real-time updates using centralized subscription manager
+  const handleStakeholderAssignmentsUpdate = useCallback((payload: any) => {
+    console.log('Stakeholder assignments change detected:', payload);
+    fetchAssignments();
+  }, [fetchAssignments]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'stakeholder_assignments',
+    handleStakeholderAssignmentsUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchAssignments();
+    } else {
       setAssignments([]);
       setLoading(false);
-      return;
     }
-
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('stakeholder_assignments_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stakeholder_assignments'
-        },
-        () => {
-          fetchAssignments();
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchAssignments();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchAssignments]);
+  }, [user?.id, fetchAssignments]);
 
   const createAssignment = useCallback(async (assignmentData: CreateAssignmentData) => {
     try {
