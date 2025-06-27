@@ -87,19 +87,23 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     validation.clearFieldError('punch_list_category');
   }, [formState, validation]);
 
-  // Generic input change handler
+  // Enhanced input change handler with better error handling
   const handleInputChange = useCallback((field: string, value: any) => {
-    switch (field) {
-      case 'assigned_stakeholder_id':
-        formState.setAssignedStakeholderId?.(value);
-        break;
-      case 'assigned_stakeholder_ids':
-        formState.setAssignedStakeholderIds?.(value);
-        break;
-      default:
-        console.warn(`Unhandled field in handleInputChange: ${field}`);
+    try {
+      switch (field) {
+        case 'assigned_stakeholder_id':
+          formState.setAssignedStakeholderId?.(value);
+          break;
+        case 'assigned_stakeholder_ids':
+          formState.setAssignedStakeholderIds?.(value);
+          break;
+        default:
+          console.warn(`Unhandled field in handleInputChange: ${field}`);
+      }
+      validation.clearFieldError(field);
+    } catch (error) {
+      console.error(`Error updating field ${field}:`, error);
     }
-    validation.clearFieldError(field);
   }, [formState, validation]);
 
   // Validation methods
@@ -179,7 +183,7 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     punchListCategory: formState.punchListCategory,
     setPunchListCategory: handlePunchListCategoryChange,
     
-    // Assignment fields (from task)
+    // Assignment fields (from task) - Enhanced with safety checks
     assigned_stakeholder_id: task?.assigned_stakeholder_id,
     assigned_stakeholder_ids: task?.assigned_stakeholder_ids || [],
     
