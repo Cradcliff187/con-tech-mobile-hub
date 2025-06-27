@@ -1,8 +1,9 @@
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface UseTasksOptions {
   projectId?: string;
@@ -15,27 +16,11 @@ export const useTasks = (options: UseTasksOptions = {}) => {
   const { user, profile } = useAuth();
   const { projectId } = options;
 
-  // Subscription management references
-  const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Memoize session readiness to prevent unnecessary re-computations
   const isSessionReady = useMemo(() => {
     const ready = !!user && !!profile;
     return ready;
   }, [user?.id, profile?.id]); // Only depend on IDs to prevent object reference changes
-
-  // Debounced fetch function
-  const debouncedFetch = useCallback(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    
-    debounceTimeoutRef.current = setTimeout(() => {
-      fetchTasks();
-    }, 100);
-  }, []);
 
   // Stable fetch function that doesn't change on every render
   const fetchTasks = useCallback(async () => {
@@ -88,24 +73,30 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     }
   }, [isSessionReady]);
 
-  // Cleanup subscription function
-  const cleanupSubscription = useCallback(() => {
-    if (channelRef.current) {
-      try {
-        supabase.removeChannel(channelRef.current);
-        console.log('Tasks subscription cleaned up');
-      } catch (error) {
-        console.error('Error cleaning up subscription:', error);
-      }
-      channelRef.current = null;
+  // Handle real-time updates using centralized subscription manager
+  const handleTasksUpdate = useCallback((payload: any) => {
+    console.log('Tasks change detected:', payload);
+    fetchTasks();
+  }, [fetchTasks]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'tasks',
+    handleTasksUpdate,
+    {
+      userId: user?.id,
+      enabled: isSessionReady
     }
-    isSubscribedRef.current = false;
-    
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-      debounceTimeoutRef.current = null;
+  );
+
+  // Initial fetch when session is ready
+  useEffect(() => {
+    if (isSessionReady) {
+      fetchTasks();
+    } else {
+      setLoading(false);
     }
-  }, []);
+  }, [isSessionReady, fetchTasks]);
 
   const createTask = useCallback(async (taskData: Partial<Task>) => {
     if (!isSessionReady) return { error: 'Session not ready' };
@@ -176,68 +167,6 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       return { error: errorMessage };
     }
   }, [isSessionReady]);
-
-  // Set up subscription with proper cleanup and stable references
-  useEffect(() => {
-    // Clean up existing channel before creating new one
-    if (channelRef.current) {
-      cleanupSubscription();
-    }
-
-    if (!isSessionReady) {
-      setLoading(false);
-      return;
-    }
-
-    // Prevent duplicate subscriptions
-    if (isSubscribedRef.current) {
-      return;
-    }
-
-    try {
-      // Create unique channel name with user ID and timestamp
-      const channelName = `tasks_${user!.id}_${Date.now()}`;
-      
-      // Create subscription with unique channel name
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'tasks'
-          },
-          (payload) => {
-            console.log('Tasks change detected:', payload);
-            debouncedFetch();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Tasks subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            isSubscribedRef.current = true;
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('Tasks subscription error:', status);
-            isSubscribedRef.current = false;
-          }
-        });
-
-      channelRef.current = channel;
-
-      // Initial fetch
-      fetchTasks();
-
-    } catch (error) {
-      console.error('Error setting up tasks subscription:', error);
-      isSubscribedRef.current = false;
-    }
-
-    // Cleanup function
-    return () => {
-      cleanupSubscription();
-    };
-  }, [isSessionReady, user?.id, cleanupSubscription, debouncedFetch, fetchTasks]);
 
   // Filter tasks by project if specified
   const filteredTasks = useMemo(() => {

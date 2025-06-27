@@ -1,9 +1,9 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Project } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -11,23 +11,7 @@ export const useProjects = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Subscription management references
-  const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Debounced fetch function
-  const debouncedFetch = () => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    
-    debounceTimeoutRef.current = setTimeout(() => {
-      fetchProjects();
-    }, 100);
-  };
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     if (!user) {
       setProjects([]);
       setLoading(false);
@@ -68,84 +52,34 @@ export const useProjects = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  // Cleanup subscription function
-  const cleanupSubscription = () => {
-    if (channelRef.current) {
-      try {
-        supabase.removeChannel(channelRef.current);
-        console.log('Projects subscription cleaned up');
-      } catch (error) {
-        console.error('Error cleaning up subscription:', error);
-      }
-      channelRef.current = null;
-    }
-    isSubscribedRef.current = false;
-    
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-      debounceTimeoutRef.current = null;
-    }
-  };
+  // Handle real-time updates using centralized subscription manager
+  const handleProjectsUpdate = useCallback((payload: any) => {
+    console.log('Projects change detected:', payload);
+    // Debounced fetch will be handled by SubscriptionManager
+    fetchProjects();
+  }, [fetchProjects]);
 
+  // Use centralized subscription management
+  const { isSubscribed, error: subscriptionError } = useSubscription(
+    'projects',
+    handleProjectsUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchProjects();
+    } else {
       setProjects([]);
       setLoading(false);
-      cleanupSubscription();
-      return;
     }
-
-    // Prevent duplicate subscriptions
-    if (isSubscribedRef.current) {
-      return;
-    }
-
-    try {
-      // Create unique channel name with timestamp
-      const channelName = `projects_${user.id}_${Date.now()}`;
-      
-      // Create subscription with unique channel name
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'projects'
-          },
-          (payload) => {
-            console.log('Projects change detected:', payload);
-            debouncedFetch();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Projects subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            isSubscribedRef.current = true;
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('Projects subscription error:', status);
-            isSubscribedRef.current = false;
-          }
-        });
-
-      channelRef.current = channel;
-
-      // Initial fetch
-      fetchProjects();
-
-    } catch (error) {
-      console.error('Error setting up projects subscription:', error);
-      isSubscribedRef.current = false;
-    }
-
-    // Cleanup function
-    return () => {
-      cleanupSubscription();
-    };
-  }, [user?.id]); // Only depend on user?.id to prevent re-subscription loops
+  }, [user?.id, fetchProjects]);
 
   const createProject = async (projectData: Partial<Project>) => {
     if (!user) return { error: 'User not authenticated' };
@@ -370,11 +304,7 @@ export const useProjects = () => {
     deleteProject,
     archiveProject,
     unarchiveProject,
-    // Backward compatibility function - triggers debounced fetch
-    refetch: () => {
-      console.log('refetch() called - triggering debounced fetch');
-      debouncedFetch();
-      return Promise.resolve();
-    }
+    // Enhanced refetch that uses the centralized fetch
+    refetch: fetchProjects
   };
 };

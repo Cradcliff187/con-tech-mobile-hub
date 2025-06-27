@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface MaintenanceSchedule {
   id: string;
@@ -37,21 +38,31 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Subscription management references
-  const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Handle real-time updates using centralized subscription manager
+  const handleSchedulesUpdate = useCallback((payload: any) => {
+    console.log('Maintenance schedules change detected:', payload);
+    fetchSchedules();
+  }, [fetchSchedules]);
 
-  // Debounced fetch function
-  const debouncedFetch = useCallback(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'maintenance_schedules',
+    handleSchedulesUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
     }
-    
-    debounceTimeoutRef.current = setTimeout(() => {
+  );
+
+  // Initial fetch when user changes
+  useEffect(() => {
+    if (user) {
       fetchSchedules();
-    }, 100);
-  }, []);
+    } else {
+      setSchedules([]);
+      setLoading(false);
+    }
+  }, [user?.id, fetchSchedules]);
 
   const fetchSchedules = useCallback(async () => {
     if (!user) {
@@ -99,87 +110,6 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
       setLoading(false);
     }
   }, [user?.id, equipmentId]);
-
-  // Cleanup subscription function
-  const cleanupSubscription = useCallback(() => {
-    if (channelRef.current) {
-      try {
-        supabase.removeChannel(channelRef.current);
-        console.log('Maintenance schedules subscription cleaned up');
-      } catch (error) {
-        console.error('Error cleaning up maintenance schedules subscription:', error);
-      }
-      channelRef.current = null;
-    }
-    isSubscribedRef.current = false;
-    
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-      debounceTimeoutRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    // Clean up existing channel before creating new one
-    if (channelRef.current) {
-      cleanupSubscription();
-    }
-
-    if (!user) {
-      setSchedules([]);
-      setLoading(false);
-      return;
-    }
-
-    // Prevent duplicate subscriptions
-    if (isSubscribedRef.current) {
-      return;
-    }
-
-    try {
-      // Create unique channel name with user ID and timestamp
-      const channelName = `maintenance_schedules_${user.id}_${Date.now()}`;
-      
-      // Create subscription with unique channel name
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'maintenance_schedules'
-          },
-          (payload) => {
-            console.log('Maintenance schedules change detected:', payload);
-            debouncedFetch();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Maintenance schedules subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            isSubscribedRef.current = true;
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('Maintenance schedules subscription error:', status);
-            isSubscribedRef.current = false;
-          }
-        });
-
-      channelRef.current = channel;
-
-      // Initial fetch
-      fetchSchedules();
-
-    } catch (error) {
-      console.error('Error setting up maintenance schedules subscription:', error);
-      isSubscribedRef.current = false;
-    }
-
-    // Cleanup function
-    return () => {
-      cleanupSubscription();
-    };
-  }, [user?.id, equipmentId, fetchSchedules, cleanupSubscription, debouncedFetch]);
 
   const createSchedule = useCallback(async (scheduleData: Omit<MaintenanceSchedule, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: 'User not authenticated' };
