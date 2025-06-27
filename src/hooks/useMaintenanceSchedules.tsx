@@ -37,59 +37,53 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchSchedules = useCallback(async () => {
-    if (!user) {
-      setSchedules([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      let query = supabase
-        .from('maintenance_schedules')
-        .select(`
-          *,
-          equipment:equipment(id, name, type),
-          auto_assign_stakeholder:stakeholders(id, contact_person, company_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (equipmentId) {
-        query = query.eq('equipment_id', equipmentId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching maintenance schedules:', error);
-        setSchedules([]);
-        return;
-      }
-
-      // Map the data with proper type casting
-      const mappedSchedules = (data || []).map(schedule => ({
-        ...schedule,
-        frequency_type: schedule.frequency_type as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'hours_based' | 'usage_based',
-        checklist_template: Array.isArray(schedule.checklist_template) 
-          ? schedule.checklist_template 
-          : []
-      })) as MaintenanceSchedule[];
-
-      setSchedules(mappedSchedules);
-    } catch (error) {
-      console.error('Error in fetchSchedules:', error);
-      setSchedules([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, equipmentId]);
-
   useEffect(() => {
     if (!user) {
       setSchedules([]);
       setLoading(false);
       return;
     }
+
+    const fetchSchedules = async () => {
+      try {
+        let query = supabase
+          .from('maintenance_schedules')
+          .select(`
+            *,
+            equipment:equipment(id, name, type),
+            auto_assign_stakeholder:stakeholders(id, contact_person, company_name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (equipmentId) {
+          query = query.eq('equipment_id', equipmentId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Error fetching maintenance schedules:', error);
+          setSchedules([]);
+          return;
+        }
+
+        // Map the data with proper type casting
+        const mappedSchedules = (data || []).map(schedule => ({
+          ...schedule,
+          frequency_type: schedule.frequency_type as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'hours_based' | 'usage_based',
+          checklist_template: Array.isArray(schedule.checklist_template) 
+            ? schedule.checklist_template 
+            : []
+        })) as MaintenanceSchedule[];
+
+        setSchedules(mappedSchedules);
+      } catch (error) {
+        console.error('Error in fetchSchedules:', error);
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     // Simple subscription without complex manager
     const channel = supabase
@@ -113,7 +107,7 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchSchedules]);
+  }, [user?.id, equipmentId]); // Direct dependencies only
 
   const createSchedule = useCallback(async (scheduleData: Omit<MaintenanceSchedule, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: 'User not authenticated' };

@@ -30,88 +30,82 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchAllocations = useCallback(async () => {
-    if (!user) {
-      setAllocations([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      let query = supabase
-        .from('equipment_allocations')
-        .select(`
-          *,
-          project:projects!inner(id, name),
-          equipment:equipment(id, name, type),
-          task:tasks(id, title)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (equipmentId) {
-        query = query.eq('equipment_id', equipmentId);
-      }
-
-      if (projectId) {
-        query = query.eq('project_id', projectId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching equipment allocations:', error);
-        setAllocations([]);
-        return;
-      }
-
-      // Process allocations with operator details and proper type casting
-      const processedAllocations = await Promise.all(
-        (data || []).map(async (allocation) => {
-          let operator_stakeholder = null;
-          let operator_user = null;
-
-          if (allocation.operator_id && allocation.operator_type) {
-            if (allocation.operator_type === 'employee') {
-              const { data: stakeholder } = await supabase
-                .from('stakeholders')
-                .select('id, contact_person, company_name')
-                .eq('id', allocation.operator_id)
-                .single();
-              operator_stakeholder = stakeholder;
-            } else if (allocation.operator_type === 'user') {
-              const { data: userProfile } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .eq('id', allocation.operator_id)
-                .single();
-              operator_user = userProfile;
-            }
-          }
-
-          return {
-            ...allocation,
-            operator_type: allocation.operator_type as 'employee' | 'user' | null,
-            operator_stakeholder,
-            operator_user
-          } as EquipmentAllocation;
-        })
-      );
-
-      setAllocations(processedAllocations);
-    } catch (error) {
-      console.error('Error in fetchAllocations:', error);
-      setAllocations([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, equipmentId, projectId]);
-
   useEffect(() => {
     if (!user) {
       setAllocations([]);
       setLoading(false);
       return;
     }
+
+    const fetchAllocations = async () => {
+      try {
+        let query = supabase
+          .from('equipment_allocations')
+          .select(`
+            *,
+            project:projects!inner(id, name),
+            equipment:equipment(id, name, type),
+            task:tasks(id, title)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (equipmentId) {
+          query = query.eq('equipment_id', equipmentId);
+        }
+
+        if (projectId) {
+          query = query.eq('project_id', projectId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Error fetching equipment allocations:', error);
+          setAllocations([]);
+          return;
+        }
+
+        // Process allocations with operator details and proper type casting
+        const processedAllocations = await Promise.all(
+          (data || []).map(async (allocation) => {
+            let operator_stakeholder = null;
+            let operator_user = null;
+
+            if (allocation.operator_id && allocation.operator_type) {
+              if (allocation.operator_type === 'employee') {
+                const { data: stakeholder } = await supabase
+                  .from('stakeholders')
+                  .select('id, contact_person, company_name')
+                  .eq('id', allocation.operator_id)
+                  .single();
+                operator_stakeholder = stakeholder;
+              } else if (allocation.operator_type === 'user') {
+                const { data: userProfile } = await supabase
+                  .from('profiles')
+                  .select('id, full_name')
+                  .eq('id', allocation.operator_id)
+                  .single();
+                operator_user = userProfile;
+              }
+            }
+
+            return {
+              ...allocation,
+              operator_type: allocation.operator_type as 'employee' | 'user' | null,
+              operator_stakeholder,
+              operator_user
+            } as EquipmentAllocation;
+          })
+        );
+
+        setAllocations(processedAllocations);
+      } catch (error) {
+        console.error('Error in fetchAllocations:', error);
+        setAllocations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     // Simple subscription without complex manager
     const channel = supabase
@@ -135,7 +129,7 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchAllocations]);
+  }, [user?.id, equipmentId, projectId]); // Direct dependencies only
 
   const createAllocation = useCallback(async (allocationData: {
     equipment_id: string;

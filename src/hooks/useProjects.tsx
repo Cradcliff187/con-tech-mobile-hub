@@ -11,55 +11,49 @@ export const useProjects = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchProjects = useCallback(async () => {
-    if (!user) {
-      setProjects([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:stakeholders(
-            id,
-            company_name,
-            contact_person,
-            stakeholder_type
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching projects:', error);
-        setProjects([]);
-        return;
-      }
-
-      // Map the data to ensure proper typing
-      const mappedProjects = (data || []).map(project => ({
-        ...project,
-        phase: (project.phase || 'planning') as Project['phase'],
-        unified_lifecycle_status: project.unified_lifecycle_status || undefined
-      })) as Project[];
-
-      setProjects(mappedProjects);
-    } catch (error) {
-      console.error('Error in fetchProjects:', error);
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     if (!user) {
       setProjects([]);
       setLoading(false);
       return;
     }
+
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            client:stakeholders(
+              id,
+              company_name,
+              contact_person,
+              stakeholder_type
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching projects:', error);
+          setProjects([]);
+          return;
+        }
+
+        // Map the data to ensure proper typing
+        const mappedProjects = (data || []).map(project => ({
+          ...project,
+          phase: (project.phase || 'planning') as Project['phase'],
+          unified_lifecycle_status: project.unified_lifecycle_status || undefined
+        })) as Project[];
+
+        setProjects(mappedProjects);
+      } catch (error) {
+        console.error('Error in fetchProjects:', error);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     // Simple subscription without complex manager
     const channel = supabase
@@ -83,7 +77,7 @@ export const useProjects = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchProjects]);
+  }, [user?.id]); // Only depend on user?.id, not the callback
 
   const createProject = async (projectData: Partial<Project>) => {
     if (!user) return { error: 'User not authenticated' };
