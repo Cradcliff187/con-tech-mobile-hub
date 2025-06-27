@@ -1,9 +1,9 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Project } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { useImprovedProjectSubscription } from '@/hooks/projects/useImprovedProjectSubscription';
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -11,17 +11,79 @@ export const useProjects = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Create a stable callback reference to prevent subscription loops
-  const stableProjectsUpdate = useCallback((updatedProjects: Project[]) => {
-    setProjects(updatedProjects);
-    setLoading(false);
-  }, []);
+  const fetchProjects = useCallback(async () => {
+    if (!user) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
 
-  // Use improved real-time subscription with stable callback
-  useImprovedProjectSubscription({
-    user,
-    onProjectsUpdate: stableProjectsUpdate
-  });
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:stakeholders(
+            id,
+            company_name,
+            contact_person,
+            stakeholder_type
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching projects:', error);
+        setProjects([]);
+        return;
+      }
+
+      // Map the data to ensure proper typing
+      const mappedProjects = (data || []).map(project => ({
+        ...project,
+        phase: (project.phase || 'planning') as Project['phase'],
+        unified_lifecycle_status: project.unified_lifecycle_status || undefined
+      })) as Project[];
+
+      setProjects(mappedProjects);
+    } catch (error) {
+      console.error('Error in fetchProjects:', error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+
+    // Simple subscription without complex manager
+    const channel = supabase
+      .channel('projects_simple')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects'
+        },
+        () => {
+          fetchProjects();
+        }
+      )
+      .subscribe();
+
+    // Initial fetch
+    fetchProjects();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchProjects]);
 
   const createProject = async (projectData: Partial<Project>) => {
     if (!user) return { error: 'User not authenticated' };

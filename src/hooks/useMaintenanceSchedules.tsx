@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,7 +66,16 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
         return;
       }
 
-      setSchedules(data || []);
+      // Map the data with proper type casting
+      const mappedSchedules = (data || []).map(schedule => ({
+        ...schedule,
+        frequency_type: schedule.frequency_type as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'hours_based' | 'usage_based',
+        checklist_template: Array.isArray(schedule.checklist_template) 
+          ? schedule.checklist_template 
+          : []
+      })) as MaintenanceSchedule[];
+
+      setSchedules(mappedSchedules);
     } catch (error) {
       console.error('Error in fetchSchedules:', error);
       setSchedules([]);

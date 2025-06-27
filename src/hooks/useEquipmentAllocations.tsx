@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -65,7 +64,7 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
         return;
       }
 
-      // Process allocations with operator details
+      // Process allocations with operator details and proper type casting
       const processedAllocations = await Promise.all(
         (data || []).map(async (allocation) => {
           let operator_stakeholder = null;
@@ -91,9 +90,10 @@ export const useEquipmentAllocations = (equipmentId?: string, projectId?: string
 
           return {
             ...allocation,
+            operator_type: allocation.operator_type as 'employee' | 'user' | null,
             operator_stakeholder,
             operator_user
-          };
+          } as EquipmentAllocation;
         })
       );
 
