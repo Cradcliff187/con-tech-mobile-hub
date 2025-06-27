@@ -9,8 +9,14 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
 import { EditTaskViewMode } from './forms/EditTaskViewMode';
 import { EditTaskDialogContent } from './forms/EditTaskDialogContent';
+import { ProjectContextPanel } from './ProjectContextPanel';
+import { SmartStakeholderAssignment } from './SmartStakeholderAssignment';
 import { useEditTaskForm } from './forms/useEditTaskForm';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
+import { useProjects } from '@/hooks/useProjects';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface EditTaskDialogProps {
   open: boolean;
@@ -23,10 +29,12 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [showProjectChangeConfirm, setShowProjectChangeConfirm] = useState(false);
   const [pendingProjectChange, setPendingProjectChange] = useState<string>('');
   const [currentMode, setCurrentMode] = useState<'edit' | 'view'>(mode);
+  const [showAdvancedAssignment, setShowAdvancedAssignment] = useState(false);
   
   const { updateTask } = useTasks();
   const { toast } = useToast();
   const { canAssignToProject, loading: permissionsLoading } = useProjectPermissions();
+  const { projects } = useProjects();
 
   const formData = useEditTaskForm({ task, open });
 
@@ -85,6 +93,19 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     setPendingProjectChange('');
   }, []);
 
+  const handleStakeholderSelect = (stakeholderIds: string[]) => {
+    if (stakeholderIds.length === 1) {
+      formData.handleInputChange('assigned_stakeholder_id', stakeholderIds[0]);
+      formData.handleInputChange('assigned_stakeholder_ids', []);
+    } else if (stakeholderIds.length > 1) {
+      formData.handleInputChange('assigned_stakeholder_ids', stakeholderIds);
+      formData.handleInputChange('assigned_stakeholder_id', undefined);
+    } else {
+      formData.handleInputChange('assigned_stakeholder_id', undefined);
+      formData.handleInputChange('assigned_stakeholder_ids', []);
+    }
+  };
+
   const handleSubmit = useCallback(async (taskData: any) => {
     if (!task || currentMode === 'view') {
       return;
@@ -128,10 +149,16 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
 
   if (!task) return null;
 
+  const selectedProject = projects.find(p => p.id === formData.projectId);
+  const existingAssignments = [
+    ...(task.assigned_stakeholder_id ? [task.assigned_stakeholder_id] : []),
+    ...(task.assigned_stakeholder_ids || [])
+  ];
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>{currentMode === 'view' ? 'Task Details' : 'Edit Task'}</DialogTitle>
           </DialogHeader>
@@ -143,12 +170,54 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
               onSwitchToEdit={handleSwitchToEdit}
             />
           ) : (
-            <EditTaskDialogContent
-              task={task}
-              onSubmit={handleSubmit}
-              onProjectChange={handleProjectChange}
-              loading={updateOperation.loading}
-            />
+            <div className="flex gap-6 h-full">
+              {/* Main Form */}
+              <div className="flex-1 min-w-0">
+                <ScrollArea className="h-[calc(85vh-120px)]">
+                  <div className="space-y-4 pr-4">
+                    <EditTaskDialogContent
+                      task={task}
+                      onSubmit={handleSubmit}
+                      onProjectChange={handleProjectChange}
+                      loading={updateOperation.loading}
+                    />
+
+                    {/* Smart Assignment Toggle */}
+                    <div className="pt-4 border-t border-slate-200">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowAdvancedAssignment(!showAdvancedAssignment)}
+                        className="w-full mb-4"
+                      >
+                        {showAdvancedAssignment ? 'Hide' : 'Show'} Smart Reassignment Suggestions
+                      </Button>
+
+                      {showAdvancedAssignment && formData.projectId && (
+                        <SmartStakeholderAssignment
+                          projectId={formData.projectId}
+                          requiredSkills={formData.requiredSkills || []}
+                          selectedStakeholderIds={[
+                            ...(formData.assigned_stakeholder_id ? [formData.assigned_stakeholder_id] : []),
+                            ...(formData.assigned_stakeholder_ids || [])
+                          ]}
+                          onSelectionChange={handleStakeholderSelect}
+                          taskPriority={formData.priority || 'medium'}
+                          estimatedHours={formData.estimatedHours}
+                          dueDate={formData.dueDate}
+                          existingAssignments={existingAssignments}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </ScrollArea>
+              </div>
+
+              {/* Context Sidebar */}
+              <div className="w-80 flex-shrink-0">
+                <ProjectContextPanel project={selectedProject || null} />
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
