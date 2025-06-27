@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ResourceAllocation } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +21,22 @@ export const useResourceAllocations = (projectId?: string) => {
   const [allocations, setAllocations] = useState<ResourceAllocation[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+
+  // Subscription management references
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced fetch function
+  const debouncedFetch = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchAllocations();
+    }, 100);
+  }, []);
 
   const fetchAllocations = useCallback(async () => {
     if (!user) {
@@ -101,36 +117,86 @@ export const useResourceAllocations = (projectId?: string) => {
     }
   }, [user?.id, projectId]);
 
+  // Cleanup subscription function
+  const cleanupSubscription = useCallback(() => {
+    if (channelRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+        console.log('Resource allocations subscription cleaned up');
+      } catch (error) {
+        console.error('Error cleaning up resource allocations subscription:', error);
+      }
+      channelRef.current = null;
+    }
+    isSubscribedRef.current = false;
+    
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
+    // Clean up existing channel before creating new one
+    if (channelRef.current) {
+      cleanupSubscription();
+    }
+
     if (!user) {
       setAllocations([]);
       setLoading(false);
       return;
     }
 
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('stakeholder_assignments_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stakeholder_assignments'
-        },
-        () => {
-          fetchAllocations();
-        }
-      )
-      .subscribe();
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) {
+      return;
+    }
 
-    // Initial fetch
-    fetchAllocations();
+    try {
+      // Create unique channel name with user ID and timestamp
+      const channelName = `stakeholder_assignments_${user.id}_${Date.now()}`;
+      
+      // Create subscription with unique channel name
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'stakeholder_assignments'
+          },
+          (payload) => {
+            console.log('Resource allocations change detected:', payload);
+            debouncedFetch();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Resource allocations subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            isSubscribedRef.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('Resource allocations subscription error:', status);
+            isSubscribedRef.current = false;
+          }
+        });
 
+      channelRef.current = channel;
+
+      // Initial fetch
+      fetchAllocations();
+
+    } catch (error) {
+      console.error('Error setting up resource allocations subscription:', error);
+      isSubscribedRef.current = false;
+    }
+
+    // Cleanup function
     return () => {
-      supabase.removeChannel(channel);
+      cleanupSubscription();
     };
-  }, [fetchAllocations]);
+  }, [user?.id, fetchAllocations, cleanupSubscription, debouncedFetch]);
 
   const createAllocation = async (allocationData: Partial<ResourceAllocation>) => {
     if (!user) return { error: 'User not authenticated' };
