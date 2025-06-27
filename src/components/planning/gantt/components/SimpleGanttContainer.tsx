@@ -1,18 +1,18 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
-import { GanttTimelineGrid } from '../GanttTimelineGrid';
-import { SimpleTaskRow } from './SimpleTaskRow';
 import { GanttEmptyState } from './GanttEmptyState';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
-import { GanttUndoRedoControls } from './GanttUndoRedoControls';
+import { GanttHeader } from './GanttHeader';
+import { GanttTaskList } from './GanttTaskList';
+import { GanttTimelineArea } from './GanttTimelineArea';
+import { GanttStatusBar } from './GanttStatusBar';
 import { useTimelineCalculation } from '../hooks/useTimelineCalculation';
 import { useActionHistory } from '@/hooks/useActionHistory';
 import { Task } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SimpleGanttContainerProps {
   projectId: string;
@@ -47,7 +47,6 @@ export const SimpleGanttContainer = ({
     redo,
     clearHistory,
     recordTaskMove,
-    recordTaskUpdate,
     getTaskState,
     getUndoDescription,
     getRedoDescription,
@@ -198,59 +197,21 @@ export const SimpleGanttContainer = ({
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
       {/* Header with undo/redo controls */}
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
-        <div className="flex items-center gap-4">
-          <h3 className="text-sm font-medium text-slate-700">
-            Gantt Chart
-          </h3>
-          <GanttUndoRedoControls
-            canUndo={canUndo}
-            canRedo={canRedo}
-            isPerformingAction={isPerformingAction}
-            onUndo={undo}
-            onRedo={redo}
-            onClearHistory={clearHistory}
-            undoDescription={getUndoDescription()}
-            redoDescription={getRedoDescription()}
-            historyLength={historyLength}
-          />
-          
-          {/* Collapse/Expand Controls */}
-          <div className="flex items-center gap-1 border-l border-slate-200 pl-3 ml-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCollapsedTasks(new Set(displayTasks.map(task => task.id)))}
-              disabled={isSystemBusy}
-              className="h-8 px-2 text-xs"
-            >
-              <ChevronRight className="h-3 w-3 mr-1" />
-              Collapse All
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCollapsedTasks(new Set())}
-              disabled={isSystemBusy}
-              className="h-8 px-2 text-xs"
-            >
-              <ChevronDown className="h-3 w-3 mr-1" />
-              Expand All
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 text-xs text-slate-600">
-          {isSystemBusy && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-              <span>
-                {isPerformingAction ? 'Processing...' : 'Updating...'}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+      <GanttHeader
+        canUndo={canUndo}
+        canRedo={canRedo}
+        isPerformingAction={isPerformingAction}
+        onUndo={undo}
+        onRedo={redo}
+        onClearHistory={clearHistory}
+        undoDescription={getUndoDescription()}
+        redoDescription={getRedoDescription()}
+        historyLength={historyLength}
+        isSystemBusy={isSystemBusy}
+        displayTasks={displayTasks}
+        onCollapseAll={collapseAllTasks}
+        onExpandAll={expandAllTasks}
+      />
 
       {/* Timeline header with scroll sync */}
       <GanttTimelineHeader
@@ -264,104 +225,44 @@ export const SimpleGanttContainer = ({
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Task list - Fixed width */}
-        <div className="w-64 lg:w-72 flex-shrink-0 border-r border-slate-200 bg-white">
-          <div className="h-8 bg-slate-100 border-b border-slate-200 flex items-center px-3">
-            <span className="text-sm font-medium text-slate-700">
-              Tasks ({displayTasks.length})
-            </span>
-          </div>
-          
-          <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
-            {displayTasks.map((task, index) => (
-              <div key={task.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                <SimpleTaskRow
-                  task={task}
-                  selectedTaskId={selectedTaskId}
-                  onTaskSelect={handleTaskSelect}
-                  onTaskUpdate={handleTaskUpdate}
-                  viewMode={viewMode}
-                  timelineStart={timelineStart}
-                  timelineEnd={timelineEnd}
-                  isFirstRow={index === 0}
-                  timelineOnly={false}
-                  isCollapsed={collapsedTasks.has(task.id)}
-                  onToggleCollapse={toggleTaskCollapse}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <GanttTaskList
+          displayTasks={displayTasks}
+          selectedTaskId={selectedTaskId}
+          onTaskSelect={handleTaskSelect}
+          onTaskUpdate={handleTaskUpdate}
+          viewMode={viewMode}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          collapsedTasks={collapsedTasks}
+          onToggleCollapse={toggleTaskCollapse}
+        />
 
         {/* Timeline area - Scrollable with sync */}
-        <div 
-          ref={contentScrollRef}
-          className="flex-1 relative overflow-auto"
-          style={{ 
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin'
-          }}
-        >
-          <GanttTimelineGrid
-            timelineStart={timelineStart}
-            timelineEnd={timelineEnd}
-            viewMode={viewMode}
-          />
-          
-          {/* Task bars overlay with header offset */}
-          <div className="absolute inset-0 z-10" style={{ top: '32px' }}>
-            {displayTasks.map((task, index) => (
-              <div 
-                key={task.id} 
-                className="relative border-b border-slate-200 transition-all duration-200"
-                style={{ height: collapsedTasks.has(task.id) ? '32px' : '64px' }}
-              >
-                <SimpleTaskRow
-                  task={task}
-                  selectedTaskId={selectedTaskId}
-                  onTaskSelect={handleTaskSelect}
-                  onTaskUpdate={handleTaskUpdate}
-                  viewMode={viewMode}
-                  timelineStart={timelineStart}
-                  timelineEnd={timelineEnd}
-                  isFirstRow={index === 0}
-                  timelineOnly={true}
-                  isCollapsed={collapsedTasks.has(task.id)}
-                  onToggleCollapse={toggleTaskCollapse}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <GanttTimelineArea
+          displayTasks={displayTasks}
+          selectedTaskId={selectedTaskId}
+          onTaskSelect={handleTaskSelect}
+          onTaskUpdate={handleTaskUpdate}
+          viewMode={viewMode}
+          timelineStart={timelineStart}
+          timelineEnd={timelineEnd}
+          collapsedTasks={collapsedTasks}
+          onToggleCollapse={toggleTaskCollapse}
+          scrollRef={contentScrollRef}
+        />
       </div>
       
       {/* Enhanced status bar */}
-      <div className="h-6 bg-slate-50 border-t border-slate-200 flex items-center px-3 text-xs text-slate-600 flex-shrink-0">
-        <span>
-          {displayTasks.length} task{displayTasks.length !== 1 ? 's' : ''} • 
-          {viewMode} view • 
-          {timelineStart.toLocaleDateString()} - {timelineEnd.toLocaleDateString()}
-        </span>
-        {selectedTaskId && (
-          <span className="ml-4 text-blue-600">
-            Task selected: {displayTasks.find(t => t.id === selectedTaskId)?.title}
-          </span>
-        )}
-        {historyLength > 0 && (
-          <span className="ml-4 text-slate-500">
-            {historyLength} action{historyLength !== 1 ? 's' : ''} in history
-          </span>
-        )}
-        {collapsedTasks.size > 0 && (
-          <span className="ml-4 text-slate-500">
-            {collapsedTasks.size} task{collapsedTasks.size !== 1 ? 's' : ''} collapsed
-          </span>
-        )}
-        {isSystemBusy && (
-          <span className="ml-4 text-orange-600">
-            Saving changes...
-          </span>
-        )}
-      </div>
+      <GanttStatusBar
+        displayTasks={displayTasks}
+        viewMode={viewMode}
+        timelineStart={timelineStart}
+        timelineEnd={timelineEnd}
+        selectedTaskId={selectedTaskId}
+        historyLength={historyLength}
+        collapsedTasks={collapsedTasks}
+        isSystemBusy={isSystemBusy}
+      />
     </div>
   );
 };
