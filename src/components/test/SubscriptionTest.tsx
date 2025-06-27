@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -16,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
+import { CreateProjectDialog } from '@/components/dashboard/CreateProjectDialog';
 
 interface HookStatus {
   name: string;
