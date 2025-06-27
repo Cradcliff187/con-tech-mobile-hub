@@ -26,6 +26,10 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
   const [punchListCategory, setPunchListCategory] = useState<'paint' | 'electrical' | 'plumbing' | 'carpentry' | 'flooring' | 'hvac' | 'other' | ''>('');
   const [newSkill, setNewSkill] = useState('');
 
+  // Assignment fields
+  const [assignedStakeholderId, setAssignedStakeholderId] = useState<string | undefined>();
+  const [assignedStakeholderIds, setAssignedStakeholderIds] = useState<string[]>([]);
+
   useEffect(() => {
     if (task && open) {
       setTitle(task.title);
@@ -45,6 +49,10 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
       setRequiredSkills(task.required_skills || []);
       setPunchListCategory(task.punch_list_category || '');
       setNewSkill('');
+
+      // Assignment fields
+      setAssignedStakeholderId(task.assigned_stakeholder_id);
+      setAssignedStakeholderIds(task.assigned_stakeholder_ids || []);
     }
   }, [task, open]);
 
@@ -64,6 +72,8 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
     setRequiredSkills([]);
     setPunchListCategory('');
     setNewSkill('');
+    setAssignedStakeholderId(undefined);
+    setAssignedStakeholderIds([]);
   }, []);
 
   return {
@@ -100,6 +110,12 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
     setPunchListCategory,
     newSkill,
     setNewSkill,
+    
+    // Assignment fields
+    assignedStakeholderId,
+    setAssignedStakeholderId,
+    assignedStakeholderIds,
+    setAssignedStakeholderIds,
     
     // Utilities
     resetForm,

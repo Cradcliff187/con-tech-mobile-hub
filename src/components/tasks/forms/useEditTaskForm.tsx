@@ -87,6 +87,21 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     validation.clearFieldError('punch_list_category');
   }, [formState, validation]);
 
+  // Generic input change handler
+  const handleInputChange = useCallback((field: string, value: any) => {
+    switch (field) {
+      case 'assigned_stakeholder_id':
+        formState.setAssignedStakeholderId?.(value);
+        break;
+      case 'assigned_stakeholder_ids':
+        formState.setAssignedStakeholderIds?.(value);
+        break;
+      default:
+        console.warn(`Unhandled field in handleInputChange: ${field}`);
+    }
+    validation.clearFieldError(field);
+  }, [formState, validation]);
+
   // Validation methods
   const validateForm = useCallback(() => {
     return validation.validateForm({
@@ -163,6 +178,13 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     handleRemoveSkill: handlers.handleRemoveSkill,
     punchListCategory: formState.punchListCategory,
     setPunchListCategory: handlePunchListCategoryChange,
+    
+    // Assignment fields (from task)
+    assigned_stakeholder_id: task?.assigned_stakeholder_id,
+    assigned_stakeholder_ids: task?.assigned_stakeholder_ids || [],
+    
+    // Generic handler
+    handleInputChange,
     
     // Validation
     validateForm,

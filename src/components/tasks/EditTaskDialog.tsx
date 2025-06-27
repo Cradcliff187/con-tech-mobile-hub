@@ -204,7 +204,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                           onSelectionChange={handleStakeholderSelect}
                           taskPriority={formData.priority || 'medium'}
                           estimatedHours={formData.estimatedHours}
-                          dueDate={formData.dueDate}
+                          dueDate={formData.dueDate ? formData.dueDate.toISOString().split('T')[0] : undefined}
                           existingAssignments={existingAssignments}
                         />
                       )}
