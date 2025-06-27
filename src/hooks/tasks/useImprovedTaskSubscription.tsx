@@ -5,13 +5,13 @@ import { Task } from '@/types/database';
 import { subscriptionManager } from '@/services/subscription';
 
 interface UseImprovedTaskSubscriptionProps {
-  user: any;
+  sessionReady: boolean;
   onTasksUpdate: (tasks: Task[]) => void;
   projectId?: string;
 }
 
 export const useImprovedTaskSubscription = ({ 
-  user, 
+  sessionReady,
   onTasksUpdate,
   projectId 
 }: UseImprovedTaskSubscriptionProps) => {
@@ -19,8 +19,8 @@ export const useImprovedTaskSubscription = ({
   const lastConfigRef = useRef<string>('');
 
   useEffect(() => {
-    if (!user?.id) {
-      // Clean up existing subscription if user logs out
+    if (!sessionReady) {
+      // Clean up existing subscription if session is not ready
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
@@ -29,7 +29,7 @@ export const useImprovedTaskSubscription = ({
       return;
     }
 
-    const configKey = `${user.id}-${projectId || 'all'}`;
+    const configKey = `tasks-${projectId || 'all'}`;
     
     // Skip if same config and subscription already exists
     if (lastConfigRef.current === configKey && unsubscribeRef.current) {
@@ -106,7 +106,7 @@ export const useImprovedTaskSubscription = ({
       }
       lastConfigRef.current = '';
     };
-  }, [user?.id, projectId]);
+  }, [sessionReady, projectId]);
 
   // Handle callback changes without re-subscribing
   useEffect(() => {

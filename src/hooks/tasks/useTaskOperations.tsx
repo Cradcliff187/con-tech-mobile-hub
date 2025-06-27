@@ -1,16 +1,26 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/types/database';
+import { useAuthSession } from '@/contexts/AuthSessionContext';
 
-export const useTaskOperations = (user: any) => {
+export const useTaskOperations = (sessionReady: boolean) => {
+  const { validateSessionForOperation } = useAuthSession();
+
   const createTask = async (taskData: Partial<Task>) => {
-    if (!user) return { error: 'User not authenticated' };
+    if (!sessionReady) return { error: 'Session not ready' };
+
+    const isValid = await validateSessionForOperation('Create Task');
+    if (!isValid) return { error: 'Session validation failed' };
 
     if (!taskData.title || !taskData.project_id) {
       return { error: 'Task title and project are required' };
     }
 
     try {
+      // Get current user ID from Supabase auth
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { error: 'User not authenticated' };
+
       // Start a transaction by creating the task first
       const { data: task, error: taskError } = await supabase
         .from('tasks')
@@ -77,7 +87,16 @@ export const useTaskOperations = (user: any) => {
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    if (!sessionReady) return { error: 'Session not ready' };
+
+    const isValid = await validateSessionForOperation('Update Task');
+    if (!isValid) return { error: 'Session validation failed' };
+
     try {
+      // Get current user ID from Supabase auth
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { error: 'User not authenticated' };
+
       // Handle stakeholder assignment updates
       if (updates.assigned_stakeholder_ids !== undefined) {
         // Remove existing assignments

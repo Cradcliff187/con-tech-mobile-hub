@@ -4,12 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/types/database';
 import { mapTaskFromDb } from './taskMapping';
 
-export const useTaskFetching = (user: any) => {
+export const useTaskFetching = (sessionReady: boolean) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = async () => {
-    if (!user) return;
+    if (!sessionReady) return [];
 
     setLoading(true);
     setError(null);

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthSession } from '@/contexts/AuthSessionContext';
 import { Task } from '@/types/database';
 import { useImprovedTaskSubscription } from './tasks/useImprovedTaskSubscription';
 import { useTaskOperations } from './tasks/useTaskOperations';
@@ -16,31 +16,39 @@ interface UseTasksOptions {
  */
 export const useTasks = (options: UseTasksOptions = {}) => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const { user } = useAuth();
+  const { sessionHealth, validateSessionForOperation } = useAuthSession();
   const { projectId } = options;
 
-  const { loading, error, fetchTasks } = useTaskFetching(user);
-  const { createTask, updateTask } = useTaskOperations(user);
+  // Only proceed with task operations if session is healthy
+  const isSessionReady = sessionHealth.frontendAuthenticated;
+
+  const { loading, error, fetchTasks } = useTaskFetching(isSessionReady);
+  const { createTask, updateTask } = useTaskOperations(isSessionReady);
   
   // Single subscription for all tasks with intelligent filtering
   useImprovedTaskSubscription({ 
-    user, 
+    sessionReady: isSessionReady,
     onTasksUpdate: setTasks,
     projectId // Pass project filter to subscription
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!isSessionReady) return;
 
-    // Initial fetch
+    // Initial fetch only when session is ready
     fetchTasks().then((fetchedTasks) => {
       if (fetchedTasks) {
         setTasks(fetchedTasks);
       }
     });
-  }, [user?.id]);
+  }, [isSessionReady, fetchTasks]);
 
   const refetch = async () => {
+    if (!isSessionReady) return;
+    
+    const isValid = await validateSessionForOperation('Fetch Tasks');
+    if (!isValid) return;
+
     const fetchedTasks = await fetchTasks();
     if (fetchedTasks) {
       setTasks(fetchedTasks);
@@ -54,7 +62,7 @@ export const useTasks = (options: UseTasksOptions = {}) => {
 
   return {
     tasks: filteredTasks,
-    loading,
+    loading: loading || !isSessionReady,
     error,
     createTask,
     updateTask,
