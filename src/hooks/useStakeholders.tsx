@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export interface Stakeholder {
   id: string;
@@ -62,36 +63,31 @@ export const useStakeholders = (projectId?: string) => {
     }
   }, [user?.id]);
 
+  // Handle real-time updates using centralized subscription manager
+  const handleStakeholdersUpdate = useCallback((payload: any) => {
+    console.log('Stakeholders change detected:', payload);
+    fetchStakeholders();
+  }, [fetchStakeholders]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'stakeholders',
+    handleStakeholdersUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      fetchStakeholders();
+    } else {
       setStakeholders([]);
       setLoading(false);
-      return;
     }
-
-    // Simple subscription without complex manager
-    const channel = supabase
-      .channel('stakeholders_simple')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stakeholders'
-        },
-        () => {
-          fetchStakeholders();
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchStakeholders();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchStakeholders]);
+  }, [user?.id, fetchStakeholders]);
 
   const createStakeholder = useCallback(async (stakeholderData: Omit<Stakeholder, 'id' | 'created_at' | 'updated_at' | 'rating'>) => {
     try {
