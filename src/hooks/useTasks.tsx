@@ -15,28 +15,31 @@ export const useTasks = (options: UseTasksOptions = {}) => {
   const { user, profile } = useAuth();
   const { projectId } = options;
 
-  // Use refs to maintain stable references and prevent subscription recreation
+  // Subscription management references
   const channelRef = useRef<any>(null);
-  const isSessionReadyRef = useRef(false);
-  const lastFetchRef = useRef<number>(0);
+  const isSubscribedRef = useRef(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoize session readiness to prevent unnecessary re-computations
   const isSessionReady = useMemo(() => {
     const ready = !!user && !!profile;
-    isSessionReadyRef.current = ready;
     return ready;
   }, [user?.id, profile?.id]); // Only depend on IDs to prevent object reference changes
 
+  // Debounced fetch function
+  const debouncedFetch = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchTasks();
+    }, 100);
+  }, []);
+
   // Stable fetch function that doesn't change on every render
   const fetchTasks = useCallback(async () => {
-    // Throttle requests to prevent spam
-    const now = Date.now();
-    if (now - lastFetchRef.current < 500) {
-      return [];
-    }
-    lastFetchRef.current = now;
-
-    if (!isSessionReadyRef.current) {
+    if (!isSessionReady) {
       setTasks([]);
       setLoading(false);
       return [];
@@ -83,10 +86,29 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, []); // Remove dependencies to keep this stable
+  }, [isSessionReady]);
+
+  // Cleanup subscription function
+  const cleanupSubscription = useCallback(() => {
+    if (channelRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+        console.log('Tasks subscription cleaned up');
+      } catch (error) {
+        console.error('Error cleaning up subscription:', error);
+      }
+      channelRef.current = null;
+    }
+    isSubscribedRef.current = false;
+    
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+  }, []);
 
   const createTask = useCallback(async (taskData: Partial<Task>) => {
-    if (!isSessionReadyRef.current) return { error: 'Session not ready' };
+    if (!isSessionReady) return { error: 'Session not ready' };
 
     if (!taskData.title || !taskData.project_id) {
       return { error: 'Task title and project are required' };
@@ -122,18 +144,17 @@ export const useTasks = (options: UseTasksOptions = {}) => {
         throw new Error(`Failed to create task: ${taskError.message}`);
       }
 
-      // Refresh tasks after creation
-      await fetchTasks();
+      // Real-time subscription will handle state update
       return { data: task, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create task';
       console.error('Error creating task:', err);
       return { error: errorMessage };
     }
-  }, [user, fetchTasks]);
+  }, [user, isSessionReady]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    if (!isSessionReadyRef.current) return { error: 'Session not ready' };
+    if (!isSessionReady) return { error: 'Session not ready' };
 
     try {
       const { data, error } = await supabase
@@ -147,22 +168,20 @@ export const useTasks = (options: UseTasksOptions = {}) => {
         throw new Error(`Failed to update task: ${error.message}`);
       }
 
-      // Refresh tasks after update
-      await fetchTasks();
+      // Real-time subscription will handle state update
       return { data, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update task';
       console.error('Error updating task:', err);
       return { error: errorMessage };
     }
-  }, [fetchTasks]);
+  }, [isSessionReady]);
 
   // Set up subscription with proper cleanup and stable references
   useEffect(() => {
     // Clean up existing channel before creating new one
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+      cleanupSubscription();
     }
 
     if (!isSessionReady) {
@@ -170,36 +189,55 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       return;
     }
 
-    // Create new channel with unique name to prevent conflicts
-    const channelName = `tasks-changes-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks'
-        },
-        () => {
-          // Use timeout to prevent blocking the subscription event
-          setTimeout(fetchTasks, 100);
-        }
-      )
-      .subscribe();
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) {
+      return;
+    }
 
-    channelRef.current = channel;
+    try {
+      // Create unique channel name with user ID and timestamp
+      const channelName = `tasks_${user!.id}_${Date.now()}`;
+      
+      // Create subscription with unique channel name
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'tasks'
+          },
+          (payload) => {
+            console.log('Tasks change detected:', payload);
+            debouncedFetch();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Tasks subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            isSubscribedRef.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('Tasks subscription error:', status);
+            isSubscribedRef.current = false;
+          }
+        });
 
-    // Initial fetch
-    fetchTasks();
+      channelRef.current = channel;
 
+      // Initial fetch
+      fetchTasks();
+
+    } catch (error) {
+      console.error('Error setting up tasks subscription:', error);
+      isSubscribedRef.current = false;
+    }
+
+    // Cleanup function
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      cleanupSubscription();
     };
-  }, [isSessionReady]); // Only depend on session readiness
+  }, [isSessionReady, user?.id, cleanupSubscription, debouncedFetch, fetchTasks]);
 
   // Filter tasks by project if specified
   const filteredTasks = useMemo(() => {
