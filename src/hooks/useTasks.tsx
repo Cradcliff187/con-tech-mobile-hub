@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,10 +15,28 @@ export const useTasks = (options: UseTasksOptions = {}) => {
   const { user, profile } = useAuth();
   const { projectId } = options;
 
-  const isSessionReady = !!user && !!profile;
+  // Use refs to maintain stable references and prevent subscription recreation
+  const channelRef = useRef<any>(null);
+  const isSessionReadyRef = useRef(false);
+  const lastFetchRef = useRef<number>(0);
 
+  // Memoize session readiness to prevent unnecessary re-computations
+  const isSessionReady = useMemo(() => {
+    const ready = !!user && !!profile;
+    isSessionReadyRef.current = ready;
+    return ready;
+  }, [user?.id, profile?.id]); // Only depend on IDs to prevent object reference changes
+
+  // Stable fetch function that doesn't change on every render
   const fetchTasks = useCallback(async () => {
-    if (!isSessionReady) {
+    // Throttle requests to prevent spam
+    const now = Date.now();
+    if (now - lastFetchRef.current < 500) {
+      return [];
+    }
+    lastFetchRef.current = now;
+
+    if (!isSessionReadyRef.current) {
       setTasks([]);
       setLoading(false);
       return [];
@@ -65,10 +83,10 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [isSessionReady]);
+  }, []); // Remove dependencies to keep this stable
 
   const createTask = useCallback(async (taskData: Partial<Task>) => {
-    if (!isSessionReady) return { error: 'Session not ready' };
+    if (!isSessionReadyRef.current) return { error: 'Session not ready' };
 
     if (!taskData.title || !taskData.project_id) {
       return { error: 'Task title and project are required' };
@@ -112,10 +130,10 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       console.error('Error creating task:', err);
       return { error: errorMessage };
     }
-  }, [isSessionReady, user, fetchTasks]);
+  }, [user, fetchTasks]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    if (!isSessionReady) return { error: 'Session not ready' };
+    if (!isSessionReadyRef.current) return { error: 'Session not ready' };
 
     try {
       const { data, error } = await supabase
@@ -137,14 +155,25 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       console.error('Error updating task:', err);
       return { error: errorMessage };
     }
-  }, [isSessionReady, fetchTasks]);
+  }, [fetchTasks]);
 
-  // Set up simple real-time subscription
+  // Set up subscription with proper cleanup and stable references
   useEffect(() => {
-    if (!isSessionReady) return;
+    // Clean up existing channel before creating new one
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
+    if (!isSessionReady) {
+      setLoading(false);
+      return;
+    }
+
+    // Create new channel with unique name to prevent conflicts
+    const channelName = `tasks-changes-${Date.now()}`;
     const channel = supabase
-      .channel('tasks-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -153,19 +182,24 @@ export const useTasks = (options: UseTasksOptions = {}) => {
           table: 'tasks'
         },
         () => {
-          // Refresh tasks when any change occurs
-          fetchTasks();
+          // Use timeout to prevent blocking the subscription event
+          setTimeout(fetchTasks, 100);
         }
       )
       .subscribe();
+
+    channelRef.current = channel;
 
     // Initial fetch
     fetchTasks();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [isSessionReady, fetchTasks]);
+  }, [isSessionReady]); // Only depend on session readiness
 
   // Filter tasks by project if specified
   const filteredTasks = useMemo(() => {

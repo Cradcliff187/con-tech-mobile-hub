@@ -13,13 +13,14 @@ interface SessionHealth {
 export const useAuthSession = () => {
   const { user, profile, loading } = useAuth();
   
+  // Memoize session health calculation to prevent unnecessary re-computations
   const sessionHealth = useMemo((): SessionHealth => ({
     isHealthy: !!user && !!profile,
     frontendAuthenticated: !!user,
     backendAuthenticated: !!profile,
     lastChecked: new Date(),
     error: undefined
-  }), [user, profile]);
+  }), [user?.id, profile?.id]); // Only depend on IDs to prevent object reference changes
 
   const checkSessionHealth = useCallback(async (): Promise<SessionHealth> => {
     return sessionHealth;

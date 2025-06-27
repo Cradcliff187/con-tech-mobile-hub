@@ -1,5 +1,6 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, User, FileText, CheckSquare } from 'lucide-react';
+import { Clock, User, FileText, CheckSquare, AlertCircle } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
@@ -18,12 +19,41 @@ interface ActivityItem {
 }
 
 export const RecentActivity = () => {
-  const { tasks, loading: tasksLoading } = useTasks();
-  const { projects, loading: projectsLoading } = useProjects();
-  const { stakeholders } = useStakeholders();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Wrap hook usage in try-catch to prevent component crashes
+  let tasks: any[] = [];
+  let projects: any[] = [];
+  let stakeholders: any[] = [];
+  let tasksLoading = true;
+  let projectsLoading = true;
+
+  try {
+    const tasksResult = useTasks();
+    tasks = tasksResult.tasks || [];
+    tasksLoading = tasksResult.loading;
+  } catch (taskError) {
+    console.error('Error in useTasks hook:', taskError);
+    tasksLoading = false;
+  }
+
+  try {
+    const projectsResult = useProjects();
+    projects = projectsResult.projects || [];
+    projectsLoading = projectsResult.loading;
+  } catch (projectError) {
+    console.error('Error in useProjects hook:', projectError);
+    projectsLoading = false;
+  }
+
+  try {
+    const stakeholdersResult = useStakeholders();
+    stakeholders = stakeholdersResult.stakeholders || [];
+  } catch (stakeholderError) {
+    console.error('Error in useStakeholders hook:', stakeholderError);
+  }
 
   useEffect(() => {
     const fetchRecentActivities = async () => {
@@ -44,13 +74,17 @@ export const RecentActivity = () => {
           let userName = 'Unknown User';
           
           if (task.assignee_id) {
-            const { data: assignee } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', task.assignee_id)
-              .single();
-            
-            userName = assignee?.full_name || assignee?.email || 'Unknown User';
+            try {
+              const { data: assignee } = await supabase
+                .from('profiles')
+                .select('full_name, email')
+                .eq('id', task.assignee_id)
+                .single();
+              
+              userName = assignee?.full_name || assignee?.email || 'Unknown User';
+            } catch (assigneeError) {
+              console.warn('Could not fetch assignee for task:', task.id);
+            }
           } else if (task.assigned_stakeholder_id) {
             const stakeholder = stakeholders.find(s => s.id === task.assigned_stakeholder_id);
             userName = stakeholder?.contact_person || stakeholder?.company_name || 'Unknown Stakeholder';
@@ -75,13 +109,17 @@ export const RecentActivity = () => {
           let managerName = 'Unknown Manager';
           
           if (project.project_manager_id) {
-            const { data: manager } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', project.project_manager_id)
-              .single();
-            
-            managerName = manager?.full_name || manager?.email || 'Unknown Manager';
+            try {
+              const { data: manager } = await supabase
+                .from('profiles')
+                .select('full_name, email')
+                .eq('id', project.project_manager_id)
+                .single();
+              
+              managerName = manager?.full_name || manager?.email || 'Unknown Manager';
+            } catch (managerError) {
+              console.warn('Could not fetch manager for project:', project.id);
+            }
           }
 
           activityItems.push({

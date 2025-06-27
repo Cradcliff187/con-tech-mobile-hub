@@ -7,6 +7,7 @@ export const useProjectPermissions = () => {
   const { user, profile } = useAuth();
   const { projects } = useProjects();
   
+  // Memoize user projects calculation with stable dependencies
   const userProjects = useMemo(() => {
     if (!user || !profile) return [];
     
@@ -23,9 +24,9 @@ export const useProjectPermissions = () => {
     return projects
       .filter(p => p.project_manager_id === user.id)
       .map(p => p.id);
-  }, [user, profile, projects]);
+  }, [user?.id, profile?.id, profile?.role, profile?.is_company_user, profile?.account_status, projects]);
 
-  const canAccessProject = (projectId: string): boolean => {
+  const canAccessProject = useMemo(() => (projectId: string): boolean => {
     if (!projectId || !user || !profile) return false;
     
     const hasProjectAccess = userProjects.includes(projectId);
@@ -34,9 +35,9 @@ export const useProjectPermissions = () => {
                    profile?.account_status === 'approved';
     
     return hasProjectAccess || isAdmin;
-  };
+  }, [user, profile, userProjects]);
 
-  const canAssignToProject = (projectId: string): boolean => {
+  const canAssignToProject = useMemo(() => (projectId: string): boolean => {
     if (!projectId || !user || !profile) return false;
     
     const hasBasicAccess = canAccessProject(projectId);
@@ -45,7 +46,7 @@ export const useProjectPermissions = () => {
                              ['admin', 'project_manager', 'site_supervisor'].includes(profile?.role || '');
     
     return hasBasicAccess && hasAssignmentRole;
-  };
+  }, [user, profile, canAccessProject]);
 
   return {
     canAccessProject,

@@ -1,4 +1,5 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+
+import { useState, useEffect, createContext, useContext, ReactNode, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +24,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Memoize auth state to prevent unnecessary re-renders
+  const authState = useMemo(() => ({
+    user,
+    session,
+    profile,
+    loading
+  }), [user?.id, session?.access_token, profile?.id, loading]);
 
   const handleAuthStateChange = async (session: Session | null) => {
     setSession(session);
@@ -173,16 +182,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    ...authState,
+    signUp,
+    signIn,
+    signOut
+  }), [authState, signUp, signIn, signOut]);
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      profile,
-      loading,
-      signUp,
-      signIn,
-      signOut
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
