@@ -38,32 +38,6 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Handle real-time updates using centralized subscription manager
-  const handleSchedulesUpdate = useCallback((payload: any) => {
-    console.log('Maintenance schedules change detected:', payload);
-    fetchSchedules();
-  }, [fetchSchedules]);
-
-  // Use centralized subscription management
-  const { isSubscribed } = useSubscription(
-    'maintenance_schedules',
-    handleSchedulesUpdate,
-    {
-      userId: user?.id,
-      enabled: !!user
-    }
-  );
-
-  // Initial fetch when user changes
-  useEffect(() => {
-    if (user) {
-      fetchSchedules();
-    } else {
-      setSchedules([]);
-      setLoading(false);
-    }
-  }, [user?.id, fetchSchedules]);
-
   const fetchSchedules = useCallback(async () => {
     if (!user) {
       setSchedules([]);
@@ -110,6 +84,32 @@ export const useMaintenanceSchedules = (equipmentId?: string) => {
       setLoading(false);
     }
   }, [user?.id, equipmentId]);
+
+  // Handle real-time updates using centralized subscription manager
+  const handleSchedulesUpdate = useCallback((payload: any) => {
+    console.log('Maintenance schedules change detected:', payload);
+    fetchSchedules();
+  }, [fetchSchedules]);
+
+  // Use centralized subscription management
+  const { isSubscribed } = useSubscription(
+    'maintenance_schedules',
+    handleSchedulesUpdate,
+    {
+      userId: user?.id,
+      enabled: !!user
+    }
+  );
+
+  // Initial fetch when user changes
+  useEffect(() => {
+    if (user) {
+      fetchSchedules();
+    } else {
+      setSchedules([]);
+      setLoading(false);
+    }
+  }, [user?.id, fetchSchedules]);
 
   const createSchedule = useCallback(async (scheduleData: Omit<MaintenanceSchedule, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: 'User not authenticated' };
