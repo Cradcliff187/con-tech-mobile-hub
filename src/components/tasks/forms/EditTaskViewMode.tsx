@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { TaskDocumentAttachments } from '../TaskDocumentAttachments';
 import { TaskViewHeader } from './view/TaskViewHeader';
 import { TaskViewProgress } from './view/TaskViewProgress';
@@ -25,27 +25,14 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
   const { sessionError, canAssignToProject } = useProjectPermissions();
   const canAssign = canAssignToProject(task.project_id);
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
   return (
     <div className="space-y-6">
       {/* Session Error Alert */}
       {sessionError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>Authentication Issue: {sessionError}</span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRefresh}
-              className="ml-2 h-6 text-xs"
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
-            </Button>
+          <AlertDescription>
+            Authentication Issue: {sessionError}
           </AlertDescription>
         </Alert>
       )}
@@ -55,7 +42,7 @@ export const EditTaskViewMode: React.FC<EditTaskViewModeProps> = ({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            You may have limited editing permissions for this task. If you experience issues, try refreshing the page.
+            You may have limited editing permissions for this task.
           </AlertDescription>
         </Alert>
       )}
