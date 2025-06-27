@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -20,6 +19,7 @@ interface ChannelConfig {
   createdAt: number;
   subscribedAt?: number;
   userId?: string;
+  isSubscribing: boolean; // New flag to prevent double subscription
 }
 
 /**
@@ -252,13 +252,22 @@ export class SubscriptionManager {
       state: 'CONNECTING',
       retryCount: 0,
       createdAt: Date.now(),
-      userId
+      userId,
+      isSubscribing: false // Initialize the flag
     };
 
     this.channels.set(tableName, config);
     onStateChange?.('CONNECTING');
 
     this.log('DEBUG', `Creating new subscription for ${tableName} with channel: ${channelName}`);
+
+    // Prevent double subscription
+    if (config.isSubscribing) {
+      this.log('WARN', `Subscription already in progress for ${tableName}, skipping...`);
+      return;
+    }
+
+    config.isSubscribing = true;
 
     // Set up postgres changes listener
     channel
@@ -278,6 +287,7 @@ export class SubscriptionManager {
         }
       })
       .subscribe((status) => {
+        config!.isSubscribing = false; // Reset the flag
         this.handleSubscriptionStatus(tableName, status, onStateChange, maxRetries);
       });
   }
@@ -503,7 +513,8 @@ export class SubscriptionManager {
       lastError: config.lastError,
       uptimeMs: Date.now() - config.createdAt,
       subscribedMs: config.subscribedAt ? Date.now() - config.subscribedAt : null,
-      userId: config.userId
+      userId: config.userId,
+      isSubscribing: config.isSubscribing
     };
   }
 
