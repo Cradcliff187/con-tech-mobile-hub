@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Entity type definitions
 export type EntityType = 
@@ -162,6 +163,7 @@ export const GlobalStatusDropdown: React.FC<GlobalStatusDropdownProps> = ({
   className
 }) => {
   const config = STATUS_CONFIGS[entityType];
+  const isMobile = useIsMobile();
   
   if (!config) {
     console.warn(`No status configuration found for entity type: ${entityType}`);
@@ -183,6 +185,8 @@ export const GlobalStatusDropdown: React.FC<GlobalStatusDropdownProps> = ({
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === currentStatus || disabled || isUpdating) return;
     
+    console.log('Status change initiated:', { entityType, currentStatus, newStatus, isMobile });
+    
     // Show confirmation for critical status changes
     if (confirmCriticalChanges && isCriticalChange(newStatus)) {
       const confirmMessage = `Are you sure you want to change status to ${getStatusLabel(newStatus)}? This action may have significant implications.`;
@@ -200,18 +204,18 @@ export const GlobalStatusDropdown: React.FC<GlobalStatusDropdownProps> = ({
     }
   };
 
-  // Size configurations
+  // Size configurations with mobile-optimized touch targets
   const sizeClasses = {
     sm: {
-      trigger: 'h-6 px-2 text-xs',
+      trigger: isMobile ? 'min-h-[44px] min-w-[44px] px-3 text-sm touch-manipulation' : 'h-6 px-2 text-xs',
       badge: 'text-xs px-2 py-1'
     },
     md: {
-      trigger: 'h-8 px-3 text-sm',
+      trigger: isMobile ? 'min-h-[44px] min-w-[44px] px-4 text-sm touch-manipulation' : 'h-8 px-3 text-sm',
       badge: 'text-sm px-3 py-1'
     },
     lg: {
-      trigger: 'h-10 px-4 text-base',
+      trigger: isMobile ? 'min-h-[44px] min-w-[44px] px-4 text-base touch-manipulation' : 'h-10 px-4 text-base',
       badge: 'text-base px-4 py-2'
     }
   };
@@ -242,14 +246,21 @@ export const GlobalStatusDropdown: React.FC<GlobalStatusDropdownProps> = ({
       >
         <SelectTrigger 
           className={cn(
-            "w-auto border-0",
+            "w-auto border-0 relative",
             getStatusColor(currentStatus),
             currentSizeClasses.trigger
           )}
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('Dropdown trigger clicked', { isMobile, entityType });
+          }}
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="bg-white">
+        <SelectContent className={cn(
+          "bg-white border border-slate-200 shadow-lg",
+          isMobile ? "z-[9999] min-w-[200px]" : "z-50"
+        )}>
           {config.statuses.map((status) => (
             <SelectItem key={status} value={status}>
               <div className="flex items-center gap-2">

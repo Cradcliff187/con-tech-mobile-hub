@@ -143,15 +143,17 @@ export const ProjectsDisplay = ({
         const isUpdating = updatingProjects.has(project.id);
         
         return (
-          <GlobalStatusDropdown
-            entityType="project"
-            currentStatus={unifiedStatus}
-            onStatusChange={(newStatus) => handleStatusChange(project, newStatus)}
-            showAsDropdown={canEdit}
-            size="sm"
-            disabled={!canEdit}
-            isUpdating={isUpdating}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <GlobalStatusDropdown
+              entityType="project"
+              currentStatus={unifiedStatus}
+              onStatusChange={(newStatus) => handleStatusChange(project, newStatus)}
+              showAsDropdown={canEdit}
+              size="sm"
+              disabled={!canEdit}
+              isUpdating={isUpdating}
+            />
+          </div>
         );
       }
     },
