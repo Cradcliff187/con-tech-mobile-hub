@@ -1,9 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -12,16 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useTasks } from '@/hooks/useTasks';
-import { useToast } from '@/hooks/use-toast';
-import { Calendar, User } from 'lucide-react';
+import { useCreateTaskForm } from '@/components/tasks/hooks/useCreateTaskForm';
+import { CreateTaskFormFields } from '@/components/tasks/forms/CreateTaskFormFields';
+import { BasicStakeholderAssignment } from '@/components/tasks/BasicStakeholderAssignment';
+import { ProjectContextPanel } from '@/components/tasks/ProjectContextPanel';
+import { useProjects } from '@/hooks/useProjects';
+import { Separator } from '@/components/ui/separator';
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -31,81 +25,51 @@ interface AddTaskDialogProps {
   parentTaskId?: string;
 }
 
-export const AddTaskDialog = ({ open, onOpenChange, projectId, category, parentTaskId }: AddTaskDialogProps) => {
-  const [taskTitle, setTaskTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
-  const [status, setStatus] = useState<'not-started' | 'in-progress' | 'completed' | 'blocked'>('not-started');
-  const [dueDate, setDueDate] = useState('');
-  const [estimatedHours, setEstimatedHours] = useState('');
-  const [loading, setLoading] = useState(false);
+export const AddTaskDialog = ({ 
+  open, 
+  onOpenChange, 
+  projectId, 
+  category, 
+  parentTaskId 
+}: AddTaskDialogProps) => {
+  const { projects } = useProjects();
   
-  const { createTask } = useTasks();
-  const { toast } = useToast();
+  const {
+    formData,
+    newSkill,
+    setNewSkill,
+    errors,
+    loading,
+    selectedProject,
+    workers,
+    handleInputChange,
+    handleAddSkill,
+    handleRemoveSkill,
+    handleSubmit,
+    getFieldError
+  } = useCreateTaskForm({
+    onSuccess: () => onOpenChange(false),
+    defaultProjectId: projectId,
+    defaultCategory: category
+  });
 
-  const handleSubmit = async () => {
-    if (!taskTitle.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Task title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await createTask({
-        title: taskTitle,
-        description,
-        project_id: projectId,
-        category: category || 'Uncategorized',
-        priority,
-        status,
-        due_date: dueDate || undefined,
-        estimated_hours: estimatedHours ? parseInt(estimatedHours) : undefined,
-        task_type: 'regular',
-        progress: 0,
-      });
-
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: "Failed to create task",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: `Task created in ${category || 'Uncategorized'} category`,
-        });
-        resetForm();
-        onOpenChange(false);
-      }
-    } catch (error) {
-      console.error('Error creating task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create task",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+  const handleStakeholderSelect = (stakeholderId: string | undefined) => {
+    handleInputChange('assigned_stakeholder_id', stakeholderId);
+    if (stakeholderId) {
+      handleInputChange('assigned_stakeholder_ids', []);
     }
   };
 
-  const resetForm = () => {
-    setTaskTitle('');
-    setDescription('');
-    setPriority('medium');
-    setStatus('not-started');
-    setDueDate('');
-    setEstimatedHours('');
+  const handleMultiStakeholderSelect = (stakeholderIds: string[]) => {
+    handleInputChange('assigned_stakeholder_ids', stakeholderIds);
+    if (stakeholderIds.length > 0) {
+      handleInputChange('assigned_stakeholder_id', undefined);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>
             Add New Task
@@ -116,100 +80,62 @@ export const AddTaskDialog = ({ open, onOpenChange, projectId, category, parentT
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4 max-h-96 overflow-y-auto">
-          <div className="grid gap-2">
-            <Label htmlFor="task-title">Task Title</Label>
-            <Input
-              id="task-title"
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-              placeholder="Enter task title..."
-              className="w-full"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="task-description">Description</Label>
-            <Textarea
-              id="task-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the task..."
-              className="w-full"
-              rows={3}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => setPriority(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="flex gap-6 h-full">
+          {/* Main Form */}
+          <div className="flex-1 min-w-0">
+            <ScrollArea className="h-[calc(85vh-120px)]">
+              <form onSubmit={handleSubmit} className="space-y-4 pr-4">
+                <CreateTaskFormFields
+                  formData={formData}
+                  projects={projects}
+                  selectedProject={selectedProject}
+                  workers={workers}
+                  newSkill={newSkill}
+                  setNewSkill={setNewSkill}
+                  errors={errors}
+                  onInputChange={handleInputChange}
+                  onAddSkill={handleAddSkill}
+                  onRemoveSkill={handleRemoveSkill}
+                  getFieldError={getFieldError}
+                />
+
+                <Separator className="my-6" />
+
+                {/* Stakeholder Assignment Section - Always Visible */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-slate-800">Task Assignment</h3>
+                  <BasicStakeholderAssignment
+                    projectId={projectId}
+                    requiredSkills={formData.required_skills || []}
+                    selectedStakeholderId={formData.assigned_stakeholder_id}
+                    selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
+                    onSingleSelect={handleStakeholderSelect}
+                    onMultiSelect={handleMultiStakeholderSelect}
+                    multiSelectMode={false}
+                  />
+                </div>
+              </form>
+            </ScrollArea>
             
-            <div className="grid gap-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(value: 'not-started' | 'in-progress' | 'completed' | 'blocked') => setStatus(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="not-started">Not Started</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={loading || !formData.project_id}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {loading ? 'Creating...' : 'Create Task'}
+              </Button>
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="due-date" className="flex items-center gap-1">
-                <Calendar size={14} />
-                Due Date
-              </Label>
-              <Input
-                id="due-date"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="estimated-hours">Estimated Hours</Label>
-              <Input
-                id="estimated-hours"
-                type="number"
-                value={estimatedHours}
-                onChange={(e) => setEstimatedHours(e.target.value)}
-                placeholder="Hours"
-                min="0"
-                className="w-full"
-              />
-            </div>
+
+          {/* Context Sidebar */}
+          <div className="w-80 flex-shrink-0">
+            <ProjectContextPanel project={selectedProject || null} />
           </div>
         </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Creating...' : 'Create Task'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

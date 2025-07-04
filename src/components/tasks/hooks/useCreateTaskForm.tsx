@@ -11,9 +11,15 @@ import { useCreateTaskFormHandlers } from './useCreateTaskFormHandlers';
 
 interface UseCreateTaskFormProps {
   onSuccess: () => void;
+  defaultProjectId?: string;
+  defaultCategory?: string;
 }
 
-export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
+export const useCreateTaskForm = ({ 
+  onSuccess, 
+  defaultProjectId, 
+  defaultCategory 
+}: UseCreateTaskFormProps) => {
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
   const { toast } = useToast();
@@ -52,6 +58,16 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
       // This will be handled by the validation hook
     },
   });
+
+  // Set default values when component mounts or defaults change
+  useEffect(() => {
+    if (defaultProjectId && !formData.project_id) {
+      handleInputChange('project_id', defaultProjectId);
+    }
+    if (defaultCategory && !formData.category) {
+      handleInputChange('category', defaultCategory);
+    }
+  }, [defaultProjectId, defaultCategory, formData.project_id, formData.category, handleInputChange]);
 
   const selectedProject = projects.find(p => p.id === formData.project_id);
 
@@ -114,16 +130,8 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
           (validation.data.assigned_stakeholder_id ? [validation.data.assigned_stakeholder_id] : []);
         
         if (assignedStakeholderIds.length > 0) {
-          const assignedStakeholders = assignedStakeholderIds
-            .map(id => stakeholders.find(s => s.id === id))
-            .filter(Boolean);
-          
-          if (assignedStakeholders.length === 1) {
-            const stakeholder = assignedStakeholders[0];
-            successMessage = `${validation.data.title} has been created and assigned to ${stakeholder!.company_name || stakeholder!.contact_person}`;
-          } else if (assignedStakeholders.length > 1) {
-            successMessage = `${validation.data.title} has been created and assigned to ${assignedStakeholders.length} stakeholders`;
-          }
+          const assignedCount = assignedStakeholderIds.length;
+          successMessage += ` and assigned to ${assignedCount} stakeholder${assignedCount > 1 ? 's' : ''}`;
         }
         
         toast({
@@ -131,32 +139,40 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
           description: successMessage
         });
         
-        resetForm();
         onSuccess();
+        resetFormState();
       }
-    } catch (error) {
-      console.error('Task creation error:', error);
+    } catch (error: any) {
+      console.error('Error in handleSubmit:', error);
       toast({
         title: "Error creating task",
-        description: "Failed to create task. Please try again.",
+        description: error?.message || 'An unexpected error occurred',
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const resetForm = () => {
     resetFormState();
     clearAllErrors();
+    // Reapply defaults after reset
+    if (defaultProjectId) {
+      handleInputChange('project_id', defaultProjectId);
+    }
+    if (defaultCategory) {
+      handleInputChange('category', defaultCategory);
+    }
   };
 
   return {
     formData,
+    setFormData,
     newSkill,
     setNewSkill,
-    errors,
     loading,
+    errors,
     projects,
     selectedProject,
     workers,
@@ -166,7 +182,11 @@ export const useCreateTaskForm = ({ onSuccess }: UseCreateTaskFormProps) => {
     handleAddSkill,
     handleRemoveSkill,
     handleSubmit,
+    resetForm,
+    validateForm,
+    validateTaskData,
+    clearAllErrors,
     getFieldError,
-    hasErrors
+    hasErrors,
   };
 };

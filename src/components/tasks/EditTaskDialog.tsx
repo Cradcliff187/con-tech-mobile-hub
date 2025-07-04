@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Task } from '@/types/database';
@@ -28,7 +29,6 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   const [showProjectChangeConfirm, setShowProjectChangeConfirm] = useState(false);
   const [pendingProjectChange, setPendingProjectChange] = useState<string>('');
   const [currentMode, setCurrentMode] = useState<'edit' | 'view'>(mode);
-  const [showAssignmentPanel, setShowAssignmentPanel] = useState(false);
   
   const { updateTask } = useTasks();
   const { toast } = useToast();
@@ -174,7 +174,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
               {/* Main Form */}
               <div className="flex-1 min-w-0">
                 <ScrollArea className="h-[calc(85vh-120px)]">
-                  <div className="space-y-4 pr-4">
+                  <div className="space-y-6 pr-4">
                     <EditTaskDialogContent
                       task={task}
                       onSubmit={handleSubmit}
@@ -182,18 +182,15 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                       loading={updateOperation.loading}
                     />
 
-                    {/* Basic Assignment Panel Toggle */}
-                    <div className="pt-4 border-t border-slate-200">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowAssignmentPanel(!showAssignmentPanel)}
-                        className="w-full mb-4"
-                      >
-                        {showAssignmentPanel ? 'Hide' : 'Show'} Assignment Panel
-                      </Button>
+                    <Separator className="my-6" />
 
-                      {showAssignmentPanel && formData.projectId && (
+                    {/* Stakeholder Assignment Section - Always Visible */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-slate-800">Task Assignment</h3>
+                      <p className="text-sm text-slate-600">
+                        Manage stakeholder assignments for this task.
+                      </p>
+                      {formData.projectId && (
                         <BasicStakeholderAssignment
                           projectId={formData.projectId}
                           requiredSkills={formData.requiredSkills || []}

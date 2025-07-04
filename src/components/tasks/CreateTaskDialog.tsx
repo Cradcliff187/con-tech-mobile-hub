@@ -2,12 +2,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useState } from 'react';
 import { useCreateTaskForm } from './hooks/useCreateTaskForm';
 import { CreateTaskFormFields } from './forms/CreateTaskFormFields';
 import { ProjectContextPanel } from './ProjectContextPanel';
 import { BasicStakeholderAssignment } from './BasicStakeholderAssignment';
-import { useProjects } from '@/hooks/useProjects';
 import { Separator } from '@/components/ui/separator';
 
 interface CreateTaskDialogProps {
@@ -16,8 +14,6 @@ interface CreateTaskDialogProps {
 }
 
 export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) => {
-  const [showAssignmentPanel, setShowAssignmentPanel] = useState(false);
-  
   const {
     formData,
     newSkill,
@@ -61,7 +57,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
           {/* Main Form */}
           <div className="flex-1 min-w-0">
             <ScrollArea className="h-[calc(85vh-120px)]">
-              <form onSubmit={handleSubmit} className="space-y-4 pr-4">
+              <form onSubmit={handleSubmit} className="space-y-6 pr-4">
                 <CreateTaskFormFields
                   formData={formData}
                   projects={projects}
@@ -76,18 +72,15 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                   getFieldError={getFieldError}
                 />
 
-                {/* Basic Assignment Panel Toggle */}
-                <div className="pt-4 border-t border-slate-200">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowAssignmentPanel(!showAssignmentPanel)}
-                    className="w-full mb-4"
-                  >
-                    {showAssignmentPanel ? 'Hide' : 'Show'} Assignment Panel
-                  </Button>
+                <Separator className="my-6" />
 
-                  {showAssignmentPanel && formData.project_id && (
+                {/* Stakeholder Assignment Section - Always Visible and Prominent */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-slate-800">Task Assignment</h3>
+                  <p className="text-sm text-slate-600">
+                    Assign stakeholders to this task based on required skills and availability.
+                  </p>
+                  {formData.project_id && (
                     <BasicStakeholderAssignment
                       projectId={formData.project_id}
                       requiredSkills={formData.required_skills || []}
@@ -95,7 +88,7 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
                       selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
                       onSingleSelect={handleStakeholderSelect}
                       onMultiSelect={handleMultiStakeholderSelect}
-                      multiSelectMode={false}
+                      multiSelectMode={true}
                     />
                   )}
                 </div>
@@ -103,12 +96,17 @@ export const CreateTaskDialog = ({ open, onOpenChange }: CreateTaskDialogProps) 
             </ScrollArea>
             
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
                 Cancel
               </Button>
               <Button 
                 onClick={handleSubmit} 
                 disabled={loading || !formData.project_id}
+                className="bg-orange-600 hover:bg-orange-700"
               >
                 {loading ? 'Creating...' : 'Create Task'}
               </Button>
