@@ -78,10 +78,12 @@ export const useTaskHierarchyActions = ({ projectId }: UseTaskHierarchyActionsPr
     if (!confirmDelete) return;
 
     try {
-      // Note: We would need a deleteTask function in useTasks hook
-      // For now, we'll update the status to indicate deletion
+      // Instead of setting to cancelled, we'll set to blocked to indicate deletion
+      // In a real implementation, you might want to add a separate 'deleted' field
+      // or implement soft deletion differently
       const result = await updateTask(taskId, { 
-        status: 'cancelled',
+        status: 'blocked',
+        description: `[DELETED] ${task.description || ''}`,
         updated_at: new Date().toISOString()
       });
       

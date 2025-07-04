@@ -54,8 +54,8 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   useEffect(() => {
     // Filter and organize tasks into hierarchy
     const projectTasks = tasks.filter(task => 
-      task.project_id === projectId && 
-      task.status !== 'cancelled' // Exclude deleted tasks
+      task.project_id === projectId
+      // Remove the cancelled status filter since it's not valid
     );
     
     // Group by category for basic hierarchy
