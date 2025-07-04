@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Undo2, Redo2, Settings } from 'lucide-react';
 import { HierarchyTask } from '@/types/hierarchy';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TaskHierarchyProps {
   projectId: string;
@@ -33,6 +34,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Enhanced functionality hooks
   const { addUndoAction, undo, redo, canUndo, canRedo, isUndoing } = useTaskHierarchyUndo();
@@ -190,49 +192,55 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   return (
     <div className="space-y-4">
       {/* Enhanced Header with Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <TaskHierarchyHeader onAddCategory={handleAddCategory} />
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-end">
           {/* Undo/Redo Controls */}
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="sm"
+              size={isMobile ? "default" : "sm"}
               onClick={undo}
               disabled={!canUndo || isUndoing}
               title="Undo last action (Ctrl+Z)"
+              className={isMobile ? "min-h-[44px] px-3" : ""}
             >
               <Undo2 size={16} />
+              {isMobile && <span className="ml-2">Undo</span>}
             </Button>
             <Button
               variant="outline"  
-              size="sm"
+              size={isMobile ? "default" : "sm"}
               onClick={redo}
               disabled={!canRedo || isUndoing}
               title="Redo last action (Ctrl+Shift+Z)"
+              className={isMobile ? "min-h-[44px] px-3" : ""}
             >
               <Redo2 size={16} />
+              {isMobile && <span className="ml-2">Redo</span>}
             </Button>
           </div>
 
           {/* Category Management */}
           <Button
             variant="outline"
-            size="sm"
+            size={isMobile ? "default" : "sm"}
             onClick={handleCategoryManagement}
             disabled={categoryLoading}
             title="Manage categories"
+            className={isMobile ? "min-h-[44px] px-3" : ""}
           >
             <Settings size={16} />
+            {isMobile && <span className="ml-2">Manage</span>}
             {categoryLoading && <LoadingSpinner size="sm" className="ml-2" />}
           </Button>
         </div>
       </div>
 
       <div className="border border-slate-200 rounded-lg overflow-hidden">
-        {/* Header */}
-        <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
+        {/* Header - Hidden on mobile for better space usage */}
+        <div className="hidden md:block bg-slate-50 border-b border-slate-200 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-4" />
             <span className="flex-1 text-sm font-medium text-slate-700">Task</span>
@@ -243,7 +251,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         </div>
 
         {/* Tasks */}
-        <div className="max-h-96 overflow-y-auto relative">
+        <div className="max-h-96 md:max-h-96 overflow-y-auto relative">
           {(isUpdating || isUndoing) && (
             <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
               <LoadingSpinner />

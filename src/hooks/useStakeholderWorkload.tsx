@@ -104,6 +104,14 @@ export const useStakeholderWorkload = ({
     return Array.from(stakeholderMap.values());
   };
 
+  // Define availability status helper function first
+  const getAvailabilityStatus = (utilization: number) => {
+    if (utilization >= 100) return 'overallocated';
+    if (utilization >= 80) return 'nearly_full';
+    if (utilization >= 50) return 'moderate';
+    return 'available';
+  };
+
   useEffect(() => {
     fetchWorkloadData();
   }, [startDate, endDate, stakeholderIds?.join(',')]);
@@ -120,13 +128,6 @@ export const useStakeholderWorkload = ({
       };
     });
   }, [workloadData, stakeholders]);
-
-  const getAvailabilityStatus = (utilization: number) => {
-    if (utilization >= 100) return 'overallocated';
-    if (utilization >= 80) return 'nearly_full';
-    if (utilization >= 50) return 'moderate';
-    return 'available';
-  };
 
   const getStakeholderWorkload = (stakeholderId: string) => {
     return enhancedWorkloadData.find(w => w.stakeholder_id === stakeholderId);
