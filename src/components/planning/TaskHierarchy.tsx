@@ -18,23 +18,11 @@ import { TaskHierarchyEmptyState } from './TaskHierarchyEmptyState';
 import { TaskHierarchyHeader } from './TaskHierarchyHeader';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { Undo2, Redo2, Settings, Keyboard } from 'lucide-react';
+import { Undo2, Redo2, Settings } from 'lucide-react';
+import { HierarchyTask } from '@/types/hierarchy';
 
 interface TaskHierarchyProps {
   projectId: string;
-}
-
-interface HierarchyTask {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  progress: number;
-  dueDate?: string;
-  assignee?: string;
-  category?: string;
-  children: HierarchyTask[];
-  expanded?: boolean;
 }
 
 export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
@@ -48,7 +36,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
 
   // Enhanced functionality hooks
   const { addUndoAction, undo, redo, canUndo, canRedo, isUndoing } = useTaskHierarchyUndo();
-  const { isLoading: categoryLoading } = useCategoryManagement(projectId);
+  const { isLoading: categoryLoading, renameCategory } = useCategoryManagement(projectId);
 
   const handleAddTask = (category?: string) => {
     setSelectedCategory(category);
@@ -274,11 +262,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
               onViewTask={handleViewTask}
               onDuplicateTask={handleDuplicateTask}
               onDeleteTask={handleDeleteTask}
-              onCategoryRename={(oldName, newName) => {
-                // Handle category rename from row
-                const categoryMgmt = useCategoryManagement(projectId);
-                categoryMgmt.renameCategory(oldName, newName);
-              }}
+              onCategoryRename={renameCategory}
               canEdit={!isUpdating}
               isUpdating={isUpdating}
             />

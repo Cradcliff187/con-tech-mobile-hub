@@ -1,16 +1,5 @@
 
-interface HierarchyTask {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  progress: number;
-  dueDate?: string;
-  assignee?: string;
-  category?: string;
-  children: HierarchyTask[];
-  expanded?: boolean;
-}
+import { HierarchyTask } from '@/types/hierarchy';
 
 interface TaskHierarchySummaryProps {
   hierarchyTasks: HierarchyTask[];

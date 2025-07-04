@@ -4,19 +4,8 @@ import { Button } from '@/components/ui/button';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
-
-interface HierarchyTask {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  progress: number;
-  dueDate?: string;
-  assignee?: string;
-  category?: string;
-  children: HierarchyTask[];
-  expanded?: boolean;
-}
+import { HierarchyTask } from '@/types/hierarchy';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TaskHierarchyRowProps {
   task: HierarchyTask;
@@ -52,6 +41,7 @@ export const TaskHierarchyRow = ({
   isUpdating = false
 }: TaskHierarchyRowProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useIsMobile();
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
@@ -143,7 +133,7 @@ export const TaskHierarchyRow = ({
 
           {/* Actions - Show on hover or mobile */}
           <div className={`flex items-center gap-1 transition-opacity ${
-            isHovered || window.innerWidth < 768 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            isHovered || isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}>
             {/* Quick Add Task Button */}
             <Button 
