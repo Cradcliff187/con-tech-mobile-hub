@@ -6,9 +6,10 @@ import { Task } from '@/types/database';
 
 interface UseTaskHierarchyActionsProps {
   projectId: string;
+  addUndoAction?: (action: { type: 'create' | 'update' | 'delete'; description: string; data: any }) => void;
 }
 
-export const useTaskHierarchyActions = ({ projectId }: UseTaskHierarchyActionsProps) => {
+export const useTaskHierarchyActions = ({ projectId, addUndoAction }: UseTaskHierarchyActionsProps) => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -53,6 +54,16 @@ export const useTaskHierarchyActions = ({ projectId }: UseTaskHierarchyActionsPr
         throw new Error(result.error);
       }
 
+      // Track undo action
+      addUndoAction?.({
+        type: 'create',
+        description: `Duplicated task "${task.title}"`,
+        data: {
+          taskId: result.data?.id || '',
+          after: duplicatedTask
+        }
+      });
+
       toast({
         title: "Task Duplicated",
         description: `"${task.title}" has been duplicated successfully.`
@@ -90,6 +101,16 @@ export const useTaskHierarchyActions = ({ projectId }: UseTaskHierarchyActionsPr
       if (result.error) {
         throw new Error(result.error);
       }
+
+      // Track undo action
+      addUndoAction?.({
+        type: 'delete',
+        description: `Deleted task "${task.title}"`,
+        data: {
+          taskId,
+          before: { status: task.status, description: task.description }
+        }
+      });
 
       toast({
         title: "Task Deleted",

@@ -5,13 +5,20 @@ import { AddCategoryDialog } from './AddCategoryDialog';
 import { AddTaskDialog } from './AddTaskDialog';
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
 import { TaskDetailsDialog } from '@/components/tasks/TaskDetailsDialog';
+import { CategoryManagementDialog } from './CategoryManagementDialog';
 import { useDialogState } from '@/hooks/useDialogState';
 import { useToast } from '@/hooks/use-toast';
 import { useTaskHierarchyActions } from '@/hooks/useTaskHierarchyActions';
+import { useTaskHierarchyKeyboardShortcuts } from '@/hooks/useTaskHierarchyKeyboardShortcuts';
+import { useTaskHierarchyUndo } from '@/hooks/useTaskHierarchyUndo';
+import { useCategoryManagement } from '@/hooks/useCategoryManagement';
 import { TaskHierarchyRow } from './TaskHierarchyRow';
 import { TaskHierarchySummary } from './TaskHierarchySummary';
 import { TaskHierarchyEmptyState } from './TaskHierarchyEmptyState';
 import { TaskHierarchyHeader } from './TaskHierarchyHeader';
+import { Button } from '@/components/ui/button';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { Undo2, Redo2, Settings, Keyboard } from 'lucide-react';
 
 interface TaskHierarchyProps {
   projectId: string;
@@ -33,11 +40,26 @@ interface HierarchyTask {
 export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   const { tasks, updateTask } = useTasks();
   const [hierarchyTasks, setHierarchyTasks] = useState<HierarchyTask[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
+  const [isUpdating, setIsUpdating] = useState(false);
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const { toast } = useToast();
 
-  // Task editing actions
+  // Enhanced functionality hooks
+  const { addUndoAction, undo, redo, canUndo, canRedo, isUndoing } = useTaskHierarchyUndo();
+  const { isLoading: categoryLoading } = useCategoryManagement(projectId);
+
+  const handleAddTask = (category?: string) => {
+    setSelectedCategory(category);
+    openDialog('details');
+  };
+
+  const handleAddCategory = () => {
+    openDialog('edit');
+  };
+
+  // Task editing actions with undo support
   const {
     editingTask,
     viewingTask,
@@ -49,7 +71,20 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
     handleDeleteTask,
     closeEditDialog,
     closeViewDialog
-  } = useTaskHierarchyActions({ projectId });
+  } = useTaskHierarchyActions({ projectId, addUndoAction });
+
+  // Keyboard shortcuts
+  useTaskHierarchyKeyboardShortcuts({
+    onAddTask: () => handleAddTask(),
+    onAddCategory: handleAddCategory,
+    onUndo: undo,
+    onRedo: redo,
+    selectedTaskId,
+    onEditTask: handleEditTask,
+    onDuplicateTask: handleDuplicateTask,
+    onDeleteTask: handleDeleteTask,
+    disabled: isUpdating || categoryLoading || isUndoing
+  });
 
   useEffect(() => {
     // Filter and organize tasks into hierarchy
@@ -106,23 +141,33 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
     );
   };
 
-  const handleAddTask = (category?: string) => {
-    setSelectedCategory(category);
-    openDialog('details');
-  };
-
-  const handleAddCategory = () => {
-    openDialog('edit');
-  };
 
   const handleStatusChange = async (taskId: string, newStatus: 'not-started' | 'in-progress' | 'completed' | 'blocked') => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const oldStatus = task.status;
+    setIsUpdating(true);
+
     try {
       const result = await updateTask(taskId, { status: newStatus });
       if (result.error) {
         throw new Error(result.error);
       }
+
+      // Track undo action
+      addUndoAction({
+        type: 'update',
+        description: `Changed status from ${oldStatus} to ${newStatus}`,
+        data: {
+          taskId,
+          before: { status: oldStatus },
+          after: { status: newStatus }
+        }
+      });
+
       toast({
-        title: "Success",
+        title: "Status Updated",
         description: "Task status updated successfully"
       });
     } catch (error) {
@@ -132,7 +177,13 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         description: "Failed to update task status",
         variant: "destructive"
       });
+    } finally {
+      setIsUpdating(false);
     }
+  };
+
+  const handleCategoryManagement = () => {
+    openDialog('category-management');
   };
 
   if (hierarchyTasks.length === 0) {
@@ -150,7 +201,46 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
 
   return (
     <div className="space-y-4">
-      <TaskHierarchyHeader onAddCategory={handleAddCategory} />
+      {/* Enhanced Header with Controls */}
+      <div className="flex items-center justify-between">
+        <TaskHierarchyHeader onAddCategory={handleAddCategory} />
+        
+        <div className="flex items-center gap-2">
+          {/* Undo/Redo Controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undo}
+              disabled={!canUndo || isUndoing}
+              title="Undo last action (Ctrl+Z)"
+            >
+              <Undo2 size={16} />
+            </Button>
+            <Button
+              variant="outline"  
+              size="sm"
+              onClick={redo}
+              disabled={!canRedo || isUndoing}
+              title="Redo last action (Ctrl+Shift+Z)"
+            >
+              <Redo2 size={16} />
+            </Button>
+          </div>
+
+          {/* Category Management */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCategoryManagement}
+            disabled={categoryLoading}
+            title="Manage categories"
+          >
+            <Settings size={16} />
+            {categoryLoading && <LoadingSpinner size="sm" className="ml-2" />}
+          </Button>
+        </div>
+      </div>
 
       <div className="border border-slate-200 rounded-lg overflow-hidden">
         {/* Header */}
@@ -165,11 +255,18 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         </div>
 
         {/* Tasks */}
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto relative">
+          {(isUpdating || isUndoing) && (
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+              <LoadingSpinner />
+            </div>
+          )}
           {hierarchyTasks.map(task => (
             <TaskHierarchyRow 
               key={task.id} 
               task={task}
+              isSelected={selectedTaskId === task.id}
+              onSelect={setSelectedTaskId}
               onToggleExpanded={toggleExpanded}
               onStatusChange={handleStatusChange}
               onAddTask={handleAddTask}
@@ -177,7 +274,13 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
               onViewTask={handleViewTask}
               onDuplicateTask={handleDuplicateTask}
               onDeleteTask={handleDeleteTask}
-              canEdit={true}
+              onCategoryRename={(oldName, newName) => {
+                // Handle category rename from row
+                const categoryMgmt = useCategoryManagement(projectId);
+                categoryMgmt.renameCategory(oldName, newName);
+              }}
+              canEdit={!isUpdating}
+              isUpdating={isUpdating}
             />
           ))}
         </div>
@@ -216,6 +319,13 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
           closeViewDialog();
           handleEditTask(task.id);
         }}
+      />
+
+      {/* Category Management Dialog */}
+      <CategoryManagementDialog
+        open={isDialogOpen('category-management')}
+        onOpenChange={(open) => !open && closeDialog()}
+        projectId={projectId}
       />
     </div>
   );

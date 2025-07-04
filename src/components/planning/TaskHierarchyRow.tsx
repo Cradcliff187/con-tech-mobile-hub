@@ -21,6 +21,8 @@ interface HierarchyTask {
 interface TaskHierarchyRowProps {
   task: HierarchyTask;
   level?: number;
+  isSelected?: boolean;
+  onSelect?: (taskId: string) => void;
   onToggleExpanded: (taskId: string) => void;
   onStatusChange: (taskId: string, newStatus: 'not-started' | 'in-progress' | 'completed' | 'blocked') => void;
   onAddTask: (category?: string) => void;
@@ -28,12 +30,16 @@ interface TaskHierarchyRowProps {
   onViewTask?: (taskId: string) => void;
   onDuplicateTask?: (taskId: string) => void;
   onDeleteTask?: (taskId: string) => void;
+  onCategoryRename?: (oldName: string, newName: string) => void;
   canEdit?: boolean;
+  isUpdating?: boolean;
 }
 
 export const TaskHierarchyRow = ({ 
   task, 
-  level = 0, 
+  level = 0,
+  isSelected = false,
+  onSelect,
   onToggleExpanded, 
   onStatusChange, 
   onAddTask,
@@ -41,7 +47,9 @@ export const TaskHierarchyRow = ({
   onViewTask,
   onDuplicateTask,
   onDeleteTask,
-  canEdit = true
+  onCategoryRename,
+  canEdit = true,
+  isUpdating = false
 }: TaskHierarchyRowProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -63,12 +71,13 @@ export const TaskHierarchyRow = ({
   return (
     <>
       <div 
-        className={`flex items-center gap-3 py-3 px-4 border-b border-slate-200 hover:bg-slate-50 group ${
+        className={`flex items-center gap-3 py-3 px-4 border-b border-slate-200 hover:bg-slate-50 group transition-colors cursor-pointer ${
           level > 0 ? 'bg-slate-25' : ''
-        }`}
+        } ${isSelected ? 'bg-blue-50 border-blue-200' : ''} ${isUpdating ? 'opacity-50' : ''}`}
         style={{ paddingLeft: `${16 + level * 24}px` }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={() => onSelect?.(task.id)}
       >
         {/* Expand/Collapse */}
         {task.children.length > 0 ? (
@@ -205,10 +214,18 @@ export const TaskHierarchyRow = ({
                     Add Task to Category
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="flex items-center gap-2">
-                    <Edit size={14} />
-                    Rename Category
-                  </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onClick={() => {
+                       const newName = window.prompt('Enter new category name:', task.title);
+                       if (newName && newName.trim() && newName !== task.title) {
+                         onCategoryRename?.(task.title, newName.trim());
+                       }
+                     }}
+                     className="flex items-center gap-2"
+                   >
+                     <Edit size={14} />
+                     Rename Category
+                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -229,7 +246,9 @@ export const TaskHierarchyRow = ({
           onViewTask={onViewTask}
           onDuplicateTask={onDuplicateTask}
           onDeleteTask={onDeleteTask}
+          onCategoryRename={onCategoryRename}
           canEdit={canEdit}
+          isUpdating={isUpdating}
         />
       ))}
     </>
