@@ -32,15 +32,14 @@ export const usePersonnelConflictResolution = (
       return;
     }
 
-    console.warn('⚠️ MIGRATION NOTICE: Using stakeholder assignments instead of team_members for conflict resolution');
+    
 
     setIsSubmitting(true);
 
     try {
       switch (selectedOption) {
         case 'reassign':
-          // Update stakeholder assignments instead of team_members
-          console.log('Reassigning tasks using stakeholder assignments:', reassignmentNotes);
+          // Update stakeholder assignments for reassignment
           
           // Find stakeholder assignments for the conflicted employee
           const { data: assignments, error: fetchError } = await supabase
@@ -77,7 +76,7 @@ export const usePersonnelConflictResolution = (
           break;
 
         case 'reduce':
-          // Update stakeholder assignments to reduce hours instead of team_members
+          // Update stakeholder assignments to reduce hours
           const { error: allocationError } = await supabase
             .from('stakeholder_assignments')
             .update({

@@ -49,7 +49,7 @@ export const DragDropResourceView = () => {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const { toast } = useToast();
 
-  console.warn('⚠️ MIGRATION NOTICE: DragDropResourceView now uses stakeholder assignments instead of team_members');
+  
 
   // Get active projects only
   const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'planning');
@@ -239,7 +239,7 @@ export const DragDropResourceView = () => {
     }
 
     try {
-      console.warn('⚠️ LEGACY OPERATION: Updating stakeholder assignment instead of team_members');
+      
       
       // Update the stakeholder assignment to move to new project
       const { error: updateError } = await supabase

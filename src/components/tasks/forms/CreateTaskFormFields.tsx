@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { TaskSkillsField } from './TaskSkillsField';
-import { TaskStakeholderAssignmentField } from './TaskStakeholderAssignmentField';
+
 import { TaskFormData } from '@/schemas';
 import { Project } from '@/types/database';
 import { Stakeholder } from '@/hooks/useStakeholders';
@@ -187,15 +187,6 @@ export const CreateTaskFormFields = ({
         error={getFieldError('required_skills')}
       />
 
-      <TaskStakeholderAssignmentField
-        value={formData.assigned_stakeholder_id}
-        values={formData.assigned_stakeholder_ids || []}
-        onChange={(value) => onInputChange('assigned_stakeholder_id', value)}
-        onMultiChange={(values) => onInputChange('assigned_stakeholder_ids', values)}
-        stakeholders={workers}
-        requiredSkills={formData.required_skills || []}
-        error={getFieldError('assigned_stakeholder_id') || getFieldError('assigned_stakeholder_ids')}
-      />
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">

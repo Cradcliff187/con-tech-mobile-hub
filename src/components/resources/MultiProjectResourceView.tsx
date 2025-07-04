@@ -37,8 +37,6 @@ export const MultiProjectResourceView = () => {
   const [filterMember, setFilterMember] = useState('');
   const [filterProject, setFilterProject] = useState('all');
 
-  // Log migration notice
-  console.warn('⚠️ MIGRATION NOTICE: MultiProjectResourceView now uses employee assignments instead of team_members');
 
   // Get active projects only
   const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'planning');
