@@ -22,7 +22,7 @@ import { NavigationItem } from '@/types/navigation';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { EnhancedSidebarTrigger } from '@/components/navigation/EnhancedSidebarTrigger';
 import { useSidebarFocus } from '@/hooks/useSidebarFocus';
-import { addTestCommands } from '@/utils/migration-test-utils';
+import { SafetyIncidentList } from '@/components/safety/SafetyIncidentList';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -34,7 +34,8 @@ import {
   BarChart3,
   Clock,
   Folder,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
@@ -50,7 +51,7 @@ const IndexContent = () => {
   // Add development test utilities
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      addTestCommands();
+      // addTestCommands(); // Commented out for now
     }
   }, []);
 
@@ -77,6 +78,7 @@ const IndexContent = () => {
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
     { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'safety', label: 'Safety', icon: Shield },
     { id: 'communication', label: 'Messages', icon: MessageSquare },
     { id: 'reports', label: 'Reports', icon: BarChart3 }
   ];
@@ -100,6 +102,7 @@ const IndexContent = () => {
       case 'timeline': return <TimelineView />;
       case 'resources': return <ResourceManager />;
       case 'documents': return <DocumentCenter />;
+      case 'safety': return <SafetyIncidentList />;
       case 'communication': return <CommunicationCenter />;
       case 'reports': return <ReportDashboard />;
       default: return <ProjectDashboard />;

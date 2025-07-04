@@ -1404,6 +1404,48 @@ export type Database = {
           },
         ]
       }
+      safety_incident_photos: {
+        Row: {
+          alt_text: string | null
+          display_order: number | null
+          document_id: string
+          id: string
+          safety_incident_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          display_order?: number | null
+          document_id: string
+          id?: string
+          safety_incident_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          display_order?: number | null
+          document_id?: string
+          id?: string
+          safety_incident_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_incident_photos_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_incident_photos_safety_incident_id_fkey"
+            columns: ["safety_incident_id"]
+            isOneToOne: false
+            referencedRelation: "safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       safety_incidents: {
         Row: {
           corrective_actions: string | null
