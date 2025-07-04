@@ -205,6 +205,125 @@ export type Database = {
           },
         ]
       }
+      change_order_documents: {
+        Row: {
+          change_order_id: string
+          document_id: string
+          id: string
+          relationship_type: string
+          uploaded_at: string
+        }
+        Insert: {
+          change_order_id: string
+          document_id: string
+          id?: string
+          relationship_type?: string
+          uploaded_at?: string
+        }
+        Update: {
+          change_order_id?: string
+          document_id?: string
+          id?: string
+          relationship_type?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_order_documents_change_order_id_fkey"
+            columns: ["change_order_id"]
+            isOneToOne: false
+            referencedRelation: "change_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_order_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          cost_impact: number | null
+          created_at: string
+          description: string | null
+          id: string
+          priority: string
+          project_id: string
+          reason_for_change: string | null
+          requested_by: string
+          schedule_impact_days: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cost_impact?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          project_id: string
+          reason_for_change?: string | null
+          requested_by: string
+          schedule_impact_days?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cost_impact?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          project_id?: string
+          reason_for_change?: string | null
+          requested_by?: string
+          schedule_impact_days?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_orders_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_orders_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string | null
