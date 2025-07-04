@@ -3,8 +3,11 @@ import { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { AddCategoryDialog } from './AddCategoryDialog';
 import { AddTaskDialog } from './AddTaskDialog';
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog';
+import { TaskDetailsDialog } from '@/components/tasks/TaskDetailsDialog';
 import { useDialogState } from '@/hooks/useDialogState';
 import { useToast } from '@/hooks/use-toast';
+import { useTaskHierarchyActions } from '@/hooks/useTaskHierarchyActions';
 import { TaskHierarchyRow } from './TaskHierarchyRow';
 import { TaskHierarchySummary } from './TaskHierarchySummary';
 import { TaskHierarchyEmptyState } from './TaskHierarchyEmptyState';
@@ -34,9 +37,26 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const { toast } = useToast();
 
+  // Task editing actions
+  const {
+    editingTask,
+    viewingTask,
+    isEditDialogOpen,
+    isViewDialogOpen,
+    handleEditTask,
+    handleViewTask,
+    handleDuplicateTask,
+    handleDeleteTask,
+    closeEditDialog,
+    closeViewDialog
+  } = useTaskHierarchyActions({ projectId });
+
   useEffect(() => {
     // Filter and organize tasks into hierarchy
-    const projectTasks = tasks.filter(task => task.project_id === projectId);
+    const projectTasks = tasks.filter(task => 
+      task.project_id === projectId && 
+      task.status !== 'cancelled' // Exclude deleted tasks
+    );
     
     // Group by category for basic hierarchy
     const categories = new Set(projectTasks.map(task => task.category || 'Uncategorized'));
@@ -140,7 +160,7 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
             <span className="flex-1 text-sm font-medium text-slate-700">Task</span>
             <span className="w-20 text-sm font-medium text-slate-700 text-center">Progress</span>
             <span className="w-20 text-sm font-medium text-slate-700 text-center">Assignee</span>
-            <div className="w-8" />
+            <div className="w-16 text-sm font-medium text-slate-700 text-center">Actions</div>
           </div>
         </div>
 
@@ -153,6 +173,11 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
               onToggleExpanded={toggleExpanded}
               onStatusChange={handleStatusChange}
               onAddTask={handleAddTask}
+              onEditTask={handleEditTask}
+              onViewTask={handleViewTask}
+              onDuplicateTask={handleDuplicateTask}
+              onDeleteTask={handleDeleteTask}
+              canEdit={true}
             />
           ))}
         </div>
@@ -172,6 +197,25 @@ export const TaskHierarchy = ({ projectId }: TaskHierarchyProps) => {
         onOpenChange={(open) => !open && closeDialog()}
         projectId={projectId}
         category={selectedCategory}
+      />
+
+      {/* Task Edit Dialog */}
+      <EditTaskDialog
+        open={isEditDialogOpen}
+        onOpenChange={closeEditDialog}
+        task={editingTask}
+        mode="edit"
+      />
+
+      {/* Task Details Dialog */}
+      <TaskDetailsDialog
+        open={isViewDialogOpen}
+        onOpenChange={closeViewDialog}
+        task={viewingTask}
+        onEditRequest={(task) => {
+          closeViewDialog();
+          handleEditTask(task.id);
+        }}
       />
     </div>
   );

@@ -1,7 +1,9 @@
 
-import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Calendar, User, AlertTriangle, Plus, Edit, Eye, MoreHorizontal, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
 
 interface HierarchyTask {
   id: string;
@@ -22,6 +24,11 @@ interface TaskHierarchyRowProps {
   onToggleExpanded: (taskId: string) => void;
   onStatusChange: (taskId: string, newStatus: 'not-started' | 'in-progress' | 'completed' | 'blocked') => void;
   onAddTask: (category?: string) => void;
+  onEditTask?: (taskId: string) => void;
+  onViewTask?: (taskId: string) => void;
+  onDuplicateTask?: (taskId: string) => void;
+  onDeleteTask?: (taskId: string) => void;
+  canEdit?: boolean;
 }
 
 export const TaskHierarchyRow = ({ 
@@ -29,8 +36,15 @@ export const TaskHierarchyRow = ({
   level = 0, 
   onToggleExpanded, 
   onStatusChange, 
-  onAddTask 
+  onAddTask,
+  onEditTask,
+  onViewTask,
+  onDuplicateTask,
+  onDeleteTask,
+  canEdit = true
 }: TaskHierarchyRowProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'critical': return <AlertTriangle size={14} className="text-red-600" />;
@@ -39,19 +53,28 @@ export const TaskHierarchyRow = ({
     }
   };
 
+  const handleActionClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
+
+  const isCategory = task.status === 'category';
+
   return (
     <>
       <div 
-        className={`flex items-center gap-3 py-3 px-4 border-b border-slate-200 hover:bg-slate-50 ${
+        className={`flex items-center gap-3 py-3 px-4 border-b border-slate-200 hover:bg-slate-50 group ${
           level > 0 ? 'bg-slate-25' : ''
         }`}
         style={{ paddingLeft: `${16 + level * 24}px` }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Expand/Collapse */}
         {task.children.length > 0 ? (
           <button
-            onClick={() => onToggleExpanded(task.id)}
-            className="text-slate-500 hover:text-slate-700"
+            onClick={(e) => handleActionClick(e, () => onToggleExpanded(task.id))}
+            className="text-slate-500 hover:text-slate-700 transition-colors"
           >
             {task.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
@@ -66,14 +89,17 @@ export const TaskHierarchyRow = ({
             <span className={`text-sm font-medium ${level === 0 ? 'text-slate-800' : 'text-slate-700'}`}>
               {task.title}
             </span>
-            {task.status !== 'category' && (
-              <GlobalStatusDropdown
-                entityType="task"
-                currentStatus={task.status}
-                onStatusChange={(newStatus) => onStatusChange(task.id, newStatus as 'not-started' | 'in-progress' | 'completed' | 'blocked')}
-                size="sm"
-                confirmCriticalChanges={true}
-              />
+            {!isCategory && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <GlobalStatusDropdown
+                  entityType="task"
+                  currentStatus={task.status}
+                  onStatusChange={(newStatus) => onStatusChange(task.id, newStatus as 'not-started' | 'in-progress' | 'completed' | 'blocked')}
+                  size="sm"
+                  confirmCriticalChanges={true}
+                  disabled={!canEdit}
+                />
+              </div>
             )}
           </div>
           {task.dueDate && (
@@ -99,23 +125,94 @@ export const TaskHierarchyRow = ({
           </div>
 
           {/* Assignee */}
-          {task.assignee && task.status !== 'category' && (
+          {task.assignee && !isCategory && (
             <div className="flex items-center gap-1 text-xs text-slate-500">
               <User size={12} />
               <span>Assigned</span>
             </div>
           )}
 
-          {/* Actions */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-slate-500 hover:text-slate-700"
-            onClick={() => onAddTask(task.status === 'category' ? task.title : task.category)}
-            title={task.status === 'category' ? 'Add task to this category' : 'Add task to same category'}
-          >
-            <Plus size={14} />
-          </Button>
+          {/* Actions - Show on hover or mobile */}
+          <div className={`flex items-center gap-1 transition-opacity ${
+            isHovered || window.innerWidth < 768 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}>
+            {/* Quick Add Task Button */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-slate-500 hover:text-slate-700 h-8 w-8 p-0"
+              onClick={(e) => handleActionClick(e, () => onAddTask(isCategory ? task.title : task.category))}
+              title={isCategory ? 'Add task to this category' : 'Add task to same category'}
+            >
+              <Plus size={14} />
+            </Button>
+
+            {/* Task Actions Menu */}
+            {!isCategory && canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-slate-500 hover:text-slate-700 h-8 w-8 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => onViewTask?.(task.id)} className="flex items-center gap-2">
+                    <Eye size={14} />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEditTask?.(task.id)} className="flex items-center gap-2">
+                    <Edit size={14} />
+                    Edit Task
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onDuplicateTask?.(task.id)} className="flex items-center gap-2">
+                    <Copy size={14} />
+                    Duplicate Task
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onDeleteTask?.(task.id)} 
+                    className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 size={14} />
+                    Delete Task
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Category Actions Menu */}
+            {isCategory && canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-slate-500 hover:text-slate-700 h-8 w-8 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => onAddTask(task.title)} className="flex items-center gap-2">
+                    <Plus size={14} />
+                    Add Task to Category
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex items-center gap-2">
+                    <Edit size={14} />
+                    Rename Category
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       </div>
 
@@ -128,6 +225,11 @@ export const TaskHierarchyRow = ({
           onToggleExpanded={onToggleExpanded}
           onStatusChange={onStatusChange}
           onAddTask={onAddTask}
+          onEditTask={onEditTask}
+          onViewTask={onViewTask}
+          onDuplicateTask={onDuplicateTask}
+          onDeleteTask={onDeleteTask}
+          canEdit={canEdit}
         />
       ))}
     </>
