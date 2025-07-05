@@ -16,6 +16,18 @@ interface CurrentWeather {
   wind_speed: number;
 }
 
+// Map WMO weather codes to simple condition strings
+const getWeatherCondition = (weatherCode: number): string => {
+  if (weatherCode === 0) return 'Clear';
+  if (weatherCode <= 3) return 'Partly Cloudy';
+  if (weatherCode <= 48) return 'Cloudy';
+  if (weatherCode <= 67) return 'Rain';
+  if (weatherCode <= 77) return 'Snow';
+  if (weatherCode <= 82) return 'Showers';
+  if (weatherCode <= 99) return 'Thunderstorm';
+  return 'Cloudy';
+};
+
 // Overloaded hook - can return weather events or current weather
 export function useWeatherData(startDate: Date, endDate: Date): { weatherEvents: WeatherEvent[]; loading: boolean };
 export function useWeatherData(mode: 'default'): { weather: CurrentWeather | null; loading: boolean };
@@ -29,18 +41,40 @@ export function useWeatherData(startDateOrMode: Date | 'default', endDate?: Date
       setLoading(true);
       
       if (startDateOrMode === 'default') {
-        // Return current weather for widgets
-        const mockWeather: CurrentWeather = {
-          temperature: 72,
-          condition: 'Partly Cloudy',
-          humidity: 65,
-          wind_speed: 8
-        };
+        // Fetch real weather data from Open-Meteo API
+        try {
+          const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=39.0167&longitude=-84.6008&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph`
+          );
+          
+          if (!response.ok) {
+            throw new Error('Weather API request failed');
+          }
+          
+          const data = await response.json();
+          const current = data.current;
+          
+          const realWeather: CurrentWeather = {
+            temperature: Math.round(current.temperature_2m),
+            condition: getWeatherCondition(current.weather_code || 0),
+            humidity: Math.round(current.relative_humidity_2m),
+            wind_speed: Math.round(current.wind_speed_10m)
+          };
+          
+          setWeather(realWeather);
+        } catch (error) {
+          // Fallback to mock data if API fails
+          console.error('Weather API error, using fallback data:', error);
+          const fallbackWeather: CurrentWeather = {
+            temperature: 72,
+            condition: 'Partly Cloudy',
+            humidity: 65,
+            wind_speed: 8
+          };
+          setWeather(fallbackWeather);
+        }
         
-        setTimeout(() => {
-          setWeather(mockWeather);
-          setLoading(false);
-        }, 500);
+        setLoading(false);
         return;
       }
 
