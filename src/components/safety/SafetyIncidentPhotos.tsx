@@ -179,6 +179,7 @@ export const SafetyIncidentPhotos = ({
             <SmartDocumentUpload
               projectId={projectId}
               variant="inline"
+              preSelectedCategory="safety"
               onUploadComplete={handleUploadComplete}
               className="border-none p-0"
             />
