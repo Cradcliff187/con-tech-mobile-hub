@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, Sparkles, FileText, Camera, Receipt, Shield, Building, ClipboardList } from 'lucide-react';
+import { AlertCircle, Sparkles, FileText, Camera, Receipt, Shield, Building, ClipboardList, HelpCircle, Wrench } from 'lucide-react';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +24,7 @@ interface SmartDocumentUploadProps {
   className?: string;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  preSelectedCategory?: string;
 }
 
 const DOCUMENT_CATEGORIES = [
@@ -34,15 +35,17 @@ const DOCUMENT_CATEGORIES = [
   { value: 'contracts', label: 'Contracts & Agreements', icon: Building, description: 'Contracts, proposals, legal documents' },
   { value: 'reports', label: 'Reports & Documentation', icon: ClipboardList, description: 'Status reports, inspection reports, documentation' },
   { value: 'safety', label: 'Safety Documents', icon: Shield, description: 'Safety protocols, MSDS sheets, incident reports' },
+  { value: 'rfis', label: 'RFIs', icon: HelpCircle, description: 'Request for Information documents' },
+  { value: 'maintenance', label: 'Maintenance Records', icon: Wrench, description: 'Equipment service records and maintenance documentation' },
   { value: 'other', label: 'Other Documents', icon: FileText, description: 'Miscellaneous project documents' }
 ];
 
 const PHASE_PRIORITY_CATEGORIES = {
   planning: ['plans', 'permits', 'contracts'],
-  active: ['photos', 'receipts', 'reports', 'safety'],
-  punch_list: ['photos', 'reports'],
+  active: ['photos', 'receipts', 'reports', 'safety', 'rfis', 'maintenance'],
+  punch_list: ['photos', 'reports', 'rfis'],
   closeout: ['reports', 'photos', 'other'],
-  completed: ['other', 'reports']
+  completed: ['other', 'reports', 'maintenance']
 };
 
 export const SmartDocumentUpload = ({
@@ -51,7 +54,8 @@ export const SmartDocumentUpload = ({
   variant = 'dialog',
   className,
   isOpen,
-  onOpenChange
+  onOpenChange,
+  preSelectedCategory: preSelectedCategoryProp
 }: SmartDocumentUploadProps) => {
   const [searchParams] = useSearchParams();
   const currentProjectId = projectId || searchParams.get('project') || '';
@@ -61,7 +65,7 @@ export const SmartDocumentUpload = ({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(currentProjectId);
   const [activeTab, setActiveTab] = useState('drop');
-  const [preSelectedCategory, setPreSelectedCategory] = useState<string>('');
+  const [preSelectedCategory, setPreSelectedCategory] = useState<string>(preSelectedCategoryProp || '');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -377,6 +381,7 @@ export const SmartDocumentUpload = ({
             prioritizedCategories={prioritizedCategories}
             projectPhase={projectPhase}
             isUploading={isUploading}
+            disabled={!!preSelectedCategoryProp}
           />
 
           {/* File Processing Area */}

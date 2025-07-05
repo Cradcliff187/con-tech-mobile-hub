@@ -11,6 +11,7 @@ interface CategorySelectionPanelProps {
   prioritizedCategories: any[];
   projectPhase: string;
   isUploading: boolean;
+  disabled?: boolean;
 }
 
 export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
@@ -18,7 +19,8 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
   onCategorySelect,
   prioritizedCategories,
   projectPhase,
-  isUploading
+  isUploading,
+  disabled = false
 }) => {
   const isMobile = useIsMobile();
 
@@ -52,7 +54,7 @@ export const CategorySelectionPanel: React.FC<CategorySelectionPanelProps> = ({
               selectedCategory={preSelectedCategory}
               onCategorySelect={onCategorySelect}
               projectPhase={projectPhase}
-              disabled={isUploading}
+              disabled={isUploading || disabled}
             />
           </div>
         </div>

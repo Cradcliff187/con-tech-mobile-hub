@@ -23,15 +23,17 @@ const FILENAME_PATTERNS = {
   photos: /\b(photo|image|pic|img|progress|before|after|site)\b/i,
   reports: /\b(report|summary|status|inspection|analysis|test)\b/i,
   safety: /\b(safety|msds|hazard|incident|accident|training)\b/i,
+  rfis: /\b(rfi|request|information|question|clarification|query)\b/i,
+  maintenance: /\b(maintenance|service|repair|routine|preventive|equipment)\b/i,
   other: /\b(misc|other|general|document|file)\b/i
 };
 
 const PHASE_RELEVANT_CATEGORIES = {
   planning: ['plans', 'permits', 'contracts'],
-  active: ['photos', 'receipts', 'reports', 'safety'],
-  punch_list: ['photos', 'reports'],
+  active: ['photos', 'receipts', 'reports', 'safety', 'rfis', 'maintenance'],
+  punch_list: ['photos', 'reports', 'rfis'],
   closeout: ['reports', 'photos', 'other'],
-  completed: ['other', 'reports']
+  completed: ['other', 'reports', 'maintenance']
 };
 
 export const analyzeFile = (
@@ -110,6 +112,8 @@ const getCategoryLabel = (category: string): string => {
     reports: 'Reports',
     safety: 'Safety Documents',
     receipts: 'Receipts',
+    rfis: 'RFIs',
+    maintenance: 'Maintenance Records',
     other: 'Other'
   };
   return labels[category] || category;
