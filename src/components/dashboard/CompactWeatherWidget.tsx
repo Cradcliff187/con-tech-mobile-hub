@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Cloud, Sun, CloudRain, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useWeatherData } from '@/hooks/useWeatherData';
@@ -36,6 +37,7 @@ const getWeatherSeverity = (condition?: string, temperature?: number) => {
 };
 
 export const CompactWeatherWidget = () => {
+  const navigate = useNavigate();
   const { weather, loading } = useWeatherData('default');
   const { tasks } = useTasks();
 
@@ -72,8 +74,7 @@ export const CompactWeatherWidget = () => {
   };
 
   const handleViewDetails = () => {
-    // Open detailed weather information in a new tab or modal
-    window.open('https://weather.com', '_blank');
+    navigate('/?section=weather');
   };
 
   return (
