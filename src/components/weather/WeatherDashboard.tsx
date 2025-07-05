@@ -37,11 +37,31 @@ const getWeatherIcon = (weatherCode: number): string => {
   return '☁️'; // Default
 };
 
+const getRelativeTime = (lastUpdated: Date, currentTime: Date): { text: string; isStale: boolean } => {
+  const diffMs = currentTime.getTime() - lastUpdated.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMinutes / 60);
+  
+  const isStale = diffMinutes >= 60; // Stale if older than 1 hour
+  
+  if (diffMinutes < 1) {
+    return { text: 'just now', isStale: false };
+  } else if (diffMinutes < 60) {
+    return { text: `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`, isStale };
+  } else if (diffHours < 24) {
+    return { text: `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`, isStale };
+  } else {
+    const diffDays = Math.floor(diffHours / 24);
+    return { text: `${diffDays} day${diffDays === 1 ? '' : 's'} ago`, isStale: true };
+  }
+};
+
 export const WeatherDashboard = () => {
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   const fetchWeatherData = async () => {
     try {
@@ -109,6 +129,15 @@ export const WeatherDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Update current time every minute for relative timestamps
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60 * 1000); // Update every minute
+    
+    return () => clearInterval(timeInterval);
+  }, []);
+
   if (loading && weatherData.length === 0) {
     return (
       <div className="space-y-6">
@@ -130,11 +159,6 @@ export const WeatherDashboard = () => {
           <CloudSun className="w-8 h-8 text-blue-600" />
           <h1 className="text-3xl font-bold text-slate-900">Weather Conditions</h1>
         </div>
-        {lastUpdated && (
-          <div className="text-sm text-slate-600">
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </div>
-        )}
       </div>
 
       {error && (
@@ -157,7 +181,18 @@ export const WeatherDashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{getWeatherIcon(weather.weatherCode)}</span>
-                  <CardTitle className="text-lg font-semibold">{weather.city}</CardTitle>
+                  <div className="flex flex-col">
+                    <CardTitle className="text-lg font-semibold">{weather.city}</CardTitle>
+                    {lastUpdated && (
+                      <div className={`text-xs ${
+                        getRelativeTime(lastUpdated, currentTime).isStale 
+                          ? 'text-red-600' 
+                          : 'text-slate-500'
+                      }`}>
+                        Last updated: {getRelativeTime(lastUpdated, currentTime).text}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Badge 
                   variant={weather.workSafe ? "default" : "destructive"}
