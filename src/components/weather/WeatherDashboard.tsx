@@ -9,8 +9,11 @@ interface WeatherData {
   latitude: number;
   longitude: number;
   temperature: number;
+  feelsLike: number;
   windSpeed: number;
+  windGusts: number | null;
   precipitation: number;
+  weatherCode: number;
   workSafe: boolean;
 }
 
@@ -20,6 +23,18 @@ const cities = [
   { name: 'Dayton, OH', latitude: 39.759, longitude: -84.192 },
   { name: 'Springfield, OH', latitude: 39.9242, longitude: -83.809 }
 ];
+
+const getWeatherIcon = (weatherCode: number): string => {
+  // WMO Weather interpretation codes
+  if (weatherCode === 0) return '☀️'; // Clear sky
+  if (weatherCode <= 3) return '⛅'; // Partly cloudy
+  if (weatherCode <= 48) return '☁️'; // Overcast/foggy
+  if (weatherCode <= 67) return '🌧️'; // Rain
+  if (weatherCode <= 77) return '❄️'; // Snow
+  if (weatherCode <= 82) return '🌦️'; // Showers
+  if (weatherCode <= 99) return '⛈️'; // Thunderstorm
+  return '☁️'; // Default
+};
 
 export const WeatherDashboard = () => {
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
@@ -34,7 +49,7 @@ export const WeatherDashboard = () => {
       
       const weatherPromises = cities.map(async (city) => {
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,wind_speed_10m,precipitation&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch`
+          `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_gusts_10m,precipitation,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch`
         );
         
         if (!response.ok) {
@@ -45,8 +60,11 @@ export const WeatherDashboard = () => {
         const current = data.current;
         
         const temperature = Math.round(current.temperature_2m);
+        const feelsLike = Math.round(current.apparent_temperature);
         const windSpeed = Math.round(current.wind_speed_10m);
+        const windGusts = current.wind_gusts_10m ? Math.round(current.wind_gusts_10m) : null;
         const precipitation = current.precipitation || 0;
+        const weatherCode = current.weather_code || 0;
         
         // Work safety calculation: Green if temp 20-95°F and wind < 30mph
         const workSafe = temperature >= 20 && temperature <= 95 && windSpeed < 30;
@@ -56,8 +74,11 @@ export const WeatherDashboard = () => {
           latitude: city.latitude,
           longitude: city.longitude,
           temperature,
+          feelsLike,
           windSpeed,
+          windGusts,
           precipitation,
+          weatherCode,
           workSafe
         };
       });
@@ -117,10 +138,20 @@ export const WeatherDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {weatherData.map((weather) => (
-          <Card key={weather.city} className="relative overflow-hidden">
+          <Card 
+            key={weather.city} 
+            className={`relative overflow-hidden border-2 ${
+              weather.workSafe 
+                ? 'border-green-500 bg-green-50/50' 
+                : 'border-red-500 bg-red-50/50'
+            }`}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold">{weather.city}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{getWeatherIcon(weather.weatherCode)}</span>
+                  <CardTitle className="text-lg font-semibold">{weather.city}</CardTitle>
+                </div>
                 <Badge 
                   variant={weather.workSafe ? "default" : "destructive"}
                   className={weather.workSafe ? "bg-green-100 text-green-800 border-green-200" : ""}
@@ -131,12 +162,14 @@ export const WeatherDashboard = () => {
             </CardHeader>
             
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
                   <Thermometer className="w-5 h-5 text-orange-500" />
                   <div>
                     <div className="text-2xl font-bold">{weather.temperature}°F</div>
-                    <div className="text-xs text-slate-600">Temperature</div>
+                    <div className="text-xs text-slate-600">
+                      Feels like {weather.feelsLike}°F
+                    </div>
                   </div>
                 </div>
                 
@@ -144,15 +177,17 @@ export const WeatherDashboard = () => {
                   <Wind className="w-5 h-5 text-blue-500" />
                   <div>
                     <div className="text-2xl font-bold">{weather.windSpeed}</div>
-                    <div className="text-xs text-slate-600">mph</div>
+                    <div className="text-xs text-slate-600">
+                      mph{weather.windGusts && weather.windGusts > weather.windSpeed + 5 && ` (gusts ${weather.windGusts})`}
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 col-span-2">
                   <CloudSun className="w-5 h-5 text-slate-500" />
                   <div>
-                    <div className="text-2xl font-bold">{weather.precipitation.toFixed(2)}</div>
-                    <div className="text-xs text-slate-600">inches</div>
+                    <div className="text-2xl font-bold">{weather.precipitation.toFixed(1)}</div>
+                    <div className="text-xs text-slate-600">inches precipitation</div>
                   </div>
                 </div>
               </div>
