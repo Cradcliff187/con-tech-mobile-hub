@@ -7,7 +7,7 @@ import { SchedulePerformance } from './SchedulePerformance';
 import { SafetyMetrics } from './SafetyMetrics';
 import { BudgetTracker } from './BudgetTracker';
 import { ResourceUtilization } from './ResourceUtilization';
-import { CompactWeatherWidget } from './CompactWeatherWidget';
+import { InlineWeatherSafety } from './InlineWeatherSafety';
 import { RecentActivity } from './RecentActivity';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
@@ -136,7 +136,7 @@ export const ProjectDashboard = () => {
         <SafetyMetrics />
         <BudgetTracker />
         <ResourceUtilization />
-        <CompactWeatherWidget />
+        <InlineWeatherSafety />
       </div>
       
       {/* Recent Activity Feed */}
