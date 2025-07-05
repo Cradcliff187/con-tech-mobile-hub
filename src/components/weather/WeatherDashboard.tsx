@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Thermometer, Wind, CloudSun } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { logWeatherData } from '@/services/weatherLogger';
 
 interface WeatherData {
   city: string;
@@ -86,6 +87,12 @@ export const WeatherDashboard = () => {
       const results = await Promise.all(weatherPromises);
       setWeatherData(results);
       setLastUpdated(new Date());
+      
+      // Log weather data to Supabase (async, non-blocking)
+      logWeatherData(results).catch(error => {
+        // Already handled in logger, but adding extra safety
+        console.error('Weather logging failed:', error);
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
     } finally {

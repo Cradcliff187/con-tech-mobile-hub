@@ -2468,6 +2468,36 @@ export type Database = {
         }
         Relationships: []
       }
+      weather_logs: {
+        Row: {
+          city: string
+          created_at: string
+          id: string
+          precipitation: number
+          temperature: number
+          wind_speed: number
+          work_safe: boolean
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          id?: string
+          precipitation: number
+          temperature: number
+          wind_speed: number
+          work_safe: boolean
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          id?: string
+          precipitation?: number
+          temperature?: number
+          wind_speed?: number
+          work_safe?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       migration_summary: {
