@@ -14,6 +14,7 @@ import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { ProjectsManager } from '@/components/projects/ProjectsManager';
 import { EmployeeCostDashboard } from '@/components/costs/EmployeeCostDashboard';
+import { WeatherDashboard } from '@/components/weather/WeatherDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -35,7 +36,8 @@ import {
   Clock,
   Folder,
   DollarSign,
-  Shield
+  Shield,
+  CloudSun
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
@@ -78,6 +80,7 @@ const IndexContent = () => {
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
     { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'weather', label: 'Weather', icon: CloudSun },
     { id: 'safety', label: 'Safety', icon: Shield },
     { id: 'communication', label: 'Messages', icon: MessageSquare },
     { id: 'reports', label: 'Reports', icon: BarChart3 }
@@ -102,6 +105,7 @@ const IndexContent = () => {
       case 'timeline': return <TimelineView />;
       case 'resources': return <ResourceManager />;
       case 'documents': return <DocumentCenter />;
+      case 'weather': return <WeatherDashboard />;
       case 'safety': return <SafetyIncidentList />;
       case 'communication': return <CommunicationCenter />;
       case 'reports': return <ReportDashboard />;
