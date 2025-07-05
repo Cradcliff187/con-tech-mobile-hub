@@ -12,6 +12,8 @@ import { useRFIs, useRFIDocuments } from '@/hooks/useRFIs';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { CreateRFIData } from '@/types/rfi';
+import { Badge } from '@/components/ui/badge';
+import { HelpCircle } from 'lucide-react';
 
 interface CreateRFIDialogProps {
   open: boolean;
@@ -217,13 +219,20 @@ export const CreateRFIDialog = ({ open, onOpenChange, projectId }: CreateRFIDial
                 <Separator />
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Supporting Documents</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Supporting Documents</h3>
+                    <Badge variant="secondary" className="flex items-center gap-1" aria-label="Document category: RFI Documents">
+                      <HelpCircle className="w-3 h-3" />
+                      RFI Documents
+                    </Badge>
+                  </div>
                   <p className="text-sm text-slate-600">
                     Upload any relevant documents, drawings, or photos that support this RFI.
                   </p>
                   
                   <SmartDocumentUpload
                     projectId={formData.project_id}
+                    preSelectedCategory="rfis"
                     onUploadComplete={() => {
                       // Document upload completed - could refresh RFI documents here
                     }}

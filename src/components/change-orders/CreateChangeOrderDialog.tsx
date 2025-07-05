@@ -12,7 +12,8 @@ import { SmartDocumentUpload } from '@/components/documents/SmartDocumentUpload'
 import { useChangeOrders, useChangeOrderDocuments } from '@/hooks/useChangeOrders';
 import { useProjects } from '@/hooks/useProjects';
 import { CreateChangeOrderData } from '@/types/changeOrder';
-import { ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Building } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface CreateChangeOrderDialogProps {
   open: boolean;
@@ -244,13 +245,20 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
                   </CollapsibleTrigger>
 
                   <CollapsibleContent className="space-y-4 mt-4">
-                    <p className="text-sm text-slate-600">
-                      Upload supporting documents, contracts, or drawings related to this change order. Maximum 5 documents allowed.
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-slate-600">
+                        Upload supporting documents, contracts, or drawings related to this change order. Maximum 5 documents allowed.
+                      </p>
+                      <Badge variant="secondary" className="flex items-center gap-1" aria-label="Document category: Contract Documents">
+                        <Building className="w-3 h-3" />
+                        Contract Documents
+                      </Badge>
+                    </div>
                     
                     <SmartDocumentUpload
                       projectId={formData.project_id}
                       variant="inline"
+                      preSelectedCategory="contracts"
                       onUploadComplete={() => {
                         // Document upload completed - the hook will auto-refresh
                       }}

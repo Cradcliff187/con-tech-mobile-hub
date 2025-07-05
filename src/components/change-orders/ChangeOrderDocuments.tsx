@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useChangeOrderDocuments } from '@/hooks/useChangeOrders';
 import { useDocuments } from '@/hooks/useDocuments';
-import { Download, FileText, X, Upload } from 'lucide-react';
+import { Download, FileText, X, Upload, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { SmartDocumentUpload } from '@/components/documents/SmartDocumentUpload';
 
@@ -85,9 +85,17 @@ export const ChangeOrderDocuments = ({ changeOrderId, projectId, readOnly = fals
       <CardContent className="space-y-4">
         {showUpload && !readOnly && documents.length < 5 && (
           <div className="border-2 border-dashed border-slate-300 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-slate-600">Upload change order documents</span>
+              <Badge variant="secondary" className="flex items-center gap-1" aria-label="Document category: Contract Documents">
+                <Building className="w-3 h-3" />
+                Contract Documents
+              </Badge>
+            </div>
             <SmartDocumentUpload
               projectId={projectId}
               variant="inline"
+              preSelectedCategory="contracts"
               onUploadComplete={handleUploadComplete}
               className="border-none p-0"
             />
