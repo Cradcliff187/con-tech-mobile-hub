@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Thermometer, Wind, CloudSun } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Thermometer, Wind, CloudSun, History } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { logWeatherData } from '@/services/weatherLogger';
+import { WeatherHistoryDialog } from './WeatherHistoryDialog';
 
 interface WeatherData {
   city: string;
@@ -62,6 +64,13 @@ export const WeatherDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+
+  const handleViewHistory = (city: string) => {
+    setSelectedCity(city);
+    setHistoryDialogOpen(true);
+  };
 
   const fetchWeatherData = async () => {
     try {
@@ -194,12 +203,23 @@ export const WeatherDashboard = () => {
                     )}
                   </div>
                 </div>
-                <Badge 
-                  variant={weather.workSafe ? "default" : "destructive"}
-                  className={weather.workSafe ? "bg-green-100 text-green-800 border-green-200" : ""}
-                >
-                  {weather.workSafe ? "Work Safe" : "Caution"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewHistory(weather.city)}
+                    className="h-8 px-2 text-xs"
+                  >
+                    <History className="w-3 h-3 mr-1" />
+                    History
+                  </Button>
+                  <Badge 
+                    variant={weather.workSafe ? "default" : "destructive"}
+                    className={weather.workSafe ? "bg-green-100 text-green-800 border-green-200" : ""}
+                  >
+                    {weather.workSafe ? "Work Safe" : "Caution"}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             
@@ -251,6 +271,12 @@ export const WeatherDashboard = () => {
       <div className="text-center text-sm text-slate-500 mt-6">
         Weather data updates automatically every 30 minutes
       </div>
+
+      <WeatherHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        cityName={selectedCity}
+      />
     </div>
   );
 };
