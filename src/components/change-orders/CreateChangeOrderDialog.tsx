@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,9 @@ import { SmartDocumentUpload } from '@/components/documents/SmartDocumentUpload'
 import { useChangeOrders, useChangeOrderDocuments } from '@/hooks/useChangeOrders';
 import { useProjects } from '@/hooks/useProjects';
 import { CreateChangeOrderData } from '@/types/changeOrder';
-import { ChevronDown, ChevronRight, FileText, Building } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Building, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateChangeOrderDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface CreateChangeOrderDialogProps {
 export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: CreateChangeOrderDialogProps) => {
   const { createChangeOrder } = useChangeOrders();
   const { projects } = useProjects();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [newChangeOrderId, setNewChangeOrderId] = useState<string | null>(null);
   const [documentsExpanded, setDocumentsExpanded] = useState(false);
@@ -39,9 +41,43 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
     reason_for_change: ''
   });
 
+  // Get selected project details
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p.id === formData.project_id);
+  }, [projects, formData.project_id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.project_id) return;
+    
+    // Validate required fields
+    if (!formData.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Title is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.project_id) {
+      toast({
+        title: "Validation Error", 
+        description: "Project selection is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate project exists and user has access
+    const project = projects.find(p => p.id === formData.project_id);
+    if (!project) {
+      toast({
+        title: "Validation Error",
+        description: "Selected project is not available or you don't have access",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -69,6 +105,11 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
       }
     } catch (error) {
       console.error('Error creating change order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create change order. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -89,6 +130,8 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
     onOpenChange(false);
   };
 
+  const isProjectFieldDisabled = !!projectId;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
@@ -102,27 +145,19 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
           <div className="space-y-6 pr-4">
             {!newChangeOrderId ? (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <Label htmlFor="title">Title *</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Enter change order title"
-                      required
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label htmlFor="project">Project *</Label>
+                {/* Project Selection - First when no projectId provided */}
+                {!projectId && (
+                  <div className="border-2 border-primary/20 rounded-lg p-4 bg-primary/5">
+                    <Label htmlFor="project" className="text-base font-semibold">
+                      Project * <span className="text-primary">(Required)</span>
+                    </Label>
                     <Select
                       value={formData.project_id}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, project_id: value }))}
                       required
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a project" />
+                      <SelectTrigger className="mt-2" aria-label="Select project - required field">
+                        <SelectValue placeholder="Select a project to continue" />
                       </SelectTrigger>
                       <SelectContent>
                         {projects.map((project) => (
@@ -133,6 +168,65 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
                       </SelectContent>
                     </Select>
                   </div>
+                )}
+
+                {/* Selected Project Display */}
+                {selectedProject && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <div>
+                        <h3 className="font-semibold text-green-800">Project Selected</h3>
+                        <p className="text-green-700 font-medium">{selectedProject.name}</p>
+                        {selectedProject.description && (
+                          <p className="text-sm text-green-600 mt-1">{selectedProject.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    {isProjectFieldDisabled && (
+                      <p className="text-xs text-green-600 mt-2">
+                        Project context is locked for this change order
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Enter change order title"
+                      required
+                      aria-describedby="title-required"
+                    />
+                  </div>
+
+                  {/* Project field when projectId is provided */}
+                  {projectId && (
+                    <div className="md:col-span-2">
+                      <Label htmlFor="project">Project *</Label>
+                      <Select
+                        value={formData.project_id}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, project_id: value }))}
+                        disabled={isProjectFieldDisabled}
+                        required
+                      >
+                        <SelectTrigger className="opacity-60" aria-label="Project selection - locked">
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="cost_impact">Cost Impact ($)</Label>
@@ -212,9 +306,16 @@ export const CreateChangeOrderDialog = ({ open, onOpenChange, projectId }: Creat
                   <Button variant="outline" onClick={handleClose} disabled={loading}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={loading || !formData.title.trim() || !formData.project_id}>
+                  <Button 
+                    type="submit" 
+                    disabled={loading || !formData.title.trim() || !formData.project_id}
+                    aria-describedby="submit-requirements"
+                  >
                     {loading ? 'Creating...' : 'Create Change Order'}
                   </Button>
+                </div>
+                <div id="submit-requirements" className="sr-only">
+                  Project and title are required to create change order
                 </div>
               </form>
             ) : (
