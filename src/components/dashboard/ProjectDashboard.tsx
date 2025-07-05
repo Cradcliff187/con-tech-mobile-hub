@@ -6,6 +6,7 @@ import { ConsolidatedHealthIndicators } from './ConsolidatedHealthIndicators';
 import { InlineWeatherSafety } from './InlineWeatherSafety';
 import { CompactActivity } from './CompactActivity';
 import { CompactScheduleCard, CompactBudgetCard, CompactResourceCard } from './compact';
+import { DetailsSidebar } from './DetailsSidebar';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { ProjectQuickActions } from '@/components/common/ProjectQuickActions';
 import { ProjectSummaryBar } from './ProjectSummaryBar';
@@ -176,6 +177,14 @@ export const ProjectDashboard = () => {
       <CreateProjectDialog 
         open={isCreateProjectOpen}
         onOpenChange={setIsCreateProjectOpen}
+      />
+
+      {/* Details Sidebar */}
+      <DetailsSidebar
+        open={sidebarOpen}
+        onOpenChange={setSidebarOpen}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
       {/* Floating Quick Actions for selected project */}
