@@ -2432,42 +2432,6 @@ export type Database = {
           },
         ]
       }
-      weather_data: {
-        Row: {
-          condition: string | null
-          created_at: string | null
-          forecast: Json | null
-          humidity: number | null
-          id: string
-          last_updated: string | null
-          location: string
-          temperature: number | null
-          wind_speed: number | null
-        }
-        Insert: {
-          condition?: string | null
-          created_at?: string | null
-          forecast?: Json | null
-          humidity?: number | null
-          id?: string
-          last_updated?: string | null
-          location: string
-          temperature?: number | null
-          wind_speed?: number | null
-        }
-        Update: {
-          condition?: string | null
-          created_at?: string | null
-          forecast?: Json | null
-          humidity?: number | null
-          id?: string
-          last_updated?: string | null
-          location?: string
-          temperature?: number | null
-          wind_speed?: number | null
-        }
-        Relationships: []
-      }
       weather_logs: {
         Row: {
           city: string
