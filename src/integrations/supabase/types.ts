@@ -612,6 +612,51 @@ export type Database = {
           },
         ]
       }
+      equipment_service_documents: {
+        Row: {
+          document_id: string
+          equipment_id: string
+          id: string
+          notes: string | null
+          service_date: string
+          service_type: string
+          uploaded_at: string
+        }
+        Insert: {
+          document_id: string
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          service_date: string
+          service_type?: string
+          uploaded_at?: string
+        }
+        Update: {
+          document_id?: string
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          service_date?: string
+          service_type?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_service_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_service_documents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_history: {
         Row: {
           action_type: string

@@ -8,6 +8,7 @@ import { EquipmentFormFields } from './equipment/EquipmentFormFields';
 import { AllocationSection } from './equipment/AllocationSection';
 import { AllocationStatus } from './equipment/AllocationStatus';
 import { EquipmentAssignmentHistoryComponent } from './equipment/EquipmentAssignmentHistory';
+import { EquipmentServiceRecords } from './equipment/EquipmentServiceRecords';
 import { useEquipmentAllocations } from '@/hooks/useEquipmentAllocations';
 import { useEquipmentAssignmentHistory } from '@/hooks/useEquipmentAssignmentHistory';
 import type { Equipment } from '@/hooks/useEquipment';
@@ -227,6 +228,7 @@ export const EditEquipmentDialog = ({
             <TabsTrigger value="allocation">Current Allocation</TabsTrigger>
             <TabsTrigger value="new-allocation">New Allocation</TabsTrigger>
             <TabsTrigger value="history">Assignment History</TabsTrigger>
+            <TabsTrigger value="service-records">Service Records</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
@@ -332,6 +334,14 @@ export const EditEquipmentDialog = ({
 
           <TabsContent value="history" className="space-y-6">
             <EquipmentAssignmentHistoryComponent equipmentId={equipment.id} />
+          </TabsContent>
+
+          <TabsContent value="service-records" className="space-y-6">
+            <EquipmentServiceRecords 
+              equipmentId={equipment.id}
+              equipmentName={equipment.name}
+              maintenanceDue={equipment.maintenance_due}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>
