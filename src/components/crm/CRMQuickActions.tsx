@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDialogState } from '@/hooks/useDialogState';
+import { useCRMReports } from '@/hooks/useCRMReports';
 import { CreateEstimateDialog } from '@/components/estimates/CreateEstimateDialog';
 import { CreateBidDialog } from '@/components/bids/CreateBidDialog';
 import { CreateStakeholderDialog } from '@/components/stakeholders/CreateStakeholderDialog';
@@ -16,12 +17,22 @@ import {
   Users,
   TrendingUp,
   DollarSign,
-  Send
+  Send,
+  Loader2,
+  Download
 } from 'lucide-react';
 
 export const CRMQuickActions = () => {
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const [selectedStakeholder, setSelectedStakeholder] = useState<string | null>(null);
+  const { 
+    loadingStates, 
+    generatePipelineReport, 
+    generateActivityReport, 
+    generatePerformanceReport,
+    generateAllReports,
+    metricsLoading 
+  } = useCRMReports();
 
   const quickActions = [
     {
@@ -70,23 +81,26 @@ export const CRMQuickActions = () => {
     {
       key: 'pipeline',
       title: 'Pipeline Report',
-      description: 'Sales pipeline analysis',
+      description: 'Sales pipeline analysis (PDF)',
       icon: TrendingUp,
-      onClick: () => console.log('Generate pipeline report')
-    },
-    {
-      key: 'revenue',
-      title: 'Revenue Report',
-      description: 'Monthly revenue summary',
-      icon: DollarSign,
-      onClick: () => console.log('Generate revenue report')
+      onClick: generatePipelineReport,
+      loading: loadingStates.pipeline
     },
     {
       key: 'activity',
       title: 'Activity Report',
-      description: 'CRM activity summary',
+      description: 'CRM activity summary (Excel)',
       icon: Users,
-      onClick: () => console.log('Generate activity report')
+      onClick: generateActivityReport,
+      loading: loadingStates.activity
+    },
+    {
+      key: 'performance',
+      title: 'Performance Report',
+      description: 'KPI and metrics analysis (PDF)',
+      icon: DollarSign,
+      onClick: generatePerformanceReport,
+      loading: loadingStates.performance
     }
   ];
 
@@ -146,26 +160,37 @@ export const CRMQuickActions = () => {
               variant="outline"
               className="w-full justify-start h-auto p-4 hover:bg-muted/50"
               onClick={action.onClick}
+              disabled={action.loading || metricsLoading}
             >
               <div className="flex items-center gap-3 w-full">
                 <div className="p-2 rounded-lg bg-muted/50">
-                  <action.icon size={20} className="text-muted-foreground" />
+                  {action.loading ? (
+                    <Loader2 size={20} className="text-muted-foreground animate-spin" />
+                  ) : (
+                    <action.icon size={20} className="text-muted-foreground" />
+                  )}
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-medium text-foreground">{action.title}</p>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {action.loading ? 'Generating...' : action.description}
+                  </p>
                 </div>
               </div>
             </Button>
           ))}
           
-          {/* Custom Reports */}
+          {/* Generate All Reports */}
           <Button
             variant="outline" 
             className="w-full mt-4 text-muted-foreground"
-            onClick={() => console.log('Open custom reports')}
+            onClick={generateAllReports}
+            disabled={metricsLoading || Object.values(loadingStates).some(Boolean)}
           >
-            View All Reports
+            <div className="flex items-center gap-2">
+              <Download size={16} />
+              Generate All Reports
+            </div>
           </Button>
         </CardContent>
       </Card>
