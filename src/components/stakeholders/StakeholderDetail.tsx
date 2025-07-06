@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StakeholderProjects } from './StakeholderProjects';
 import { StakeholderAssignmentsList } from './StakeholderAssignmentsList';
 import { StakeholderPerformanceMetrics } from './StakeholderPerformanceMetrics';
+import { InteractionTimeline } from './InteractionTimeline';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -64,6 +65,7 @@ export const StakeholderDetail = ({ stakeholderId, open, onOpenChange }: Stakeho
               <TabsList className="bg-slate-100">
                 <TabsTrigger value="projects">Projects</TabsTrigger>
                 <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                <TabsTrigger value="interactions">Interactions</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="availability" disabled>Availability</TabsTrigger>
               </TabsList>
@@ -73,6 +75,9 @@ export const StakeholderDetail = ({ stakeholderId, open, onOpenChange }: Stakeho
                 </TabsContent>
                 <TabsContent value="assignments">
                   <StakeholderAssignmentsList stakeholderId={stakeholderId} />
+                </TabsContent>
+                <TabsContent value="interactions">
+                  <InteractionTimeline stakeholderId={stakeholderId} />
                 </TabsContent>
                 <TabsContent value="performance">
                   <StakeholderPerformanceMetrics stakeholderId={stakeholderId} />
