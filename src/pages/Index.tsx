@@ -15,6 +15,7 @@ import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { ProjectsManager } from '@/components/projects/ProjectsManager';
+import { CRMDashboard } from '@/components/crm/CRMDashboard';
 import { EmployeeCostDashboard } from '@/components/costs/EmployeeCostDashboard';
 import { WeatherDashboard } from '@/components/weather/WeatherDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
@@ -85,6 +86,7 @@ const IndexContent = () => {
     { id: 'planning', label: 'Planning', icon: Calendar },
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
+    { id: 'crm', label: 'CRM', icon: TrendingUp },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'weather', label: 'Weather', icon: CloudSun },
     { id: 'safety', label: 'Safety', icon: Shield },
@@ -116,6 +118,7 @@ const IndexContent = () => {
       case 'weather': return <WeatherDashboard />;
       case 'safety': return <SafetyIncidentList />;
       case 'communication': return <CommunicationCenter />;
+      case 'crm': return <CRMDashboard />;
       case 'reports': return <ReportDashboard />;
       default: return <ProjectDashboard />;
     }
