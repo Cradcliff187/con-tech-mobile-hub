@@ -64,6 +64,95 @@ export type Database = {
           },
         ]
       }
+      bids: {
+        Row: {
+          bid_amount: number
+          bid_number: string
+          competitor_count: number | null
+          created_at: string
+          created_by: string | null
+          decision_date: string | null
+          estimate_id: string | null
+          estimated_competition_range_high: number | null
+          estimated_competition_range_low: number | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          status: Database["public"]["Enums"]["bid_status"]
+          submission_date: string | null
+          updated_at: string
+          win_loss_reason: string | null
+          win_probability: number | null
+        }
+        Insert: {
+          bid_amount: number
+          bid_number: string
+          competitor_count?: number | null
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string | null
+          estimate_id?: string | null
+          estimated_competition_range_high?: number | null
+          estimated_competition_range_low?: number | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["bid_status"]
+          submission_date?: string | null
+          updated_at?: string
+          win_loss_reason?: string | null
+          win_probability?: number | null
+        }
+        Update: {
+          bid_amount?: number
+          bid_number?: string
+          competitor_count?: number | null
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string | null
+          estimate_id?: string | null
+          estimated_competition_range_high?: number | null
+          estimated_competition_range_low?: number | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["bid_status"]
+          submission_date?: string | null
+          updated_at?: string
+          win_loss_reason?: string | null
+          win_probability?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_line_items: {
         Row: {
           amount: number
@@ -320,6 +409,69 @@ export type Database = {
             columns: ["requested_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_interactions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          follow_up_date: string | null
+          follow_up_required: boolean | null
+          id: string
+          interaction_date: string
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          notes: string | null
+          outcome: string | null
+          stakeholder_id: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          interaction_date?: string
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          notes?: string | null
+          outcome?: string | null
+          stakeholder_id: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: Database["public"]["Enums"]["interaction_type"]
+          notes?: string | null
+          outcome?: string | null
+          stakeholder_id?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_interactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_interactions_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
             referencedColumns: ["id"]
           },
         ]
@@ -653,6 +805,107 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          equipment_cost: number | null
+          estimate_number: string
+          id: string
+          labor_cost: number | null
+          markup_percentage: number | null
+          material_cost: number | null
+          notes: string | null
+          project_id: string | null
+          responded_date: string | null
+          sent_date: string | null
+          stakeholder_id: string
+          status: Database["public"]["Enums"]["estimate_status"]
+          terms_and_conditions: string | null
+          title: string
+          updated_at: string
+          valid_until: string | null
+          viewed_date: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          equipment_cost?: number | null
+          estimate_number: string
+          id?: string
+          labor_cost?: number | null
+          markup_percentage?: number | null
+          material_cost?: number | null
+          notes?: string | null
+          project_id?: string | null
+          responded_date?: string | null
+          sent_date?: string | null
+          stakeholder_id: string
+          status?: Database["public"]["Enums"]["estimate_status"]
+          terms_and_conditions?: string | null
+          title: string
+          updated_at?: string
+          valid_until?: string | null
+          viewed_date?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          equipment_cost?: number | null
+          estimate_number?: string
+          id?: string
+          labor_cost?: number | null
+          markup_percentage?: number | null
+          material_cost?: number | null
+          notes?: string | null
+          project_id?: string | null
+          responded_date?: string | null
+          sent_date?: string | null
+          stakeholder_id?: string
+          status?: Database["public"]["Enums"]["estimate_status"]
+          terms_and_conditions?: string | null
+          title?: string
+          updated_at?: string
+          valid_until?: string | null
+          viewed_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects_legacy_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
             referencedColumns: ["id"]
           },
         ]
@@ -1890,12 +2143,20 @@ export type Database = {
           city: string | null
           company_name: string | null
           contact_person: string | null
+          conversion_probability: number | null
           created_at: string | null
           crew_size: number | null
+          customer_lifetime_value: number | null
           email: string | null
+          first_contact_date: string | null
           id: string
           insurance_expiry: string | null
+          last_contact_date: string | null
+          lead_score: number | null
+          lead_source: string | null
+          lead_status: Database["public"]["Enums"]["lead_status"] | null
           license_number: string | null
+          next_followup_date: string | null
           notes: string | null
           phone: string | null
           profile_id: string | null
@@ -1913,12 +2174,20 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           contact_person?: string | null
+          conversion_probability?: number | null
           created_at?: string | null
           crew_size?: number | null
+          customer_lifetime_value?: number | null
           email?: string | null
+          first_contact_date?: string | null
           id?: string
           insurance_expiry?: string | null
+          last_contact_date?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: Database["public"]["Enums"]["lead_status"] | null
           license_number?: string | null
+          next_followup_date?: string | null
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
@@ -1936,12 +2205,20 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           contact_person?: string | null
+          conversion_probability?: number | null
           created_at?: string | null
           crew_size?: number | null
+          customer_lifetime_value?: number | null
           email?: string | null
+          first_contact_date?: string | null
           id?: string
           insurance_expiry?: string | null
+          last_contact_date?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_status?: Database["public"]["Enums"]["lead_status"] | null
           license_number?: string | null
+          next_followup_date?: string | null
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
@@ -2658,9 +2935,21 @@ export type Database = {
           available_hours: number
         }[]
       }
+      convert_estimate_to_project: {
+        Args: { p_estimate_id: string; p_project_name?: string }
+        Returns: string
+      }
       create_daily_cost_snapshot: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_bid_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_estimate_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_user_invitations: {
         Args: Record<PropertyKey, never>
@@ -2762,6 +3051,34 @@ export type Database = {
       }
     }
     Enums: {
+      bid_status:
+        | "pending"
+        | "submitted"
+        | "accepted"
+        | "declined"
+        | "withdrawn"
+      estimate_status:
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "accepted"
+        | "declined"
+        | "expired"
+      interaction_type:
+        | "call"
+        | "email"
+        | "meeting"
+        | "site_visit"
+        | "proposal"
+        | "follow_up"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "proposal_sent"
+        | "negotiating"
+        | "won"
+        | "lost"
       lifecycle_status:
         | "pre_planning"
         | "planning_active"
@@ -2914,6 +3231,32 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      bid_status: ["pending", "submitted", "accepted", "declined", "withdrawn"],
+      estimate_status: [
+        "draft",
+        "sent",
+        "viewed",
+        "accepted",
+        "declined",
+        "expired",
+      ],
+      interaction_type: [
+        "call",
+        "email",
+        "meeting",
+        "site_visit",
+        "proposal",
+        "follow_up",
+      ],
+      lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "proposal_sent",
+        "negotiating",
+        "won",
+        "lost",
+      ],
       lifecycle_status: [
         "pre_planning",
         "planning_active",
