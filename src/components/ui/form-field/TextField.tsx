@@ -13,7 +13,7 @@ export interface TextFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'tel' | 'url';
+  type?: 'text' | 'email' | 'password' | 'tel' | 'url' | 'number' | 'date';
 }
 
 export const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(

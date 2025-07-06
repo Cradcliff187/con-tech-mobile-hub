@@ -9,6 +9,7 @@ import { DocumentCenter } from '@/components/documents/DocumentCenter';
 import { CommunicationCenter } from '@/components/communication/CommunicationCenter';
 import { ResourceManager } from '@/components/resources/ResourceManager';
 import { StakeholderManager } from '@/components/stakeholders/StakeholderManager';
+import { EstimateManager } from '@/components/estimates/EstimateManager';
 import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
@@ -37,7 +38,8 @@ import {
   Folder,
   DollarSign,
   Shield,
-  CloudSun
+  CloudSun,
+  Calculator
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
@@ -76,6 +78,7 @@ const IndexContent = () => {
     { id: 'projects', label: 'Projects', icon: Folder },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'stakeholders', label: 'Stakeholders', icon: Users },
+    { id: 'estimates', label: 'Estimates', icon: Calculator },
     { id: 'planning', label: 'Planning', icon: Calendar },
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
@@ -101,6 +104,7 @@ const IndexContent = () => {
       case 'projects': return <ProjectsManager />;
       case 'tasks': return <TaskManager />;
       case 'stakeholders': return <StakeholderManager />;
+      case 'estimates': return <EstimateManager />;
       case 'planning': return <ProjectPlanning />;
       case 'timeline': return <TimelineView />;
       case 'resources': return <ResourceManager />;
