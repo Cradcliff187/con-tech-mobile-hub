@@ -6,6 +6,7 @@ import { EstimateFilters } from './EstimateFilters';
 import { EditEstimateDialog } from './EditEstimateDialog';
 import { DeleteEstimateDialog } from './DeleteEstimateDialog';
 import { EstimatePreviewDialog } from './EstimatePreviewDialog';
+import { CreateBidFromEstimateDialog } from './CreateBidFromEstimateDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, SortAsc, SortDesc } from 'lucide-react';

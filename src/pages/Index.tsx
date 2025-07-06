@@ -10,6 +10,7 @@ import { CommunicationCenter } from '@/components/communication/CommunicationCen
 import { ResourceManager } from '@/components/resources/ResourceManager';
 import { StakeholderManager } from '@/components/stakeholders/StakeholderManager';
 import { EstimateManager } from '@/components/estimates/EstimateManager';
+import { BidsManager } from '@/components/bids/BidsManager';
 import { ProjectPlanning } from '@/components/planning/ProjectPlanning';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
@@ -79,6 +80,7 @@ const IndexContent = () => {
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'stakeholders', label: 'Stakeholders', icon: Users },
     { id: 'estimates', label: 'Estimates', icon: Calculator },
+    { id: 'bids', label: 'Bids', icon: TrendingUp },
     { id: 'planning', label: 'Planning', icon: Calendar },
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
@@ -105,6 +107,7 @@ const IndexContent = () => {
       case 'tasks': return <TaskManager />;
       case 'stakeholders': return <StakeholderManager />;
       case 'estimates': return <EstimateManager />;
+      case 'bids': return <BidsManager />;
       case 'planning': return <ProjectPlanning />;
       case 'timeline': return <TimelineView />;
       case 'resources': return <ResourceManager />;
