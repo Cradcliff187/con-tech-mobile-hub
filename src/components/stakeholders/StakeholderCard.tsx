@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useDialogState } from '@/hooks/useDialogState';
@@ -7,6 +8,8 @@ import { useStakeholderCardActions } from './card/useStakeholderCardActions';
 import { StakeholderCardHeader } from './card/StakeholderCardHeader';
 import { StakeholderCardContent } from './card/StakeholderCardContent';
 import { StakeholderCardDialogs } from './card/StakeholderCardDialogs';
+import { UpdateLeadStatusDialog } from './UpdateLeadStatusDialog';
+import { ScheduleFollowUpDialog } from './ScheduleFollowUpDialog';
 
 interface StakeholderCardProps {
   stakeholder: Stakeholder;
@@ -16,6 +19,8 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
   const { activeDialog, openDialog, closeDialog, isDialogOpen } = useDialogState();
   const { updateStakeholderStatus, isUpdating } = useStakeholderStatusUpdate();
   const { handlePhoneCall, handleEmailSend } = useStakeholderCardActions();
+  const [showUpdateLeadStatus, setShowUpdateLeadStatus] = useState(false);
+  const [showScheduleFollowUp, setShowScheduleFollowUp] = useState(false);
 
   const handleMenuAction = (action: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,6 +36,12 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
         break;
       case 'delete':
         openDialog('delete');
+        break;
+      case 'updateLeadStatus':
+        setShowUpdateLeadStatus(true);
+        break;
+      case 'scheduleFollowUp':
+        setShowScheduleFollowUp(true);
         break;
     }
   };
@@ -77,6 +88,26 @@ export const StakeholderCard = ({ stakeholder }: StakeholderCardProps) => {
         stakeholder={stakeholder}
         isDialogOpen={isDialogOpen}
         closeDialog={closeDialog}
+      />
+
+      <UpdateLeadStatusDialog
+        open={showUpdateLeadStatus}
+        onOpenChange={setShowUpdateLeadStatus}
+        stakeholder={stakeholder}
+        onUpdated={() => {
+          setShowUpdateLeadStatus(false);
+          // Refresh will happen via real-time subscription
+        }}
+      />
+
+      <ScheduleFollowUpDialog
+        open={showScheduleFollowUp}
+        onOpenChange={setShowScheduleFollowUp}
+        stakeholder={stakeholder}
+        onScheduled={() => {
+          setShowScheduleFollowUp(false);
+          // Refresh will happen via real-time subscription
+        }}
       />
     </>
   );

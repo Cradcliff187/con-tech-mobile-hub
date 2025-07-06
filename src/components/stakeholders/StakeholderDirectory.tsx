@@ -8,9 +8,10 @@ import { ViewToggle } from './ViewToggle';
 import { EditStakeholderDialog } from './EditStakeholderDialog';
 import { DeleteStakeholderDialog } from './DeleteStakeholderDialog';
 import { AssignStakeholderDialog } from './AssignStakeholderDialog';
+import { LeadPipelineView } from './LeadPipelineView';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, SortAsc, SortDesc } from 'lucide-react';
+import { Search, SortAsc, SortDesc, Columns, Grid } from 'lucide-react';
 import type { Stakeholder } from '@/hooks/useStakeholders';
 
 interface StakeholderDirectoryProps {
@@ -22,10 +23,11 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'type' | 'created'>('name');
+  const [leadStatusFilter, setLeadStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'type' | 'created' | 'lead_score'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [view, setView] = useState<'grid' | 'list'>(() => {
-    return (localStorage.getItem('stakeholder-view') as 'grid' | 'list') || 'grid';
+  const [view, setView] = useState<'grid' | 'list' | 'pipeline'>(() => {
+    return (localStorage.getItem('stakeholder-view') as 'grid' | 'list' | 'pipeline') || 'grid';
   });
 
   // Dialog states
@@ -33,7 +35,7 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
   const [stakeholderToDelete, setStakeholderToDelete] = useState<Stakeholder | null>(null);
   const [stakeholderToAssign, setStakeholderToAssign] = useState<Stakeholder | null>(null);
 
-  const handleViewChange = useCallback((newView: 'grid' | 'list') => {
+  const handleViewChange = useCallback((newView: 'grid' | 'list' | 'pipeline') => {
     setView(newView);
     localStorage.setItem('stakeholder-view', newView);
   }, []);
@@ -65,9 +67,10 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
     searchTerm: searchTerm.toLowerCase(),
     typeFilter,
     statusFilter,
+    leadStatusFilter,
     sortBy,
     sortOrder
-  }), [searchTerm, typeFilter, statusFilter, sortBy, sortOrder]);
+  }), [searchTerm, typeFilter, statusFilter, leadStatusFilter, sortBy, sortOrder]);
 
   const filteredAndSortedStakeholders = useMemo(() => {
     let filtered = stakeholders.filter(stakeholder => {
@@ -82,8 +85,10 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
       
       const matchesType = filterConfig.typeFilter === 'all' || stakeholder.stakeholder_type === filterConfig.typeFilter;
       const matchesStatus = filterConfig.statusFilter === 'all' || stakeholder.status === filterConfig.statusFilter;
+      const matchesLeadStatus = filterConfig.leadStatusFilter === 'all' || 
+        (stakeholder.lead_status || 'new') === filterConfig.leadStatusFilter;
       
-      return matchesSearch && matchesType && matchesStatus;
+      return matchesSearch && matchesType && matchesStatus && matchesLeadStatus;
     });
 
     // Sort the filtered results
@@ -102,6 +107,10 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
         case 'type':
           aValue = a.stakeholder_type;
           bValue = b.stakeholder_type;
+          break;
+        case 'lead_score':
+          aValue = a.lead_score || 0;
+          bValue = b.lead_score || 0;
           break;
         case 'created':
           aValue = new Date(a.created_at);
@@ -146,8 +155,39 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">Stakeholder Directory</h2>
+        
+        {/* View Toggle - Enhanced */}
+        <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+          <Button
+            variant={view === 'grid' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange('grid')}
+            className="min-h-[36px]"
+          >
+            <Grid size={16} className="mr-2" />
+            Grid
+          </Button>
+          <Button
+            variant={view === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange('list')}
+            className="min-h-[36px]"
+          >
+            <Search size={16} className="mr-2" />
+            List
+          </Button>
+          <Button
+            variant={view === 'pipeline' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange('pipeline')}
+            className="min-h-[36px]"
+          >
+            <Columns size={16} className="mr-2" />
+            Pipeline
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -168,12 +208,12 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
             onTypeFilterChange={setTypeFilter}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            leadStatusFilter={leadStatusFilter}
+            onLeadStatusFilterChange={setLeadStatusFilter}
           />
           
+          {view !== 'pipeline' && (
           <div className="flex items-center gap-4">
-            {/* View Toggle */}
-            <ViewToggle view={view} onViewChange={handleViewChange} />
-            
             {/* Sort Controls */}
             <div className="flex gap-2">
               <Button
@@ -200,8 +240,17 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
               >
                 Type {sortBy === 'type' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
               </Button>
+              <Button
+                variant={sortBy === 'lead_score' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('lead_score')}
+                className="min-h-[36px]"
+              >
+                Lead Score {sortBy === 'lead_score' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -211,7 +260,12 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
       </div>
 
       {/* Stakeholder Display */}
-      {view === 'list' ? (
+      {view === 'pipeline' ? (
+        <LeadPipelineView 
+          stakeholders={filteredAndSortedStakeholders} 
+          loading={loading}
+        />
+      ) : view === 'list' ? (
         <StakeholderListView 
           stakeholders={filteredAndSortedStakeholders} 
           loading={loading}
@@ -231,13 +285,13 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
       {filteredAndSortedStakeholders.length === 0 && (
         <div className="text-center py-12">
           <div className="text-slate-500 mb-2">
-            {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' 
+            {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' || leadStatusFilter !== 'all'
               ? 'No stakeholders match your search criteria' 
               : 'No stakeholders found'
             }
           </div>
           <div className="text-sm text-slate-400">
-            {searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
+            {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' || leadStatusFilter !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Add your first stakeholder to get started'
             }

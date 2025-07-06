@@ -2,10 +2,11 @@
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Calendar, TrendingUp } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Edit, Trash, UserPlus, Eye } from 'lucide-react';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { LeadStatusBadge } from '../LeadStatusBadge';
 
 interface StakeholderCardHeaderProps {
   stakeholder: Stakeholder;
@@ -65,6 +66,14 @@ export const StakeholderCardHeader = ({
               <UserPlus size={16} className="mr-2" />
               Assign to Project
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => onMenuAction('updateLeadStatus', e)}>
+              <TrendingUp size={16} className="mr-2" />
+              Update Lead Status
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => onMenuAction('scheduleFollowUp', e)}>
+              <Calendar size={16} className="mr-2" />
+              Schedule Follow-up
+            </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={(e) => onMenuAction('delete', e)}
               className="text-red-600"
@@ -88,6 +97,9 @@ export const StakeholderCardHeader = ({
           size="sm"
           confirmCriticalChanges={true}
         />
+        {stakeholder.lead_status && (
+          <LeadStatusBadge status={stakeholder.lead_status} size="sm" />
+        )}
       </div>
     </div>
   );

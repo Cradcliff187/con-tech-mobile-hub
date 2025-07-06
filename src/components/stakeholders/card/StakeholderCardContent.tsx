@@ -2,8 +2,9 @@
 import { Stakeholder } from '@/hooks/useStakeholders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Phone, Mail, MapPin, Users, Star } from 'lucide-react';
+import { Phone, Mail, MapPin, Users, Star, Calendar, TrendingUp } from 'lucide-react';
 import { formatAddress, formatPhoneNumber } from '@/utils/addressFormatting';
+import { LeadScoreIndicator } from '../LeadScoreIndicator';
 
 interface StakeholderCardContentProps {
   stakeholder: Stakeholder;
@@ -69,6 +70,25 @@ export const StakeholderCardContent = ({
           {stakeholder.rating !== null ? stakeholder.rating.toFixed(1) : 'No rating'}
         </span>
       </div>
+
+      {/* Lead Information */}
+      {stakeholder.lead_score !== undefined && stakeholder.lead_score > 0 && (
+        <LeadScoreIndicator score={stakeholder.lead_score} size="sm" />
+      )}
+
+      {stakeholder.next_followup_date && (
+        <div className="flex items-center gap-2 text-sm text-orange-600">
+          <Calendar size={14} />
+          <span>Follow-up: {new Date(stakeholder.next_followup_date).toLocaleDateString()}</span>
+        </div>
+      )}
+
+      {stakeholder.conversion_probability !== undefined && stakeholder.conversion_probability > 0 && (
+        <div className="flex items-center gap-2 text-sm text-blue-600">
+          <TrendingUp size={14} />
+          <span>{Math.round(stakeholder.conversion_probability)}% conversion</span>
+        </div>
+      )}
       
       {stakeholder.specialties && stakeholder.specialties.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">

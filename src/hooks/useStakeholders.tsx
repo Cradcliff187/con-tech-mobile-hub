@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal_sent' | 'negotiating' | 'won' | 'lost';
+
 export interface Stakeholder {
   id: string;
   stakeholder_type: 'client' | 'subcontractor' | 'employee' | 'vendor';
@@ -27,6 +29,15 @@ export interface Stakeholder {
   profile_id?: string;
   created_at: string;
   updated_at: string;
+  // Lead tracking fields
+  lead_source?: string;
+  lead_status?: LeadStatus;
+  lead_score?: number;
+  first_contact_date?: string;
+  last_contact_date?: string;
+  next_followup_date?: string;
+  conversion_probability?: number;
+  customer_lifetime_value?: number;
 }
 
 export const useStakeholders = (projectId?: string) => {
@@ -171,6 +182,39 @@ export const useStakeholders = (projectId?: string) => {
     }
   }, [toast]);
 
+  const updateLeadStatus = useCallback(async (id: string, leadStatus: LeadStatus, notes?: string) => {
+    const updates: Partial<Stakeholder> = {
+      lead_status: leadStatus,
+      last_contact_date: new Date().toISOString().split('T')[0]
+    };
+
+    if (notes) {
+      updates.notes = notes;
+    }
+
+    // Set first contact date if this is the first contact
+    if (leadStatus === 'contacted') {
+      const stakeholder = stakeholders.find(s => s.id === id);
+      if (stakeholder && !stakeholder.first_contact_date) {
+        updates.first_contact_date = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    return await updateStakeholder(id, updates);
+  }, [updateStakeholder, stakeholders]);
+
+  const scheduleFollowUp = useCallback(async (id: string, followUpDate: string, notes?: string) => {
+    const updates: Partial<Stakeholder> = {
+      next_followup_date: followUpDate
+    };
+
+    if (notes) {
+      updates.notes = notes;
+    }
+
+    return await updateStakeholder(id, updates);
+  }, [updateStakeholder]);
+
   const refetch = useCallback(async () => {
     await fetchStakeholders();
   }, [fetchStakeholders]);
@@ -180,6 +224,8 @@ export const useStakeholders = (projectId?: string) => {
     loading, 
     createStakeholder, 
     updateStakeholder, 
+    updateLeadStatus,
+    scheduleFollowUp,
     deleteStakeholder,
     refetch
   };
