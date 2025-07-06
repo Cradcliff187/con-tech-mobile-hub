@@ -16,6 +16,8 @@ import { TimelineView } from '@/components/timeline/TimelineView';
 import { ReportDashboard } from '@/components/reports/ReportDashboard';
 import { ProjectsManager } from '@/components/projects/ProjectsManager';
 import { CRMDashboard } from '@/components/crm/CRMDashboard';
+import { CRMLeadsView } from '@/components/crm/CRMLeadsView';
+import { CRMPipelineView } from '@/components/crm/CRMPipelineView';
 import { EmployeeCostDashboard } from '@/components/costs/EmployeeCostDashboard';
 import { WeatherDashboard } from '@/components/weather/WeatherDashboard';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
@@ -42,7 +44,10 @@ import {
   Shield,
   CloudSun,
   Calculator,
-  TrendingUp
+  TrendingUp,
+  Target,
+  UserCheck,
+  Gavel
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
@@ -50,6 +55,7 @@ import '../components/ui/enhanced-sidebar.css';
 const IndexContent = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = searchParams.get('section') || 'dashboard';
+  const activeSubsection = searchParams.get('subsection');
   const { signOut, profile } = useAuth();
   const { isAdmin } = useAdminAuth();
   const navigate = useNavigate();
@@ -86,7 +92,18 @@ const IndexContent = () => {
     { id: 'planning', label: 'Planning', icon: Calendar },
     { id: 'timeline', label: 'Timeline', icon: Clock },
     { id: 'resources', label: 'Resources', icon: Wrench },
-    { id: 'crm', label: 'CRM', icon: TrendingUp },
+    { 
+      id: 'crm', 
+      label: 'CRM', 
+      icon: TrendingUp,
+      permission: 'crm_access',
+      children: [
+        { id: 'crm-pipeline', label: 'Pipeline', icon: Target, permission: 'crm_access' },
+        { id: 'crm-leads', label: 'Leads', icon: UserCheck, permission: 'crm_access' },
+        { id: 'crm-estimates', label: 'Estimates', icon: Calculator, permission: 'crm_access' },
+        { id: 'crm-bids', label: 'Bids', icon: Gavel, permission: 'crm_access' }
+      ]
+    },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'weather', label: 'Weather', icon: CloudSun },
     { id: 'safety', label: 'Safety', icon: Shield },
@@ -118,7 +135,14 @@ const IndexContent = () => {
       case 'weather': return <WeatherDashboard />;
       case 'safety': return <SafetyIncidentList />;
       case 'communication': return <CommunicationCenter />;
-      case 'crm': return <CRMDashboard />;
+      case 'crm': 
+        switch (activeSubsection) {
+          case 'pipeline': return <CRMPipelineView />;
+          case 'leads': return <CRMLeadsView />;
+          case 'estimates': return <EstimateManager />;
+          case 'bids': return <BidsManager />;
+          default: return <CRMDashboard />;
+        }
       case 'reports': return <ReportDashboard />;
       default: return <ProjectDashboard />;
     }
