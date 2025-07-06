@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useDialogState } from '@/hooks/useDialogState';
 import { CreateEstimateDialog } from '@/components/estimates/CreateEstimateDialog';
 import { CreateBidDialog } from '@/components/bids/CreateBidDialog';
+import { CreateStakeholderDialog } from '@/components/stakeholders/CreateStakeholderDialog';
 import { LogInteractionDialog } from '@/components/stakeholders/LogInteractionDialog';
 import { ScheduleFollowUpDialog } from '@/components/stakeholders/ScheduleFollowUpDialog';
 import { 
@@ -23,6 +24,14 @@ export const CRMQuickActions = () => {
   const [selectedStakeholder, setSelectedStakeholder] = useState<string | null>(null);
 
   const quickActions = [
+    {
+      key: 'lead',
+      title: 'Add Lead',
+      description: 'Create new lead',
+      icon: Users,
+      color: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200',
+      iconColor: 'text-blue-600'
+    },
     {
       key: 'estimate',
       title: 'Create Estimate',
@@ -44,8 +53,8 @@ export const CRMQuickActions = () => {
       title: 'Log Call',
       description: 'Record interaction',
       icon: Phone,
-      color: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200',
-      iconColor: 'text-blue-600'
+      color: 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200',
+      iconColor: 'text-orange-600'
     },
     {
       key: 'followup',
@@ -162,6 +171,13 @@ export const CRMQuickActions = () => {
       </Card>
 
       {/* Dialogs */}
+      <CreateStakeholderDialog
+        open={isDialogOpen('lead')}
+        onOpenChange={(open) => !open && closeDialog()}
+        defaultType="client"
+        onSuccess={() => closeDialog()}
+      />
+
       <CreateEstimateDialog
         open={isDialogOpen('estimate')}
         onOpenChange={(open) => !open && closeDialog()}

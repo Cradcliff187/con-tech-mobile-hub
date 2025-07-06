@@ -2,213 +2,211 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CRMMetrics } from '@/hooks/useCRMMetrics';
-import { TrendingUp, TrendingDown, DollarSign, Target, Calendar, Award } from 'lucide-react';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  Clock, 
+  DollarSign,
+  Users,
+  ArrowUpRight,
+  ArrowDownRight
+} from 'lucide-react';
 
 interface CRMMetricsCardsProps {
   metrics: CRMMetrics;
 }
 
+/**
+ * CRMMetricsCards - Advanced metrics and analytics cards for CRM dashboard
+ * 
+ * Features:
+ * - Pipeline velocity and trends
+ * - Average deal size calculations
+ * - Activity tracking and engagement metrics
+ * - Goal progress indicators
+ * - Mobile responsive grid layout
+ */
 export const CRMMetricsCards = ({ metrics }: CRMMetricsCardsProps) => {
-  // Calculate additional derived metrics
-  const estimateToProjectConversion = metrics.pipelineStats.estimates.count > 0 
-    ? (metrics.pipelineStats.projects.count / metrics.pipelineStats.estimates.count) * 100 
+  // Calculate derived metrics
+  const totalOpportunities = metrics.pipelineStats.estimates.count + metrics.pipelineStats.bids.count;
+  const averageDealSize = totalOpportunities > 0 
+    ? (metrics.pipelineStats.estimates.value + metrics.pipelineStats.bids.value) / totalOpportunities 
     : 0;
 
-  const bidWinRate = metrics.pipelineStats.bids.count > 0 
-    ? (metrics.pipelineStats.projects.count / metrics.pipelineStats.bids.count) * 100 
+  const pipelineVelocity = metrics.activeLeads > 0 
+    ? (metrics.pipelineStats.projects.count / metrics.activeLeads * 30) // Simplified: projects per month
     : 0;
 
-  const averageDealSize = metrics.pipelineStats.projects.count > 0
-    ? metrics.pipelineStats.projects.value / metrics.pipelineStats.projects.count
-    : 0;
+  const activityScore = Math.min(100, metrics.recentActivity.length * 10); // Simple activity scoring
+
+  // Mock goals for demonstration (in real app, these would come from settings)
+  const monthlyGoal = 100000; // $100k monthly goal
+  const goalProgress = (metrics.monthlyRevenue / monthlyGoal) * 100;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Pipeline Health */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Average Deal Size */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Target size={18} />
-            Pipeline Health
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Average Deal Size
           </CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Lead Conversion</span>
-              <span className="text-sm font-medium">{metrics.conversionRate.toFixed(1)}%</span>
-            </div>
-            <Progress value={metrics.conversionRate} className="h-2" />
+        <CardContent>
+          <div className="text-2xl font-bold text-foreground">
+            ${averageDealSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Estimate Conversion</span>
-              <span className="text-sm font-medium">{estimateToProjectConversion.toFixed(1)}%</span>
-            </div>
-            <Progress value={estimateToProjectConversion} className="h-2" />
+          <div className="flex items-center text-xs text-muted-foreground mt-1">
+            <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
+            <span>Based on {totalOpportunities} opportunities</span>
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Bid Win Rate</span>
-              <span className="text-sm font-medium">{bidWinRate.toFixed(1)}%</span>
-            </div>
-            <Progress value={bidWinRate} className="h-2" />
-            {bidWinRate > 0 && (
-              <Badge variant={bidWinRate > 30 ? "default" : "secondary"} className="text-xs">
-                {bidWinRate > 30 ? "Strong" : "Needs Improvement"}
-              </Badge>
+        </CardContent>
+      </Card>
+
+      {/* Pipeline Velocity */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Pipeline Velocity
+          </CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-foreground">
+            {pipelineVelocity.toFixed(1)}
+            <span className="text-sm font-normal text-muted-foreground ml-1">deals/mo</span>
+          </div>
+          <div className="flex items-center text-xs text-muted-foreground mt-1">
+            {pipelineVelocity > 1 ? (
+              <ArrowUpRight className="mr-1 h-3 w-3 text-green-500" />
+            ) : (
+              <ArrowDownRight className="mr-1 h-3 w-3 text-orange-500" />
             )}
+            <span>Lead to project conversion</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Revenue Metrics */}
+      {/* Monthly Goal Progress */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <DollarSign size={18} />
-            Revenue Metrics
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Monthly Goal
           </CardTitle>
+          <Target className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Monthly Revenue</span>
-            <div className="text-right">
-              <p className="font-semibold text-foreground">
-                ${metrics.monthlyRevenue.toLocaleString()}
-              </p>
-              <Badge variant="outline" className="text-xs mt-1">
-                This Month
-              </Badge>
-            </div>
+        <CardContent>
+          <div className="text-2xl font-bold text-foreground">
+            {goalProgress.toFixed(0)}%
           </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Average Deal Size</span>
-            <div className="text-right">
-              <p className="font-semibold text-foreground">
-                ${averageDealSize.toLocaleString()}
-              </p>
-              {averageDealSize > 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  {averageDealSize > 50000 ? (
-                    <TrendingUp size={12} className="text-green-600" />
-                  ) : (
-                    <TrendingDown size={12} className="text-amber-600" />
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {averageDealSize > 50000 ? "Above average" : "Below target"}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Pipeline Velocity</span>
-            <div className="text-right">
-              <p className="font-semibold text-foreground">
-                {metrics.pipelineStats.estimates.count + metrics.pipelineStats.bids.count} deals
-              </p>
-              <span className="text-xs text-muted-foreground">In progress</span>
-            </div>
+          <Progress value={goalProgress} className="mt-2 h-2" />
+          <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+            <span>${metrics.monthlyRevenue.toLocaleString()}</span>
+            <span>${monthlyGoal.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Activity Summary */}
+      {/* Activity Score */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar size={18} />
-            Activity Summary
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Activity Score
           </CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Follow-ups Due</span>
-            <div className="text-right">
-              <p className="font-semibold text-foreground">{metrics.upcomingFollowUps}</p>
-              {metrics.upcomingFollowUps > 0 && (
-                <Badge variant="destructive" className="text-xs mt-1">
-                  Action Required
-                </Badge>
-              )}
-            </div>
+        <CardContent>
+          <div className="text-2xl font-bold text-foreground">
+            {activityScore}
+            <span className="text-sm font-normal text-muted-foreground ml-1">/100</span>
           </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Recent Activities</span>
-            <p className="font-semibold text-foreground">{metrics.recentActivity.length}</p>
+          <div className="flex items-center justify-between mt-2">
+            <Progress value={activityScore} className="flex-1 h-2" />
+            <Badge 
+              variant={activityScore >= 70 ? 'default' : activityScore >= 40 ? 'secondary' : 'outline'}
+              className="ml-2 text-xs"
+            >
+              {activityScore >= 70 ? 'High' : activityScore >= 40 ? 'Medium' : 'Low'}
+            </Badge>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Based on recent interactions
+          </p>
+        </CardContent>
+      </Card>
 
-          <div className="pt-2 border-t">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <p className="text-lg font-semibold text-foreground">
-                  {metrics.recentActivity.filter(a => a.type === 'interaction').length}
-                </p>
-                <p className="text-xs text-muted-foreground">Recent Calls</p>
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-foreground">
-                  {metrics.recentActivity.filter(a => a.type === 'estimate').length}
-                </p>
-                <p className="text-xs text-muted-foreground">Recent Estimates</p>
-              </div>
+      {/* Conversion Funnel Summary */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Funnel Health
+          </CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Leads → Estimates</span>
+              <span className="font-medium text-foreground">
+                {metrics.activeLeads > 0 
+                  ? ((metrics.pipelineStats.estimates.count / metrics.activeLeads) * 100).toFixed(0)
+                  : 0}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Estimates → Bids</span>
+              <span className="font-medium text-foreground">
+                {metrics.pipelineStats.estimates.count > 0 
+                  ? ((metrics.pipelineStats.bids.count / metrics.pipelineStats.estimates.count) * 100).toFixed(0)
+                  : 0}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Bids → Projects</span>
+              <span className="font-medium text-foreground">
+                {metrics.pipelineStats.bids.count > 0 
+                  ? ((metrics.pipelineStats.projects.count / metrics.pipelineStats.bids.count) * 100).toFixed(0)
+                  : 0}%
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Performance Score */}
+      {/* Pipeline Summary */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Award size={18} />
-            CRM Performance
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Pipeline Summary
           </CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Calculate a simple performance score based on multiple factors */}
-          {(() => {
-            const factors = [
-              { weight: 0.3, score: Math.min(metrics.conversionRate * 2, 100) }, // Conversion rate
-              { weight: 0.3, score: Math.min(bidWinRate * 2, 100) }, // Bid win rate
-              { weight: 0.2, score: Math.min((metrics.activeLeads / 10) * 100, 100) }, // Lead volume
-              { weight: 0.2, score: metrics.upcomingFollowUps === 0 ? 100 : Math.max(100 - (metrics.upcomingFollowUps * 10), 0) } // Follow-up compliance
-            ];
-            
-            const overallScore = factors.reduce((sum, factor) => sum + (factor.score * factor.weight), 0);
-            const scoreColor = overallScore >= 80 ? 'text-green-600' : overallScore >= 60 ? 'text-amber-600' : 'text-red-600';
-            const scoreBadge = overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : 'Needs Work';
-            
-            return (
-              <>
-                <div className="text-center">
-                  <p className={`text-3xl font-bold ${scoreColor}`}>
-                    {overallScore.toFixed(0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Performance Score</p>
-                  <Badge 
-                    variant={overallScore >= 80 ? "default" : overallScore >= 60 ? "secondary" : "destructive"}
-                    className="mt-2"
-                  >
-                    {scoreBadge}
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Total Value</span>
+              <span className="font-medium text-foreground">
+                ${metrics.pipelineValue.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Active Opportunities</span>
+              <span className="font-medium text-foreground">{totalOpportunities}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Follow-ups Due</span>
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-foreground">{metrics.upcomingFollowUps}</span>
+                {metrics.upcomingFollowUps > 0 && (
+                  <Badge variant="outline" className="h-4 px-1 text-xs">
+                    !
                   </Badge>
-                </div>
-                
-                <div className="space-y-2">
-                  <Progress value={overallScore} className="h-3" />
-                  <p className="text-xs text-muted-foreground text-center">
-                    Based on conversion rates, activity levels, and follow-up compliance
-                  </p>
-                </div>
-              </>
-            );
-          })()}
+                )}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
