@@ -40,7 +40,8 @@ import {
   DollarSign,
   Shield,
   CloudSun,
-  Calculator
+  Calculator,
+  TrendingUp
 } from 'lucide-react';
 import '../components/ui/enhanced-sidebar.css';
 
