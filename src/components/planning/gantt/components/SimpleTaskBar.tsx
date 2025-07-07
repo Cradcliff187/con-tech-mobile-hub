@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { Task } from '@/types/database';
 import { generateTimelineUnits, getColumnWidth } from '../utils/gridUtils';
 import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
 import { getConstructionPhaseColor } from '../utils/colorUtils';
-import { toast } from '@/hooks/use-toast';
+import { useGanttContext } from '@/contexts/gantt/useGanttContext';
+import { useGanttDragBridge } from '@/hooks/useGanttDragBridge';
 
 interface SimpleTaskBarProps {
   task: Task;
@@ -24,9 +25,21 @@ export const SimpleTaskBar = ({
   onUpdate,
   isCollapsed = false
 }: SimpleTaskBarProps) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragPreview, setDragPreview] = useState<{ x: number; valid: boolean; date?: Date } | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  // Use centralized context for drag state
+  const { state } = useGanttContext();
+  const { dragState, saving } = state;
+
+  // Use the drag bridge hook for all drag operations
+  const {
+    handleDragStart,
+    handleDragOver,
+    handleDrop,
+    handleDragEnd,
+  } = useGanttDragBridge({
+    timelineStart,
+    timelineEnd,
+    viewMode
+  });
 
   const timelineUnits = useMemo(() => 
     generateTimelineUnits(timelineStart, timelineEnd, viewMode),
@@ -50,147 +63,34 @@ export const SimpleTaskBar = ({
     return { leftPercent, widthPercent, totalWidth };
   }, [calculatedStartDate, calculatedEndDate, timelineStart, timelineEnd, timelineUnits.length, columnWidth]);
 
-  const validateDrop = useCallback((dropPercent: number, dropX: number): { valid: boolean; message: string; date?: Date } => {
-    if (dropPercent < 0 || dropPercent > 100) {
-      return { valid: false, message: 'Task cannot be moved outside timeline' };
-    }
+  // Check if this task is currently being dragged
+  const isThisTaskDragging = dragState.isDragging && dragState.draggedTask?.id === task.id;
+  
+  // Calculate drag preview position if this timeline is receiving a drag
+  const dragPreviewPosition = useMemo(() => {
+    if (!dragState.isDragging || !dragState.dropPreviewDate) return null;
     
-    // Calculate the new date more accurately
     const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
-    const daysFromStart = Math.floor(dropPercent * totalDays / 100);
-    const newStartDate = new Date(timelineStart.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
+    const daysFromStart = Math.ceil((dragState.dropPreviewDate.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+    const leftPercent = Math.max(0, Math.min(100, (daysFromStart / totalDays) * 100));
     
-    // Snap to grid
-    const columnIndex = Math.floor(dropX / columnWidth);
-    const clampedIndex = Math.max(0, Math.min(columnIndex, timelineUnits.length - 1));
-    const snappedDate = new Date(timelineUnits[clampedIndex].key);
-    
-    // Check constraints
-    const currentDuration = calculatedEndDate.getTime() - calculatedStartDate.getTime();
-    const newEndDate = new Date(snappedDate.getTime() + currentDuration);
-    
-    if (newEndDate > timelineEnd) {
-      return { valid: false, message: 'Task would extend beyond project timeline' };
-    }
-    
-    // Check for weekends (warning only)
-    const dayOfWeek = snappedDate.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      return { 
-        valid: true, 
-        message: 'Task will be scheduled on weekend',
-        date: snappedDate
-      };
-    }
-    
-    return { 
-      valid: true, 
-      message: `Move to ${snappedDate.toLocaleDateString()}`,
-      date: snappedDate
-    };
-  }, [timelineStart, timelineEnd, timelineUnits, columnWidth, calculatedStartDate, calculatedEndDate]);
-
-  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (isUpdating) {
-      e.preventDefault();
-      return;
-    }
-    
-    setIsDragging(true);
-    e.dataTransfer.setData('text/plain', task.id);
-    e.dataTransfer.effectAllowed = 'move';
-    
-    // Create drag preview
-    const dragImage = document.createElement('div');
-    dragImage.className = 'bg-blue-600 text-white px-3 py-2 rounded shadow-lg text-sm font-medium whitespace-nowrap';
-    dragImage.textContent = task.title;
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-1000px';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    
-    setTimeout(() => document.body.removeChild(dragImage), 0);
-  }, [isUpdating, task.id, task.title]);
-
-  const handleDragEnd = useCallback(() => {
-    setIsDragging(false);
-    setDragPreview(null);
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const timelineWidth = rect.width;
-    const dropPercent = (relativeX / timelineWidth) * 100;
-    
-    const validation = validateDrop(dropPercent, relativeX);
-    
-    setDragPreview({
-      x: relativeX,
-      valid: validation.valid,
-      date: validation.date
-    });
-    
-    e.dataTransfer.dropEffect = validation.valid ? 'move' : 'none';
-  }, [validateDrop]);
-
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragPreview(null);
-    
-    if (isUpdating) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const timelineWidth = rect.width;
-    const dropPercent = (relativeX / timelineWidth) * 100;
-    
-    const validation = validateDrop(dropPercent, relativeX);
-    if (!validation.valid || !validation.date) {
-      toast({
-        title: "Invalid Drop",
-        description: validation.message,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsUpdating(true);
-    
-    try {
-      const newStartDate = validation.date;
-      const currentDuration = calculatedEndDate.getTime() - calculatedStartDate.getTime();
-      const newEndDate = new Date(newStartDate.getTime() + currentDuration);
-
-      const updates: Partial<Task> = {
-        start_date: newStartDate.toISOString(),
-        due_date: newEndDate.toISOString()
-      };
-
-      await onUpdate(task.id, updates);
-      
-      toast({
-        title: "Task Updated",
-        description: `"${task.title}" moved to ${newStartDate.toLocaleDateString()}`,
-      });
-      
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: "Failed to update task position",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [isUpdating, validateDrop, task.id, task.title, calculatedStartDate, calculatedEndDate, onUpdate]);
+    return leftPercent;
+  }, [dragState.isDragging, dragState.dropPreviewDate, timelineStart, timelineEnd]);
 
   // Use consistent heights: 32px for collapsed, 64px for expanded
   const containerHeight = isCollapsed ? '32px' : '64px';
   const barHeight = isCollapsed ? '16px' : '32px';
   const barTopOffset = isCollapsed ? '8px' : '16px';
+
+  // Get validity color for drag preview
+  const getValidityColor = (validity: 'valid' | 'warning' | 'invalid') => {
+    switch (validity) {
+      case 'valid': return 'bg-green-500';
+      case 'warning': return 'bg-yellow-500';
+      case 'invalid': return 'bg-red-500';
+      default: return 'bg-green-500';
+    }
+  };
 
   return (
     <div 
@@ -201,21 +101,20 @@ export const SimpleTaskBar = ({
       }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      onDragLeave={() => setDragPreview(null)}
     >
-      {/* Drag preview indicator */}
-      {dragPreview && (
+      {/* Drag preview indicator from context */}
+      {dragState.isDragging && dragPreviewPosition !== null && (
         <div
-          className={`absolute top-0 bottom-0 w-0.5 z-20 ${
-            dragPreview.valid ? 'bg-green-500' : 'bg-red-500'
-          }`}
-          style={{ left: `${dragPreview.x}px` }}
+          className={`absolute top-0 bottom-0 w-0.5 z-20 ${getValidityColor(dragState.currentValidity)}`}
+          style={{ left: `${dragPreviewPosition}%` }}
         >
-          {dragPreview.date && (
+          {dragState.dropPreviewDate && (
             <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-2 py-1 text-xs rounded whitespace-nowrap ${
-              dragPreview.valid ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+              dragState.currentValidity === 'valid' ? 'bg-green-500 text-white' : 
+              dragState.currentValidity === 'warning' ? 'bg-yellow-500 text-white' :
+              'bg-red-500 text-white'
             }`}>
-              {dragPreview.date.toLocaleDateString()}
+              {dragState.violationMessages[0] || dragState.dropPreviewDate.toLocaleDateString()}
             </div>
           )}
         </div>
@@ -224,11 +123,11 @@ export const SimpleTaskBar = ({
       {/* Task Bar */}
       <div
         className={`absolute rounded transition-all ${
-          isUpdating ? 'cursor-wait opacity-50' : 'cursor-grab active:cursor-grabbing'
+          saving ? 'cursor-wait opacity-50' : 'cursor-grab active:cursor-grabbing'
         } ${
           isSelected ? 'ring-2 ring-blue-500 ring-offset-1 shadow-lg' : 'hover:shadow-md'
         } ${
-          isDragging ? 'opacity-75 scale-105 z-30 shadow-xl' : ''
+          isThisTaskDragging ? 'opacity-75 scale-105 z-30 shadow-xl' : ''
         } ${phaseColor}`}
         style={{
           left: `${leftPercent}%`,
@@ -237,15 +136,15 @@ export const SimpleTaskBar = ({
           height: barHeight,
           top: barTopOffset
         }}
-        draggable={!isUpdating}
-        onDragStart={handleDragStart}
+        draggable={!saving}
+        onDragStart={(e) => handleDragStart(e, task)}
         onDragEnd={handleDragEnd}
       >
         <div className="px-2 py-1 h-full flex items-center">
           <span className={`font-medium truncate text-white ${isCollapsed ? 'text-xs' : 'text-sm'}`}>
             {task.title}
           </span>
-          {isUpdating && (
+          {saving && (
             <div className="ml-2 w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
           )}
         </div>
@@ -264,7 +163,7 @@ export const SimpleTaskBar = ({
         )}
         
         {/* Dragging overlay */}
-        {isDragging && (
+        {isThisTaskDragging && (
           <div className="absolute inset-0 bg-blue-100 bg-opacity-30 rounded pointer-events-none" />
         )}
       </div>
