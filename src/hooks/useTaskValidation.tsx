@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { taskSchema, editTaskSchema, type TaskFormData, type EditTaskFormData, validateFormData } from '@/schemas';
-import { sanitizeInput, sanitizeStringArray } from '@/utils/validation';
+import { sanitizeOnSubmit, sanitizeArrayOnSubmit } from '@/utils/iosFriendlyValidation';
 import { Task } from '@/types/database';
 import { useProjects } from '@/hooks/useProjects';
 
@@ -35,10 +35,10 @@ export const useTaskValidation = ({
     // Sanitize text fields before validation
     const sanitizedFormData = {
       ...formData,
-      title: sanitizeInput(formData.title || '', 'text') as string,
-      description: sanitizeInput(formData.description || '', 'html') as string,
-      category: sanitizeInput(formData.category || '', 'text') as string,
-      required_skills: sanitizeStringArray(formData.required_skills || []),
+      title: sanitizeOnSubmit(formData.title || '') || '',
+      description: sanitizeOnSubmit(formData.description || ''),
+      category: sanitizeOnSubmit(formData.category || ''),
+      required_skills: sanitizeArrayOnSubmit(formData.required_skills || []),
       // Ensure date fields are undefined if empty, not empty strings
       due_date: formData.due_date === '' ? undefined : formData.due_date,
       start_date: formData.start_date === '' ? undefined : formData.start_date,

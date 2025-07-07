@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
 import { TaskFormData } from '@/schemas';
-import { sanitizeInput, sanitizeStringArray } from '@/utils/validation';
+import { sanitizeOnSubmit, sanitizeArrayOnSubmit } from '@/utils/iosFriendlyValidation';
 
 interface UseCreateTaskFormHandlersProps {
   formData: Partial<TaskFormData>;
@@ -40,7 +40,7 @@ export const useCreateTaskFormHandlers = ({
         processedValue = value === '' || value === undefined ? undefined : Number(value);
         break;
       case 'required_skills':
-        processedValue = sanitizeStringArray(value as string[]);
+        processedValue = sanitizeArrayOnSubmit(value as string[]);
         break;
       case 'assigned_stakeholder_id':
         // Ensure empty string becomes undefined for proper database storage
@@ -68,7 +68,7 @@ export const useCreateTaskFormHandlers = ({
   }, [setFormData, clearFieldError]);
 
   const handleAddSkill = useCallback(() => {
-    const sanitizedSkill = sanitizeInput(newSkill, 'text') as string;
+    const sanitizedSkill = sanitizeOnSubmit(newSkill);
     if (sanitizedSkill && !formData.required_skills?.includes(sanitizedSkill)) {
       const updatedSkills = [...(formData.required_skills || []), sanitizedSkill];
       handleInputChange('required_skills', updatedSkills);

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useToast } from '@/hooks/use-toast';
 import { projectSchema, type ProjectFormData, validateFormData } from '@/schemas';
-import { sanitizeInput } from '@/utils/validation';
+import { sanitizeOnSubmit, sanitizeEmailOnSubmit, sanitizePhoneOnSubmit } from '@/utils/iosFriendlyValidation';
 
 interface UseCreateProjectFormProps {
   defaultClientId?: string;
@@ -33,31 +33,9 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
   const { toast } = useToast();
 
   const handleInputChange = (field: keyof ProjectFormData, value: string) => {
-    // Sanitize input based on field type
-    let sanitizedValue: string | number | undefined = value;
-    
-    switch (field) {
-      case 'name':
-      case 'city':
-      case 'state':
-        sanitizedValue = sanitizeInput(value, 'text') as string;
-        break;
-      case 'description':
-        sanitizedValue = sanitizeInput(value, 'html') as string;
-        break;
-      case 'street_address':
-      case 'zip_code':
-        sanitizedValue = sanitizeInput(value, 'text') as string;
-        break;
-      case 'budget':
-        // Keep as string for form input, will be converted during validation
-        sanitizedValue = value;
-        break;
-      default:
-        sanitizedValue = sanitizeInput(value, 'text') as string;
-    }
-    
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
+    // Store raw input value without sanitization to allow natural typing
+    // Sanitization will be applied only during form submission
+    setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
     if (errors[field]) {
@@ -69,20 +47,23 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
     }
   };
 
-  const validateForm = (): boolean => {
-    const validation = validateFormData(projectSchema, formData);
+
+  const handleSubmit = async () => {
+    // Sanitize form data before validation and submission
+    const sanitizedFormData = {
+      ...formData,
+      name: sanitizeOnSubmit(formData.name || '') || '',
+      description: sanitizeOnSubmit(formData.description || ''),
+      street_address: sanitizeOnSubmit(formData.street_address || ''),
+      city: sanitizeOnSubmit(formData.city || ''),
+      state: sanitizeOnSubmit(formData.state || ''),
+      zip_code: sanitizeOnSubmit(formData.zip_code || ''),
+    };
+
+    const validation = validateFormData(projectSchema, sanitizedFormData);
     
     if (!validation.success) {
       setErrors(validation.errors || {});
-      return false;
-    }
-    
-    setErrors({});
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) {
       toast({
         title: "Validation Error",
         description: "Please fix the errors below and try again.",
@@ -93,11 +74,6 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
 
     setIsSubmitting(true);
     try {
-      const validation = validateFormData(projectSchema, formData);
-      if (!validation.success || !validation.data) {
-        throw new Error('Form validation failed');
-      }
-
       await createProject({
         ...validation.data,
         budget: typeof validation.data.budget === 'string' ? parseFloat(validation.data.budget) : validation.data.budget,
@@ -106,7 +82,7 @@ export const useCreateProjectForm = ({ defaultClientId, onSuccess }: UseCreatePr
 
       toast({
         title: "Success",
-        description: "Project created successfully with enhanced security validation",
+        description: "Project created successfully",
       });
       onSuccess();
       resetForm();
