@@ -84,7 +84,7 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
         <label htmlFor="project" className="block text-sm font-medium text-slate-700 mb-1">
           Project *
         </label>
-        <Select value={projectId} onValueChange={onProjectChange} disabled={disabled}>
+        <Select value={projectId || undefined} onValueChange={onProjectChange} disabled={disabled}>
           <SelectTrigger className={cn(
             "focus:ring-2 focus:ring-orange-300",
             getFieldError?.('project_id') && "border-red-500"
