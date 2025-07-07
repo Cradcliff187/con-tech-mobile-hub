@@ -10,6 +10,7 @@ import { GanttHeader } from './GanttHeader';
 import { GanttTaskList } from './GanttTaskList';
 import { GanttTimelineArea } from './GanttTimelineArea';
 import { GanttStatusBar } from './GanttStatusBar';
+import { DragOverlay } from './DragOverlay';
 import { useActionHistory } from '@/hooks/useActionHistory';
 import { Task } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
@@ -280,6 +281,13 @@ export const SimpleGanttContainer = ({
         historyLength={historyLength}
         collapsedTasks={collapsedTasks}
         isSystemBusy={isSystemBusy}
+      />
+      
+      {/* Drag overlay for visual feedback */}
+      <DragOverlay
+        timelineStart={timelineStart}
+        timelineEnd={timelineEnd}
+        viewMode={viewMode}
       />
     </div>
   );
