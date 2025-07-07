@@ -93,6 +93,7 @@ export const useTasks = (options: UseTasksOptions = {}) => {
           stakeholder_assignments:task_stakeholder_assignments(
             id,
             assignment_role,
+            status,
             stakeholder:stakeholders(
               id,
               contact_person,
@@ -109,7 +110,11 @@ export const useTasks = (options: UseTasksOptions = {}) => {
 
       const mappedTasks = (data || []).map(task => ({
         ...task,
-        task_type: task.task_type === 'punch_list' ? 'punch_list' as const : 'regular' as const
+        task_type: task.task_type === 'punch_list' ? 'punch_list' as const : 'regular' as const,
+        // Filter to only show active assignments
+        stakeholder_assignments: (task.stakeholder_assignments || []).filter(
+          (assignment: any) => assignment.status === 'active'
+        )
       })) as EnhancedTask[];
 
       setTasks(mappedTasks);
@@ -131,9 +136,19 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Use centralized subscription management
+  // Use centralized subscription management for tasks
   const { isSubscribed } = useSubscription(
     'tasks',
+    handleTasksUpdate,
+    {
+      userId: user?.id,
+      enabled: isSessionReady
+    }
+  );
+
+  // Also subscribe to assignment changes
+  useSubscription(
+    'task_stakeholder_assignments',
     handleTasksUpdate,
     {
       userId: user?.id,
@@ -158,6 +173,7 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     }
 
     try {
+      // Create task first (without legacy assignment fields)
       const { data: task, error: taskError } = await supabase
         .from('tasks')
         .insert({
@@ -187,6 +203,51 @@ export const useTasks = (options: UseTasksOptions = {}) => {
         throw new Error(`Failed to create task: ${taskError.message}`);
       }
 
+      // Handle stakeholder assignments through junction table
+      const assignmentPromises = [];
+      
+      // Handle single assignment (legacy support)
+      if (taskData.assigned_stakeholder_id) {
+        assignmentPromises.push(
+          supabase
+            .from('task_stakeholder_assignments')
+            .insert({
+              task_id: task.id,
+              stakeholder_id: taskData.assigned_stakeholder_id,
+              assignment_role: 'primary',
+              assigned_by: user!.id,
+              status: 'active'
+            })
+        );
+      }
+
+      // Handle multiple assignments (new system)
+      if (taskData.assigned_stakeholder_ids && taskData.assigned_stakeholder_ids.length > 0) {
+        const assignments = taskData.assigned_stakeholder_ids.map(stakeholderId => ({
+          task_id: task.id,
+          stakeholder_id: stakeholderId,
+          assignment_role: 'assigned',
+          assigned_by: user!.id,
+          status: 'active'
+        }));
+        
+        assignmentPromises.push(
+          supabase
+            .from('task_stakeholder_assignments')
+            .insert(assignments)
+        );
+      }
+
+      // Wait for all assignment operations to complete
+      if (assignmentPromises.length > 0) {
+        const assignmentResults = await Promise.all(assignmentPromises);
+        for (const result of assignmentResults) {
+          if (result.error) {
+            console.warn('Assignment creation warning:', result.error.message);
+          }
+        }
+      }
+
       // Real-time subscription will handle state update
       return { data: task, error: null };
     } catch (err) {
@@ -200,15 +261,74 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     if (!isSessionReady) return { error: 'Session not ready' };
 
     try {
+      // Separate assignment updates from task updates
+      const { assigned_stakeholder_id, assigned_stakeholder_ids, ...taskUpdates } = updates;
+
+      // Update task data
       const { data, error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update(taskUpdates)
         .eq('id', id)
         .select()
         .single();
 
       if (error) {
         throw new Error(`Failed to update task: ${error.message}`);
+      }
+
+      // Handle assignment updates if provided
+      if (assigned_stakeholder_id !== undefined || assigned_stakeholder_ids !== undefined) {
+        // First, remove existing active assignments
+        await supabase
+          .from('task_stakeholder_assignments')
+          .update({ status: 'removed' })
+          .eq('task_id', id)
+          .eq('status', 'active');
+
+        // Then add new assignments
+        const assignmentPromises = [];
+        
+        // Handle single assignment
+        if (assigned_stakeholder_id) {
+          assignmentPromises.push(
+            supabase
+              .from('task_stakeholder_assignments')
+              .insert({
+                task_id: id,
+                stakeholder_id: assigned_stakeholder_id,
+                assignment_role: 'primary',
+                assigned_by: user!.id,
+                status: 'active'
+              })
+          );
+        }
+
+        // Handle multiple assignments
+        if (assigned_stakeholder_ids && assigned_stakeholder_ids.length > 0) {
+          const assignments = assigned_stakeholder_ids.map(stakeholderId => ({
+            task_id: id,
+            stakeholder_id: stakeholderId,
+            assignment_role: 'assigned',
+            assigned_by: user!.id,
+            status: 'active'
+          }));
+          
+          assignmentPromises.push(
+            supabase
+              .from('task_stakeholder_assignments')
+              .insert(assignments)
+          );
+        }
+
+        // Execute assignment updates
+        if (assignmentPromises.length > 0) {
+          const assignmentResults = await Promise.all(assignmentPromises);
+          for (const result of assignmentResults) {
+            if (result.error) {
+              console.warn('Assignment update warning:', result.error.message);
+            }
+          }
+        }
       }
 
       // Real-time subscription will handle state update
@@ -218,7 +338,7 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       console.error('Error updating task:', err);
       return { error: errorMessage };
     }
-  }, [isSessionReady]);
+  }, [user, isSessionReady]);
 
   // Filter tasks by project if specified
   const filteredTasks = useMemo(() => {

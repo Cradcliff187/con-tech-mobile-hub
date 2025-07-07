@@ -50,9 +50,21 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
       setPunchListCategory(task.punch_list_category || '');
       setNewSkill('');
 
-      // Assignment fields
-      setAssignedStakeholderId(task.assigned_stakeholder_id);
-      setAssignedStakeholderIds(task.assigned_stakeholder_ids || []);
+      // Assignment fields - Load from junction table first, fallback to legacy
+      const junctionAssignments = (task as any).stakeholder_assignments || [];
+      const activeAssignments = junctionAssignments
+        .filter((assignment: any) => assignment.stakeholder)
+        .map((assignment: any) => assignment.stakeholder.id);
+
+      if (activeAssignments.length > 0) {
+        // Use junction table assignments (new system)
+        setAssignedStakeholderIds(activeAssignments);
+        setAssignedStakeholderId(undefined);
+      } else {
+        // Fallback to legacy single assignment
+        setAssignedStakeholderId(task.assigned_stakeholder_id);
+        setAssignedStakeholderIds([]);
+      }
     }
   }, [task, open]);
 
