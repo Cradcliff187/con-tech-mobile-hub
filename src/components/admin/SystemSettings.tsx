@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Mail, Layers, Database, Activity } from 'lucide-react';
+import { Settings, Mail, Layers, Database, Activity, Target } from 'lucide-react';
 import { ApplicationHealth } from './ApplicationHealth';
+import { CRMGoalsSettings } from './CRMGoalsSettings';
 
 export const SystemSettings = () => {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -38,11 +39,12 @@ export const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="health" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="health">Health Monitor</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="crm-goals">CRM Goals</TabsTrigger>
           <TabsTrigger value="defaults">Defaults</TabsTrigger>
         </TabsList>
 
@@ -183,6 +185,10 @@ export const SystemSettings = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="crm-goals" className="space-y-4">
+          <CRMGoalsSettings />
         </TabsContent>
 
         <TabsContent value="defaults" className="space-y-4">

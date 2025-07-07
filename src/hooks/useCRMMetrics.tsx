@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useCompanySettings, CRMGoals } from '@/hooks/useCompanySettings';
 
 export interface CRMMetrics {
   pipelineValue: number;
@@ -9,6 +10,7 @@ export interface CRMMetrics {
   activeLeads: number;
   upcomingFollowUps: number;
   monthlyRevenue: number;
+  goals: CRMGoals;
   pipelineStats: {
     leads: { count: number; value: number };
     estimates: { count: number; value: number };
@@ -32,6 +34,13 @@ export const useCRMMetrics = () => {
     activeLeads: 0,
     upcomingFollowUps: 0,
     monthlyRevenue: 0,
+    goals: {
+      revenue_target: 100000,
+      leads_target: 25,
+      estimates_target: 15,
+      bids_target: 10,
+      conversion_rate_target: 20
+    },
     pipelineStats: {
       leads: { count: 0, value: 0 },
       estimates: { count: 0, value: 0 },
@@ -42,6 +51,7 @@ export const useCRMMetrics = () => {
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { settings: companySettings } = useCompanySettings();
 
   const fetchCRMMetrics = useCallback(async () => {
     if (!user) {
@@ -196,6 +206,7 @@ export const useCRMMetrics = () => {
         activeLeads: totalLeads,
         upcomingFollowUps: followUpsData?.length || 0,
         monthlyRevenue: pipelineStats.projects.value,
+        goals: companySettings.crm_monthly_goals,
         pipelineStats,
         recentActivity
       });

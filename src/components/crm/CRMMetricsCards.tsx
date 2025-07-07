@@ -40,8 +40,8 @@ export const CRMMetricsCards = ({ metrics }: CRMMetricsCardsProps) => {
 
   const activityScore = Math.min(100, metrics.recentActivity.length * 10); // Simple activity scoring
 
-  // Mock goals for demonstration (in real app, these would come from settings)
-  const monthlyGoal = 100000; // $100k monthly goal
+  // Use real goals from company settings
+  const monthlyGoal = metrics.goals.revenue_target;
   const goalProgress = (metrics.monthlyRevenue / monthlyGoal) * 100;
 
   return (
