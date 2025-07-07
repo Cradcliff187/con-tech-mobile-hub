@@ -2,6 +2,7 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ViewToggle } from '@/components/stakeholders/ViewToggle';
 
 interface TaskFiltersProps {
   currentFilter: string;
@@ -9,6 +10,8 @@ interface TaskFiltersProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   tasks?: any[];
+  view?: 'grid' | 'list';
+  onViewChange?: (view: 'grid' | 'list') => void;
 }
 
 export const TaskFilters = ({ 
@@ -16,7 +19,9 @@ export const TaskFilters = ({
   onFilterChange, 
   searchTerm, 
   onSearchChange,
-  tasks = []
+  tasks = [],
+  view = 'list',
+  onViewChange
 }: TaskFiltersProps) => {
   const getStatusCount = (status: string) => {
     if (status === 'all') return tasks.length;
@@ -32,14 +37,20 @@ export const TaskFilters = ({
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
-        <Input
-          placeholder="Search tasks or assignees..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+          <Input
+            placeholder="Search tasks or assignees..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        {onViewChange && (
+          <ViewToggle view={view} onViewChange={onViewChange} />
+        )}
       </div>
       
       <div className="flex flex-wrap gap-2">

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { TaskList } from './TaskList';
+import { TaskGrid } from './TaskGrid';
 import { TaskFilters } from './TaskFilters';
 import { PunchListView } from './PunchListView';
 import { Plus } from 'lucide-react';
@@ -26,6 +27,7 @@ import { useSearchParams } from 'react-router-dom';
 const TaskManagerContent = memo(() => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [view, setView] = useState<'grid' | 'list'>('list');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
@@ -245,6 +247,8 @@ const TaskManagerContent = memo(() => {
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             tasks={regularTasks}
+            view={view}
+            onViewChange={setView}
           />
           <ErrorBoundary
             fallback={
@@ -255,12 +259,21 @@ const TaskManagerContent = memo(() => {
               />
             }
           >
-            <TaskList 
-              tasks={filteredTasks} 
-              onEdit={handleEditTask} 
-              onViewDetails={handleViewDetails}
-              selectedTaskId={selectedTaskFromUrl}
-            />
+            {view === 'list' ? (
+              <TaskList 
+                tasks={filteredTasks} 
+                onEdit={handleEditTask} 
+                onViewDetails={handleViewDetails}
+                selectedTaskId={selectedTaskFromUrl}
+              />
+            ) : (
+              <TaskGrid 
+                tasks={filteredTasks} 
+                onEdit={handleEditTask} 
+                onViewDetails={handleViewDetails}
+                selectedTaskId={selectedTaskFromUrl}
+              />
+            )}
           </ErrorBoundary>
         </TabsContent>
 
