@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Project } from '@/types/database';
 
 export const useAssignEquipmentDialog = (
-  project: Project,
+  project: Project | null,
   onSuccess: () => void,
   onClose: () => void
 ) => {
@@ -92,6 +92,15 @@ export const useAssignEquipmentDialog = (
   }, []);
 
   const handleSubmit = useCallback(async () => {
+    if (!project) {
+      toast({
+        title: "Error",
+        description: "No project selected",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (selectedEquipment.length === 0) {
       toast({
         title: "Error",
