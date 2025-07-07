@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Task } from '@/types/database';
 import { GanttTimelineGrid } from '../GanttTimelineGrid';
 import { SimpleTaskRow } from './SimpleTaskRow';
@@ -17,7 +17,7 @@ interface GanttTimelineAreaProps {
   scrollRef: React.RefObject<HTMLDivElement>;
 }
 
-export const GanttTimelineArea = ({
+const GanttTimelineAreaComponent = ({
   displayTasks,
   selectedTaskId,
   onTaskSelect,
@@ -71,3 +71,15 @@ export const GanttTimelineArea = ({
     </div>
   );
 };
+
+// Memoized component for performance
+export const GanttTimelineArea = memo(GanttTimelineAreaComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.displayTasks.length === nextProps.displayTasks.length &&
+    prevProps.selectedTaskId === nextProps.selectedTaskId &&
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.timelineStart.getTime() === nextProps.timelineStart.getTime() &&
+    prevProps.timelineEnd.getTime() === nextProps.timelineEnd.getTime() &&
+    prevProps.collapsedTasks.size === nextProps.collapsedTasks.size
+  );
+});

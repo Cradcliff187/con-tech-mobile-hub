@@ -100,4 +100,20 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Gantt Chart Performance Optimizations */
+  .gantt-task-bar {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+
+  .gantt-scroll-area {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .gantt-drag-preview {
+    pointer-events: none;
+    transform: translateZ(0);
+  }
 }

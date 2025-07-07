@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo, useCallback, useRef } from 'react';
 import { Task } from '@/types/database';
 import { generateTimelineUnits, getColumnWidth } from '../utils/gridUtils';
 import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
@@ -16,7 +16,7 @@ interface SimpleTaskBarProps {
   isCollapsed?: boolean;
 }
 
-export const SimpleTaskBar = ({
+const SimpleTaskBarComponent = ({
   task,
   timelineStart,
   timelineEnd,
@@ -28,6 +28,8 @@ export const SimpleTaskBar = ({
   // Use centralized context for drag state
   const { state } = useGanttContext();
   const { dragState, saving } = state;
+  
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   // Use the drag bridge hook for all drag operations
   const {
@@ -40,6 +42,47 @@ export const SimpleTaskBar = ({
     timelineEnd,
     viewMode
   });
+
+  // Touch event handlers for mobile drag support
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (saving) return;
+    
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    };
+  }, [saving]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || saving) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    
+    // Start drag if moved enough distance and time
+    if ((deltaX > 10 || deltaY > 10) && deltaTime > 100) {
+      // Create synthetic drag event for touch
+      const syntheticEvent = {
+        dataTransfer: {
+          setData: () => {},
+          effectAllowed: 'move' as const
+        },
+        preventDefault: () => {}
+      } as unknown as React.DragEvent;
+      
+      handleDragStart(syntheticEvent, task);
+      e.preventDefault(); // Prevent scrolling
+    }
+  }, [saving, handleDragStart, task]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchStartRef.current = null;
+    handleDragEnd();
+  }, [handleDragEnd]);
 
   const timelineUnits = useMemo(() => 
     generateTimelineUnits(timelineStart, timelineEnd, viewMode),
@@ -122,12 +165,12 @@ export const SimpleTaskBar = ({
       
       {/* Task Bar */}
       <div
-        className={`absolute rounded transition-all ${
+        className={`absolute rounded transition-all duration-200 ease-out ${
           saving ? 'cursor-wait opacity-50' : 'cursor-grab active:cursor-grabbing'
         } ${
-          isSelected ? 'ring-2 ring-blue-500 ring-offset-1 shadow-lg' : 'hover:shadow-md'
+          isSelected ? 'ring-2 ring-blue-500 ring-offset-1 shadow-lg scale-105' : 'hover:shadow-md hover:scale-[1.02]'
         } ${
-          isThisTaskDragging ? 'opacity-75 scale-105 z-30 shadow-xl' : ''
+          isThisTaskDragging ? 'opacity-75 scale-105 z-30 shadow-xl transition-none' : ''
         } ${phaseColor}`}
         style={{
           left: `${leftPercent}%`,
@@ -139,6 +182,9 @@ export const SimpleTaskBar = ({
         draggable={!saving}
         onDragStart={(e) => handleDragStart(e, task)}
         onDragEnd={handleDragEnd}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="px-2 py-1 h-full flex items-center">
           <span className={`font-medium truncate text-white ${isCollapsed ? 'text-xs' : 'text-sm'}`}>
@@ -170,3 +216,20 @@ export const SimpleTaskBar = ({
     </div>
   );
 };
+
+// Memoized component for performance optimization
+export const SimpleTaskBar = memo(SimpleTaskBarComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.task.id === nextProps.task.id &&
+    prevProps.task.start_date === nextProps.task.start_date &&
+    prevProps.task.due_date === nextProps.task.due_date &&
+    prevProps.task.title === nextProps.task.title &&
+    prevProps.task.progress === nextProps.task.progress &&
+    prevProps.task.status === nextProps.task.status &&
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isCollapsed === nextProps.isCollapsed &&
+    prevProps.timelineStart.getTime() === nextProps.timelineStart.getTime() &&
+    prevProps.timelineEnd.getTime() === nextProps.timelineEnd.getTime()
+  );
+});

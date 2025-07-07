@@ -18,8 +18,17 @@ export const validateTaskDrag = (
   const messages: string[] = [];
   let validity: 'valid' | 'warning' | 'invalid' = 'valid';
 
-  // Check if date is within timeline bounds
-  if (newStartDate < timelineStart || newStartDate > timelineEnd) {
+  // Validate date objects
+  if (!newStartDate || isNaN(newStartDate.getTime())) {
+    messages.push('Invalid date provided');
+    validity = 'invalid';
+    return { isValid: false, validity, messages };
+  }
+
+  // Check if date is within timeline bounds with buffer
+  const timelineBuffer = 24 * 60 * 60 * 1000; // 1 day buffer
+  if (newStartDate < new Date(timelineStart.getTime() - timelineBuffer) || 
+      newStartDate > new Date(timelineEnd.getTime() + timelineBuffer)) {
     messages.push('Task cannot be moved outside the project timeline');
     validity = 'invalid';
   }
@@ -34,13 +43,27 @@ export const validateTaskDrag = (
   // Calculate new end date based on original duration
   const currentStart = task.start_date ? new Date(task.start_date) : new Date();
   const currentEnd = task.due_date ? new Date(task.due_date) : new Date();
-  const durationMs = currentEnd.getTime() - currentStart.getTime();
+  
+  // Ensure valid date objects
+  if (isNaN(currentStart.getTime()) || isNaN(currentEnd.getTime())) {
+    messages.push('Task has invalid dates');
+    validity = 'invalid';
+    return { isValid: false, validity, messages };
+  }
+  
+  const durationMs = Math.max(0, currentEnd.getTime() - currentStart.getTime());
   const newEndDate = new Date(newStartDate.getTime() + durationMs);
 
-  // Check if new end date exceeds timeline
-  if (newEndDate > timelineEnd) {
+  // Check if new end date exceeds timeline (with same buffer)
+  if (newEndDate > new Date(timelineEnd.getTime() + timelineBuffer)) {
     messages.push('Task duration would extend beyond project timeline');
     validity = 'invalid';
+  }
+
+  // Validate minimum task duration
+  if (durationMs < 60 * 60 * 1000) { // Less than 1 hour
+    messages.push('Task duration too short (minimum 1 hour)');
+    if (validity === 'valid') validity = 'warning';
   }
 
   // Check for task overlaps with same assignee (warning only)

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Task } from '@/types/database';
 import { SimpleTaskRow } from './SimpleTaskRow';
 
@@ -15,7 +15,7 @@ interface GanttTaskListProps {
   onToggleCollapse: (taskId: string) => void;
 }
 
-export const GanttTaskList = ({
+const GanttTaskListComponent = ({
   displayTasks,
   selectedTaskId,
   onTaskSelect,
@@ -56,3 +56,15 @@ export const GanttTaskList = ({
     </div>
   );
 };
+
+// Memoized component for performance
+export const GanttTaskList = memo(GanttTaskListComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.displayTasks.length === nextProps.displayTasks.length &&
+    prevProps.selectedTaskId === nextProps.selectedTaskId &&
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.timelineStart.getTime() === nextProps.timelineStart.getTime() &&
+    prevProps.timelineEnd.getTime() === nextProps.timelineEnd.getTime() &&
+    prevProps.collapsedTasks.size === nextProps.collapsedTasks.size
+  );
+});

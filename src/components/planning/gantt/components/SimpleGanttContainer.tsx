@@ -1,13 +1,15 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGanttContext } from '@/contexts/gantt/useGanttContext';
 import { useTasks } from '@/hooks/useTasks';
+import { useDebounce } from '@/hooks/useDebounce';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttEmptyState } from './GanttEmptyState';
 import { GanttLoadingState } from './GanttLoadingState';
 import { GanttErrorState } from './GanttErrorState';
 import { GanttHeader } from './GanttHeader';
 import { GanttTaskList } from './GanttTaskList';
+import { VirtualizedTaskList } from './VirtualizedTaskList';
 import { GanttTimelineArea } from './GanttTimelineArea';
 import { GanttStatusBar } from './GanttStatusBar';
 import { DragOverlay } from './DragOverlay';
@@ -25,10 +27,12 @@ export const SimpleGanttContainer = ({
   viewMode 
 }: SimpleGanttContainerProps) => {
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
+  const [containerHeight, setContainerHeight] = useState(600);
   
   // Refs for scroll synchronization
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Use GanttContext for all state management
   const {
@@ -116,32 +120,66 @@ export const SimpleGanttContainer = ({
     setCollapsedTasks(new Set());
   };
 
-  // Scroll synchronization effect
+  // Debounced scroll synchronization for better performance
+  const debouncedSyncContentToHeader = useDebounce(useCallback(() => {
+    if (contentScrollRef.current && headerScrollRef.current) {
+      contentScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+    }
+  }, []), 16); // ~60fps
+
+  const debouncedSyncHeaderToContent = useDebounce(useCallback(() => {
+    if (headerScrollRef.current && contentScrollRef.current) {
+      headerScrollRef.current.scrollLeft = contentScrollRef.current.scrollLeft;
+    }
+  }, []), 16); // ~60fps
+
+  // Scroll synchronization effect with debouncing
   useEffect(() => {
     const headerElement = headerScrollRef.current;
     const contentElement = contentScrollRef.current;
 
     if (!headerElement || !contentElement) return;
 
-    const syncContentToHeader = () => {
-      if (contentElement && headerElement) {
-        contentElement.scrollLeft = headerElement.scrollLeft;
-      }
-    };
-
-    const syncHeaderToContent = () => {
-      if (headerElement && contentElement) {
-        headerElement.scrollLeft = contentElement.scrollLeft;
-      }
-    };
-
-    headerElement.addEventListener('scroll', syncContentToHeader, { passive: true });
-    contentElement.addEventListener('scroll', syncHeaderToContent, { passive: true });
+    headerElement.addEventListener('scroll', debouncedSyncContentToHeader, { passive: true });
+    contentElement.addEventListener('scroll', debouncedSyncHeaderToContent, { passive: true });
 
     return () => {
-      headerElement.removeEventListener('scroll', syncContentToHeader);
-      contentElement.removeEventListener('scroll', syncHeaderToContent);
+      headerElement.removeEventListener('scroll', debouncedSyncContentToHeader);
+      contentElement.removeEventListener('scroll', debouncedSyncHeaderToContent);
     };
+  }, [debouncedSyncContentToHeader, debouncedSyncHeaderToContent]);
+
+  // Keyboard event handler for drag cancellation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && state.dragState.isDragging) {
+        const { cancelDrag } = useGanttContext();
+        if (cancelDrag) {
+          cancelDrag();
+          toast({
+            title: "Drag Cancelled",
+            description: "Task drag operation was cancelled",
+            variant: "default"
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [state.dragState.isDragging]);
+
+  // Measure container height for virtual scrolling
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
@@ -210,9 +248,10 @@ export const SimpleGanttContainer = ({
   }
 
   const isSystemBusy = saving || isPerformingAction;
+  const useVirtualScrolling = displayTasks.length > 50;
 
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
+    <div ref={containerRef} className="flex flex-col h-full bg-white overflow-hidden">
       {/* Header with undo/redo controls */}
       <GanttHeader
         canUndo={canUndo}
@@ -241,18 +280,33 @@ export const SimpleGanttContainer = ({
 
       {/* Main content with centralized scroll control */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Task list - Fixed width, no individual scrolling */}
-        <GanttTaskList
-          displayTasks={displayTasks}
-          selectedTaskId={selectedTaskId}
-          onTaskSelect={handleTaskSelect}
-          onTaskUpdate={handleTaskUpdate}
-          viewMode={viewMode}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          collapsedTasks={collapsedTasks}
-          onToggleCollapse={toggleTaskCollapse}
-        />
+        {/* Task list - Use virtual scrolling for large lists */}
+        {useVirtualScrolling ? (
+          <VirtualizedTaskList
+            displayTasks={displayTasks}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={handleTaskSelect}
+            onTaskUpdate={handleTaskUpdate}
+            viewMode={viewMode}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            collapsedTasks={collapsedTasks}
+            onToggleCollapse={toggleTaskCollapse}
+            height={containerHeight - 160} // Account for headers and status bar
+          />
+        ) : (
+          <GanttTaskList
+            displayTasks={displayTasks}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={handleTaskSelect}
+            onTaskUpdate={handleTaskUpdate}
+            viewMode={viewMode}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            collapsedTasks={collapsedTasks}
+            onToggleCollapse={toggleTaskCollapse}
+          />
+        )}
 
         {/* Timeline area - Horizontal scroll only with sync */}
         <div className="flex-1 flex flex-col overflow-hidden">
