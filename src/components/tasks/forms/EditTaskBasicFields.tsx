@@ -11,8 +11,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Task } from '@/types/database';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
-import { useProjects } from '@/hooks/useProjects';
 import { ProgressField } from './ProgressField';
+import { Project } from '@/types/database';
 
 interface EditTaskBasicFieldsProps {
   title: string;
@@ -29,6 +29,7 @@ interface EditTaskBasicFieldsProps {
   onProjectChange: (projectId: string) => void;
   progress: number;
   setProgress: (value: number) => void;
+  projects: Project[];
   disabled?: boolean;
   projectsLoading?: boolean;
   errors?: Record<string, string[]>;
@@ -50,13 +51,12 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
   onProjectChange,
   progress,
   setProgress,
+  projects,
   disabled = false,
   projectsLoading = false,
   errors,
   getFieldError
 }) => {
-  const { projects } = useProjects();
-
   console.log('🐛 Debug project dropdown:', { 
     projectId, 
     projectIdType: typeof projectId,

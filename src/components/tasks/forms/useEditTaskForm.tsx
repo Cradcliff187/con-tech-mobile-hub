@@ -201,7 +201,8 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     hasErrors: validation.hasErrors,
     clearFieldError: validation.clearFieldError,
     
-    // Projects loading state
+    // Projects data and loading state
+    projects,
     projectsLoading,
     
     // Utilities

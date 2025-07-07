@@ -56,6 +56,7 @@ export const EditTaskDialogContent: React.FC<EditTaskDialogContentProps> = ({
         onProjectChange={onProjectChange}
         progress={formData.progress}
         setProgress={formData.setProgress}
+        projects={formData.projects}
         disabled={loading}
         projectsLoading={formData.projectsLoading}
         errors={formData.errors}
