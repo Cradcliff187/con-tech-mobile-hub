@@ -32,12 +32,17 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
 
   useEffect(() => {
     if (task && open) {
+      console.log('🐛 Debug task form state:', { 
+        taskProjectId: task.project_id, 
+        taskId: task.id 
+      });
+      
       setTitle(task.title);
       setDescription(task.description || '');
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-      setProjectId(task.project_id || '');
+      setProjectId(task.project_id);
       
       // Advanced fields
       setTaskType(task.task_type || 'regular');

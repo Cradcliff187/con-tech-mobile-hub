@@ -55,6 +55,13 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
 }) => {
   const { projects } = useProjects();
 
+  console.log('🐛 Debug project dropdown:', { 
+    projectId, 
+    projectIdType: typeof projectId,
+    projectsIds: projects.map(p => p.id),
+    projectsCount: projects.length 
+  });
+
   return (
     <>
       <div>
