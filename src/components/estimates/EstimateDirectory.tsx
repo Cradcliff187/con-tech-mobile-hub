@@ -7,6 +7,7 @@ import { EditEstimateDialog } from './EditEstimateDialog';
 import { DeleteEstimateDialog } from './DeleteEstimateDialog';
 import { EstimatePreviewDialog } from './EstimatePreviewDialog';
 import { CreateBidFromEstimateDialog } from './CreateBidFromEstimateDialog';
+import { CreateEstimateDialog } from './CreateEstimateDialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
   const [editEstimate, setEditEstimate] = useState<Estimate | null>(null);
   const [estimateToDelete, setEstimateToDelete] = useState<Estimate | null>(null);
   const [previewEstimate, setPreviewEstimate] = useState<Estimate | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleEdit = useCallback((estimate: Estimate) => {
     setEditEstimate(estimate);
@@ -208,13 +210,13 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
           icon={<FileText size={48} />}
           title="No Estimates Found"
           description="Start by creating your first estimate to track project costs and proposals for your clients."
-          actions={[
-            {
-              label: "Create Estimate",
-              onClick: () => console.log('Create estimate'), // TODO: Connect to create dialog
-              icon: <Plus size={16} />
-            }
-          ]}
+              actions={[
+                {
+                  label: "Create Estimate",
+                  onClick: () => setShowCreateDialog(true),
+                  icon: <Plus size={16} />
+                }
+              ]}
         />
       ) : filteredAndSortedEstimates.length === 0 ? (
         <EmptyState
@@ -274,6 +276,15 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
         open={!!previewEstimate}
         onOpenChange={(open) => !open && setPreviewEstimate(null)}
         estimate={previewEstimate}
+      />
+
+      <CreateEstimateDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={() => {
+          setShowCreateDialog(false);
+          refetch();
+        }}
       />
     </div>
   );
