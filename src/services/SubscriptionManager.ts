@@ -75,7 +75,7 @@ export class SubscriptionManager {
   private channels = new Map<string, ChannelConfig>();
   private channelRegistry = new Map<string, boolean>(); // Global channel registry
   private debounceTimers = new Map<string, NodeJS.Timeout>();
-  private strictModeDetection = new Set<string>();
+  private lastSubscriptionCall = new Map<string, number>();
   private readonly startTime = Date.now();
   
   // Configuration constants
@@ -118,10 +118,17 @@ export class SubscriptionManager {
     
     this.log('INFO', `Subscribe request for table: ${tableName}`, { userId, event });
 
-    // Detect React StrictMode double-mounting
-    if (this.detectStrictMode(tableName)) {
+    // Improved StrictMode detection - only debounce if rapid successive calls
+    const now = Date.now();
+    const lastCall = this.lastSubscriptionCall.get(tableName) || 0;
+    const timeSinceLastCall = now - lastCall;
+    
+    if (timeSinceLastCall < 100) { // 100ms threshold for rapid calls
       this.log('WARN', `StrictMode double-mount detected for ${tableName}, debouncing...`);
+      return () => {}; // Return no-op cleanup for debounced calls
     }
+    
+    this.lastSubscriptionCall.set(tableName, now);
 
     // Debounce subscription requests
     this.debounceOperation(tableName, async () => {
@@ -470,31 +477,6 @@ export class SubscriptionManager {
     this.debounceTimers.set(key, timer);
   }
 
-  /**
-   * Detect React StrictMode double-mounting
-   */
-  private detectStrictMode(tableName: string): boolean {
-    const key = `${tableName}_${Date.now()}`;
-    const now = Date.now();
-    
-    // Check if we've seen a similar subscription recently
-    for (const existingKey of this.strictModeDetection) {
-      const [existingTable, existingTime] = existingKey.split('_');
-      if (existingTable === tableName && 
-          now - parseInt(existingTime) < this.STRICTMODE_DETECTION_WINDOW) {
-        return true;
-      }
-    }
-    
-    this.strictModeDetection.add(key);
-    
-    // Clean up old entries
-    setTimeout(() => {
-      this.strictModeDetection.delete(key);
-    }, this.STRICTMODE_DETECTION_WINDOW * 2);
-    
-    return false;
-  }
 
   /**
    * Set up global error handling

@@ -32,10 +32,13 @@ export const BasicStakeholderAssignment: React.FC<BasicStakeholderAssignmentProp
 }) => {
   const [assignmentError, setAssignmentError] = useState<any>(null);
   const { stakeholders } = useStakeholders();
-  const { workloadData, loading: workloadLoading, error: workloadError } = useStakeholderWorkload({
+  // Memoize workload parameters to prevent loops
+  const workloadParams = React.useMemo(() => ({
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-  });
+  }), []);
+  
+  const { workloadData, loading: workloadLoading, error: workloadError } = useStakeholderWorkload(workloadParams);
   const { validating } = useAssignmentValidation();
 
   // Handle workload errors

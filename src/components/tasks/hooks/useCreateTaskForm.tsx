@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +48,7 @@ export const useCreateTaskForm = ({
     hasErrors,
   } = useCreateTaskFormValidation({ formData });
 
-  // Handlers
+  // Handlers - Memoize to prevent recreation on every render
   const { handleInputChange, handleAddSkill, handleRemoveSkill } = useCreateTaskFormHandlers({
     formData,
     setFormData,
@@ -58,6 +58,11 @@ export const useCreateTaskForm = ({
       // This will be handled by the validation hook
     },
   });
+
+  const selectedProject = useMemo(() => 
+    projects.find(p => p.id === formData.project_id), 
+    [projects, formData.project_id]
+  );
 
   // Set default values when component mounts or defaults change
   useEffect(() => {
@@ -69,15 +74,13 @@ export const useCreateTaskForm = ({
     }
   }, [defaultProjectId, defaultCategory, formData.project_id, formData.category, handleInputChange]);
 
-  const selectedProject = projects.find(p => p.id === formData.project_id);
-
-  // Apply smart defaults when project changes
+  // Apply smart defaults when project changes - Fix: Remove setFormData from dependencies
   useEffect(() => {
     if (selectedProject) {
       const defaults = getTaskDefaults(selectedProject);
       setFormData(prev => ({ ...prev, ...defaults }));
     }
-  }, [selectedProject, setFormData]);
+  }, [selectedProject]);
 
   // Filter stakeholders to get workers with skills - include all assignable types
   const workers = stakeholders.filter(s => 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStakeholders } from '@/hooks/useStakeholders';
 
@@ -34,7 +34,7 @@ export const useStakeholderWorkload = ({
   
   const { stakeholders } = useStakeholders();
 
-  const fetchWorkloadData = async () => {
+  const fetchWorkloadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,7 +65,7 @@ export const useStakeholderWorkload = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate, stakeholderIds]);
 
   const processWorkloadData = (rawData: any[]): WorkloadData[] => {
     const stakeholderMap = new Map<string, WorkloadData>();
@@ -112,9 +112,15 @@ export const useStakeholderWorkload = ({
     return 'available';
   };
 
+  // Memoize stakeholder IDs dependency to prevent infinite loops
+  const stakeholderIdsDep = useMemo(() => 
+    stakeholderIds ? stakeholderIds.join(',') : '', 
+    [stakeholderIds]
+  );
+
   useEffect(() => {
     fetchWorkloadData();
-  }, [startDate, endDate, stakeholderIds?.join(',')]);
+  }, [fetchWorkloadData]);
 
   // Enhanced workload data with stakeholder information
   const enhancedWorkloadData = useMemo(() => {
