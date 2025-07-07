@@ -73,6 +73,7 @@ interface SubscriptionStats {
 export class SubscriptionManager {
   private static instance: SubscriptionManager;
   private channels = new Map<string, ChannelConfig>();
+  private channelRegistry = new Map<string, boolean>(); // Global channel registry
   private debounceTimers = new Map<string, NodeJS.Timeout>();
   private strictModeDetection = new Set<string>();
   private readonly startTime = Date.now();
@@ -225,9 +226,26 @@ export class SubscriptionManager {
     onStateChange?: (state: SubscriptionState, error?: string) => void,
     maxRetries: number = this.MAX_RETRIES
   ): Promise<void> {
+    // Check global channel registry to prevent conflicts
+    if (this.channelRegistry.get(tableName)) {
+      this.log('WARN', `Channel conflict detected for ${tableName}, using existing channel`);
+    }
+
     let config = this.channels.get(tableName);
 
     if (config) {
+      // Prevent concurrent subscription attempts
+      if (config.isSubscribing) {
+        this.log('WARN', `Subscription already in progress for ${tableName}, queueing callback`);
+        setTimeout(() => {
+          config?.callbacks.add(callback);
+          if (config?.state === 'SUBSCRIBED') {
+            onStateChange?.('SUBSCRIBED');
+          }
+        }, 50);
+        return;
+      }
+
       // Add callback to existing subscription
       config.callbacks.add(callback);
       this.log('DEBUG', `Added callback to existing subscription for ${tableName}`);
@@ -240,6 +258,9 @@ export class SubscriptionManager {
       }
       return;
     }
+
+    // Mark channel in registry
+    this.channelRegistry.set(tableName, true);
 
     // Create new subscription
     const channelName = this.generateChannelName(tableName, userId);
@@ -415,6 +436,7 @@ export class SubscriptionManager {
 
     if (removeFromMap) {
       this.channels.delete(tableName);
+      this.channelRegistry.delete(tableName); // Clear from registry
     }
   }
 
@@ -430,14 +452,18 @@ export class SubscriptionManager {
   /**
    * Debounce operations to prevent rapid subscribe/unsubscribe
    */
-  private debounceOperation(key: string, operation: () => void): void {
+  private debounceOperation(key: string, operation: () => void | Promise<void>): void {
     const existingTimer = this.debounceTimers.get(key);
     if (existingTimer) {
       clearTimeout(existingTimer);
     }
 
-    const timer = setTimeout(() => {
-      operation();
+    const timer = setTimeout(async () => {
+      try {
+        await operation();
+      } catch (error) {
+        this.log('ERROR', `Debounced operation failed for ${key}:`, error);
+      }
       this.debounceTimers.delete(key);
     }, this.DEBOUNCE_DELAY);
 

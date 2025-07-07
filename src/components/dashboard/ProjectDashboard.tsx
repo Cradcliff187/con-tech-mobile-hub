@@ -187,14 +187,7 @@ export const ProjectDashboard = () => {
         onTabChange={setActiveTab}
       />
 
-      {/* Floating Quick Actions for selected project */}
-      {selectedProject && (
-        <ProjectQuickActions 
-          project={selectedProject} 
-          context="dashboard" 
-          variant="floating"
-        />
-      )}
+      {/* Single ProjectQuickActions instance - removed duplicate floating variant */}
     </div>
   );
 };

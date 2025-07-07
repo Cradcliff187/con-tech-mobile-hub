@@ -5,6 +5,7 @@ import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
 import { AssignStakeholderDialog } from '@/components/stakeholders/AssignStakeholderDialog';
 import { AssignEquipmentToProjectDialog } from '@/components/dashboard/AssignEquipmentToProjectDialog';
 import { StatusTransitionDialog } from '@/components/common/StatusTransitionDialog';
+import { SubscriptionErrorBoundary } from '@/components/common/SubscriptionErrorBoundary';
 import { useQuickActions } from './quick-actions/useQuickActions';
 import { CompactActions } from './quick-actions/variants/CompactActions';
 import { InlineActions } from './quick-actions/variants/InlineActions';
@@ -110,14 +111,16 @@ export const ProjectQuickActions = ({
         stakeholder={null}
       />
 
-      <AssignEquipmentToProjectDialog
-        project={project}
-        open={assignEquipmentOpen}
-        onOpenChange={setAssignEquipmentOpen}
-        onSuccess={() => {
-          // Equipment assignment completed
-        }}
-      />
+      <SubscriptionErrorBoundary tableName="equipment">
+        <AssignEquipmentToProjectDialog
+          project={project}
+          open={assignEquipmentOpen}
+          onOpenChange={setAssignEquipmentOpen}
+          onSuccess={() => {
+            // Equipment assignment completed
+          }}
+        />
+      </SubscriptionErrorBoundary>
 
       {nextLifecycleStatus && (
         <StatusTransitionDialog

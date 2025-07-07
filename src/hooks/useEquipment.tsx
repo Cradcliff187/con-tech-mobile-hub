@@ -59,11 +59,16 @@ export const useEquipment = () => {
     }
   }, [user?.id]);
 
-  // Handle real-time updates using centralized subscription manager
+  // Stable callback that doesn't recreate on fetchEquipment changes
   const handleEquipmentUpdate = useCallback((payload: any) => {
     console.log('Equipment change detected:', payload);
-    fetchEquipment();
-  }, [fetchEquipment]);
+    // Use functional update to avoid dependency on fetchEquipment
+    setEquipment(currentEquipment => {
+      // Trigger a fresh fetch for real-time updates
+      fetchEquipment();
+      return currentEquipment; // Return current state while fetch is in progress
+    });
+  }, []); // No dependencies to prevent recreation
 
   // Use centralized subscription management
   const { isSubscribed } = useSubscription(
