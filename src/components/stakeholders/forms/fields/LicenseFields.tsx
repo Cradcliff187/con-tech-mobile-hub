@@ -20,9 +20,9 @@ export const LicenseFields = ({
     return errors[field]?.[0];
   };
 
-  const handleSanitizedChange = (field: string, value: string) => {
-    const sanitizedValue = sanitizeText(value);
-    onInputChange(field, sanitizedValue);
+  const handleInputChange = (field: string, value: string) => {
+    // Store raw input during typing - sanitization happens on form submission
+    onInputChange(field, value);
   };
 
   return (
@@ -54,7 +54,7 @@ export const LicenseFields = ({
             <Input
               id="license_number"
               value={formData.license_number || ''}
-              onChange={(e) => handleSanitizedChange('license_number', e.target.value)}
+              onChange={(e) => handleInputChange('license_number', e.target.value)}
               placeholder="Professional license # (alphanumeric only)"
               className={getFieldError('license_number') ? 'border-red-500' : ''}
             />

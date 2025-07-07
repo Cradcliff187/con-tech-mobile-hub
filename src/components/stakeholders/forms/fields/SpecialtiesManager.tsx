@@ -26,9 +26,9 @@ export const SpecialtiesManager = ({
   };
 
   const handleAddSpecialty = () => {
-    const sanitizedSpecialty = sanitizeText(newSpecialty);
-    if (sanitizedSpecialty && !formData.specialties.includes(sanitizedSpecialty)) {
-      const updatedSpecialties = sanitizeStringArray([...formData.specialties, sanitizedSpecialty]);
+    const trimmedSpecialty = newSpecialty.trim();
+    if (trimmedSpecialty && !formData.specialties.includes(trimmedSpecialty)) {
+      const updatedSpecialties = [...formData.specialties, trimmedSpecialty];
       onInputChange('specialties', updatedSpecialties);
       setNewSpecialty('');
     }

@@ -20,9 +20,9 @@ export const NotesField = ({
     return errors[field]?.[0];
   };
 
-  const handleSanitizedChange = (field: string, value: string) => {
-    const sanitizedValue = sanitizeText(value);
-    onInputChange(field, sanitizedValue);
+  const handleInputChange = (field: string, value: string) => {
+    // Store raw input during typing - sanitization happens on form submission
+    onInputChange(field, value);
   };
 
   return (
@@ -31,7 +31,7 @@ export const NotesField = ({
       <Textarea
         id="notes"
         value={formData.notes || ''}
-        onChange={(e) => handleSanitizedChange('notes', e.target.value)}
+        onChange={(e) => handleInputChange('notes', e.target.value)}
         placeholder="Additional information (max 2,000 characters)"
         rows={3}
         className={getFieldError('notes') ? 'border-red-500' : ''}
