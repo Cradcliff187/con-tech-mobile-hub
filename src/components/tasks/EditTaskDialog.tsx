@@ -64,6 +64,13 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
+    // Don't validate permissions while still loading
+    if (permissionsLoading) {
+      console.log('⏳ Permissions still loading, allowing project change for now');
+      formData.handleProjectChange(newProjectId);
+      return;
+    }
+
     if (!canAssignToProject(newProjectId)) {
       toast({
         title: "Permission Error",
@@ -79,7 +86,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
     } else {
       formData.handleProjectChange(newProjectId);
     }
-  }, [task, formData, canAssignToProject, checkTaskDependencies, toast]);
+  }, [task, formData, canAssignToProject, checkTaskDependencies, toast, permissionsLoading]);
 
   const handleConfirmProjectChange = useCallback(() => {
     formData.handleProjectChange(pendingProjectChange);
@@ -111,17 +118,27 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
+    // Don't validate permissions while still loading
+    if (permissionsLoading) {
+      console.log('⏳ Permissions still loading, deferring submit');
+      return;
+    }
+
     if (formData.projectId !== task.project_id && !canAssignToProject(formData.projectId)) {
+      const errorMessage = permissionsLoading 
+        ? "Loading permissions, please wait..."
+        : "You don't have permission to assign tasks to the selected project.";
+      
       toast({
         title: "Permission Error",
-        description: "You don't have permission to assign tasks to the selected project.",
+        description: errorMessage,
         variant: "destructive",
       });
       return;
     }
 
     await updateOperation.execute(() => updateTask(task.id, taskData));
-  }, [task, formData.projectId, updateTask, updateOperation, toast, currentMode, canAssignToProject]);
+  }, [task, formData.projectId, updateTask, updateOperation, toast, currentMode, canAssignToProject, permissionsLoading]);
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen && !updateOperation.loading) {
