@@ -233,18 +233,16 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                       <p className="text-sm text-slate-600">
                         Manage stakeholder assignments for this task.
                       </p>
-                      {formData.projectId && (
-                        <BasicStakeholderAssignment
-                          projectId={formData.projectId}
-                          requiredSkills={formData.requiredSkills || []}
-                          selectedStakeholderId={formData.assigned_stakeholder_id}
-                          selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
-                          onSingleSelect={handleStakeholderSelect}
-                          onMultiSelect={handleMultiStakeholderSelect}
-                          multiSelectMode={true}
-                          existingAssignments={existingAssignments}
-                        />
-                      )}
+                      <BasicStakeholderAssignment
+                        projectId={formData.projectId || task.project_id}
+                        requiredSkills={formData.requiredSkills || []}
+                        selectedStakeholderId={formData.assigned_stakeholder_id}
+                        selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
+                        onSingleSelect={handleStakeholderSelect}
+                        onMultiSelect={handleMultiStakeholderSelect}
+                        multiSelectMode={true}
+                        existingAssignments={existingAssignments}
+                      />
                     </div>
                   </div>
                 </ScrollArea>
