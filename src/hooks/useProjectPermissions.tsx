@@ -7,79 +7,67 @@ export const useProjectPermissions = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { projects } = useProjects();
   
-  // Calculate loading state - we're loading if auth is loading or if we have user but no profile yet
-  const loading = authLoading || (!!user && !profile);
+  // Development mode: Simplified loading - only wait for auth, not profile
+  const loading = authLoading;
   
   // Debug logging for permission issues
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Permission Debug:', {
+      console.log('🔐 Permission Debug (Simplified):', {
         user: user?.email,
+        hasCompanyEmail: user?.email?.includes('@austinkunzconstruction.com'),
         profile: profile?.role,
-        isCompanyUser: profile?.is_company_user,
-        accountStatus: profile?.account_status,
         authLoading,
         permissionsLoading: loading
       });
     }
-  }, [user?.email, profile?.role, profile?.is_company_user, profile?.account_status, authLoading, loading]);
+  }, [user?.email, profile?.role, authLoading, loading]);
   
-  // Memoize user projects calculation with stable dependencies
+  // Simplified: Company email users get full access to all projects
   const userProjects = useMemo(() => {
     if (!user) return [];
     
-    // Early admin access for authenticated users with company email
+    // Development mode: Grant full access to company email users immediately
     const hasCompanyEmail = user.email?.includes('@austinkunzconstruction.com');
-    const isEarlyAdmin = hasCompanyEmail && !!user;
-    
-    // Full admin check with profile
-    const isAdmin = profile?.role === 'admin' && 
-                   profile?.is_company_user && 
-                   profile?.account_status === 'approved';
-
-    // Grant access if confirmed admin or early admin (while profile loads)
-    if (isAdmin || isEarlyAdmin) {
+    if (hasCompanyEmail) {
       return projects.map(p => p.id);
     }
-
-    // For non-admin users, require profile to be loaded
-    if (!profile) return [];
     
-    // Non-admin users - check specific assignments
+    // For non-company users, only return projects they manage
     return projects
       .filter(p => p.project_manager_id === user.id)
       .map(p => p.id);
-  }, [user?.id, user?.email, profile?.id, profile?.role, profile?.is_company_user, profile?.account_status, projects]);
+  }, [user?.id, user?.email, projects]);
 
   const canAccessProject = useMemo(() => (projectId: string): boolean => {
     if (!projectId || !user) return false;
     
-    // Early admin access check
+    // Development mode: Company email users get immediate access
     const hasCompanyEmail = user.email?.includes('@austinkunzconstruction.com');
-    const isEarlyAdmin = hasCompanyEmail && !!user;
+    if (hasCompanyEmail) {
+      return true;
+    }
     
-    const hasProjectAccess = userProjects.includes(projectId);
-    const isAdmin = profile?.role === 'admin' && 
-                   profile?.is_company_user && 
-                   profile?.account_status === 'approved';
-    
-    return hasProjectAccess || isAdmin || isEarlyAdmin;
-  }, [user, profile, userProjects]);
+    // For others, check if they have project access
+    return userProjects.includes(projectId);
+  }, [user, userProjects]);
 
   const canAssignToProject = useMemo(() => (projectId: string): boolean => {
     if (!projectId || !user) return false;
     
-    // Early admin access check
+    // Development mode: Company email users get immediate assignment permissions
     const hasCompanyEmail = user.email?.includes('@austinkunzconstruction.com');
-    const isEarlyAdmin = hasCompanyEmail && !!user;
+    if (hasCompanyEmail) {
+      return true;
+    }
     
+    // For others, they need project access and appropriate role
     const hasBasicAccess = canAccessProject(projectId);
     const hasAssignmentRole = profile?.is_company_user && 
                              profile?.account_status === 'approved' &&
                              ['admin', 'project_manager', 'site_supervisor'].includes(profile?.role || '');
     
-    // Grant assignment permissions for early admin or confirmed role
-    return hasBasicAccess && (hasAssignmentRole || isEarlyAdmin);
+    return hasBasicAccess && hasAssignmentRole;
   }, [user, profile, canAccessProject]);
 
   return {
