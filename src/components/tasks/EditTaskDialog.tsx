@@ -241,7 +241,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                           selectedStakeholderIds={formData.assigned_stakeholder_ids || []}
                           onSingleSelect={handleStakeholderSelect}
                           onMultiSelect={handleMultiStakeholderSelect}
-                          multiSelectMode={false}
+                          multiSelectMode={true}
                           existingAssignments={existingAssignments}
                         />
                       )}
