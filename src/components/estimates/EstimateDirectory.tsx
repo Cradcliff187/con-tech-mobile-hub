@@ -7,9 +7,10 @@ import { EditEstimateDialog } from './EditEstimateDialog';
 import { DeleteEstimateDialog } from './DeleteEstimateDialog';
 import { EstimatePreviewDialog } from './EstimatePreviewDialog';
 import { CreateBidFromEstimateDialog } from './CreateBidFromEstimateDialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, SortAsc, SortDesc } from 'lucide-react';
+import { Search, SortAsc, SortDesc, FileText, Plus } from 'lucide-react';
 import type { Estimate } from '@/hooks/useEstimates';
 
 interface EstimateDirectoryProps {
@@ -56,77 +57,6 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
     setEstimateToDelete(null);
   }, [onRefetch]);
 
-  // Add sample data if empty
-  const sampleEstimates = useMemo(() => {
-    if (estimates.length > 0) return estimates;
-    
-    return [
-      {
-        id: 'sample-1',
-        estimate_number: 'EST-00001',
-        stakeholder_id: 'sample-stakeholder-1',
-        title: 'Kitchen Renovation Project',
-        description: 'Complete kitchen remodel including cabinets, countertops, and appliances',
-        amount: 45000,
-        labor_cost: 25000,
-        material_cost: 18000,
-        equipment_cost: 2000,
-        markup_percentage: 15,
-        status: 'sent' as const,
-        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        sent_date: new Date().toISOString().split('T')[0],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        stakeholder: {
-          contact_person: 'John Smith',
-          company_name: 'Smith Family',
-          email: 'john@example.com'
-        }
-      },
-      {
-        id: 'sample-2',
-        estimate_number: 'EST-00002',
-        stakeholder_id: 'sample-stakeholder-2',
-        title: 'Bathroom Addition',
-        description: 'Master bathroom addition with luxury fixtures',
-        amount: 32000,
-        labor_cost: 18000,
-        material_cost: 12000,
-        equipment_cost: 2000,
-        markup_percentage: 12,
-        status: 'draft' as const,
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        stakeholder: {
-          contact_person: 'Sarah Johnson',
-          company_name: 'Johnson Residence',
-          email: 'sarah@example.com'
-        }
-      },
-      {
-        id: 'sample-3',
-        estimate_number: 'EST-00003',
-        stakeholder_id: 'sample-stakeholder-3',
-        title: 'Deck Construction',
-        description: 'Cedar deck with railing and stairs',
-        amount: 15500,
-        labor_cost: 8000,
-        material_cost: 6500,
-        equipment_cost: 1000,
-        markup_percentage: 10,
-        status: 'accepted' as const,
-        sent_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        responded_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        stakeholder: {
-          contact_person: 'Mike Wilson',
-          company_name: 'Wilson Property LLC',
-          email: 'mike@example.com'
-        }
-      }
-    ];
-  }, [estimates]);
 
   // Stabilize filter and sort dependencies
   const filterConfig = useMemo(() => ({
@@ -138,7 +68,7 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
   }), [searchTerm, statusFilter, stakeholderFilter, sortBy, sortOrder]);
 
   const filteredAndSortedEstimates = useMemo(() => {
-    let filtered = sampleEstimates.filter(estimate => {
+    let filtered = estimates.filter(estimate => {
       const matchesSearch = 
         estimate.title?.toLowerCase().includes(filterConfig.searchTerm) ||
         estimate.estimate_number?.toLowerCase().includes(filterConfig.searchTerm) ||
@@ -183,7 +113,7 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
     });
 
     return filtered;
-  }, [sampleEstimates, filterConfig]);
+  }, [estimates, filterConfig]);
 
   const toggleSort = useCallback((newSortBy: typeof sortBy) => {
     if (sortBy === newSortBy) {
@@ -268,38 +198,61 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
 
       {/* Results Summary */}
       <div className="text-sm text-slate-600">
-        Showing {filteredAndSortedEstimates.length} of {sampleEstimates.length} estimates
+        Showing {filteredAndSortedEstimates.length} of {estimates.length} estimates
       </div>
 
-      {/* Estimate Display */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredAndSortedEstimates.map((estimate) => (
-          <EstimateCard 
-            key={estimate.id} 
-            estimate={estimate}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onPreview={handlePreview}
-            onStatusChange={handleStatusChange}
-          />
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredAndSortedEstimates.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-slate-500 mb-2">
-            {searchTerm || statusFilter !== 'all' || stakeholderFilter !== 'all'
-              ? 'No estimates match your search criteria' 
+      {/* Content */}
+      {estimates.length === 0 ? (
+        <EmptyState
+          variant="card"
+          icon={<FileText size={48} />}
+          title="No Estimates Found"
+          description="Start by creating your first estimate to track project costs and proposals for your clients."
+          actions={[
+            {
+              label: "Create Estimate",
+              onClick: () => console.log('Create estimate'), // TODO: Connect to create dialog
+              icon: <Plus size={16} />
+            }
+          ]}
+        />
+      ) : filteredAndSortedEstimates.length === 0 ? (
+        <EmptyState
+          icon={<Search size={48} />}
+          title="No Results Found"
+          description={
+            searchTerm || statusFilter !== 'all' || stakeholderFilter !== 'all'
+              ? 'No estimates match your current search criteria. Try adjusting your filters or search terms.'
               : 'No estimates found'
-            }
-          </div>
-          <div className="text-sm text-slate-400">
-            {searchTerm || statusFilter !== 'all' || stakeholderFilter !== 'all'
-              ? 'Try adjusting your search or filters'
-              : 'Create your first estimate to get started'
-            }
-          </div>
+          }
+          actions={
+            searchTerm || statusFilter !== 'all' || stakeholderFilter !== 'all'
+              ? [
+                  {
+                    label: "Clear Filters",
+                    onClick: () => {
+                      setSearchTerm('');
+                      setStatusFilter('all');
+                      setStakeholderFilter('all');
+                    },
+                    variant: "outline" as const
+                  }
+                ]
+              : []
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAndSortedEstimates.map((estimate) => (
+            <EstimateCard 
+              key={estimate.id} 
+              estimate={estimate}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onPreview={handlePreview}
+              onStatusChange={handleStatusChange}
+            />
+          ))}
         </div>
       )}
 
