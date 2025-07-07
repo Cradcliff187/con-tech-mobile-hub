@@ -32,7 +32,7 @@ export const GanttTimelineArea = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 relative overflow-auto"
+      className="flex-1 relative overflow-x-auto overflow-y-auto"
       style={{ 
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'thin'
@@ -49,7 +49,7 @@ export const GanttTimelineArea = ({
         {displayTasks.map((task, index) => (
           <div 
             key={task.id} 
-            className="relative border-b border-slate-200 transition-all duration-200"
+            className="relative border-b border-slate-200 transition-all duration-200 overflow-hidden"
             style={{ height: collapsedTasks.has(task.id) ? '32px' : '64px' }}
           >
             <SimpleTaskRow

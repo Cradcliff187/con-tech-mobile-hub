@@ -222,9 +222,9 @@ export const SimpleGanttContainer = ({
         scrollRef={headerScrollRef}
       />
 
-      {/* Main content */}
+      {/* Main content with centralized scroll control */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Task list - Fixed width */}
+        {/* Task list - Fixed width, no individual scrolling */}
         <GanttTaskList
           displayTasks={displayTasks}
           selectedTaskId={selectedTaskId}
@@ -237,19 +237,21 @@ export const SimpleGanttContainer = ({
           onToggleCollapse={toggleTaskCollapse}
         />
 
-        {/* Timeline area - Scrollable with sync */}
-        <GanttTimelineArea
-          displayTasks={displayTasks}
-          selectedTaskId={selectedTaskId}
-          onTaskSelect={handleTaskSelect}
-          onTaskUpdate={handleTaskUpdate}
-          viewMode={viewMode}
-          timelineStart={timelineStart}
-          timelineEnd={timelineEnd}
-          collapsedTasks={collapsedTasks}
-          onToggleCollapse={toggleTaskCollapse}
-          scrollRef={contentScrollRef}
-        />
+        {/* Timeline area - Horizontal scroll only with sync */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <GanttTimelineArea
+            displayTasks={displayTasks}
+            selectedTaskId={selectedTaskId}
+            onTaskSelect={handleTaskSelect}
+            onTaskUpdate={handleTaskUpdate}
+            viewMode={viewMode}
+            timelineStart={timelineStart}
+            timelineEnd={timelineEnd}
+            collapsedTasks={collapsedTasks}
+            onToggleCollapse={toggleTaskCollapse}
+            scrollRef={contentScrollRef}
+          />
+        </div>
       </div>
       
       {/* Enhanced status bar */}

@@ -34,7 +34,7 @@ export const GanttTaskList = ({
         </span>
       </div>
       
-      <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+      <div className="overflow-y-auto overflow-x-hidden flex-1">
         {displayTasks.map((task, index) => (
           <div key={task.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
             <SimpleTaskRow

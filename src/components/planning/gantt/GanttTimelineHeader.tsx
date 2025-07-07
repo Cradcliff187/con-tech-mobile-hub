@@ -93,7 +93,7 @@ export const GanttTimelineHeader = ({
         <div className="flex-1 relative overflow-hidden">
           <div 
             ref={headerScrollRef}
-            className="overflow-x-auto scrollbar-none md:scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 touch-pan-x"
+            className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 touch-pan-x"
             style={{ 
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'thin'
