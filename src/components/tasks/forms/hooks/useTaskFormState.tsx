@@ -42,6 +42,7 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
+      setProjectId(task.project_id);
       
       // Advanced fields
       setTaskType(task.task_type || 'regular');
