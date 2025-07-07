@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useGanttContext } from '@/contexts/gantt/useGanttContext';
 import { useTasks } from '@/hooks/useTasks';
 import { GanttTimelineHeader } from '../GanttTimelineHeader';
 import { GanttEmptyState } from './GanttEmptyState';
@@ -9,7 +10,6 @@ import { GanttHeader } from './GanttHeader';
 import { GanttTaskList } from './GanttTaskList';
 import { GanttTimelineArea } from './GanttTimelineArea';
 import { GanttStatusBar } from './GanttStatusBar';
-import { useTimelineCalculation } from '../hooks/useTimelineCalculation';
 import { useActionHistory } from '@/hooks/useActionHistory';
 import { Task } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
@@ -23,20 +23,34 @@ export const SimpleGanttContainer = ({
   projectId, 
   viewMode 
 }: SimpleGanttContainerProps) => {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   
   // Refs for scroll synchronization
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
   
-  const { tasks, loading, error, updateTask } = useTasks({ projectId });
-  const timelineBounds = useTimelineCalculation(tasks, viewMode);
+  // Use GanttContext for all state management
+  const {
+    state,
+    selectTask,
+    setSaving,
+    getFilteredTasks,
+    updateTaskOptimistic,
+    clearOptimisticUpdate
+  } = useGanttContext();
 
-  // Extract start and end dates from the timeline bounds
-  const timelineStart = timelineBounds.start;
-  const timelineEnd = timelineBounds.end;
+  const { 
+    tasks, 
+    loading, 
+    error, 
+    saving, 
+    selectedTaskId,
+    timelineStart,
+    timelineEnd 
+  } = state;
+  
+  // Still need useTasks for direct task updates
+  const { updateTask } = useTasks({ projectId });
 
   // Action history system
   const {
@@ -56,11 +70,13 @@ export const SimpleGanttContainer = ({
     onTaskUpdate: updateTask
   });
 
-  // Filter and sort tasks with proper memoization
+  // Filter and sort tasks with proper memoization using context
   const displayTasks = useMemo(() => {
-    if (!tasks?.length) return [];
+    const filteredTasks = getFilteredTasks();
     
-    return tasks
+    if (!filteredTasks?.length) return [];
+    
+    return filteredTasks
       .filter(task => task.project_id === projectId)
       .sort((a, b) => {
         // Sort by start date, then by priority
@@ -75,7 +91,7 @@ export const SimpleGanttContainer = ({
         
         return bPriority - aPriority;
       });
-  }, [tasks, projectId]);
+  }, [getFilteredTasks, projectId]);
 
   // Collapse/expand functionality
   const toggleTaskCollapse = (taskId: string) => {
@@ -128,9 +144,9 @@ export const SimpleGanttContainer = ({
   }, []);
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
-    if (isUpdating || isPerformingAction) return;
+    if (saving || isPerformingAction) return;
     
-    setIsUpdating(true);
+    setSaving(true);
     
     try {
       // Get before state for undo
@@ -169,12 +185,12 @@ export const SimpleGanttContainer = ({
       });
       throw error;
     } finally {
-      setIsUpdating(false);
+      setSaving(false);
     }
   };
 
   const handleTaskSelect = (taskId: string) => {
-    setSelectedTaskId(prev => prev === taskId ? null : taskId);
+    selectTask(selectedTaskId === taskId ? null : taskId);
   };
 
   // Loading state
@@ -192,7 +208,7 @@ export const SimpleGanttContainer = ({
     return <GanttEmptyState projectId={projectId} />;
   }
 
-  const isSystemBusy = isUpdating || isPerformingAction;
+  const isSystemBusy = saving || isPerformingAction;
 
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
