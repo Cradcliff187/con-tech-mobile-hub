@@ -59,6 +59,12 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   }, []);
 
   const handleProjectChange = useCallback((newProjectId: string) => {
+    console.log('🔄 handleProjectChange called:', { 
+      newProjectId, 
+      taskProjectId: task?.project_id,
+      formProjectId: formData.projectId 
+    });
+    
     if (!task || newProjectId === task.project_id) {
       formData.handleProjectChange(newProjectId);
       return;
@@ -71,7 +77,16 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
-    if (!canAssignToProject(newProjectId)) {
+    // Ensure we have a valid project ID before checking permissions
+    const projectIdToCheck = newProjectId || formData.projectId || task.project_id;
+    
+    if (!projectIdToCheck) {
+      console.log('⚠️ No valid project ID available, allowing change in dev mode');
+      formData.handleProjectChange(newProjectId);
+      return;
+    }
+
+    if (!canAssignToProject(projectIdToCheck)) {
       toast({
         title: "Permission Error",
         description: "You don't have permission to assign tasks to this project.",
@@ -124,7 +139,18 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
       return;
     }
 
-    if (formData.projectId !== task.project_id && !canAssignToProject(formData.projectId)) {
+    // Use the most reliable project ID available
+    const effectiveProjectId = formData.projectId || task.project_id;
+    
+    console.log('📝 handleSubmit called:', { 
+      formProjectId: formData.projectId,
+      taskProjectId: task.project_id,
+      effectiveProjectId,
+      projectChanged: formData.projectId !== task.project_id
+    });
+
+    // Only check permissions if project is actually changing
+    if (formData.projectId !== task.project_id && effectiveProjectId && !canAssignToProject(effectiveProjectId)) {
       const errorMessage = permissionsLoading 
         ? "Loading permissions, please wait..."
         : "You don't have permission to assign tasks to the selected project.";

@@ -37,7 +37,18 @@ export const useProjectPermissions = () => {
 
   const canAssignToProject = useMemo(() => (projectId: string): boolean => {
     // Development mode: Any authenticated user can assign to any project
-    const result = !!user && !!projectId;
+    // Handle empty/undefined project IDs gracefully
+    if (!user) {
+      console.log('🔐 canAssignToProject (DEV BYPASS): No user authenticated');
+      return false;
+    }
+    
+    if (!projectId || projectId.trim() === '') {
+      console.log('🔐 canAssignToProject (DEV BYPASS): Empty/invalid project ID, allowing for dev mode');
+      return true; // In dev mode, allow assignment even with empty project ID
+    }
+    
+    const result = true; // Always allow in dev mode for valid project IDs
     console.log('🔐 canAssignToProject (DEV BYPASS):', { 
       projectId, 
       userEmail: user?.email,
