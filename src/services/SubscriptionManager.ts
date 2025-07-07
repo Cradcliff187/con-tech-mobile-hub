@@ -123,8 +123,8 @@ export class SubscriptionManager {
     }
 
     // Debounce subscription requests
-    this.debounceOperation(tableName, () => {
-      this.performSubscription(tableName, callback, event, userId, onStateChange, maxRetries);
+    this.debounceOperation(tableName, async () => {
+      await this.performSubscription(tableName, callback, event, userId, onStateChange, maxRetries);
     });
 
     // Return unsubscribe function
@@ -217,14 +217,14 @@ export class SubscriptionManager {
   /**
    * Perform the actual subscription with retry logic
    */
-  private performSubscription(
+  private async performSubscription(
     tableName: string,
     callback: (payload: any) => void,
     event: string,
     userId?: string,
     onStateChange?: (state: SubscriptionState, error?: string) => void,
     maxRetries: number = this.MAX_RETRIES
-  ): void {
+  ): Promise<void> {
     let config = this.channels.get(tableName);
 
     if (config) {
@@ -236,7 +236,7 @@ export class SubscriptionManager {
         onStateChange?.('SUBSCRIBED');
       } else if (config.state === 'ERROR' && config.retryCount < maxRetries) {
         // Retry failed subscription
-        this.retrySubscription(tableName, onStateChange);
+        await this.retrySubscription(tableName, onStateChange);
       }
       return;
     }
@@ -253,7 +253,7 @@ export class SubscriptionManager {
       retryCount: 0,
       createdAt: Date.now(),
       userId,
-      isSubscribing: false // Initialize the flag
+      isSubscribing: true // Set to true immediately to prevent race conditions
     };
 
     this.channels.set(tableName, config);
@@ -261,35 +261,44 @@ export class SubscriptionManager {
 
     this.log('DEBUG', `Creating new subscription for ${tableName} with channel: ${channelName}`);
 
-    // Prevent double subscription
-    if (config.isSubscribing) {
-      this.log('WARN', `Subscription already in progress for ${tableName}, skipping...`);
-      return;
-    }
-
-    config.isSubscribing = true;
-
-    // Set up postgres changes listener
-    channel
-      .on('postgres_changes', {
-        event: event as any,
-        schema: 'public',
-        table: tableName
-      }, (payload) => {
-        this.log('DEBUG', `Received update for ${tableName}:`, payload);
-        // Notify all callbacks
-        for (const cb of config!.callbacks) {
-          try {
-            cb(payload);
-          } catch (error) {
-            this.log('ERROR', `Callback error for ${tableName}:`, error);
+    try {
+      // Set up postgres changes listener with proper await
+      const subscription = channel
+        .on('postgres_changes', {
+          event: event as any,
+          schema: 'public',
+          table: tableName
+        }, (payload) => {
+          this.log('DEBUG', `Received update for ${tableName}:`, payload);
+          // Notify all callbacks
+          const currentConfig = this.channels.get(tableName);
+          if (currentConfig) {
+            for (const cb of currentConfig.callbacks) {
+              try {
+                cb(payload);
+              } catch (error) {
+                this.log('ERROR', `Callback error for ${tableName}:`, error);
+              }
+            }
           }
+        });
+
+      // Subscribe with proper error handling
+      subscription.subscribe((status) => {
+        const currentConfig = this.channels.get(tableName);
+        if (currentConfig) {
+          currentConfig.isSubscribing = false;
+          this.handleSubscriptionStatus(tableName, status, onStateChange, maxRetries);
         }
-      })
-      .subscribe((status) => {
-        config!.isSubscribing = false; // Reset the flag
-        this.handleSubscriptionStatus(tableName, status, onStateChange, maxRetries);
       });
+
+    } catch (error) {
+      config.isSubscribing = false;
+      config.state = 'ERROR';
+      config.lastError = error instanceof Error ? error.message : 'Unknown subscription error';
+      this.log('ERROR', `Subscription setup failed for ${tableName}:`, error);
+      onStateChange?.('ERROR', config.lastError);
+    }
   }
 
   /**
@@ -345,10 +354,10 @@ export class SubscriptionManager {
   /**
    * Retry subscription with exponential backoff
    */
-  private retrySubscription(
+  private async retrySubscription(
     tableName: string,
     onStateChange?: (state: SubscriptionState, error?: string) => void
-  ): void {
+  ): Promise<void> {
     const config = this.channels.get(tableName);
     if (!config) return;
 
@@ -360,16 +369,16 @@ export class SubscriptionManager {
 
     this.log('INFO', `Retrying subscription for ${tableName} (attempt ${config.retryCount}) in ${delay}ms`);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (this.channels.has(tableName)) { // Check if still needed
-        this.cleanupChannel(tableName, false);
+        await this.cleanupChannel(tableName, false);
         
         // Recreate subscription with existing callbacks
         const callbacks = Array.from(config.callbacks);
         this.channels.delete(tableName);
         
         if (callbacks.length > 0) {
-          this.performSubscription(
+          await this.performSubscription(
             tableName,
             callbacks[0],
             '*',
