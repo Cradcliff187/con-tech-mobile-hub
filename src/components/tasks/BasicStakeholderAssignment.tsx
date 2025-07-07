@@ -72,6 +72,15 @@ export const BasicStakeholderAssignment: React.FC<BasicStakeholderAssignmentProp
     getStakeholderWorkloadStatus(s.id) === 'overallocated'
   ).length;
 
+  // Debug log to track assignment state
+  console.log('🎯 BasicStakeholderAssignment state:', {
+    projectId,
+    selectedStakeholderId,
+    selectedStakeholderIds,
+    stakeholdersCount: stakeholders.length,
+    multiSelectMode
+  });
+
   const handleRetryWorkload = () => {
     setAssignmentError(null);
     // The workload hook will automatically retry

@@ -92,10 +92,10 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     try {
       switch (field) {
         case 'assigned_stakeholder_id':
-          formState.setAssignedStakeholderId?.(value);
+          formState.setAssignedStakeholderId(value);
           break;
         case 'assigned_stakeholder_ids':
-          formState.setAssignedStakeholderIds?.(value);
+          formState.setAssignedStakeholderIds(value);
           break;
         default:
           console.warn(`Unhandled field in handleInputChange: ${field}`);
@@ -183,12 +183,12 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     punchListCategory: formState.punchListCategory,
     setPunchListCategory: handlePunchListCategoryChange,
     
-    // Assignment fields (from task) - Enhanced with safety checks
-    assigned_stakeholder_id: task?.assigned_stakeholder_id,
-    assigned_stakeholder_ids: task?.assigned_stakeholder_ids || [],
-    
-    // Generic handler
-    handleInputChange,
+  // Assignment fields (from form state) - Fixed to use form state
+  assigned_stakeholder_id: formState.assignedStakeholderId,
+  assigned_stakeholder_ids: formState.assignedStakeholderIds,
+  
+  // Generic handler
+  handleInputChange,
     
     // Validation
     validateForm,

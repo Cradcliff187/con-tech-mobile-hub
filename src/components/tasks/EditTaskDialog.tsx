@@ -201,9 +201,12 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden" aria-describedby="edit-task-dialog-description">
           <DialogHeader>
             <DialogTitle>{currentMode === 'view' ? 'Task Details' : 'Edit Task'}</DialogTitle>
+            <div id="edit-task-dialog-description" className="sr-only">
+              {currentMode === 'view' ? 'View task details and information' : 'Edit task properties and assignments'}
+            </div>
           </DialogHeader>
           
           {currentMode === 'view' ? (
