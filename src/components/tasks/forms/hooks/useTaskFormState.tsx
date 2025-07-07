@@ -13,7 +13,7 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [status, setStatus] = useState<Task['status']>('not-started');
   const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState(task?.project_id || '');
   
   // Advanced fields
   const [taskType, setTaskType] = useState<'regular' | 'punch_list'>('regular');
@@ -42,7 +42,6 @@ export const useTaskFormState = ({ task, open }: UseTaskFormStateProps) => {
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-      setProjectId(task.project_id);
       
       // Advanced fields
       setTaskType(task.task_type || 'regular');
