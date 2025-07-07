@@ -5,6 +5,7 @@ import { calculateTaskDatesFromEstimate } from '../utils/dateUtils';
 import { getConstructionPhaseColor } from '../utils/colorUtils';
 import { useGanttContext } from '@/contexts/gantt/useGanttContext';
 import { useGanttDragBridge } from '@/hooks/useGanttDragBridge';
+import { TaskDurationBadge } from './TaskDurationBadge';
 
 interface SimpleTaskBarProps {
   task: Task;
@@ -94,7 +95,7 @@ const SimpleTaskBarComponent = ({
   const phaseColor = getConstructionPhaseColor(task);
 
   // Calculate position using consistent grid system
-  const { leftPercent, widthPercent, totalWidth } = useMemo(() => {
+  const { leftPercent, widthPercent, totalWidth, actualBarWidth } = useMemo(() => {
     const totalDays = Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
     const daysFromStart = Math.ceil((calculatedStartDate.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
     const taskDuration = Math.ceil((calculatedEndDate.getTime() - calculatedStartDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -102,8 +103,9 @@ const SimpleTaskBarComponent = ({
     const leftPercent = Math.max(0, Math.min(100, (daysFromStart / totalDays) * 100));
     const widthPercent = Math.max(1, Math.min(100 - leftPercent, (taskDuration / totalDays) * 100));
     const totalWidth = timelineUnits.length * columnWidth;
+    const actualBarWidth = Math.max(24, (widthPercent / 100) * totalWidth);
 
-    return { leftPercent, widthPercent, totalWidth };
+    return { leftPercent, widthPercent, totalWidth, actualBarWidth };
   }, [calculatedStartDate, calculatedEndDate, timelineStart, timelineEnd, timelineUnits.length, columnWidth]);
 
   // Check if this task is currently being dragged
@@ -207,6 +209,13 @@ const SimpleTaskBarComponent = ({
         {task.status === 'completed' && (
           <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full transform translate-x-1/2 -translate-y-1/2" />
         )}
+        
+        {/* Duration Badge */}
+        <TaskDurationBadge 
+          task={task} 
+          barWidth={actualBarWidth}
+          position={actualBarWidth >= 100 ? 'right' : 'center'}
+        />
         
         {/* Dragging overlay */}
         {isThisTaskDragging && (
