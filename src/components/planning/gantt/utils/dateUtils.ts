@@ -1,6 +1,6 @@
 
 import { Task } from '@/types/database';
-import { addDays, differenceInDays, format } from 'date-fns';
+import { addDays, addHours, differenceInDays, format } from 'date-fns';
 
 export interface TaskDateCalculation {
   calculatedStartDate: Date;
@@ -18,13 +18,31 @@ export const calculateTaskDatesFromEstimate = (task: Task): TaskDateCalculation 
   } else if (task.start_date && task.estimated_hours) {
     // Calculate end date from start date and estimated hours
     calculatedStartDate = new Date(task.start_date);
-    const estimatedDays = Math.max(1, Math.ceil(task.estimated_hours / 8)); // 8 hours per day
-    calculatedEndDate = addDays(calculatedStartDate, estimatedDays);
+    const estimatedHours = task.estimated_hours;
+    if (estimatedHours <= 8) {
+      // Tasks ≤ 8 hours stay within same day
+      calculatedEndDate = addHours(calculatedStartDate, estimatedHours);
+    } else {
+      // Tasks > 8 hours: calculate exact fractional days
+      const wholeDays = Math.floor(estimatedHours / 8);
+      const remainingHours = estimatedHours % 8;
+      calculatedEndDate = addDays(calculatedStartDate, wholeDays);
+      calculatedEndDate = addHours(calculatedEndDate, remainingHours);
+    }
   } else if (task.due_date && task.estimated_hours) {
     // Calculate start date from due date and estimated hours
     calculatedEndDate = new Date(task.due_date);
-    const estimatedDays = Math.max(1, Math.ceil(task.estimated_hours / 8)); // 8 hours per day
-    calculatedStartDate = addDays(calculatedEndDate, -estimatedDays);
+    const estimatedHours = task.estimated_hours;
+    if (estimatedHours <= 8) {
+      // Tasks ≤ 8 hours: calculate start by going back hours
+      calculatedStartDate = addHours(calculatedEndDate, -estimatedHours);
+    } else {
+      // Tasks > 8 hours: calculate exact fractional days backward
+      const wholeDays = Math.floor(estimatedHours / 8);
+      const remainingHours = estimatedHours % 8;
+      calculatedStartDate = addDays(calculatedEndDate, -wholeDays);
+      calculatedStartDate = addHours(calculatedStartDate, -remainingHours);
+    }
   } else {
     // Fallback to today and tomorrow if no dates available
     calculatedStartDate = new Date();
