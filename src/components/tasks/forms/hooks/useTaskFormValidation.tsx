@@ -44,6 +44,8 @@ export const useTaskFormValidation = ({ projectId, taskType, task }: UseTaskForm
     startDate?: Date;
     requiredSkills: string[];
     punchListCategory: string;
+    assigned_stakeholder_id?: string;
+    assigned_stakeholder_ids?: string[];
   }): { success: boolean; data?: EditTaskFormData } => {
     const validationData = {
       id: task?.id,
@@ -82,6 +84,8 @@ export const useTaskFormValidation = ({ projectId, taskType, task }: UseTaskForm
     startDate?: Date;
     requiredSkills: string[];
     punchListCategory: string;
+    assigned_stakeholder_id?: string;
+    assigned_stakeholder_ids?: string[];
   }) => ({
     title: formData.title.trim(),
     description: formData.description.trim() || undefined,
@@ -97,6 +101,8 @@ export const useTaskFormValidation = ({ projectId, taskType, task }: UseTaskForm
     start_date: formData.startDate?.toISOString(),
     required_skills: formData.requiredSkills.length > 0 ? formData.requiredSkills : undefined,
     punch_list_category: formData.taskType === 'punch_list' && formData.punchListCategory ? formData.punchListCategory as Task['punch_list_category'] : undefined,
+    assigned_stakeholder_id: formData.assigned_stakeholder_id,
+    assigned_stakeholder_ids: formData.assigned_stakeholder_ids,
   }), []);
 
   return {

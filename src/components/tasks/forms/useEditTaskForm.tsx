@@ -123,6 +123,8 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
       startDate: formState.startDate,
       requiredSkills: formState.requiredSkills,
       punchListCategory: formState.punchListCategory,
+      assigned_stakeholder_id: formState.assignedStakeholderId,
+      assigned_stakeholder_ids: formState.assignedStakeholderIds,
     });
   }, [validation, formState]);
 
@@ -142,6 +144,8 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
       startDate: formState.startDate,
       requiredSkills: formState.requiredSkills,
       punchListCategory: formState.punchListCategory,
+      assigned_stakeholder_id: formState.assignedStakeholderId,
+      assigned_stakeholder_ids: formState.assignedStakeholderIds,
     });
   }, [validation, formState]);
 
