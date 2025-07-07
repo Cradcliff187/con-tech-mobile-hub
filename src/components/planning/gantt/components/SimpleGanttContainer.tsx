@@ -28,6 +28,11 @@ export const SimpleGanttContainer = ({
 }: SimpleGanttContainerProps) => {
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set());
   const [containerHeight, setContainerHeight] = useState(600);
+  const [taskPanelWidth, setTaskPanelWidth] = useState(() => {
+    const saved = localStorage.getItem('gantt-task-panel-width');
+    return saved ? Math.min(400, Math.max(200, parseInt(saved, 10))) : 280;
+  });
+  const [isResizing, setIsResizing] = useState(false);
   
   // Refs for scroll synchronization
   const headerScrollRef = useRef<HTMLDivElement>(null);
@@ -149,7 +154,43 @@ export const SimpleGanttContainer = ({
     };
   }, [debouncedSyncContentToHeader, debouncedSyncHeaderToContent]);
 
-  // Keyboard event handler for drag cancellation
+
+  // Panel width persistence
+  const updateTaskPanelWidth = useCallback((newWidth: number) => {
+    const constrainedWidth = Math.min(400, Math.max(200, newWidth));
+    setTaskPanelWidth(constrainedWidth);
+    localStorage.setItem('gantt-task-panel-width', constrainedWidth.toString());
+  }, []);
+
+  // Resize handle functionality
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startX = e.clientX;
+    const startWidth = taskPanelWidth;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - startX;
+      const newWidth = startWidth + deltaX;
+      updateTaskPanelWidth(newWidth);
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [taskPanelWidth, updateTaskPanelWidth]);
+
+  // Keyboard resize functionality
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && state.dragState.isDragging) {
@@ -163,11 +204,18 @@ export const SimpleGanttContainer = ({
           });
         }
       }
+      
+      // Keyboard resize with Ctrl+Arrow keys
+      if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        const delta = e.key === 'ArrowLeft' ? -20 : 20;
+        updateTaskPanelWidth(taskPanelWidth + delta);
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [state.dragState.isDragging]);
+  }, [state.dragState.isDragging, taskPanelWidth, updateTaskPanelWidth]);
 
   // Measure container height for virtual scrolling
   useEffect(() => {
@@ -293,6 +341,7 @@ export const SimpleGanttContainer = ({
             collapsedTasks={collapsedTasks}
             onToggleCollapse={toggleTaskCollapse}
             height={containerHeight - 160} // Account for headers and status bar
+            width={taskPanelWidth}
           />
         ) : (
           <GanttTaskList
@@ -305,8 +354,34 @@ export const SimpleGanttContainer = ({
             timelineEnd={timelineEnd}
             collapsedTasks={collapsedTasks}
             onToggleCollapse={toggleTaskCollapse}
+            width={taskPanelWidth}
           />
         )}
+
+        {/* Resize handle */}
+        <div
+          className={`w-0.5 bg-slate-300 hover:bg-slate-400 cursor-col-resize transition-colors relative z-10 ${
+            isResizing ? 'bg-slate-400' : ''
+          }`}
+          onMouseDown={handleResizeMouseDown}
+          role="separator"
+          aria-label="Resize task panel"
+          aria-valuenow={taskPanelWidth}
+          aria-valuemin={200}
+          aria-valuemax={400}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft' && e.ctrlKey) {
+              e.preventDefault();
+              updateTaskPanelWidth(taskPanelWidth - 20);
+            } else if (e.key === 'ArrowRight' && e.ctrlKey) {
+              e.preventDefault();
+              updateTaskPanelWidth(taskPanelWidth + 20);
+            }
+          }}
+        >
+          <div className="absolute inset-y-0 -left-1 -right-1 hover:bg-slate-400/20" />
+        </div>
 
         {/* Timeline area - Horizontal scroll only with sync */}
         <div className="flex-1 flex flex-col overflow-hidden">

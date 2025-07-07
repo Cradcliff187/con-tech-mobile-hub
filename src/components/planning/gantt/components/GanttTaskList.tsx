@@ -13,6 +13,7 @@ interface GanttTaskListProps {
   timelineEnd: Date;
   collapsedTasks: Set<string>;
   onToggleCollapse: (taskId: string) => void;
+  width: number;
 }
 
 const GanttTaskListComponent = ({
@@ -24,10 +25,14 @@ const GanttTaskListComponent = ({
   timelineStart,
   timelineEnd,
   collapsedTasks,
-  onToggleCollapse
+  onToggleCollapse,
+  width
 }: GanttTaskListProps) => {
   return (
-    <div className="w-64 lg:w-72 flex-shrink-0 border-r border-slate-200 bg-white">
+    <div 
+      className="flex-shrink-0 border-r border-slate-200 bg-white"
+      style={{ width: `${width}px` }}
+    >
       <div className="h-8 bg-slate-100 border-b border-slate-200 flex items-center px-3">
         <span className="text-sm font-medium text-slate-700">
           Tasks ({displayTasks.length})
@@ -65,6 +70,7 @@ export const GanttTaskList = memo(GanttTaskListComponent, (prevProps, nextProps)
     prevProps.viewMode === nextProps.viewMode &&
     prevProps.timelineStart.getTime() === nextProps.timelineStart.getTime() &&
     prevProps.timelineEnd.getTime() === nextProps.timelineEnd.getTime() &&
-    prevProps.collapsedTasks.size === nextProps.collapsedTasks.size
+    prevProps.collapsedTasks.size === nextProps.collapsedTasks.size &&
+    prevProps.width === nextProps.width
   );
 });
