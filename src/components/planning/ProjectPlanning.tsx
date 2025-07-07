@@ -17,6 +17,7 @@ import { useSearchParams } from 'react-router-dom';
 import { validateSelectData, getSelectDisplayName } from '@/utils/selectHelpers';
 import { ExportOptionsDialog } from '@/components/reports/ExportOptionsDialog';
 import { useDialogState } from '@/hooks/useDialogState';
+import { ProjectInfoBar } from './ProjectInfoBar';
 
 export const ProjectPlanning = () => {
   const [searchParams] = useSearchParams();
@@ -198,6 +199,11 @@ export const ProjectPlanning = () => {
           </div>
         </div>
       </div>
+
+      {/* Project Information */}
+      {selectedProject && (
+        <ProjectInfoBar project={selectedProject} />
+      )}
 
       {/* View Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200">
