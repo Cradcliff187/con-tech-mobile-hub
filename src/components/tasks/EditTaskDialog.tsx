@@ -223,6 +223,7 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                   <div className="space-y-6 pr-4">
                     <EditTaskDialogContent
                       task={task}
+                      formData={formData}
                       onSubmit={handleSubmit}
                       onProjectChange={handleProjectChange}
                       loading={updateOperation.loading}

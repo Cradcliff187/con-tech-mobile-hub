@@ -7,11 +7,11 @@ import { Task } from '@/types/database';
 import { EditTaskBasicFields } from './EditTaskBasicFields';
 import { EditTaskAdvancedFields } from './EditTaskAdvancedFields';
 import { TaskDocumentAttachments } from '../TaskDocumentAttachments';
-import { useEditTaskForm } from './useEditTaskForm';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 interface EditTaskDialogContentProps {
   task: Task;
+  formData: any; // Form data passed from parent
   onSubmit: (formData: any) => void;
   onProjectChange: (projectId: string) => void;
   loading: boolean;
@@ -19,14 +19,13 @@ interface EditTaskDialogContentProps {
 
 export const EditTaskDialogContent: React.FC<EditTaskDialogContentProps> = ({
   task,
+  formData,
   onSubmit,
   onProjectChange,
   loading
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
-  
-  const formData = useEditTaskForm({ task, open: true });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
