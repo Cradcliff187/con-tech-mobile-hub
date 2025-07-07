@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 interface EditTaskDialogContentProps {
   task: Task;
-  formData: any; // Form data passed from parent
+  formData: any; // Form data passed from parent  
   onSubmit: (formData: any) => void;
   onProjectChange: (projectId: string) => void;
   loading: boolean;
@@ -57,6 +57,7 @@ export const EditTaskDialogContent: React.FC<EditTaskDialogContentProps> = ({
         progress={formData.progress}
         setProgress={formData.setProgress}
         disabled={loading}
+        projectsLoading={formData.projectsLoading}
         errors={formData.errors}
         getFieldError={formData.getFieldError}
       />

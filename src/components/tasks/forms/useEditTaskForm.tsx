@@ -13,7 +13,7 @@ interface UseEditTaskFormProps {
 }
 
 export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
-  const { projects } = useProjects();
+  const { projects, loading: projectsLoading } = useProjects();
   
   // State management
   const formState = useTaskFormState({ task, open });
@@ -200,6 +200,9 @@ export const useEditTaskForm = ({ task, open }: UseEditTaskFormProps) => {
     getFieldError: validation.getFieldError,
     hasErrors: validation.hasErrors,
     clearFieldError: validation.clearFieldError,
+    
+    // Projects loading state
+    projectsLoading,
     
     // Utilities
     resetForm,

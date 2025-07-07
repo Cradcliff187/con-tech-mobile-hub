@@ -30,6 +30,7 @@ interface EditTaskBasicFieldsProps {
   progress: number;
   setProgress: (value: number) => void;
   disabled?: boolean;
+  projectsLoading?: boolean;
   errors?: Record<string, string[]>;
   getFieldError?: (fieldName: string) => string | undefined;
 }
@@ -50,6 +51,7 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
   progress,
   setProgress,
   disabled = false,
+  projectsLoading = false,
   errors,
   getFieldError
 }) => {
@@ -91,12 +93,12 @@ export const EditTaskBasicFields: React.FC<EditTaskBasicFieldsProps> = ({
         <label htmlFor="project" className="block text-sm font-medium text-slate-700 mb-1">
           Project *
         </label>
-        <Select value={projectId || undefined} onValueChange={onProjectChange} disabled={disabled}>
+        <Select value={projectId || undefined} onValueChange={onProjectChange} disabled={disabled || projectsLoading}>
           <SelectTrigger className={cn(
             "focus:ring-2 focus:ring-orange-300",
             getFieldError?.('project_id') && "border-red-500"
           )}>
-            <SelectValue placeholder="Select project" />
+            <SelectValue placeholder={projectsLoading ? "Loading projects..." : "Select project"} />
           </SelectTrigger>
           <SelectContent>
             {projects.map((project) => (
