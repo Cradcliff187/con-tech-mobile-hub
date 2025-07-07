@@ -10,7 +10,7 @@ import { useAssignEquipmentDialog } from './equipment/useAssignEquipmentDialog';
 import type { Project } from '@/types/database';
 
 interface AssignEquipmentToProjectDialogProps {
-  project: Project;
+  project: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -22,6 +22,8 @@ export const AssignEquipmentToProjectDialog = ({
   onOpenChange,
   onSuccess
 }: AssignEquipmentToProjectDialogProps) => {
+  if (!project) return null;
+  
   const { equipment, loading: equipmentLoading } = useEquipment();
   const { stakeholders } = useStakeholders();
   
