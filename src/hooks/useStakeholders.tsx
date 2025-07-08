@@ -138,9 +138,13 @@ export const useStakeholders = (projectId?: string) => {
 
   // Initial fetch when user changes
   useEffect(() => {
+    console.log('=== INITIAL FETCH EFFECT ===');
+    console.log('User:', user?.id);
     if (user) {
+      console.log('Fetching stakeholders for user:', user.id);
       fetchStakeholders();
     } else {
+      console.log('No user, clearing stakeholders');
       setStakeholders([]);
       setLoading(false);
     }
