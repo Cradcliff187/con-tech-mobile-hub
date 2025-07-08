@@ -38,7 +38,6 @@ export const useMaintenanceTasks = () => {
       
       setTasks(typedTasks);
     } catch (error) {
-      console.error('Error fetching maintenance tasks:', error);
       setTasks([]);
     } finally {
       setLoading(false);
@@ -47,7 +46,6 @@ export const useMaintenanceTasks = () => {
 
   // Handle real-time updates using centralized subscription manager
   const handleMaintenanceTasksUpdate = useCallback((payload: any) => {
-    console.log('Maintenance tasks change detected:', payload);
     fetchTasks();
   }, [fetchTasks]);
 
@@ -86,7 +84,6 @@ export const useMaintenanceTasks = () => {
       });
       return { data, error: null };
     } catch (error) {
-      console.error('Error creating maintenance task:', error);
       toast({
         title: "Error",
         description: "Failed to create maintenance task",
@@ -105,7 +102,6 @@ export const useMaintenanceTasks = () => {
       });
       return { error: null };
     } catch (error) {
-      console.error('Error updating maintenance task:', error);
       toast({
         title: "Error",
         description: "Failed to update maintenance task",
@@ -126,7 +122,6 @@ export const useMaintenanceTasks = () => {
       });
       return { error: null };
     } catch (error) {
-      console.error('Error completing maintenance task:', error);
       toast({
         title: "Error",
         description: "Failed to complete maintenance task",
@@ -145,7 +140,6 @@ export const useMaintenanceTasks = () => {
       });
       return { error: null };
     } catch (error) {
-      console.error('Error deleting maintenance task:', error);
       toast({
         title: "Error",
         description: "Failed to delete maintenance task",
