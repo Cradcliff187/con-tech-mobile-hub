@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,17 +46,23 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
   onEditRequest
 }) => {
   const [showSmartReassignment, setShowSmartReassignment] = useState(false);
+  const [currentTask, setCurrentTask] = useState<EnhancedTask | null>(task);
   const { projects } = useProjects();
   const { stakeholders } = useStakeholders();
   const { updateTask } = useTasks();
   const { toast } = useToast();
 
-  if (!task) return null;
+  // Update current task when prop changes
+  useEffect(() => {
+    setCurrentTask(task);
+  }, [task]);
 
-  const project = projects.find(p => p.id === task.project_id);
+  if (!currentTask) return null;
+
+  const project = projects.find(p => p.id === currentTask.project_id);
   
   // Use junction table data instead of legacy fields
-  const activeAssignments = task.stakeholder_assignments?.filter(
+  const activeAssignments = currentTask.stakeholder_assignments?.filter(
     assignment => assignment.status === 'active'
   ) || [];
   
@@ -80,7 +86,7 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
 
   const handleStakeholderReassignment = async (stakeholderIds: string[]) => {
     try {
-      console.log('Starting stakeholder reassignment:', { taskId: task.id, stakeholderIds });
+      console.log('Starting stakeholder reassignment:', { taskId: currentTask.id, stakeholderIds });
       
       // Only include assignment fields, not other task fields
       const updateData: any = {};
@@ -97,7 +103,7 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
 
       console.log('Assignment update data:', updateData);
 
-      const result = await updateTask(task.id, updateData);
+      const result = await updateTask(currentTask.id, updateData);
       
       if (result.error) {
         console.error('Assignment update failed:', result.error);
@@ -105,6 +111,11 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
       }
       
       console.log('Stakeholder reassignment successful');
+      
+      // Update current task with the returned data for immediate UI update
+      if (result.data) {
+        setCurrentTask(result.data);
+      }
       
       toast({
         title: "Assignment Updated",
@@ -126,7 +137,7 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
 
   const handleEditRequest = () => {
     if (onEditRequest) {
-      onEditRequest(task);
+      onEditRequest(currentTask);
     }
     onOpenChange(false);
   };
@@ -137,7 +148,7 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="text-xl font-semibold text-slate-800">
-              {task.title}
+              {currentTask.title}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -163,9 +174,9 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                   <div>
                     <label className="text-sm font-medium text-slate-600">Status</label>
                     <div className="mt-1">
-                      <GlobalStatusDropdown
+                       <GlobalStatusDropdown
                         entityType="task"
-                        currentStatus={task.status}
+                        currentStatus={currentTask.status}
                         onStatusChange={() => {}}
                         showAsDropdown={false}
                         size="sm"
@@ -175,33 +186,33 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                   <div>
                     <label className="text-sm font-medium text-slate-600">Priority</label>
                     <div className="mt-1">
-                      <Badge className={getPriorityColor(task.priority)}>
-                        {task.priority}
+                      <Badge className={getPriorityColor(currentTask.priority)}>
+                        {currentTask.priority}
                       </Badge>
                     </div>
                   </div>
-                  {task.due_date && (
+                  {currentTask.due_date && (
                     <div>
                       <label className="text-sm font-medium text-slate-600">Due Date</label>
                       <p className="text-sm text-slate-800 mt-1">
-                        {format(new Date(task.due_date), 'MMM d, yyyy')}
+                        {format(new Date(currentTask.due_date), 'MMM d, yyyy')}
                       </p>
                     </div>
                   )}
-                  {task.progress !== undefined && (
+                  {currentTask.progress !== undefined && (
                     <div>
                       <label className="text-sm font-medium text-slate-600">Progress</label>
-                      <p className="text-sm text-slate-800 mt-1">{task.progress}%</p>
+                      <p className="text-sm text-slate-800 mt-1">{currentTask.progress}%</p>
                     </div>
                   )}
                 </div>
 
                 {/* Description */}
-                {task.description && (
+                {currentTask.description && (
                   <div>
                     <label className="text-sm font-medium text-slate-600">Description</label>
                     <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap">
-                      {task.description}
+                      {currentTask.description}
                     </p>
                   </div>
                 )}
@@ -255,13 +266,13 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                       <span className="text-sm font-medium">Reassignment will affect project timeline</span>
                     </div>
                     <SmartStakeholderAssignment
-                      projectId={task.project_id}
-                      requiredSkills={task.required_skills || []}
+                      projectId={currentTask.project_id}
+                      requiredSkills={currentTask.required_skills || []}
                       selectedStakeholderIds={existingAssignments}
                       onSelectionChange={handleStakeholderReassignment}
-                      taskPriority={task.priority || 'medium'}
-                      estimatedHours={task.estimated_hours}
-                      dueDate={task.due_date}
+                      taskPriority={currentTask.priority || 'medium'}
+                      estimatedHours={currentTask.estimated_hours}
+                      dueDate={currentTask.due_date}
                       existingAssignments={existingAssignments}
                     />
                   </div>
@@ -269,46 +280,46 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
 
                 {/* Task Type and Category */}
                 <div className="grid grid-cols-2 gap-4">
-                  {task.task_type && (
+                  {currentTask.task_type && (
                     <div>
                       <label className="text-sm font-medium text-slate-600">Task Type</label>
                       <p className="text-sm text-slate-800 mt-1 capitalize">
-                        {task.task_type.replace('_', ' ')}
+                        {currentTask.task_type.replace('_', ' ')}
                       </p>
                     </div>
                   )}
-                  {task.category && (
+                  {currentTask.category && (
                     <div>
                       <label className="text-sm font-medium text-slate-600">Category</label>
-                      <p className="text-sm text-slate-800 mt-1">{task.category}</p>
+                      <p className="text-sm text-slate-800 mt-1">{currentTask.category}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Hours */}
-                {(task.estimated_hours || task.actual_hours) && (
+                {(currentTask.estimated_hours || currentTask.actual_hours) && (
                   <div className="grid grid-cols-2 gap-4">
-                    {task.estimated_hours && (
+                    {currentTask.estimated_hours && (
                       <div>
                         <label className="text-sm font-medium text-slate-600">Estimated Hours</label>
-                        <p className="text-sm text-slate-800 mt-1">{task.estimated_hours}h</p>
+                        <p className="text-sm text-slate-800 mt-1">{currentTask.estimated_hours}h</p>
                       </div>
                     )}
-                    {task.actual_hours && (
+                    {currentTask.actual_hours && (
                       <div>
                         <label className="text-sm font-medium text-slate-600">Actual Hours</label>
-                        <p className="text-sm text-slate-800 mt-1">{task.actual_hours}h</p>
+                        <p className="text-sm text-slate-800 mt-1">{currentTask.actual_hours}h</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {/* Required Skills */}
-                {task.required_skills && task.required_skills.length > 0 && (
+                {currentTask.required_skills && currentTask.required_skills.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-slate-600">Required Skills</label>
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {task.required_skills.map((skill, index) => (
+                      {currentTask.required_skills.map((skill, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           {skill}
                         </Badge>
@@ -318,27 +329,27 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                 )}
 
                 {/* Punch List Category */}
-                {task.task_type === 'punch_list' && task.punch_list_category && (
+                {currentTask.task_type === 'punch_list' && currentTask.punch_list_category && (
                   <div>
                     <label className="text-sm font-medium text-slate-600">Punch List Category</label>
                     <Badge className="mt-1 bg-orange-100 text-orange-800">
-                      {task.punch_list_category}
+                      {currentTask.punch_list_category}
                     </Badge>
                   </div>
                 )}
 
                 {/* Document Attachments */}
                 <div className="border-t border-slate-200 pt-4">
-                  <TaskDocumentAttachments task={task} />
+                  <TaskDocumentAttachments task={currentTask} />
                 </div>
 
                 {/* Timestamps */}
                 <div className="grid grid-cols-2 gap-4 text-xs text-slate-500 border-t border-slate-200 pt-4">
                   <div>
-                    <span className="font-medium">Created:</span> {format(new Date(task.created_at), 'MMM d, yyyy HH:mm')}
+                    <span className="font-medium">Created:</span> {format(new Date(currentTask.created_at), 'MMM d, yyyy HH:mm')}
                   </div>
                   <div>
-                    <span className="font-medium">Updated:</span> {format(new Date(task.updated_at), 'MMM d, yyyy HH:mm')}
+                    <span className="font-medium">Updated:</span> {format(new Date(currentTask.updated_at), 'MMM d, yyyy HH:mm')}
                   </div>
                 </div>
               </div>

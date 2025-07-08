@@ -347,8 +347,68 @@ export const useTasks = (options: UseTasksOptions = {}) => {
         }
       }
 
-      // Real-time subscription will handle state update
-      return { data, error: null };
+      // Fetch complete updated task data with assignments for immediate UI update
+      const { data: updatedTaskData, error: fetchError } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:profiles!assignee_id(
+            id,
+            full_name,
+            email,
+            avatar_url
+          ),
+          project:projects!project_id(
+            id,
+            name,
+            status,
+            phase,
+            unified_lifecycle_status
+          ),
+          assigned_stakeholder:stakeholders!assigned_stakeholder_id(
+            id,
+            contact_person,
+            company_name,
+            stakeholder_type
+          ),
+          stakeholder_assignments:task_stakeholder_assignments(
+            id,
+            assignment_role,
+            status,
+            stakeholder:stakeholders(
+              id,
+              contact_person,
+              company_name,
+              stakeholder_type
+            )
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Failed to fetch updated task data:', fetchError);
+        // Return the basic task data if we have it, even if the fetch failed
+        return { data: data || null, error: null };
+      }
+
+      // Map the data to match our EnhancedTask type
+      const mappedTask = {
+        ...updatedTaskData,
+        task_type: updatedTaskData.task_type === 'punch_list' ? 'punch_list' as const : 'regular' as const,
+        stakeholder_assignments: (updatedTaskData.stakeholder_assignments || []).filter(
+          (assignment: any) => assignment.status === 'active'
+        )
+      } as EnhancedTask;
+
+      // Update local state immediately for instant UI feedback
+      setTasks(currentTasks => 
+        currentTasks.map(task => 
+          task.id === id ? mappedTask : task
+        )
+      );
+
+      return { data: mappedTask, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update task';
       console.error('Error updating task:', err);
