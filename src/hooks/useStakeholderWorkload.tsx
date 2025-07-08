@@ -34,7 +34,17 @@ export const useStakeholderWorkload = ({
   
   const { stakeholders } = useStakeholders();
 
+  // Memoize date strings to prevent infinite loops
+  const startDateString = useMemo(() => startDate.toISOString().split('T')[0], [startDate.getTime()]);
+  const endDateString = useMemo(() => endDate.toISOString().split('T')[0], [endDate.getTime()]);
+  const stakeholderIdsString = useMemo(() => 
+    stakeholderIds ? stakeholderIds.sort().join(',') : '', 
+    [stakeholderIds]
+  );
+
   const fetchWorkloadData = useCallback(async () => {
+    let isCancelled = false;
+    
     try {
       setLoading(true);
       setError(null);
@@ -42,9 +52,11 @@ export const useStakeholderWorkload = ({
       // Get workload data using the database function
       const { data, error: workloadError } = await supabase
         .rpc('calculate_employee_utilization', {
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0]
+          start_date: startDateString,
+          end_date: endDateString
         });
+
+      if (isCancelled) return;
 
       if (workloadError) {
         throw workloadError;
@@ -58,14 +70,22 @@ export const useStakeholderWorkload = ({
         ? processedData.filter(item => stakeholderIds.includes(item.stakeholder_id))
         : processedData;
 
-      setWorkloadData(filteredData);
+      if (!isCancelled) {
+        setWorkloadData(filteredData);
+      }
     } catch (err) {
-      console.error('Error fetching workload data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch workload data');
+      if (!isCancelled) {
+        console.error('Error fetching workload data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch workload data');
+      }
     } finally {
-      setLoading(false);
+      if (!isCancelled) {
+        setLoading(false);
+      }
     }
-  }, [startDate, endDate, stakeholderIds]);
+
+    return isCancelled;
+  }, [startDateString, endDateString, stakeholderIdsString]);
 
   const processWorkloadData = (rawData: any[]): WorkloadData[] => {
     const stakeholderMap = new Map<string, WorkloadData>();
@@ -112,14 +132,18 @@ export const useStakeholderWorkload = ({
     return 'available';
   };
 
-  // Memoize stakeholder IDs dependency to prevent infinite loops
-  const stakeholderIdsDep = useMemo(() => 
-    stakeholderIds ? stakeholderIds.join(',') : '', 
-    [stakeholderIds]
-  );
-
   useEffect(() => {
-    fetchWorkloadData();
+    let isCancelled = false;
+    
+    const loadData = async () => {
+      await fetchWorkloadData();
+    };
+    
+    loadData();
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [fetchWorkloadData]);
 
   // Enhanced workload data with stakeholder information

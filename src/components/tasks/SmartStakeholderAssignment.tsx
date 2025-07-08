@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,37 +33,53 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
 }) => {
   const [activeTab, setActiveTab] = useState('suggestions');
   const { stakeholders } = useStakeholders();
-  const { workloadData, loading: workloadLoading } = useStakeholderWorkload({
+  
+  // Use stable date objects to prevent infinite loops
+  const stableDates = useMemo(() => ({
     startDate: new Date(),
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-  });
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  }), []);
+  
+  const { workloadData, loading: workloadLoading, error: workloadError } = useStakeholderWorkload(stableDates);
 
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [availableStakeholders, setAvailableStakeholders] = useState<any[]>([]);
   const [overallocatedStakeholders, setOverallocatedStakeholders] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!workloadLoading && stakeholders.length > 0 && workloadData.length > 0) {
-      const engine = SmartAssignmentEngine.getInstance();
-      const criteria: AssignmentCriteria = {
-        requiredSkills,
-        projectId,
-        priority: taskPriority,
-        estimatedHours,
-        dueDate
-      };
+    if (!workloadLoading && !workloadError && stakeholders.length > 0 && workloadData.length > 0) {
+      try {
+        const engine = SmartAssignmentEngine.getInstance();
+        const criteria: AssignmentCriteria = {
+          requiredSkills,
+          projectId,
+          priority: taskPriority,
+          estimatedHours,
+          dueDate
+        };
 
-      const allSuggestions = engine.generateSuggestions(stakeholders, workloadData, criteria);
-      
-      // Filter suggestions based on workload status
-      const available = allSuggestions.filter(s => s.workloadStatus === 'available');
-      const overallocated = allSuggestions.filter(s => s.workloadStatus === 'overallocated');
-      
-      setSuggestions(allSuggestions.slice(0, 10)); // Top 10 suggestions
-      setAvailableStakeholders(available.slice(0, 8));
-      setOverallocatedStakeholders(overallocated.slice(0, 5));
+        const allSuggestions = engine.generateSuggestions(stakeholders, workloadData, criteria);
+        
+        // Filter suggestions based on workload status
+        const available = allSuggestions.filter(s => s.workloadStatus === 'available');
+        const overallocated = allSuggestions.filter(s => s.workloadStatus === 'overallocated');
+        
+        setSuggestions(allSuggestions.slice(0, 10)); // Top 10 suggestions
+        setAvailableStakeholders(available.slice(0, 8));
+        setOverallocatedStakeholders(overallocated.slice(0, 5));
+      } catch (error) {
+        console.error('Error generating stakeholder suggestions:', error);
+        setSuggestions([]);
+        setAvailableStakeholders([]);
+        setOverallocatedStakeholders([]);
+      }
+    } else if (workloadError) {
+      // Clear suggestions on error
+      setSuggestions([]);
+      setAvailableStakeholders([]);
+      setOverallocatedStakeholders([]);
     }
-  }, [stakeholders, workloadData, workloadLoading, requiredSkills, projectId, taskPriority, estimatedHours, dueDate]);
+  }, [stakeholders, workloadData, workloadLoading, workloadError, requiredSkills, projectId, taskPriority, estimatedHours, dueDate]);
 
   const handleStakeholderSelect = (stakeholderId: string) => {
     const isSelected = selectedStakeholderIds.includes(stakeholderId);
@@ -96,6 +112,25 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (workloadError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Unable to Load Suggestions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-slate-500">
+            <p className="text-sm">Failed to load workload data</p>
+            <p className="text-xs">{workloadError}</p>
           </div>
         </CardContent>
       </Card>
