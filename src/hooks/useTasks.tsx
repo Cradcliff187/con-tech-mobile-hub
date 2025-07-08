@@ -278,29 +278,25 @@ export const useTasks = (options: UseTasksOptions = {}) => {
 
       // Handle assignment updates if provided
       if (assigned_stakeholder_id !== undefined || assigned_stakeholder_ids !== undefined) {
-        // First, remove existing active assignments
+        // First, mark all existing assignments for this task as removed
         await supabase
           .from('task_stakeholder_assignments')
           .update({ status: 'removed' })
           .eq('task_id', id)
           .eq('status', 'active');
 
-        // Then add new assignments
-        const assignmentPromises = [];
+        // Prepare new assignments for upsert
+        const newAssignments = [];
         
         // Handle single assignment
         if (assigned_stakeholder_id) {
-          assignmentPromises.push(
-            supabase
-              .from('task_stakeholder_assignments')
-              .insert({
-                task_id: id,
-                stakeholder_id: assigned_stakeholder_id,
-                assignment_role: 'primary',
-                assigned_by: user!.id,
-                status: 'active'
-              })
-          );
+          newAssignments.push({
+            task_id: id,
+            stakeholder_id: assigned_stakeholder_id,
+            assignment_role: 'primary',
+            assigned_by: user!.id,
+            status: 'active'
+          });
         }
 
         // Handle multiple assignments
@@ -312,21 +308,19 @@ export const useTasks = (options: UseTasksOptions = {}) => {
             assigned_by: user!.id,
             status: 'active'
           }));
-          
-          assignmentPromises.push(
-            supabase
-              .from('task_stakeholder_assignments')
-              .insert(assignments)
-          );
+          newAssignments.push(...assignments);
         }
 
-        // Execute assignment updates
-        if (assignmentPromises.length > 0) {
-          const assignmentResults = await Promise.all(assignmentPromises);
-          for (const result of assignmentResults) {
-            if (result.error) {
-              console.warn('Assignment update warning:', result.error.message);
-            }
+        // Use upsert to handle existing records gracefully
+        if (newAssignments.length > 0) {
+          const { error: upsertError } = await supabase
+            .from('task_stakeholder_assignments')
+            .upsert(newAssignments, {
+              onConflict: 'task_id,stakeholder_id'
+            });
+
+          if (upsertError) {
+            console.warn('Assignment upsert warning:', upsertError.message);
           }
         }
       }
