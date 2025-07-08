@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Users, TrendingUp, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { AlertTriangle, Users, TrendingUp, Clock, Search } from 'lucide-react';
 import { useStakeholderWorkload } from '@/hooks/useStakeholderWorkload';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { SmartAssignmentEngine, AssignmentCriteria } from '@/services/SmartAssignmentEngine';
@@ -32,6 +33,7 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
   existingAssignments = []
 }) => {
   const [activeTab, setActiveTab] = useState('suggestions');
+  const [searchQuery, setSearchQuery] = useState('');
   const { stakeholders } = useStakeholders();
   
   // Use stable date objects to prevent infinite loops
@@ -45,6 +47,7 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [availableStakeholders, setAvailableStakeholders] = useState<any[]>([]);
   const [overallocatedStakeholders, setOverallocatedStakeholders] = useState<any[]>([]);
+  const [allStakeholdersWithWorkload, setAllStakeholdersWithWorkload] = useState<any[]>([]);
 
   useEffect(() => {
     if (!workloadLoading && !workloadError && stakeholders.length > 0 && workloadData.length > 0) {
@@ -67,17 +70,20 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
         setSuggestions(allSuggestions.slice(0, 10)); // Top 10 suggestions
         setAvailableStakeholders(available.slice(0, 8));
         setOverallocatedStakeholders(overallocated.slice(0, 5));
+        setAllStakeholdersWithWorkload(allSuggestions); // All stakeholders with workload data
       } catch (error) {
         console.error('Error generating stakeholder suggestions:', error);
         setSuggestions([]);
         setAvailableStakeholders([]);
         setOverallocatedStakeholders([]);
+        setAllStakeholdersWithWorkload([]);
       }
     } else if (workloadError) {
       // Clear suggestions on error
       setSuggestions([]);
       setAvailableStakeholders([]);
       setOverallocatedStakeholders([]);
+      setAllStakeholdersWithWorkload([]);
     }
   }, [stakeholders, workloadData, workloadLoading, workloadError, requiredSkills, projectId, taskPriority, estimatedHours, dueDate]);
 
@@ -97,6 +103,23 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
   const getTabCount = (items: any[]) => {
     return items.length > 0 ? ` (${items.length})` : '';
   };
+
+  // Filter all stakeholders based on search query
+  const filteredAllStakeholders = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return allStakeholdersWithWorkload;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return allStakeholdersWithWorkload.filter(suggestion => {
+      const stakeholder = suggestion.stakeholder;
+      const name = (stakeholder.contact_person || '').toLowerCase();
+      const company = (stakeholder.company_name || '').toLowerCase();
+      const type = (stakeholder.stakeholder_type || '').toLowerCase();
+      
+      return name.includes(query) || company.includes(query) || type.includes(query);
+    });
+  }, [allStakeholdersWithWorkload, searchQuery]);
 
   const hasExistingAssignments = existingAssignments.length > 0;
 
@@ -153,7 +176,7 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="suggestions" className="text-xs">
               Top Matches{getTabCount(suggestions)}
             </TabsTrigger>
@@ -162,6 +185,9 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
             </TabsTrigger>
             <TabsTrigger value="overallocated" className="text-xs">
               Busy{getTabCount(overallocatedStakeholders)}
+            </TabsTrigger>
+            <TabsTrigger value="all" className="text-xs">
+              All{getTabCount(filteredAllStakeholders)}
             </TabsTrigger>
           </TabsList>
 
@@ -239,6 +265,49 @@ export const SmartStakeholderAssignment: React.FC<SmartStakeholderAssignmentProp
                 <p className="text-xs">Good workload distribution!</p>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="all" className="space-y-3 mt-4">
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search stakeholders by name, company, or type..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 text-sm"
+                />
+              </div>
+              
+              {filteredAllStakeholders.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="text-xs text-slate-600 mb-2">
+                    All stakeholders{searchQuery ? ` matching "${searchQuery}"` : ''} ({filteredAllStakeholders.length})
+                  </div>
+                  {filteredAllStakeholders.map((suggestion) => (
+                    <StakeholderSuggestionCard
+                      key={suggestion.stakeholder.id}
+                      suggestion={suggestion}
+                      onSelect={handleStakeholderSelect}
+                      isSelected={selectedStakeholderIds.includes(suggestion.stakeholder.id)}
+                      compact={true}
+                    />
+                  ))}
+                </div>
+              ) : searchQuery ? (
+                <div className="text-center py-6 text-slate-500">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No stakeholders found</p>
+                  <p className="text-xs">Try adjusting your search terms</p>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-slate-500">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No stakeholders available</p>
+                  <p className="text-xs">Stakeholder data is still loading</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 
