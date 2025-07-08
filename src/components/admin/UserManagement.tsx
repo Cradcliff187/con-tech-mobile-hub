@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreateExternalUserDialog } from './CreateExternalUserDialog';
+import { CreateCompanyUserDialog } from './CreateCompanyUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { Users, UserPlus, Shield, Clock, CheckCircle, XCircle, Search } from 'lucide-react';
 
 export const UserManagement = () => {
-  const { users, invitations, loading, updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
+  const { users, invitations, loading, updateUserRole, updateUserStatus, deleteUser, refetch } = useUserManagement();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,10 +77,16 @@ export const UserManagement = () => {
           <h2 className="text-2xl font-bold text-slate-800">User Management</h2>
           <p className="text-slate-600">Manage company employees and external stakeholders</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} className="bg-orange-600 hover:bg-orange-700">
-          <UserPlus size={20} className="mr-2" />
-          Add External User
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setCreateCompanyDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Shield size={20} className="mr-2" />
+            Add Company Employee
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)} className="bg-orange-600 hover:bg-orange-700">
+            <UserPlus size={20} className="mr-2" />
+            Add External User
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -261,6 +269,12 @@ export const UserManagement = () => {
       </Card>
 
       {/* Dialogs */}
+      <CreateCompanyUserDialog
+        open={createCompanyDialogOpen}
+        onOpenChange={setCreateCompanyDialogOpen}
+        onSuccess={refetch}
+      />
+      
       <CreateExternalUserDialog 
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen} 

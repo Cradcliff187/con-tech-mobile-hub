@@ -92,6 +92,16 @@ const Auth = () => {
                     {loading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
+                
+                <div className="mt-4 text-center">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/reset-password')}
+                    className="text-slate-600 hover:text-slate-800 text-sm"
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
