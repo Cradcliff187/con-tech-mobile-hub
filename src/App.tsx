@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AdminAuthProvider } from "@/hooks/useAdminAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { MaintenanceTasksProvider } from "@/contexts/MaintenanceTasksContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -33,9 +34,10 @@ const App = () => {
         <TooltipProvider>
           <AuthProvider>
             <AdminAuthProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+              <MaintenanceTasksProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
@@ -57,7 +59,8 @@ const App = () => {
                   />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
+                </BrowserRouter>
+              </MaintenanceTasksProvider>
             </AdminAuthProvider>
           </AuthProvider>
         </TooltipProvider>

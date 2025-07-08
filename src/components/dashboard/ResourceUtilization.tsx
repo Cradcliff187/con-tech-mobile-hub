@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Settings, Package, Activity } from 'lucide-react';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useEquipment } from '@/hooks/useEquipment';
-import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
+import { useMaintenanceTasksContext } from '@/contexts/MaintenanceTasksContext';
 import { ResourceUtilizationLoading } from './resource-utilization/ResourceUtilizationLoading';
 import { LaborTab } from './resource-utilization/LaborTab';
 import { EquipmentTab } from './resource-utilization/EquipmentTab';
@@ -17,7 +17,7 @@ export const ResourceUtilization = () => {
   // Get data from existing hooks
   const { allocations, loading: allocationsLoading } = useResourceAllocations();
   const { equipment, loading: equipmentLoading } = useEquipment();
-  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenanceTasks();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenanceTasksContext();
 
   // Calculate loading state
   const loading = allocationsLoading || equipmentLoading || maintenanceLoading;

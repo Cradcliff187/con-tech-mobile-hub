@@ -2,7 +2,7 @@ import React from 'react';
 import { Users } from 'lucide-react';
 import { useResourceAllocations } from '@/hooks/useResourceAllocations';
 import { useEquipment } from '@/hooks/useEquipment';
-import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
+import { useMaintenanceTasksContext } from '@/contexts/MaintenanceTasksContext';
 import { CompactMetricCard } from './CompactMetricCard';
 
 interface CompactResourceCardProps {
@@ -13,7 +13,7 @@ interface CompactResourceCardProps {
 export const CompactResourceCard = ({ onClick, className }: CompactResourceCardProps) => {
   const { allocations, loading: allocationsLoading } = useResourceAllocations();
   const { equipment, loading: equipmentLoading } = useEquipment();
-  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenanceTasks();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenanceTasksContext();
 
   const loading = allocationsLoading || equipmentLoading || maintenanceLoading;
 

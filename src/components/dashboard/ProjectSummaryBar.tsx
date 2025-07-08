@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Folder, DollarSign, Shield, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
-import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
+import { useMaintenanceTasksContext } from '@/contexts/MaintenanceTasksContext';
 import { useEquipment } from '@/hooks/useEquipment';
 
 interface MetricCardProps {
@@ -68,7 +68,7 @@ export const ProjectSummaryBar = () => {
   const [, setSearchParams] = useSearchParams();
   const { projects, loading: projectsLoading } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
-  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenanceTasks();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenanceTasksContext();
   const { equipment, loading: equipmentLoading } = useEquipment();
 
   const metrics = useMemo(() => {
