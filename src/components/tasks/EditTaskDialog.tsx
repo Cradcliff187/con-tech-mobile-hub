@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, memo, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Task } from '@/types/database';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
@@ -257,6 +257,33 @@ export const EditTaskDialog = memo(({ open, onOpenChange, task, mode = 'edit' }:
                 <ProjectContextPanel project={selectedProject || null} />
               </div>
             </div>
+          )}
+          
+          {currentMode === 'edit' && (
+            <DialogFooter className="border-t border-slate-200 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={updateOperation.loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="edit-task-form"
+                disabled={updateOperation.loading || !formData.title.trim() || formData.hasErrors()}
+                className="bg-orange-600 hover:bg-orange-700 transition-colors duration-200 focus:ring-2 focus:ring-orange-300"
+              >
+                {updateOperation.loading ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Task'
+                )}
+              </Button>
+            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>

@@ -39,7 +39,7 @@ export const EditTaskDialogContent: React.FC<EditTaskDialogContentProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" id="edit-task-form">
       {/* Basic Fields */}
       <EditTaskBasicFields
         title={formData.title}
@@ -123,22 +123,6 @@ export const EditTaskDialogContent: React.FC<EditTaskDialogContentProps> = ({
         </CollapsibleContent>
       </Collapsible>
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button 
-          type="submit" 
-          disabled={loading || !formData.title.trim() || formData.hasErrors()}
-          className="bg-orange-600 hover:bg-orange-700 transition-colors duration-200 focus:ring-2 focus:ring-orange-300"
-        >
-          {loading ? (
-            <>
-              <LoadingSpinner size="sm" className="mr-2" />
-              Updating...
-            </>
-          ) : (
-            'Update Task'
-          )}
-        </Button>
-      </div>
     </form>
   );
 };
