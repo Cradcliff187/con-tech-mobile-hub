@@ -307,6 +307,7 @@ const TaskManagerContent = memo(() => {
         open={isDialogOpen('task-details')}
         onOpenChange={handleTaskDetailsClose}
         task={selectedTaskForDetails}
+        onEditRequest={handleEditTask}
       />
 
       <BulkTaskActionsDialog
