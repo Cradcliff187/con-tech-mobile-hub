@@ -264,7 +264,7 @@ export const useTasks = (options: UseTasksOptions = {}) => {
       // Separate assignment updates from task updates
       const { assigned_stakeholder_id, assigned_stakeholder_ids, ...taskUpdates } = updates;
 
-      // Update task data
+      // Update task data first
       const { data, error } = await supabase
         .from('tasks')
         .update(taskUpdates)
@@ -278,17 +278,24 @@ export const useTasks = (options: UseTasksOptions = {}) => {
 
       // Handle assignment updates if provided
       if (assigned_stakeholder_id !== undefined || assigned_stakeholder_ids !== undefined) {
-        // First, mark all existing assignments for this task as removed
-        await supabase
+        // Use a transaction-like approach: delete existing, then insert new
+        
+        // Step 1: Delete all existing active assignments for this task
+        const { error: deleteError } = await supabase
           .from('task_stakeholder_assignments')
-          .update({ status: 'removed' })
+          .delete()
           .eq('task_id', id)
           .eq('status', 'active');
 
-        // Prepare new assignments for upsert
+        if (deleteError) {
+          console.error('Failed to delete existing assignments:', deleteError);
+          throw new Error(`Failed to update assignments: ${deleteError.message}`);
+        }
+
+        // Step 2: Prepare new assignments
         const newAssignments = [];
         
-        // Handle single assignment
+        // Handle single assignment (legacy support)
         if (assigned_stakeholder_id) {
           newAssignments.push({
             task_id: id,
@@ -311,16 +318,15 @@ export const useTasks = (options: UseTasksOptions = {}) => {
           newAssignments.push(...assignments);
         }
 
-        // Use upsert to handle existing records gracefully
+        // Step 3: Insert new assignments (if any)
         if (newAssignments.length > 0) {
-          const { error: upsertError } = await supabase
+          const { error: insertError } = await supabase
             .from('task_stakeholder_assignments')
-            .upsert(newAssignments, {
-              onConflict: 'task_id,stakeholder_id'
-            });
+            .insert(newAssignments);
 
-          if (upsertError) {
-            console.warn('Assignment upsert warning:', upsertError.message);
+          if (insertError) {
+            console.error('Failed to insert new assignments:', insertError);
+            throw new Error(`Failed to create new assignments: ${insertError.message}`);
           }
         }
       }
