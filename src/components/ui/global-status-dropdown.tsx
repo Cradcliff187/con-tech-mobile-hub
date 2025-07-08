@@ -13,7 +13,8 @@ export type EntityType =
   | 'equipment' 
   | 'maintenance_task' 
   | 'profile' 
-  | 'budget_item';
+  | 'budget_item'
+  | 'estimate';
 
 // Status configurations for each entity type
 const STATUS_CONFIGS = {
@@ -136,6 +137,24 @@ const STATUS_CONFIGS = {
       rejected: 'Rejected'
     },
     criticalChanges: ['rejected']
+  },
+  estimate: {
+    statuses: ['draft', 'sent', 'accepted', 'declined', 'expired'],
+    colors: {
+      draft: 'bg-slate-100 text-slate-800',
+      sent: 'bg-blue-100 text-blue-800',
+      accepted: 'bg-green-100 text-green-800',
+      declined: 'bg-red-100 text-red-800',
+      expired: 'bg-orange-100 text-orange-800'
+    },
+    labels: {
+      draft: 'Draft',
+      sent: 'Sent',
+      accepted: 'Accepted',
+      declined: 'Declined',
+      expired: 'Expired'
+    },
+    criticalChanges: ['declined', 'expired']
   }
 };
 

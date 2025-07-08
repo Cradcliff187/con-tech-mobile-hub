@@ -17,12 +17,11 @@ export interface Estimate {
   equipment_cost?: number;
   markup_percentage?: number;
   gross_margin?: number;
-  status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'declined' | 'expired';
+  status: 'draft' | 'sent' | 'accepted' | 'declined' | 'expired';
   valid_until?: string;
   terms_and_conditions?: string;
   notes?: string;
   sent_date?: string;
-  viewed_date?: string;
   responded_date?: string;
   created_by?: string;
   created_at: string;
@@ -67,7 +66,12 @@ export const useEstimates = () => {
         return;
       }
 
-      setEstimates(data || []);
+      // Filter out any estimates with the old 'viewed' status for backward compatibility
+      const filteredData = (data || []).map(estimate => ({
+        ...estimate,
+        status: estimate.status === 'viewed' ? 'sent' : estimate.status
+      }));
+      setEstimates(filteredData);
     } catch (error) {
       console.error('Error in fetchEstimates:', error);
       setEstimates([]);
@@ -200,9 +204,6 @@ export const useEstimates = () => {
     switch (status) {
       case 'sent':
         updateData.sent_date = now;
-        break;
-      case 'viewed':
-        updateData.viewed_date = now;
         break;
       case 'accepted':
       case 'declined':

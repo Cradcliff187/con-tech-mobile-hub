@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calculator, TrendingUp, DollarSign, Info } from 'lucide-react';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import type { Estimate } from '@/hooks/useEstimates';
 
 interface EstimatePreviewDialogProps {
@@ -31,22 +32,6 @@ export const EstimatePreviewDialog = ({
     return new Date(dateString).toLocaleDateString();
   };
 
-  const getStatusBadge = (status: Estimate['status']) => {
-    const variants = {
-      draft: 'bg-slate-100 text-slate-700',
-      sent: 'bg-blue-100 text-blue-700',
-      viewed: 'bg-purple-100 text-purple-700',
-      accepted: 'bg-green-100 text-green-700',
-      declined: 'bg-red-100 text-red-700',
-      expired: 'bg-orange-100 text-orange-700'
-    };
-
-    return (
-      <Badge variant="secondary" className={variants[status]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
 
   return (
     <ResponsiveDialog
@@ -64,7 +49,12 @@ export const EstimatePreviewDialog = ({
           <p className="text-lg font-mono text-slate-600">
             {estimate.estimate_number}
           </p>
-          {getStatusBadge(estimate.status)}
+          <GlobalStatusDropdown
+            entityType="estimate"
+            currentStatus={estimate.status}
+            onStatusChange={() => {}} // Read-only in preview
+            showAsDropdown={false}
+          />
         </div>
 
         <Separator />

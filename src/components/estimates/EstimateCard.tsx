@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Eye, Edit2, Trash2, MoreVertical, Send, CheckCircle, XCircle } from 'lucide-react';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import type { Estimate } from '@/hooks/useEstimates';
 
 interface EstimateCardProps {
@@ -20,22 +21,6 @@ export const EstimateCard = ({
   onPreview,
   onStatusChange
 }: EstimateCardProps) => {
-  const getStatusBadge = (status: Estimate['status']) => {
-    const variants = {
-      draft: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
-      sent: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
-      viewed: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
-      accepted: 'bg-green-100 text-green-700 hover:bg-green-200',
-      declined: 'bg-red-100 text-red-700 hover:bg-red-200',
-      expired: 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-    };
-
-    return (
-      <Badge variant="secondary" className={variants[status]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -128,7 +113,13 @@ export const EstimateCard = ({
           {/* Status */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-600">Status:</span>
-            {getStatusBadge(estimate.status)}
+            <GlobalStatusDropdown
+              entityType="estimate"
+              currentStatus={estimate.status}
+              onStatusChange={(newStatus) => onStatusChange(estimate.id, newStatus as Estimate['status'])}
+              size="sm"
+              showAsDropdown={false}
+            />
           </div>
 
           {/* Amount */}
