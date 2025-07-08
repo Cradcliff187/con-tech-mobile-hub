@@ -74,21 +74,67 @@ export const useStakeholders = (projectId?: string) => {
     }
   }, [user?.id]);
 
-  // Handle real-time updates using centralized subscription manager
+  // Handle real-time updates using centralized subscription manager with enhanced debugging
   const handleStakeholdersUpdate = useCallback((payload: any) => {
-    console.log('Stakeholders change detected:', payload);
-    fetchStakeholders();
+    console.log('=== STAKEHOLDER REAL-TIME UPDATE ===');
+    console.log('Event type:', payload.eventType);
+    console.log('Table:', payload.table);
+    console.log('Old record:', payload.old);
+    console.log('New record:', payload.new);
+    console.log('Timestamp:', new Date().toISOString());
+    
+    // Handle different event types optimistically
+    if (payload.eventType === 'UPDATE' && payload.new) {
+      console.log('Processing UPDATE event with optimistic update');
+      setStakeholders(current => {
+        const updatedStakeholders = current.map(stakeholder => 
+          stakeholder.id === payload.new.id ? { ...stakeholder, ...payload.new } : stakeholder
+        );
+        console.log('Optimistically updated stakeholders list');
+        return updatedStakeholders;
+      });
+    } else if (payload.eventType === 'INSERT' && payload.new) {
+      console.log('Processing INSERT event with optimistic update');
+      setStakeholders(current => {
+        const exists = current.some(s => s.id === payload.new.id);
+        if (!exists) {
+          return [payload.new, ...current];
+        }
+        return current;
+      });
+    } else if (payload.eventType === 'DELETE' && payload.old) {
+      console.log('Processing DELETE event with optimistic update');
+      setStakeholders(current => current.filter(s => s.id !== payload.old.id));
+    } else {
+      console.log('Fallback: Fetching all stakeholders');
+      fetchStakeholders();
+    }
   }, [fetchStakeholders]);
 
-  // Use centralized subscription management
-  const { isSubscribed } = useSubscription(
+  // Use centralized subscription management with enhanced monitoring
+  const { isSubscribed, isConnecting, error, retryCount, getSubscriptionInfo } = useSubscription(
     'stakeholders',
     handleStakeholdersUpdate,
     {
       userId: user?.id,
-      enabled: !!user
+      enabled: !!user,
+      event: '*' // Listen to all events (INSERT, UPDATE, DELETE)
     }
   );
+
+  // Debug subscription status changes
+  useEffect(() => {
+    console.log('=== STAKEHOLDER SUBSCRIPTION STATUS ===');
+    console.log('Is subscribed:', isSubscribed);
+    console.log('Is connecting:', isConnecting);
+    console.log('Error:', error);
+    console.log('Retry count:', retryCount);
+    
+    if (getSubscriptionInfo) {
+      const subInfo = getSubscriptionInfo();
+      console.log('Subscription info:', subInfo);
+    }
+  }, [isSubscribed, isConnecting, error, retryCount, getSubscriptionInfo]);
 
   // Initial fetch when user changes
   useEffect(() => {
