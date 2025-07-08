@@ -16,6 +16,7 @@ export interface Estimate {
   material_cost?: number;
   equipment_cost?: number;
   markup_percentage?: number;
+  gross_margin?: number;
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'declined' | 'expired';
   valid_until?: string;
   terms_and_conditions?: string;
