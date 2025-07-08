@@ -82,7 +82,13 @@ export const useEstimates = () => {
 
   // Handle real-time updates using centralized subscription manager
   const handleEstimatesUpdate = useCallback((payload: any) => {
-    console.log('Estimates change detected:', payload);
+    console.log('🔄 [Estimates] Real-time update received:', {
+      eventType: payload.eventType,
+      table: payload.table,
+      new: payload.new,
+      old: payload.old,
+      timestamp: new Date().toISOString()
+    });
     fetchEstimates();
   }, [fetchEstimates]);
 
@@ -95,6 +101,16 @@ export const useEstimates = () => {
       enabled: !!user
     }
   );
+
+  // Debug subscription status
+  useEffect(() => {
+    console.log('🔗 [Estimates] Subscription status:', { 
+      isSubscribed, 
+      user: !!user, 
+      userId: user?.id,
+      timestamp: new Date().toISOString()
+    });
+  }, [isSubscribed, user?.id]);
 
   // Initial fetch when user changes
   useEffect(() => {
@@ -197,6 +213,8 @@ export const useEstimates = () => {
   }, [toast]);
 
   const updateEstimateStatus = useCallback(async (id: string, status: Estimate['status']) => {
+    console.log('📝 [Estimates] Updating status:', { id, status, timestamp: new Date().toISOString() });
+    
     const updateData: Partial<Estimate> = { status };
     
     // Update date fields based on status change
@@ -211,7 +229,9 @@ export const useEstimates = () => {
         break;
     }
 
-    return updateEstimate(id, updateData);
+    const result = await updateEstimate(id, updateData);
+    console.log('✅ [Estimates] Status update result:', { success: !result.error, error: result.error });
+    return result;
   }, [updateEstimate]);
 
   const convertEstimateToProject = useCallback(async (estimateId: string, projectName?: string) => {
