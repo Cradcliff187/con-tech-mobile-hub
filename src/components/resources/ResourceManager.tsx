@@ -7,13 +7,13 @@ import { MultiProjectResourceView } from './MultiProjectResourceView';
 import { EquipmentTracker } from './EquipmentTracker';
 import { MaintenanceScheduler } from './MaintenanceScheduler';
 import { useEquipment } from '@/hooks/useEquipment';
-import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
+import { useMaintenanceTasksContext } from '@/contexts/MaintenanceTasksContext';
 
 export const ResourceManager = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showMaintenanceScheduler, setShowMaintenanceScheduler] = useState(false);
   const { equipment } = useEquipment();
-  const { tasks: maintenanceTasks } = useMaintenanceTasks();
+  const { tasks: maintenanceTasks } = useMaintenanceTasksContext();
 
   return (
     <div className="space-y-6">
