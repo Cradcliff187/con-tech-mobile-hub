@@ -45,6 +45,12 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
       
       // Send welcome email to user and admin notification
       try {
+        console.log('🔄 Starting email notifications...', {
+          userEmail: formData.email,
+          userName: formData.full_name || formData.email.split('@')[0],
+          userRole: formData.role
+        });
+
         const [welcomeResponse, adminResponse] = await Promise.all([
           supabase.functions.invoke('send-welcome-email', {
             body: {
@@ -64,10 +70,30 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
           })
         ]);
 
-        console.log('Welcome email response:', welcomeResponse);
-        console.log('Admin notification response:', adminResponse);
+        console.log('✅ Welcome email response:', {
+          data: welcomeResponse.data,
+          error: welcomeResponse.error
+        });
+        
+        console.log('✅ Admin notification response:', {
+          data: adminResponse.data,
+          error: adminResponse.error
+        });
+
+        // Check for specific errors in responses
+        if (welcomeResponse.error) {
+          console.error('❌ Welcome email error:', welcomeResponse.error);
+        }
+        if (adminResponse.error) {
+          console.error('❌ Admin notification error:', adminResponse.error);
+        }
+
       } catch (emailError) {
-        console.error('Error sending emails:', emailError);
+        console.error('💥 Email invocation failed:', {
+          error: emailError,
+          message: emailError?.message,
+          stack: emailError?.stack
+        });
         // Don't block the user creation flow for email errors
       }
     }

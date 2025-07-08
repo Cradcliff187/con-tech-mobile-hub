@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CreateExternalUserDialog } from './CreateExternalUserDialog';
 import { CreateCompanyUserDialog } from './CreateCompanyUserDialog';
 import { EditUserDialog } from './EditUserDialog';
+import { EmailTestDialog } from './EmailTestDialog';
 import { Users, UserPlus, Shield, Clock, CheckCircle, XCircle, Search } from 'lucide-react';
 
 export const UserManagement = () => {
@@ -16,6 +17,7 @@ export const UserManagement = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [emailTestDialogOpen, setEmailTestDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -78,6 +80,9 @@ export const UserManagement = () => {
           <p className="text-slate-600">Manage company employees and external stakeholders</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setEmailTestDialogOpen(true)} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+            🧪 Test Emails
+          </Button>
           <Button onClick={() => setCreateCompanyDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
             <Shield size={20} className="mr-2" />
             Add Company Employee
@@ -278,6 +283,11 @@ export const UserManagement = () => {
       <CreateExternalUserDialog 
         open={createDialogOpen} 
         onOpenChange={setCreateDialogOpen} 
+      />
+      
+      <EmailTestDialog
+        open={emailTestDialogOpen}
+        onOpenChange={setEmailTestDialogOpen}
       />
       
       {selectedUser && (
