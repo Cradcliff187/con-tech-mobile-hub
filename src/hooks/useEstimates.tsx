@@ -214,6 +214,33 @@ export const useEstimates = () => {
     return updateEstimate(id, updateData);
   }, [updateEstimate]);
 
+  const convertEstimateToProject = useCallback(async (estimateId: string, projectName?: string) => {
+    try {
+      const { data: projectId, error } = await supabase
+        .rpc('convert_estimate_to_project', {
+          p_estimate_id: estimateId,
+          p_project_name: projectName
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Estimate successfully converted to project"
+      });
+
+      return { data: projectId, error: null };
+    } catch (error) {
+      console.error('Error converting estimate to project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to convert estimate to project.",
+        variant: "destructive"
+      });
+      return { data: null, error };
+    }
+  }, [toast]);
+
   const refetch = useCallback(async () => {
     await fetchEstimates();
   }, [fetchEstimates]);
@@ -225,6 +252,7 @@ export const useEstimates = () => {
     updateEstimate, 
     deleteEstimate,
     updateEstimateStatus,
+    convertEstimateToProject,
     refetch
   };
 };

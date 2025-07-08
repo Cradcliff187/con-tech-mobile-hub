@@ -8,6 +8,7 @@ import { DeleteEstimateDialog } from './DeleteEstimateDialog';
 import { EstimatePreviewDialog } from './EstimatePreviewDialog';
 import { CreateBidFromEstimateDialog } from './CreateBidFromEstimateDialog';
 import { CreateEstimateDialog } from './CreateEstimateDialog';
+import { ConvertEstimateToProjectDialog } from './ConvertEstimateToProjectDialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
   const [editEstimate, setEditEstimate] = useState<Estimate | null>(null);
   const [estimateToDelete, setEstimateToDelete] = useState<Estimate | null>(null);
   const [previewEstimate, setPreviewEstimate] = useState<Estimate | null>(null);
+  const [convertEstimate, setConvertEstimate] = useState<Estimate | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleEdit = useCallback((estimate: Estimate) => {
@@ -45,6 +47,10 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
     setPreviewEstimate(estimate);
   }, []);
 
+  const handleConvertToProject = useCallback((estimate: Estimate) => {
+    setConvertEstimate(estimate);
+  }, []);
+
   const handleStatusChange = useCallback(async (estimateId: string, newStatus: Estimate['status']) => {
     await updateEstimateStatus(estimateId, newStatus);
   }, [updateEstimateStatus]);
@@ -57,6 +63,11 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
   const handleEstimateDeleted = useCallback(() => {
     onRefetch?.();
     setEstimateToDelete(null);
+  }, [onRefetch]);
+
+  const handleEstimateConverted = useCallback(() => {
+    onRefetch?.();
+    setConvertEstimate(null);
   }, [onRefetch]);
 
 
@@ -253,6 +264,7 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
               onDelete={handleDelete}
               onPreview={handlePreview}
               onStatusChange={handleStatusChange}
+              onConvertToProject={handleConvertToProject}
             />
           ))}
         </div>
@@ -285,6 +297,13 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
           setShowCreateDialog(false);
           refetch();
         }}
+      />
+
+      <ConvertEstimateToProjectDialog
+        open={!!convertEstimate}
+        onOpenChange={(open) => !open && setConvertEstimate(null)}
+        estimate={convertEstimate}
+        onSuccess={handleEstimateConverted}
       />
     </div>
   );

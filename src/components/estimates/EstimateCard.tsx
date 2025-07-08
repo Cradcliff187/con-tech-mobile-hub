@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Eye, Edit2, Trash2, MoreVertical } from 'lucide-react';
+import { Eye, Edit2, Trash2, MoreVertical, FolderPlus } from 'lucide-react';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import type { Estimate } from '@/hooks/useEstimates';
 
@@ -12,6 +12,7 @@ interface EstimateCardProps {
   onDelete: (estimate: Estimate) => void;
   onPreview: (estimate: Estimate) => void;
   onStatusChange: (estimateId: string, status: Estimate['status']) => void;
+  onConvertToProject?: (estimate: Estimate) => void;
 }
 
 export const EstimateCard = ({
@@ -19,7 +20,8 @@ export const EstimateCard = ({
   onEdit,
   onDelete,
   onPreview,
-  onStatusChange
+  onStatusChange,
+  onConvertToProject
 }: EstimateCardProps) => {
 
   const formatCurrency = (amount: number) => {
@@ -77,6 +79,12 @@ export const EstimateCard = ({
                 <Edit2 size={16} className="mr-2" />
                 Edit
               </DropdownMenuItem>
+              {estimate.status === 'accepted' && !estimate.project_id && onConvertToProject && (
+                <DropdownMenuItem onClick={() => onConvertToProject(estimate)}>
+                  <FolderPlus size={16} className="mr-2" />
+                  Convert to Project
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => onDelete(estimate)}
