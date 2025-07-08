@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Eye, Edit2, Trash2, MoreVertical, Send, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
 import type { Estimate } from '@/hooks/useEstimates';
 
@@ -77,24 +77,6 @@ export const EstimateCard = ({
                 <Edit2 size={16} className="mr-2" />
                 Edit
               </DropdownMenuItem>
-              {estimate.status === 'draft' && (
-                <DropdownMenuItem onClick={() => onStatusChange(estimate.id, 'sent')}>
-                  <Send size={16} className="mr-2" />
-                  Send to Client
-                </DropdownMenuItem>
-              )}
-              {estimate.status === 'sent' && (
-                <>
-                  <DropdownMenuItem onClick={() => onStatusChange(estimate.id, 'accepted')}>
-                    <CheckCircle size={16} className="mr-2" />
-                    Mark Accepted
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onStatusChange(estimate.id, 'declined')}>
-                    <XCircle size={16} className="mr-2" />
-                    Mark Declined
-                  </DropdownMenuItem>
-                </>
-              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => onDelete(estimate)}
@@ -118,7 +100,7 @@ export const EstimateCard = ({
               currentStatus={estimate.status}
               onStatusChange={(newStatus) => onStatusChange(estimate.id, newStatus as Estimate['status'])}
               size="sm"
-              showAsDropdown={false}
+              showAsDropdown={true}
             />
           </div>
 
