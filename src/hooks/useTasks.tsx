@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Task } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,10 +130,22 @@ export const useTasks = (options: UseTasksOptions = {}) => {
     }
   }, [isSessionReady]);
 
-  // Handle real-time updates using centralized subscription manager
+  // Debounce timer for real-time updates
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle real-time updates using centralized subscription manager with debouncing
   const handleTasksUpdate = useCallback((payload: any) => {
     console.log('Tasks change detected:', payload);
-    fetchTasks();
+    
+    // Clear existing debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Debounce real-time updates to prevent excessive refetching
+    debounceTimerRef.current = setTimeout(() => {
+      fetchTasks();
+    }, 300);
   }, [fetchTasks]);
 
   // Use centralized subscription management for tasks
@@ -248,8 +260,64 @@ export const useTasks = (options: UseTasksOptions = {}) => {
         }
       }
 
-      // Real-time subscription will handle state update
-      return { data: task, error: null };
+      // Fetch complete task data with all relations for immediate UI update
+      const { data: completeTaskData, error: fetchError } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          assignee:profiles!assignee_id(
+            id,
+            full_name,
+            email,
+            avatar_url
+          ),
+          project:projects!project_id(
+            id,
+            name,
+            status,
+            phase,
+            unified_lifecycle_status
+          ),
+          assigned_stakeholder:stakeholders!assigned_stakeholder_id(
+            id,
+            contact_person,
+            company_name,
+            stakeholder_type
+          ),
+          stakeholder_assignments:task_stakeholder_assignments(
+            id,
+            assignment_role,
+            status,
+            stakeholder:stakeholders(
+              id,
+              contact_person,
+              company_name,
+              stakeholder_type
+            )
+          )
+        `)
+        .eq('id', task.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Failed to fetch complete task data:', fetchError);
+        // Fallback to basic task data
+        return { data: task, error: null };
+      }
+
+      // Map the data to match our EnhancedTask type
+      const mappedTask = {
+        ...completeTaskData,
+        task_type: completeTaskData.task_type === 'punch_list' ? 'punch_list' as const : 'regular' as const,
+        stakeholder_assignments: (completeTaskData.stakeholder_assignments || []).filter(
+          (assignment: any) => assignment.status === 'active'
+        )
+      } as EnhancedTask;
+
+      // Update local state immediately for instant UI feedback
+      setTasks(currentTasks => [mappedTask, ...currentTasks]);
+
+      return { data: mappedTask, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create task';
       console.error('Error creating task:', err);
