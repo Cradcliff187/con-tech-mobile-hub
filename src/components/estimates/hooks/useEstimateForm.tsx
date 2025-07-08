@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEstimates } from '@/hooks/useEstimates';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,6 +49,25 @@ export const useEstimateForm = ({
 
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
+
+  // Update form data when defaultData or estimateId changes
+  useEffect(() => {
+    if (defaultData) {
+      setFormData({
+        stakeholder_id: defaultData.stakeholder_id || '',
+        title: defaultData.title || '',
+        description: defaultData.description || '',
+        amount: defaultData.amount || 0,
+        labor_cost: defaultData.labor_cost || 0,
+        material_cost: defaultData.material_cost || 0,
+        equipment_cost: defaultData.equipment_cost || 0,
+        markup_percentage: defaultData.markup_percentage || 0,
+        valid_until: defaultData.valid_until || '',
+        terms_and_conditions: defaultData.terms_and_conditions || '',
+        notes: defaultData.notes || ''
+      });
+    }
+  }, [defaultData, estimateId]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
