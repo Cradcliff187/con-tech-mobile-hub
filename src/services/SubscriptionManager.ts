@@ -74,6 +74,7 @@ export class SubscriptionManager {
   private static instance: SubscriptionManager;
   private channels = new Map<string, ChannelConfig>();
   private channelRegistry = new Map<string, boolean>(); // Global channel registry
+  private subscribingTables = new Set<string>(); // Mutex-like locking for concurrent subscription prevention
   private debounceTimers = new Map<string, NodeJS.Timeout>();
   private lastSubscriptionCall = new Map<string, number>();
   private readonly startTime = Date.now();
@@ -81,10 +82,10 @@ export class SubscriptionManager {
   // Configuration constants
   private readonly DEBOUNCE_DELAY = 100; // ms
   private readonly MAX_RETRIES = 5;
-  private readonly BASE_RETRY_DELAY = 100; // ms
+  private readonly BASE_RETRY_DELAY = 500; // ms - increased for less aggressive retries
   private readonly MAX_RETRY_DELAY = 5000; // ms
   private readonly CLEANUP_TIMEOUT = 30000; // ms
-  private readonly STRICTMODE_DETECTION_WINDOW = 50; // ms
+  private readonly STRICTMODE_DETECTION_WINDOW = 100; // ms - synchronized with DEBOUNCE_DELAY
 
   private constructor() {
     this.setupGlobalErrorHandling();
@@ -233,63 +234,90 @@ export class SubscriptionManager {
     onStateChange?: (state: SubscriptionState, error?: string) => void,
     maxRetries: number = this.MAX_RETRIES
   ): Promise<void> {
-    // Check global channel registry to prevent conflicts
-    if (this.channelRegistry.get(tableName)) {
-      this.log('WARN', `Channel conflict detected for ${tableName}, using existing channel`);
-    }
-
-    let config = this.channels.get(tableName);
-
-    if (config) {
-      // Prevent concurrent subscription attempts
-      if (config.isSubscribing) {
-        this.log('WARN', `Subscription already in progress for ${tableName}, queueing callback`);
-        setTimeout(() => {
-          config?.callbacks.add(callback);
-          if (config?.state === 'SUBSCRIBED') {
-            onStateChange?.('SUBSCRIBED');
-          }
-        }, 50);
-        return;
-      }
-
-      // Add callback to existing subscription
-      config.callbacks.add(callback);
-      this.log('DEBUG', `Added callback to existing subscription for ${tableName}`);
-      
-      if (config.state === 'SUBSCRIBED') {
-        onStateChange?.('SUBSCRIBED');
-      } else if (config.state === 'ERROR' && config.retryCount < maxRetries) {
-        // Retry failed subscription
-        await this.retrySubscription(tableName, onStateChange);
+    // MUTEX CHECK: Prevent concurrent subscription attempts to same table
+    if (this.subscribingTables.has(tableName)) {
+      this.log('WARN', `Subscription already in progress for ${tableName}, skipping duplicate attempt`);
+      // Queue callback to existing subscription if it exists
+      const config = this.channels.get(tableName);
+      if (config) {
+        config.callbacks.add(callback);
+        if (config.state === 'SUBSCRIBED') {
+          onStateChange?.('SUBSCRIBED');
+        }
       }
       return;
     }
 
-    // Mark channel in registry
-    this.channelRegistry.set(tableName, true);
-
-    // Create new subscription
-    const channelName = this.generateChannelName(tableName, userId);
-    const channel = supabase.channel(channelName);
-
-    config = {
-      channel,
-      tableName,
-      callbacks: new Set([callback]),
-      state: 'CONNECTING',
-      retryCount: 0,
-      createdAt: Date.now(),
-      userId,
-      isSubscribing: true // Set to true immediately to prevent race conditions
-    };
-
-    this.channels.set(tableName, config);
-    onStateChange?.('CONNECTING');
-
-    this.log('DEBUG', `Creating new subscription for ${tableName} with channel: ${channelName}`);
+    // IMMEDIATELY add to subscribing tables to prevent race conditions
+    this.subscribingTables.add(tableName);
 
     try {
+      // Check if channel already exists (different from subscribing state)
+      if (this.channelRegistry.has(tableName)) {
+        this.log('WARN', `Channel already exists for ${tableName}, preventing duplicate`);
+        const config = this.channels.get(tableName);
+        if (config) {
+          config.callbacks.add(callback);
+          if (config.state === 'SUBSCRIBED') {
+            onStateChange?.('SUBSCRIBED');
+          } else if (config.state === 'ERROR' && config.retryCount < maxRetries) {
+            await this.retrySubscription(tableName, onStateChange);
+          }
+          return;
+        }
+      }
+
+      let config = this.channels.get(tableName);
+
+      if (config) {
+        // Prevent concurrent subscription attempts
+        if (config.isSubscribing) {
+          this.log('WARN', `Subscription already in progress for ${tableName}, queueing callback`);
+          setTimeout(() => {
+            config?.callbacks.add(callback);
+            if (config?.state === 'SUBSCRIBED') {
+              onStateChange?.('SUBSCRIBED');
+            }
+          }, 50);
+          return;
+        }
+
+        // Add callback to existing subscription
+        config.callbacks.add(callback);
+        this.log('DEBUG', `Added callback to existing subscription for ${tableName}`);
+        
+        if (config.state === 'SUBSCRIBED') {
+          onStateChange?.('SUBSCRIBED');
+        } else if (config.state === 'ERROR' && config.retryCount < maxRetries) {
+          // Retry failed subscription
+          await this.retrySubscription(tableName, onStateChange);
+        }
+        return;
+      }
+
+      // Mark channel in registry
+      this.channelRegistry.set(tableName, true);
+
+      // Create new subscription
+      const channelName = this.generateChannelName(tableName, userId);
+      const channel = supabase.channel(channelName);
+
+      config = {
+        channel,
+        tableName,
+        callbacks: new Set([callback]),
+        state: 'CONNECTING',
+        retryCount: 0,
+        createdAt: Date.now(),
+        userId,
+        isSubscribing: true // Set to true immediately to prevent race conditions
+      };
+
+      this.channels.set(tableName, config);
+      onStateChange?.('CONNECTING');
+
+      this.log('DEBUG', `Creating new subscription for ${tableName} with channel: ${channelName}`);
+
       // Set up postgres changes listener with proper await
       const subscription = channel
         .on('postgres_changes', {
@@ -321,11 +349,17 @@ export class SubscriptionManager {
       });
 
     } catch (error) {
-      config.isSubscribing = false;
-      config.state = 'ERROR';
-      config.lastError = error instanceof Error ? error.message : 'Unknown subscription error';
+      const config = this.channels.get(tableName);
+      if (config) {
+        config.isSubscribing = false;
+        config.state = 'ERROR';
+        config.lastError = error instanceof Error ? error.message : 'Unknown subscription error';
+      }
       this.log('ERROR', `Subscription setup failed for ${tableName}:`, error);
-      onStateChange?.('ERROR', config.lastError);
+      onStateChange?.('ERROR', error instanceof Error ? error.message : 'Unknown subscription error');
+    } finally {
+      // ALWAYS remove from subscribing tables in finally block
+      this.subscribingTables.delete(tableName);
     }
   }
 
