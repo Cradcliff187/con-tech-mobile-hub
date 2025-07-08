@@ -44,6 +44,22 @@ interface SubscriptionStats {
 }
 
 /**
+ * Health status information for a subscription channel
+ */
+interface ChannelHealth {
+  isHealthy: boolean;
+  tableName: string;
+  state: SubscriptionState;
+  callbackCount: number;
+  hasError: boolean;
+  lastError?: string;
+  retryCount: number;
+  uptimeMs: number;
+  subscribedMs?: number;
+  issues: string[];
+}
+
+/**
  * Centralized subscription manager for Supabase real-time subscriptions.
  * 
  * This singleton service prevents duplicate subscriptions, manages channel lifecycle,
@@ -221,6 +237,98 @@ export class SubscriptionManager {
     this.debounceTimers.clear();
     
     this.log('INFO', 'Forced cleanup completed');
+  }
+
+  /**
+   * Get health status for a specific subscription channel
+   * 
+   * @param tableName - The table name to check health for
+   * @returns ChannelHealth object with detailed health information, or null if channel doesn't exist
+   */
+  public getChannelHealth(tableName: string): ChannelHealth | null {
+    const config = this.channels.get(tableName);
+    if (!config) {
+      return null;
+    }
+
+    const now = Date.now();
+    const issues: string[] = [];
+    
+    // Check health criteria
+    const isSubscribed = config.state === 'SUBSCRIBED';
+    const hasCallbacks = config.callbacks.size > 0;
+    const hasError = config.state === 'ERROR' || !!config.lastError;
+    
+    if (!isSubscribed) {
+      issues.push(`Not in SUBSCRIBED state (current: ${config.state})`);
+    }
+    
+    if (!hasCallbacks) {
+      issues.push('No active callbacks');
+    }
+    
+    if (hasError && config.lastError) {
+      issues.push(`Has error: ${config.lastError}`);
+    }
+    
+    if (config.retryCount > 0) {
+      issues.push(`Has retry attempts: ${config.retryCount}`);
+    }
+
+    const isHealthy = isSubscribed && hasCallbacks && !hasError;
+
+    return {
+      isHealthy,
+      tableName: config.tableName,
+      state: config.state,
+      callbackCount: config.callbacks.size,
+      hasError,
+      lastError: config.lastError,
+      retryCount: config.retryCount,
+      uptimeMs: now - config.createdAt,
+      subscribedMs: config.subscribedAt ? now - config.subscribedAt : undefined,
+      issues
+    };
+  }
+
+  /**
+   * Check if all active subscriptions are healthy
+   * 
+   * @returns true if all subscriptions are healthy, false if any are unhealthy
+   */
+  public isHealthy(): boolean {
+    // If no subscriptions exist, consider it healthy (no problems)
+    if (this.channels.size === 0) {
+      return true;
+    }
+
+    // Check each subscription's health
+    for (const tableName of this.channels.keys()) {
+      const health = this.getChannelHealth(tableName);
+      if (health && !health.isHealthy) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get all unhealthy subscription channels
+   * 
+   * @returns Array of unhealthy channels with their health details
+   */
+  public getUnhealthyChannels(): Array<{ tableName: string; health: ChannelHealth }> {
+    const unhealthyChannels: Array<{ tableName: string; health: ChannelHealth }> = [];
+
+    for (const tableName of this.channels.keys()) {
+      const health = this.getChannelHealth(tableName);
+      if (health && !health.isHealthy) {
+        unhealthyChannels.push({ tableName, health });
+      }
+    }
+
+    return unhealthyChannels;
   }
 
   /**
