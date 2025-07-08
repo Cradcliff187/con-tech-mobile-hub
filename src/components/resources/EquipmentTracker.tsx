@@ -1,7 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { useEquipment, Equipment } from '@/hooks/useEquipment';
-import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
+import { useMaintenanceTasksContext } from '@/contexts/MaintenanceTasksContext';
 import { CreateEquipmentDialog } from './CreateEquipmentDialog';
 import { EditEquipmentDialog } from './EditEquipmentDialog';
 import { ImportEquipmentDialog } from './ImportEquipmentDialog';
@@ -17,7 +17,7 @@ import { KeyboardShortcuts } from '@/components/common/KeyboardShortcuts';
 
 export const EquipmentTracker = () => {
   const { equipment, loading, refetch } = useEquipment();
-  const { tasks: maintenanceTasks } = useMaintenanceTasks();
+  const { tasks: maintenanceTasks } = useMaintenanceTasksContext();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);

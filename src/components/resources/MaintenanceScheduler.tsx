@@ -7,7 +7,7 @@ import { Calendar, Clock, Wrench, AlertTriangle, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Equipment } from '@/hooks/useEquipment';
 import { MaintenanceTask } from '@/types/maintenance';
-import { useMaintenanceTasks } from '@/hooks/useMaintenanceTasks';
+import { useMaintenanceTasksContext } from '@/contexts/MaintenanceTasksContext';
 import { useMaintenanceSchedules } from '@/hooks/useMaintenanceSchedules';
 import { useMaintenanceHistory } from '@/hooks/useMaintenanceHistory';
 import { MaintenanceTaskCard } from './maintenance/MaintenanceTaskCard';
@@ -83,7 +83,7 @@ export const MaintenanceScheduler = ({
   const [selectedTab, setSelectedTab] = useState('overview');
   const { schedules } = useMaintenanceSchedules();
   const { history } = useMaintenanceHistory();
-  const { createTask, updateTask, completeTask } = useMaintenanceTasks();
+  const { createTask, updateTask, completeTask } = useMaintenanceTasksContext();
 
   // Calculate maintenance statistics
   const totalTasks = maintenanceTasks.length;
