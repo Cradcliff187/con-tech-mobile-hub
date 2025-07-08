@@ -5,6 +5,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Task } from '@/types/database';
+
+// Enhanced task type with assignments
+interface EnhancedTask extends Task {
+  stakeholder_assignments?: Array<{
+    id: string;
+    stakeholder: {
+      id: string;
+      contact_person?: string;
+      company_name?: string;
+      stakeholder_type: string;
+    };
+    assignment_role?: string;
+    status: string;
+  }>;
+}
 import { TaskDocumentAttachments } from './TaskDocumentAttachments';
 import { ProjectContextPanel } from './ProjectContextPanel';
 import { SmartStakeholderAssignment } from './SmartStakeholderAssignment';
@@ -18,10 +33,10 @@ import { Edit, Users, Building2, AlertTriangle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface TaskDetailsDialogProps {
-  task: Task | null;
+  task: EnhancedTask | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEditRequest?: (task: Task) => void;
+  onEditRequest?: (task: EnhancedTask) => void;
 }
 
 export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ 
@@ -39,15 +54,20 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
   if (!task) return null;
 
   const project = projects.find(p => p.id === task.project_id);
-  const assignedStakeholders = stakeholders.filter(s => 
-    s.id === task.assigned_stakeholder_id || 
-    (task.assigned_stakeholder_ids && task.assigned_stakeholder_ids.includes(s.id))
-  );
+  
+  // Use junction table data instead of legacy fields
+  const activeAssignments = task.stakeholder_assignments?.filter(
+    assignment => assignment.status === 'active'
+  ) || [];
+  
+  const assignedStakeholders = activeAssignments.map(assignment => ({
+    ...assignment.stakeholder,
+    assignment_role: assignment.assignment_role
+  }));
 
-  const existingAssignments = [
-    ...(task.assigned_stakeholder_id ? [task.assigned_stakeholder_id] : []),
-    ...(task.assigned_stakeholder_ids || [])
-  ];
+  const existingAssignments = activeAssignments.map(
+    assignment => assignment.stakeholder.id
+  );
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -172,21 +192,21 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                   </div>
                 )}
 
-                {/* Current Assignments */}
-                {assignedStakeholders.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-slate-600">Assigned Stakeholders</label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSmartReassignment(!showSmartReassignment)}
-                        className="flex items-center gap-2"
-                      >
-                        <Users className="h-4 w-4" />
-                        {showSmartReassignment ? 'Hide' : 'Smart'} Reassignment
-                      </Button>
-                    </div>
+                 {/* Assignment Section - Always Show */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-slate-600">Assigned Stakeholders</label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSmartReassignment(!showSmartReassignment)}
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      {showSmartReassignment ? 'Hide' : 'Smart'} Reassignment
+                    </Button>
+                  </div>
+                  {assignedStakeholders.length > 0 ? (
                     <div className="space-y-2">
                       {assignedStakeholders.map((stakeholder) => (
                         <div key={stakeholder.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
@@ -195,7 +215,8 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                               {stakeholder.company_name || stakeholder.contact_person}
                             </div>
                             <div className="text-sm text-slate-600">
-                              {stakeholder.stakeholder_type} • {stakeholder.status}
+                              {stakeholder.stakeholder_type}
+                              {stakeholder.assignment_role && ` • ${stakeholder.assignment_role}`}
                             </div>
                           </div>
                           <Badge variant="outline" className="text-xs">
@@ -204,8 +225,12 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <span className="text-sm text-slate-500">No stakeholders assigned</span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Smart Reassignment Panel */}
                 {showSmartReassignment && (
