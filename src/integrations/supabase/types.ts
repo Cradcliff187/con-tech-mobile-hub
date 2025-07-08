@@ -852,6 +852,7 @@ export type Database = {
           description: string | null
           equipment_cost: number | null
           estimate_number: string
+          gross_margin: number | null
           id: string
           labor_cost: number | null
           markup_percentage: number | null
@@ -875,6 +876,7 @@ export type Database = {
           description?: string | null
           equipment_cost?: number | null
           estimate_number: string
+          gross_margin?: number | null
           id?: string
           labor_cost?: number | null
           markup_percentage?: number | null
@@ -898,6 +900,7 @@ export type Database = {
           description?: string | null
           equipment_cost?: number | null
           estimate_number?: string
+          gross_margin?: number | null
           id?: string
           labor_cost?: number | null
           markup_percentage?: number | null
