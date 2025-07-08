@@ -26,6 +26,7 @@ export const EditEstimateDialog = ({
   } = useEstimateForm({
     onSuccess,
     onClose: () => onOpenChange(false),
+    estimateId: estimate?.id,
     defaultData: estimate ? {
       stakeholder_id: estimate.stakeholder_id,
       title: estimate.title,

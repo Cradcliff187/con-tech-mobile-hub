@@ -20,12 +20,14 @@ interface UseEstimateFormProps {
   onSuccess?: () => void;
   onClose?: () => void;
   defaultData?: Partial<EstimateFormData>;
+  estimateId?: string;
 }
 
 export const useEstimateForm = ({
   onSuccess,
   onClose,
-  defaultData
+  defaultData,
+  estimateId
 }: UseEstimateFormProps) => {
   const { createEstimate, updateEstimate } = useEstimates();
   const { toast } = useToast();
@@ -107,12 +109,16 @@ export const useEstimateForm = ({
         markup_percentage: formData.markup_percentage || undefined
       };
 
-      const { error } = await createEstimate(submitData);
+      const { error } = estimateId 
+        ? await updateEstimate(estimateId, submitData)
+        : await createEstimate(submitData);
       
       if (error) {
         toast({
           title: "Error",
-          description: "Failed to create estimate. Please try again.",
+          description: estimateId 
+            ? "Failed to update estimate. Please try again."
+            : "Failed to create estimate. Please try again.",
           variant: "destructive"
         });
         return;
@@ -120,13 +126,15 @@ export const useEstimateForm = ({
 
       toast({
         title: "Success",
-        description: "Estimate created successfully"
+        description: estimateId 
+          ? "Estimate updated successfully"
+          : "Estimate created successfully"
       });
       
       onSuccess?.();
       onClose?.();
     } catch (error) {
-      console.error('Error creating estimate:', error);
+      console.error(`Error ${estimateId ? 'updating' : 'creating'} estimate:`, error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
