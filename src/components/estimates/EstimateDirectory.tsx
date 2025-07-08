@@ -2,7 +2,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { useEstimates } from '@/hooks/useEstimates';
 import { useStakeholders } from '@/hooks/useStakeholders';
 import { EstimateCard } from './EstimateCard';
+import { EstimateList } from './EstimateList';
 import { EstimateFilters } from './EstimateFilters';
+import { ViewToggle } from '@/components/stakeholders/ViewToggle';
 import { EditEstimateDialog } from './EditEstimateDialog';
 import { DeleteEstimateDialog } from './DeleteEstimateDialog';
 import { EstimatePreviewDialog } from './EstimatePreviewDialog';
@@ -27,6 +29,9 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
   const [stakeholderFilter, setStakeholderFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'title' | 'amount' | 'status' | 'created'>('created');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem('estimate-view') as 'grid' | 'list') || 'grid';
+  });
 
   // Dialog states
   const [editEstimate, setEditEstimate] = useState<Estimate | null>(null);
@@ -69,6 +74,11 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
     onRefetch?.();
     setConvertEstimate(null);
   }, [onRefetch]);
+
+  const handleViewChange = useCallback((newView: 'grid' | 'list') => {
+    setView(newView);
+    localStorage.setItem('estimate-view', newView);
+  }, []);
 
 
   // Stabilize filter and sort dependencies
@@ -155,8 +165,9 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">Estimate Directory</h2>
+        <ViewToggle view={view} onViewChange={handleViewChange} />
       </div>
 
       {/* Search and Filters */}
@@ -180,32 +191,34 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
             stakeholders={stakeholders}
           />
           
-          <div className="flex items-center gap-2">
-            <Button
-              variant={sortBy === 'title' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('title')}
-              className="min-h-[36px]"
-            >
-              Title {sortBy === 'title' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
-            </Button>
-            <Button
-              variant={sortBy === 'amount' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('amount')}
-              className="min-h-[36px]"
-            >
-              Amount {sortBy === 'amount' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
-            </Button>
-            <Button
-              variant={sortBy === 'status' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('status')}
-              className="min-h-[36px]"
-            >
-              Status {sortBy === 'status' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
-            </Button>
-          </div>
+          {view === 'grid' && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={sortBy === 'title' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('title')}
+                className="min-h-[36px]"
+              >
+                Title {sortBy === 'title' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
+              <Button
+                variant={sortBy === 'amount' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('amount')}
+                className="min-h-[36px]"
+              >
+                Amount {sortBy === 'amount' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
+              <Button
+                variant={sortBy === 'status' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('status')}
+                className="min-h-[36px]"
+              >
+                Status {sortBy === 'status' && (sortOrder === 'asc' ? <SortAsc size={16} className="ml-1" /> : <SortDesc size={16} className="ml-1" />)}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -253,6 +266,16 @@ export const EstimateDirectory = ({ onRefetch }: EstimateDirectoryProps) => {
                 ]
               : []
           }
+        />
+      ) : view === 'list' ? (
+        <EstimateList
+          estimates={filteredAndSortedEstimates}
+          loading={loading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onPreview={handlePreview}
+          onStatusChange={handleStatusChange}
+          onConvertToProject={handleConvertToProject}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
