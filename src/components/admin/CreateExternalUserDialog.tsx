@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Copy, Eye, EyeOff } from 'lucide-react';
 import { prepareOptionalSelectField } from '@/utils/selectHelpers';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateExternalUserDialogProps {
   open: boolean;
@@ -41,6 +42,34 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
 
     if (!error && generatedPassword) {
       setTempPassword(generatedPassword);
+      
+      // Send welcome email to user and admin notification
+      try {
+        const [welcomeResponse, adminResponse] = await Promise.all([
+          supabase.functions.invoke('send-welcome-email', {
+            body: {
+              userEmail: formData.email,
+              userName: formData.full_name || formData.email.split('@')[0],
+              temporaryPassword: generatedPassword,
+              userRole: formData.role
+            }
+          }),
+          supabase.functions.invoke('send-admin-notification', {
+            body: {
+              userEmail: formData.email,
+              userName: formData.full_name || formData.email.split('@')[0],
+              userRole: formData.role,
+              createdBy: 'Admin Panel'
+            }
+          })
+        ]);
+
+        console.log('Welcome email response:', welcomeResponse);
+        console.log('Admin notification response:', adminResponse);
+      } catch (emailError) {
+        console.error('Error sending emails:', emailError);
+        // Don't block the user creation flow for email errors
+      }
     }
     
     setLoading(false);
@@ -73,7 +102,7 @@ export const CreateExternalUserDialog = ({ open, onOpenChange }: CreateExternalU
           <div className="space-y-4">
             <Alert>
               <AlertDescription>
-                User account created successfully! Please share these credentials securely with the user.
+                User account created successfully! Welcome email sent to user and admin notification sent to Matt and Chris.
               </AlertDescription>
             </Alert>
             
