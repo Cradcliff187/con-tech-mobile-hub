@@ -18,17 +18,6 @@ export const useStakeholderStatusUpdate = () => {
   ) => {
     const stakeholderId = stakeholder.id;
 
-    // Check if confirmation is needed for sensitive status changes
-    if (showConfirmation && (newStatus === 'suspended' || newStatus === 'inactive')) {
-      const confirmMessage = newStatus === 'suspended' 
-        ? 'This will suspend the stakeholder and may affect active assignments.'
-        : 'This will mark the stakeholder as inactive.';
-      
-      if (!window.confirm(`Are you sure you want to change status to ${newStatus}? ${confirmMessage}`)) {
-        return false;
-      }
-    }
-
     // Add to updating set
     setUpdatingStakeholders(prev => new Set([...prev, stakeholderId]));
 
