@@ -82,25 +82,25 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
     try {
       console.log('Starting stakeholder reassignment:', { taskId: task.id, stakeholderIds });
       
+      // Only include assignment fields, not other task fields
       const updateData: any = {};
       
       if (stakeholderIds.length === 1) {
         updateData.assigned_stakeholder_id = stakeholderIds[0];
-        updateData.assigned_stakeholder_ids = null;
       } else if (stakeholderIds.length > 1) {
-        updateData.assigned_stakeholder_id = null;
         updateData.assigned_stakeholder_ids = stakeholderIds;
       } else {
+        // Clear all assignments
         updateData.assigned_stakeholder_id = null;
-        updateData.assigned_stakeholder_ids = null;
+        updateData.assigned_stakeholder_ids = [];
       }
 
-      console.log('Update data prepared:', updateData);
+      console.log('Assignment update data:', updateData);
 
       const result = await updateTask(task.id, updateData);
       
       if (result.error) {
-        console.error('UpdateTask returned error:', result.error);
+        console.error('Assignment update failed:', result.error);
         throw new Error(result.error);
       }
       
@@ -117,7 +117,7 @@ export const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
       toast({
-        title: "Update Failed", 
+        title: "Assignment Update Failed", 
         description: `Failed to update task assignment: ${errorMessage}`,
         variant: "destructive",
       });

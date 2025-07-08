@@ -262,18 +262,34 @@ export const useTasks = (options: UseTasksOptions = {}) => {
 
     try {
       // Separate assignment updates from task updates
-      const { assigned_stakeholder_id, assigned_stakeholder_ids, ...taskUpdates } = updates;
+      const { assigned_stakeholder_id, assigned_stakeholder_ids, ...rawTaskUpdates } = updates;
 
-      // Update task data first
-      const { data, error } = await supabase
-        .from('tasks')
-        .update(taskUpdates)
-        .eq('id', id)
-        .select()
-        .single();
+      // Filter to only include valid task table columns
+      const validTaskFields = [
+        'title', 'description', 'status', 'priority', 'due_date', 'start_date',
+        'category', 'estimated_hours', 'actual_hours', 'progress', 'assignee_id',
+        'task_type', 'required_skills', 'punch_list_category', 'converted_from_task_id',
+        'inspection_status'
+      ];
 
-      if (error) {
-        throw new Error(`Failed to update task: ${error.message}`);
+      const taskUpdates = Object.fromEntries(
+        Object.entries(rawTaskUpdates).filter(([key]) => validTaskFields.includes(key))
+      );
+
+      // Only update task if there are valid task fields to update
+      let data = null;
+      if (Object.keys(taskUpdates).length > 0) {
+        const { data: taskData, error } = await supabase
+          .from('tasks')
+          .update(taskUpdates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(`Failed to update task: ${error.message}`);
+        }
+        data = taskData;
       }
 
       // Handle assignment updates if provided
