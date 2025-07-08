@@ -212,9 +212,9 @@ export const StakeholderDirectory = ({ onRefetch }: StakeholderDirectoryProps) =
             onLeadStatusFilterChange={setLeadStatusFilter}
           />
           
-          {view !== 'pipeline' && (
+          {view !== 'pipeline' && view !== 'list' && (
           <div className="flex items-center gap-4">
-            {/* Sort Controls */}
+            {/* Sort Controls - Hidden in list view since DataTable handles column sorting */}
             <div className="flex gap-2">
               <Button
                 variant={sortBy === 'name' ? 'default' : 'outline'}

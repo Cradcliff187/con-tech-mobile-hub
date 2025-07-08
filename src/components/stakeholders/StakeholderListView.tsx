@@ -246,8 +246,8 @@ export const StakeholderListView = ({
         data={stakeholders}
         columns={columns}
         loading={loading}
-        searchable
-        filterable
+        searchable={false}
+        filterable={false}
         pagination
         pageSize={10}
         actions={renderActions}
