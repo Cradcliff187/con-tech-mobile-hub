@@ -14,7 +14,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Users, Mail, Phone, Edit, Trash2, UserPlus, Eye, MoreHorizontal, UserCheck } from 'lucide-react';
 import { StakeholderDetail } from './StakeholderDetail';
+import { GlobalStatusDropdown } from '@/components/ui/global-status-dropdown';
+import { useStakeholderStatusUpdate } from '@/hooks/useStakeholderStatusUpdate';
 import type { Stakeholder } from '@/types/database';
+import type { Stakeholder as StakeholderHook } from '@/hooks/useStakeholders';
 
 interface StakeholderListViewProps {
   stakeholders: Stakeholder[];
@@ -35,6 +38,7 @@ export const StakeholderListView = ({
 }: StakeholderListViewProps) => {
   const [selectedStakeholder, setSelectedStakeholder] = useState<Stakeholder | null>(null);
   const [viewDetailsStakeholder, setViewDetailsStakeholder] = useState<Stakeholder | null>(null);
+  const { updateStakeholderStatus, isUpdating } = useStakeholderStatusUpdate();
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -119,7 +123,16 @@ export const StakeholderListView = ({
     {
       key: 'status',
       header: 'Status',
-      accessor: (stakeholder) => getStatusBadge(stakeholder.status),
+      accessor: (stakeholder) => (
+        <GlobalStatusDropdown
+          entityType="stakeholder"
+          currentStatus={stakeholder.status}
+          onStatusChange={(newStatus) => handleStatusChange(stakeholder, newStatus)}
+          isUpdating={isUpdating(stakeholder.id)}
+          size="sm"
+          confirmCriticalChanges={true}
+        />
+      ),
       filterable: true,
       mobileLabel: 'Status'
     },
@@ -152,6 +165,10 @@ export const StakeholderListView = ({
 
   const handleViewDetails = (stakeholder: Stakeholder) => {
     setViewDetailsStakeholder(stakeholder);
+  };
+
+  const handleStatusChange = async (stakeholder: Stakeholder, newStatus: string) => {
+    await updateStakeholderStatus(stakeholder as StakeholderHook, newStatus as any, true);
   };
 
   const renderActions = (stakeholder: Stakeholder) => (
