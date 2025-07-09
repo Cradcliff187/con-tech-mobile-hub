@@ -3044,6 +3044,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      test_admin_notification: {
+        Args: { test_email: string; test_name: string }
+        Returns: Json
+      }
       update_project_labor_costs: {
         Args: { target_project_id: string }
         Returns: undefined
