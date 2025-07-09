@@ -61,7 +61,7 @@ serve(async (req) => {
               </div>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${Deno.env.get('SUPABASE_URL')?.replace('https://jjmedlilkxmrbacoitio.supabase.co', 'https://jjmedlilkxmrbacoitio.lovable.app')}/admin" 
+                <a href="https://con-tech-mobile-hub.lovable.app/admin" 
                    style="background: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                   Open Admin Panel
                 </a>
