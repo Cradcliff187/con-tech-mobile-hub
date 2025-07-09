@@ -1,12 +1,13 @@
 
 import { useState } from 'react';
-import { useUserManagement, UserProfile } from '@/hooks/useUserManagement';
+import { useUsers } from '@/hooks/useUsers';
+import { UserProfile } from '@/types/user';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Users, Trash2 } from 'lucide-react';
+import { Shield, Users, Trash2, Loader2 } from 'lucide-react';
 
 interface EditUserDialogProps {
   open: boolean;
@@ -15,38 +16,88 @@ interface EditUserDialogProps {
 }
 
 export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps) => {
-  const { updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
+  const { updateUserRole, updateUserStatus, deleteUser } = useUsers();
   const [formData, setFormData] = useState({
     role: user.role,
     account_status: user.account_status
   });
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [error, setError] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    const promises = [];
+    setError('');
     
-    if (formData.role !== user.role) {
-      promises.push(updateUserRole(user.id, formData.role));
-    }
-    
-    if (formData.account_status !== user.account_status) {
-      promises.push(updateUserStatus(user.id, formData.account_status));
-    }
+    console.log('🔧 [EditUserDialog] Starting user update process', {
+      userId: user.id,
+      originalRole: user.role,
+      newRole: formData.role,
+      originalStatus: user.account_status,
+      newStatus: formData.account_status,
+      roleChanged: formData.role !== user.role,
+      statusChanged: formData.account_status !== user.account_status
+    });
 
-    await Promise.all(promises);
-    setLoading(false);
-    onOpenChange(false);
+    try {
+      const promises = [];
+      
+      if (formData.role !== user.role) {
+        console.log('🔧 [EditUserDialog] Updating user role', { userId: user.id, newRole: formData.role });
+        promises.push(updateUserRole(user.id, formData.role));
+      }
+      
+      if (formData.account_status !== user.account_status) {
+        console.log('🔧 [EditUserDialog] Updating user status', { userId: user.id, newStatus: formData.account_status });
+        promises.push(updateUserStatus(user.id, formData.account_status));
+      }
+
+      if (promises.length === 0) {
+        console.log('🔧 [EditUserDialog] No changes detected, skipping update');
+        setLoading(false);
+        return;
+      }
+
+      const results = await Promise.all(promises);
+      console.log('🔧 [EditUserDialog] Update results:', results);
+      
+      // Check if any operations had errors
+      const hasErrors = results.some(result => result.error);
+      if (hasErrors) {
+        const errorResult = results.find(result => result.error);
+        throw new Error(errorResult?.error?.message || 'One or more updates failed');
+      }
+
+      console.log('✅ [EditUserDialog] All updates successful, closing dialog');
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('❌ [EditUserDialog] Update failed:', error);
+      setError(error.message || 'Failed to update user. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
     setLoading(true);
-    await deleteUser(user.id);
-    setLoading(false);
-    onOpenChange(false);
+    setError('');
+    
+    console.log('🗑️ [EditUserDialog] Starting user deletion', { userId: user.id });
+    
+    try {
+      const result = await deleteUser(user.id);
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to delete user');
+      }
+      console.log('✅ [EditUserDialog] User deleted successfully');
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('❌ [EditUserDialog] Delete failed:', error);
+      setError(error.message || 'Failed to delete user. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getAvailableRoles = () => {
@@ -96,7 +147,14 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                 disabled={loading}
                 className="flex-1"
               >
-                {loading ? 'Deleting...' : 'Yes, Delete User'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Yes, Delete User'
+                )}
               </Button>
               <Button 
                 variant="outline" 
@@ -110,6 +168,11 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label>User Type</Label>
               <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
@@ -183,7 +246,14 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                 disabled={loading || (formData.role === user.role && formData.account_status === user.account_status)}
                 className="flex-1 min-h-[44px] bg-orange-600 hover:bg-orange-700"
               >
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Changes...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
               </Button>
               <Button 
                 type="button" 

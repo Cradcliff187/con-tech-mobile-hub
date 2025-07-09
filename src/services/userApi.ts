@@ -30,26 +30,67 @@ export const userApi = {
   },
 
   async updateUserRole(userId: string, role: string) {
-    const { error } = await supabase.functions.invoke('admin-update-user', {
+    console.log('🔧 [userApi] updateUserRole called', { userId, role });
+    
+    const { data, error } = await supabase.functions.invoke('admin-update-user', {
       body: { userId, updates: { role: role as UserRole } },
     });
-    if (error) throw error;
+    
+    console.log('🔧 [userApi] updateUserRole response:', { data, error });
+    
+    if (error) {
+      console.error('❌ [userApi] updateUserRole failed:', error);
+      throw error;
+    }
+    
     return { error: null };
   },
 
   async updateUserStatus(userId: string, status: string) {
-    const { error } = await supabase.functions.invoke('admin-update-user', {
+    console.log('🔧 [userApi] updateUserStatus called', { userId, status });
+    
+    // Service Role Key Configuration Note:
+    // The admin-update-user Edge Function requires the SUPABASE_SERVICE_ROLE_KEY 
+    // to be configured in the Edge Function environment variables.
+    // This key allows the function to bypass RLS policies when updating user profiles.
+    // The key should NEVER be stored in the database or client-side code.
+    
+    const { data, error } = await supabase.functions.invoke('admin-update-user', {
       body: { userId, updates: { account_status: status } },
     });
-    if (error) throw error;
+    
+    console.log('🔧 [userApi] updateUserStatus response:', { data, error });
+    
+    if (error) {
+      console.error('❌ [userApi] updateUserStatus failed:', error);
+      
+      // Check for specific error types to provide better user feedback
+      if (error.message?.includes('Forbidden')) {
+        throw new Error('You do not have permission to update user status. Please ensure you are logged in as an admin.');
+      } else if (error.message?.includes('service_role_key')) {
+        throw new Error('System configuration error: Service role key not configured. Please contact your system administrator.');
+      }
+      
+      throw error;
+    }
+    
     return { error: null };
   },
 
   async deleteUser(userId: string) {
-    const { error } = await supabase.functions.invoke('admin-delete-user', {
+    console.log('🗑️ [userApi] deleteUser called', { userId });
+    
+    const { data, error } = await supabase.functions.invoke('admin-delete-user', {
       body: { userId },
     });
-    if (error) throw error;
+    
+    console.log('🗑️ [userApi] deleteUser response:', { data, error });
+    
+    if (error) {
+      console.error('❌ [userApi] deleteUser failed:', error);
+      throw error;
+    }
+    
     return { error: null };
   },
 

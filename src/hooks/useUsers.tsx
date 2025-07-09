@@ -24,62 +24,103 @@ export const useUsers = () => {
   };
 
   const updateUserRole = async (userId: string, role: string) => {
+    console.log('🔧 [useUsers] updateUserRole called', { userId, role });
+    
     try {
-      await userApi.updateUserRole(userId, role);
+      const result = await userApi.updateUserRole(userId, role);
+      console.log('✅ [useUsers] updateUserRole API result:', result);
+      
       toast({
         title: "Success",
-        description: "User role updated successfully"
+        description: `User role updated to ${role} successfully`
       });
+      
       await fetchUsers();
       return { error: null };
     } catch (error: any) {
-      console.error('Error updating user role:', error);
+      console.error('❌ [useUsers] updateUserRole failed:', error);
+      
+      // Extract more detailed error information
+      const errorMessage = error.context?.message || error.message || "Failed to update user role";
+      console.error('❌ [useUsers] Detailed error:', { errorMessage, fullError: error });
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to update user role",
+        description: errorMessage,
         variant: "destructive"
       });
-      return { error };
+      
+      return { error: { message: errorMessage } };
     }
   };
 
   const updateUserStatus = async (userId: string, status: string) => {
+    console.log('🔧 [useUsers] updateUserStatus called', { userId, status });
+    
     try {
-      await userApi.updateUserStatus(userId, status);
+      const result = await userApi.updateUserStatus(userId, status);
+      console.log('✅ [useUsers] updateUserStatus API result:', result);
+      
+      // Show specific success message based on status change
+      const statusMessages = {
+        'approved': 'User has been approved and can now access the system',
+        'pending': 'User status set to pending approval',
+        'suspended': 'User access has been suspended',
+        'inactive': 'User account has been deactivated'
+      };
+      
       toast({
         title: "Success",
-        description: "User status updated successfully"
+        description: statusMessages[status as keyof typeof statusMessages] || `User status updated to ${status} successfully`
       });
+      
       await fetchUsers();
       return { error: null };
     } catch (error: any) {
-      console.error('Error updating user status:', error);
+      console.error('❌ [useUsers] updateUserStatus failed:', error);
+      
+      // Extract more detailed error information
+      const errorMessage = error.context?.message || error.message || "Failed to update user status";
+      console.error('❌ [useUsers] Detailed error:', { errorMessage, fullError: error });
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to update user status",
+        title: "Error updating user status",
+        description: errorMessage,
         variant: "destructive"
       });
-      return { error };
+      
+      return { error: { message: errorMessage } };
     }
   };
 
   const deleteUser = async (userId: string) => {
+    console.log('🗑️ [useUsers] deleteUser called', { userId });
+    
     try {
-      await userApi.deleteUser(userId);
+      const result = await userApi.deleteUser(userId);
+      console.log('✅ [useUsers] deleteUser API result:', result);
+      
       toast({
         title: "Success",
-        description: "User deleted successfully"
+        description: "User account has been permanently deleted"
       });
+      
       await fetchUsers();
       return { error: null };
     } catch (error: any) {
-      console.error('Error deleting user:', error);
+      console.error('❌ [useUsers] deleteUser failed:', error);
+      
+      // Extract more detailed error information
+      const errorMessage = error.context?.message || error.message || "Failed to delete user";
+      console.error('❌ [useUsers] Detailed error:', { errorMessage, fullError: error });
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete user",
+        title: "Error deleting user",
+        description: errorMessage,
         variant: "destructive"
       });
-      return { error };
+      
+      return { error: { message: errorMessage } };
     }
   };
 
