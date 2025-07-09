@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Users, Info } from 'lucide-react';
+import { AdminNotificationTest } from '@/components/admin/AdminNotificationTest';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -18,19 +20,35 @@ const Auth = () => {
   const { user, profile, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Handle email confirmation redirect
     const confirmed = searchParams.get('confirmed');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
     if (confirmed === 'true') {
       // Show success message for email confirmation
-      console.log('Email confirmed successfully');
+      toast({
+        title: "Email Confirmed!",
+        description: "Your email has been confirmed successfully. Please sign in to continue.",
+        variant: "default"
+      });
+    }
+    
+    if (error) {
+      toast({
+        title: "Authentication Error",
+        description: errorDescription || "An error occurred during authentication. Please try again.",
+        variant: "destructive"
+      });
     }
 
     if (user && profile && profile.account_status === 'approved') {
       navigate('/');
     }
-  }, [user, profile, navigate, searchParams]);
+  }, [user, profile, navigate, searchParams, toast]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,6 +227,13 @@ const Auth = () => {
             </AlertDescription>
           </Alert>
         </div>
+
+        {/* Admin Test Section - Only show for development/testing */}
+        {(user?.email?.includes('@austinkunzconstruction.com') || process.env.NODE_ENV === 'development') && (
+          <div className="mt-6">
+            <AdminNotificationTest />
+          </div>
+        )}
       </div>
     </div>
   );
