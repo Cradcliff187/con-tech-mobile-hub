@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,20 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { user, profile, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    // Handle email confirmation redirect
+    const confirmed = searchParams.get('confirmed');
+    if (confirmed === 'true') {
+      // Show success message for email confirmation
+      console.log('Email confirmed successfully');
+    }
+
     if (user && profile && profile.account_status === 'approved') {
       navigate('/');
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, navigate, searchParams]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -45,7 +45,8 @@ export const authApi = {
   },
 
   async signUp(email: string, password: string, fullName?: string) {
-    const redirectUrl = `${window.location.origin}/`;
+    // Use the current domain for email confirmation redirect
+    const redirectUrl = `${window.location.origin}/auth?confirmed=true`;
     
     return await supabase.auth.signUp({
       email,
