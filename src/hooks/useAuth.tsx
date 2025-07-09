@@ -40,7 +40,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Use setTimeout to prevent blocking auth state change
       setTimeout(async () => {
         try {
-          const profileData = await authApi.fetchProfile(session.user.id);
+          // First try to get existing profile
+          let profileData = await authApi.fetchProfile(session.user.id);
+          
+          // If no profile exists, create it (robust fallback)
+          if (!profileData) {
+            console.log('No profile found for user, creating one:', session.user.email);
+            profileData = await authApi.createProfileIfMissing(session.user);
+          }
+          
           setProfile(profileData);
           
           if (profileData) {
@@ -55,6 +63,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (profileData.account_status === 'suspended' || profileData.account_status === 'inactive') {
               await supabase.auth.signOut();
             }
+          } else {
+            // Still no profile after creation attempt
+            console.error('Failed to create profile for user:', session.user.email);
+            toast({
+              title: "Profile Creation Failed",
+              description: "Unable to create your profile. Please contact support.",
+              variant: "destructive"
+            });
           }
         } catch (error) {
           console.error('Error loading profile:', error);
