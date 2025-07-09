@@ -23,23 +23,39 @@ Deno.serve(async (req) => {
     
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     if (userError || !user) {
+      console.error('Auth error:', userError)
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     
+    console.log('Authenticated user:', user.id)
+    
+    // Use the regular authenticated client to check if current user is admin
+    // This works because RLS policies allow users to see their own profile
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('role, is_company_user, account_status')
+      .eq('id', user.id)
+      .single()
+
+    console.log('Profile query result:', { profile, profileError })
+
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError)
+      return new Response(JSON.stringify({ error: 'Failed to fetch user profile' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    if (profile.role !== 'admin' || !profile.is_company_user || profile.account_status !== 'approved') {
+      console.error('Access denied for user:', user.id, 'Profile:', profile)
+      return new Response(JSON.stringify({ error: 'Forbidden: Not an admin' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    console.log('Admin verification successful for user:', user.id)
+    
+    // Create service role client for the actual update operation
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
-
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile || profile.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden: Not an admin' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
 
     const { userId, updates } = await req.json()
     if (!userId || !updates) {
@@ -58,16 +74,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     
+    console.log('Attempting to update user:', userId, 'with updates:', sanitizedUpdates)
+    
+    // Use service role client for the actual update (bypasses RLS)
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update(sanitizedUpdates)
       .eq('id', userId)
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error('Update error:', updateError)
+      throw updateError
+    }
 
+    console.log('User updated successfully:', userId, sanitizedUpdates)
     return new Response(JSON.stringify({ message: 'User updated successfully' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
+    console.error('Edge function error:', error)
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
