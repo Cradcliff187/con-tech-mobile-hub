@@ -49,32 +49,72 @@ export const userApi = {
   async updateUserStatus(userId: string, status: string) {
     console.log('🔧 [userApi] updateUserStatus called', { userId, status });
     
-    // Service Role Key Configuration Note:
-    // The admin-update-user Edge Function requires the SUPABASE_SERVICE_ROLE_KEY 
-    // to be configured in the Edge Function environment variables.
-    // This key allows the function to bypass RLS policies when updating user profiles.
-    // The key should NEVER be stored in the database or client-side code.
-    
-    const { data, error } = await supabase.functions.invoke('admin-update-user', {
-      body: { userId, updates: { account_status: status } },
-    });
-    
-    console.log('🔧 [userApi] updateUserStatus response:', { data, error });
-    
-    if (error) {
-      console.error('❌ [userApi] updateUserStatus failed:', error);
+    try {
+      // Service Role Key Configuration Note:
+      // The admin-update-user Edge Function requires the SUPABASE_SERVICE_ROLE_KEY 
+      // to be configured in the Edge Function environment variables.
+      // This key allows the function to bypass RLS policies when updating user profiles.
+      // The key should NEVER be stored in the database or client-side code.
       
-      // Check for specific error types to provide better user feedback
-      if (error.message?.includes('Forbidden')) {
-        throw new Error('You do not have permission to update user status. Please ensure you are logged in as an admin.');
-      } else if (error.message?.includes('service_role_key')) {
-        throw new Error('System configuration error: Service role key not configured. Please contact your system administrator.');
+      const { data, error } = await supabase.functions.invoke('admin-update-user', {
+        body: { 
+          userId, 
+          updates: { account_status: status },
+          operation: 'update_status'
+        },
+      });
+      
+      console.log('✅ [userApi] Edge Function response:', { data, error });
+      
+      if (error) {
+        console.error('❌ [userApi] Edge Function error:', error);
+        
+        // Handle specific error types for better user feedback
+        if (error.message?.includes('Forbidden') || error.message?.includes('403')) {
+          throw new Error('Access denied: You need admin privileges to update user status');
+        } else if (error.message?.includes('service_role_key')) {
+          throw new Error('System configuration error: Admin service not properly configured');
+        } else if (error.message?.includes('User not found')) {
+          throw new Error('User not found: The specified user may have been deleted');
+        } else if (error.message?.includes('Network')) {
+          throw new Error('Network error: Please check your connection and try again');
+        }
+        
+        // Generic error fallback
+        const errorMessage = error.message || 'Edge Function failed to execute';
+        throw new Error(`Failed to update user status: ${errorMessage}`);
       }
       
-      throw error;
+      if (data?.error) {
+        console.error('❌ [userApi] Server error from Edge Function:', data.error);
+        const serverErrorMessage = typeof data.error === 'string' ? data.error : data.error.message || 'Unknown server error';
+        throw new Error(`Server error: ${serverErrorMessage}`);
+      }
+      
+      if (!data?.success && data?.success !== undefined) {
+        console.error('❌ [userApi] Edge Function returned failure:', data);
+        throw new Error('Update operation failed on server');
+      }
+      
+      console.log('✅ [userApi] User status updated successfully');
+      return { data: data?.data || data, error: null };
+      
+    } catch (error: any) {
+      console.error('❌ [userApi] updateUserStatus failed:', error);
+      
+      // Create a structured error with helpful context for debugging
+      const structuredError = {
+        message: error.message || 'Failed to update user status',
+        context: {
+          userId,
+          status,
+          timestamp: new Date().toISOString(),
+          originalError: error
+        }
+      };
+      
+      throw structuredError;
     }
-    
-    return { error: null };
   },
 
   async deleteUser(userId: string) {

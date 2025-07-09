@@ -32,6 +32,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
     
     console.log('🔧 [EditUserDialog] Starting user update process', {
       userId: user.id,
+      userEmail: user.email,
       originalRole: user.role,
       newRole: formData.role,
       originalStatus: user.account_status,
@@ -42,15 +43,18 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
 
     try {
       const promises = [];
+      const operationTypes = [];
       
       if (formData.role !== user.role) {
-        console.log('🔧 [EditUserDialog] Updating user role', { userId: user.id, newRole: formData.role });
+        console.log('🔧 [EditUserDialog] Queuing role update', { userId: user.id, newRole: formData.role });
         promises.push(updateUserRole(user.id, formData.role));
+        operationTypes.push('role');
       }
       
       if (formData.account_status !== user.account_status) {
-        console.log('🔧 [EditUserDialog] Updating user status', { userId: user.id, newStatus: formData.account_status });
+        console.log('🔧 [EditUserDialog] Queuing status update', { userId: user.id, newStatus: formData.account_status });
         promises.push(updateUserStatus(user.id, formData.account_status));
+        operationTypes.push('status');
       }
 
       if (promises.length === 0) {
@@ -59,21 +63,50 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
         return;
       }
 
+      console.log(`🔧 [EditUserDialog] Executing ${promises.length} update(s): ${operationTypes.join(', ')}`);
       const results = await Promise.all(promises);
       console.log('🔧 [EditUserDialog] Update results:', results);
       
       // Check if any operations had errors
       const hasErrors = results.some(result => result.error);
       if (hasErrors) {
-        const errorResult = results.find(result => result.error);
-        throw new Error(errorResult?.error?.message || 'One or more updates failed');
+        const errorResults = results.filter(result => result.error);
+        const errorMessages = errorResults.map(result => result.error?.message || 'Unknown error');
+        const combinedError = `Update failed: ${errorMessages.join('; ')}`;
+        
+        console.error('❌ [EditUserDialog] Some operations failed:', {
+          totalOperations: results.length,
+          failedOperations: errorResults.length,
+          errors: errorMessages
+        });
+        
+        throw new Error(combinedError);
       }
 
       console.log('✅ [EditUserDialog] All updates successful, closing dialog');
-      onOpenChange(false);
+      
+      // Small delay to let toasts show before closing
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 500);
+      
     } catch (error: any) {
-      console.error('❌ [EditUserDialog] Update failed:', error);
-      setError(error.message || 'Failed to update user. Please try again.');
+      console.error('❌ [EditUserDialog] Update process failed:', error);
+      
+      // Set a user-friendly error message
+      const userFriendlyError = error.message || 'Failed to update user. Please check the console for details and try again.';
+      setError(userFriendlyError);
+      
+      // Log additional context for debugging
+      console.error('❌ [EditUserDialog] Error context:', {
+        userId: user.id,
+        userEmail: user.email,
+        attemptedChanges: {
+          role: formData.role !== user.role ? { from: user.role, to: formData.role } : null,
+          status: formData.account_status !== user.account_status ? { from: user.account_status, to: formData.account_status } : null
+        },
+        error: error
+      });
     } finally {
       setLoading(false);
     }

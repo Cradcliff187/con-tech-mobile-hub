@@ -63,33 +63,51 @@ export const useUsers = () => {
       
       // Show specific success message based on status change
       const statusMessages = {
-        'approved': 'User has been approved and can now access the system',
-        'pending': 'User status set to pending approval',
-        'suspended': 'User access has been suspended',
-        'inactive': 'User account has been deactivated'
+        'approved': '✅ User has been approved and can now access the system',
+        'pending': '⏳ User status set to pending approval',
+        'suspended': '🚫 User access has been suspended',
+        'inactive': '💤 User account has been deactivated'
       };
       
       toast({
-        title: "Success",
-        description: statusMessages[status as keyof typeof statusMessages] || `User status updated to ${status} successfully`
+        title: "User Status Updated",
+        description: statusMessages[status as keyof typeof statusMessages] || `User status updated to ${status} successfully`,
+        className: "border-green-500 bg-green-50 text-green-900"
       });
       
+      // Refresh the user list to show updated status
       await fetchUsers();
       return { error: null };
     } catch (error: any) {
       console.error('❌ [useUsers] updateUserStatus failed:', error);
       
-      // Extract more detailed error information
-      const errorMessage = error.context?.message || error.message || "Failed to update user status";
-      console.error('❌ [useUsers] Detailed error:', { errorMessage, fullError: error });
+      // Extract detailed error information with fallbacks
+      let errorMessage = "Failed to update user status";
       
-      toast({
-        title: "Error updating user status",
-        description: errorMessage,
-        variant: "destructive"
+      if (error.context?.message) {
+        errorMessage = error.context.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Add context about what was being attempted
+      const contextualMessage = `Failed to change status to "${status}": ${errorMessage}`;
+      
+      console.error('❌ [useUsers] Detailed error context:', { 
+        errorMessage, 
+        userId, 
+        status, 
+        fullError: error 
       });
       
-      return { error: { message: errorMessage } };
+      toast({
+        title: "❌ Status Update Failed",
+        description: contextualMessage,
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+      
+      return { error: { message: contextualMessage } };
     }
   };
 
