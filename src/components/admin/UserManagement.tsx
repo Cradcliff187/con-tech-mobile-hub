@@ -14,6 +14,13 @@ import { Users, UserPlus, Shield, Clock, CheckCircle, XCircle, Search } from 'lu
 
 export const UserManagement = () => {
   const { users, invitations, loading, updateUserRole, updateUserStatus, deleteUser, refetch } = useUserManagement();
+  
+  const handleQuickStatusChange = async (userId: string, newStatus: string) => {
+    const result = await updateUserStatus(userId, newStatus);
+    if (!result.error) {
+      // Refetch is automatically called by useUserManagement after successful update
+    }
+  };
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -211,16 +218,37 @@ export const UserManagement = () => {
                     {getStatusBadge(user.account_status)}
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setEditDialogOpen(true);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div className="flex gap-2">
+                  {user.account_status === 'pending' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleQuickStatusChange(user.id, 'approved')}
+                    >
+                      Approve
+                    </Button>
+                  )}
+                  {user.account_status === 'approved' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      onClick={() => handleQuickStatusChange(user.id, 'suspended')}
+                    >
+                      Suspend
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setEditDialogOpen(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                </div>
               </div>
             ))}
             {companyUsers.length === 0 && (
@@ -253,6 +281,25 @@ export const UserManagement = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {user.account_status === 'pending' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleQuickStatusChange(user.id, 'approved')}
+                    >
+                      Approve
+                    </Button>
+                  )}
+                  {user.account_status === 'approved' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      onClick={() => handleQuickStatusChange(user.id, 'suspended')}
+                    >
+                      Suspend
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
