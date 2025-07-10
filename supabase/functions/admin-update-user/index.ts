@@ -67,9 +67,17 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Service role key not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
-      serviceRoleKey = typeof settingData.setting_value === 'string' 
-        ? settingData.setting_value 
-        : settingData.setting_value as string;
+      // Extract string value from jsonb field
+      if (typeof settingData.setting_value === 'string') {
+        serviceRoleKey = settingData.setting_value;
+      } else if (settingData.setting_value && typeof settingData.setting_value === 'object') {
+        // If it's stored as jsonb, extract the actual string value
+        serviceRoleKey = String(settingData.setting_value).replace(/^"|"$/g, '');
+      } else {
+        serviceRoleKey = String(settingData.setting_value);
+      }
+      
+      console.log('Service role key extracted from database, length:', serviceRoleKey?.length);
     }
     
     // Create service role client for the actual update operation
