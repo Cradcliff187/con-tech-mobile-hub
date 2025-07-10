@@ -14,13 +14,39 @@ import { Users, UserPlus, Shield, Clock, CheckCircle, XCircle, Search } from 'lu
 
 export const UserManagement = () => {
   const { users, invitations, loading, updateUserRole, updateUserStatus, deleteUser, refetch } = useUserManagement();
+  const [loadingUsers, setLoadingUsers] = useState<Set<string>>(new Set());
   
   const handleQuickStatusChange = async (userId: string, newStatus: string) => {
-    const result = await updateUserStatus(userId, newStatus);
-    if (!result.error) {
-      // Refetch is automatically called by useUserManagement after successful update
+    console.log('🔄 [UserManagement] Starting status change:', { userId, newStatus });
+    
+    // Add user to loading set
+    setLoadingUsers(prev => new Set([...prev, userId]));
+    
+    try {
+      console.log('📞 [UserManagement] Calling updateUserStatus...');
+      const result = await updateUserStatus(userId, newStatus);
+      
+      console.log('📋 [UserManagement] UpdateUserStatus result:', result);
+      
+      if (result?.error) {
+        console.error('❌ [UserManagement] Status update failed:', result.error);
+        // Error toast is already handled by useUsers hook
+      } else {
+        console.log('✅ [UserManagement] Status update successful');
+        // Success toast is already handled by useUsers hook
+      }
+    } catch (error) {
+      console.error('💥 [UserManagement] Unexpected error in handleQuickStatusChange:', error);
+    } finally {
+      // Remove user from loading set
+      setLoadingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
     }
   };
+  
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -224,8 +250,9 @@ export const UserManagement = () => {
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => handleQuickStatusChange(user.id, 'approved')}
+                      disabled={loadingUsers.has(user.id)}
                     >
-                      Approve
+                      {loadingUsers.has(user.id) ? 'Approving...' : 'Approve'}
                     </Button>
                   )}
                   {user.account_status === 'approved' && (
@@ -234,8 +261,9 @@ export const UserManagement = () => {
                       variant="outline"
                       className="border-red-300 text-red-700 hover:bg-red-50"
                       onClick={() => handleQuickStatusChange(user.id, 'suspended')}
+                      disabled={loadingUsers.has(user.id)}
                     >
-                      Suspend
+                      {loadingUsers.has(user.id) ? 'Suspending...' : 'Suspend'}
                     </Button>
                   )}
                   <Button
@@ -286,8 +314,9 @@ export const UserManagement = () => {
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => handleQuickStatusChange(user.id, 'approved')}
+                      disabled={loadingUsers.has(user.id)}
                     >
-                      Approve
+                      {loadingUsers.has(user.id) ? 'Approving...' : 'Approve'}
                     </Button>
                   )}
                   {user.account_status === 'approved' && (
@@ -296,8 +325,9 @@ export const UserManagement = () => {
                       variant="outline"
                       className="border-red-300 text-red-700 hover:bg-red-50"
                       onClick={() => handleQuickStatusChange(user.id, 'suspended')}
+                      disabled={loadingUsers.has(user.id)}
                     >
-                      Suspend
+                      {loadingUsers.has(user.id) ? 'Suspending...' : 'Suspend'}
                     </Button>
                   )}
                   <Button
