@@ -51,10 +51,31 @@ Deno.serve(async (req) => {
 
     console.log('Admin verification successful for user:', user.id)
     
+    // Get service role key from environment or database
+    let serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!serviceRoleKey) {
+      console.log('Service role key not found in environment, fetching from database...');
+      const { data: settingData, error: settingError } = await supabaseClient
+        .from('company_settings')
+        .select('setting_value')
+        .eq('setting_key', 'service_role_key')
+        .single();
+        
+      if (settingError || !settingData) {
+        console.error('Failed to fetch service role key from database:', settingError);
+        return new Response(JSON.stringify({ error: 'Service role key not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      
+      serviceRoleKey = typeof settingData.setting_value === 'string' 
+        ? settingData.setting_value 
+        : settingData.setting_value as string;
+    }
+    
     // Create service role client for the actual update operation
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      serviceRoleKey
     )
 
     const { userId, updates } = await req.json()
