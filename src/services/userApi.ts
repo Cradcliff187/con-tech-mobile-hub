@@ -18,8 +18,44 @@ interface CreateUserResult {
   tempPassword: string | null;
 }
 
+// Helper function to validate auth session before API calls
+const validateAuthSession = async () => {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  console.log('🔐 [userApi] Auth session validation:', { 
+    hasSession: !!session, 
+    hasAccessToken: !!session?.access_token,
+    userId: session?.user?.id,
+    error 
+  });
+  
+  if (error) {
+    console.error('❌ [userApi] Auth session error:', error);
+    throw new Error('Authentication session error. Please sign out and sign back in.');
+  }
+  
+  if (!session || !session.access_token) {
+    console.error('❌ [userApi] No valid session found');
+    throw new Error('Authentication required. Please sign out and sign back in.');
+  }
+  
+  // Check if token is expired (access tokens are typically valid for 1 hour)
+  const tokenExp = session.expires_at;
+  const now = Math.floor(Date.now() / 1000);
+  
+  if (tokenExp && tokenExp < now) {
+    console.error('❌ [userApi] Token expired', { tokenExp, now });
+    throw new Error('Session expired. Please sign out and sign back in.');
+  }
+  
+  return session;
+};
+
 export const userApi = {
   async fetchUsers() {
+    // Validate auth session before making the call
+    await validateAuthSession();
+    
     const { data, error } = await supabase.functions.invoke('admin-get-all-users');
 
     if (error) {
@@ -31,6 +67,9 @@ export const userApi = {
 
   async updateUserRole(userId: string, role: string) {
     console.log('🔧 [userApi] updateUserRole called', { userId, role });
+    
+    // Validate auth session before making the call
+    await validateAuthSession();
     
     const { data, error } = await supabase.functions.invoke('admin-update-user', {
       body: { userId, updates: { role: role as UserRole } },
@@ -50,6 +89,10 @@ export const userApi = {
     console.log('🔧 [userApi] updateUserStatus called', { userId, status });
     
     try {
+      // Validate auth session before making the call
+      const session = await validateAuthSession();
+      console.log('🔐 [userApi] Auth validation passed, proceeding with API call');
+      
       // Service Role Key Configuration Note:
       // The admin-update-user Edge Function requires the SUPABASE_SERVICE_ROLE_KEY 
       // to be configured in the Edge Function environment variables.
@@ -69,8 +112,10 @@ export const userApi = {
       if (error) {
         console.error('❌ [userApi] Edge Function error:', error);
         
-        // Handle specific error types for better user feedback
-        if (error.message?.includes('Forbidden') || error.message?.includes('403')) {
+        // Handle auth-specific errors first
+        if (error.message?.includes('JWT') || error.message?.includes('token') || error.message?.includes('unauthorized')) {
+          throw new Error('Authentication failed. Please sign out and sign back in.');
+        } else if (error.message?.includes('Forbidden') || error.message?.includes('403')) {
           throw new Error('Access denied: You need admin privileges to update user status');
         } else if (error.message?.includes('service_role_key')) {
           throw new Error('System configuration error: Admin service not properly configured');
@@ -120,6 +165,9 @@ export const userApi = {
   async deleteUser(userId: string) {
     console.log('🗑️ [userApi] deleteUser called', { userId });
     
+    // Validate auth session before making the call
+    await validateAuthSession();
+    
     const { data, error } = await supabase.functions.invoke('admin-delete-user', {
       body: { userId },
     });
@@ -136,6 +184,9 @@ export const userApi = {
 
   async createExternalUser(userData: CreateExternalUserData): Promise<CreateUserResult> {
     try {
+      // Validate auth session before making the call
+      await validateAuthSession();
+      
       const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
       
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
@@ -162,6 +213,9 @@ export const userApi = {
   },
 
   async fetchInvitations() {
+    // Validate auth session before making the call
+    await validateAuthSession();
+    
     const { data, error } = await supabase.rpc('get_user_invitations');
     if (error) throw error;
     return data || [];

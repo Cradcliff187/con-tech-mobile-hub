@@ -83,11 +83,19 @@ export const useUsers = () => {
       
       // Extract detailed error information with fallbacks
       let errorMessage = "Failed to update user status";
+      let isAuthError = false;
       
       if (error.context?.message) {
         errorMessage = error.context.message;
       } else if (error.message) {
         errorMessage = error.message;
+      }
+      
+      // Check if this is an authentication error
+      if (errorMessage.includes('Authentication') || errorMessage.includes('sign out and sign back in') || 
+          errorMessage.includes('Session expired') || errorMessage.includes('JWT') || 
+          errorMessage.includes('token') || errorMessage.includes('unauthorized')) {
+        isAuthError = true;
       }
       
       // Add context about what was being attempted
@@ -97,17 +105,29 @@ export const useUsers = () => {
         errorMessage, 
         userId, 
         status, 
+        isAuthError,
         fullError: error 
       });
       
-      toast({
-        title: "❌ Status Update Failed",
-        description: contextualMessage,
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
+      // Show different toast styles for auth vs other errors
+      if (isAuthError) {
+        toast({
+          title: "🔐 Authentication Required",
+          description: "Your session has expired. Please sign out and sign back in to continue.",
+          variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+          duration: 10000 // Show longer for auth errors
+        });
+      } else {
+        toast({
+          title: "❌ Status Update Failed",
+          description: contextualMessage,
+          variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900"
+        });
+      }
       
-      return { error: { message: contextualMessage } };
+      return { error: { message: contextualMessage, isAuthError } };
     }
   };
 
